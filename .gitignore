@@ -1,0 +1,3 @@
+./django
+./backend/app/staticfiles
+./backend/app/backend/__pycache__
