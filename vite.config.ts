@@ -12,9 +12,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@pong': path.resolve(__dirname, './src/pong'),
-      '@website': path.resolve(__dirname, './src/website'),
-      '@shared': path.resolve(__dirname, './src/shared')
+      '@pong': path.resolve(__dirname, 'src/pong'),
+      '@website': path.resolve(__dirname, 'src/website'),
+      '@shared': path.resolve(__dirname, 'src/shared')
     }
   }
 });

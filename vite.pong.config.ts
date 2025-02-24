@@ -6,15 +6,15 @@ export default defineConfig({
   base: './',
   resolve: {
     alias: {
-      '@pong': path.resolve(__dirname, '../src/pong'),
-      '@shared': path.resolve(__dirname, '../src/shared')
+      '@pong': path.resolve(__dirname, './src/pong'),
+      '@shared': path.resolve(__dirname, './src/shared')
     }
   },
   build: {
     outDir: '../../dist/pong',
     emptyOutDir: true,
     rollupOptions: {
-      input: path.resolve(__dirname, 'src/pong/main.ts'),
+      input: './main.ts',
       output: {
         entryFileNames: 'main.js',
         assetFileNames: '[name][extname]'
