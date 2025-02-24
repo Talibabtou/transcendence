@@ -61,25 +61,162 @@ const server = fastify.fastify({
         cert: fs.readFileSync(env.CERTIF)
     }
 });
-server.get('/', (request, reply) => { return { hello: "world" }; });
-server.post('/auth', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+server.get('/', (request, reply) => {
+    const isHttps = request.protocol === 'https';
+    return reply.code(200).send({
+        hello: "world",
+        isHttps: isHttps
+    });
+});
+server.post('/auth/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const isHttps = request.protocol === 'https';
         const parsedRequest = api_gateway_schema_1.authSchema.parse(request.query);
-        console.log("request has been send to the corresponding service");
-        const response = yield (0, node_fetch_1.default)(env.AUTH, {
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `${env.AUTH}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify(parsedRequest)
         });
-        console.log("waiting for an answer...");
         const responseData = yield response.json();
-        console.log("received");
-        reply.send(responseData);
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
     }
-    catch (error) {
-        reply.code(400).send({ error: error.message });
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+    }
+}));
+server.get('/auth/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const isHttps = request.protocol === 'https';
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `${env.AUTH}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: request.body
+        });
+        const responseData = yield response.json();
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
+    }
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+    }
+}));
+server.delete('/auth/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const isHttps = request.protocol === 'https';
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `${env.AUTH}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: request.query
+        });
+        const responseData = yield response.json();
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
+    }
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+    }
+}));
+server.post('/game/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const isHttps = request.protocol === 'https';
+        const subpath = request.url.split('/game')[1];
+        const serviceUrl = `${env.GAME}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: request.query
+        });
+        const responseData = yield response.json();
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
+    }
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+    }
+}));
+server.get('/game/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const isHttps = request.protocol === 'https';
+        const subpath = request.url.split('/game')[1];
+        const serviceUrl = `${env.GAME}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: request.body
+        });
+        const responseData = yield response.json();
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
+    }
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+    }
+}));
+server.delete('/game/*', (request, reply) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const isHttps = request.protocol === 'https';
+        const subpath = request.url.split('/game')[1];
+        const serviceUrl = `${env.GAME}${subpath}`;
+        const response = yield (0, node_fetch_1.default)(serviceUrl, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: request.query
+        });
+        const responseData = yield response.json();
+        reply.send([{ from_service: responseData }, {
+                from_client: {
+                    hello: "world",
+                    isHttps: isHttps
+                }
+            }
+        ]);
+    }
+    catch (e) {
+        reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
     }
 }));
 const start = () => __awaiter(void 0, void 0, void 0, function* () {

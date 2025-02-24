@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as https from 'https';
 import { Http2SecureServer, Http2ServerRequest, Http2ServerResponse } from 'http2';
 import { envSchema, Env, authSchema, Auth } from './modules/api_gateway.schema';
+import { send } from 'process';
 
 dotenv.config({path: path.resolve(__dirname, '../.env')});
 
@@ -22,29 +23,164 @@ const server: fastify.FastifyInstance<Http2SecureServer, Http2ServerRequest, Htt
 			}
 	});
 
-server.get('/', (request, reply) => { return {hello: "world"} })
+server.get('/', (request: any, reply: any) => { 
+	const isHttps = request.protocol === 'https';
+	return reply.code(200).send({ 
+		hello: "world",
+		isHttps: isHttps
+	});
+})
 
-server.post('/auth', async (request, reply) => { 
+server.post('/auth/*', async (request: any, reply: any) => { 
 	try {
+		const isHttps = request.protocol === 'https';
 		const parsedRequest = authSchema.parse(request.query);
-		console.log("request has been send to the corresponding service");
-		const response = await fetch(env.AUTH, {
+		const subpath = request.url.split('/auth')[1];
+		const serviceUrl = `${env.AUTH}${subpath}`;
+		const response = await fetch(serviceUrl, {
 			method: 'POST',
 			headers: {
 			  'Content-Type': 'application/json',
 			},
 			body: JSON.stringify(parsedRequest)
 		});
-
-		
-		console.log("waiting for an answer...");
 		const responseData = await response.json();
-		console.log("received");
-		reply.send(responseData);
-	} catch (error: any) {
-		reply.code(400).send({ error: error.message })
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
 	}
- })
+})
+
+server.get('/auth/*', async (request: any, reply: any) => { 
+	try {
+		const isHttps = request.protocol === 'https';
+		const subpath = request.url.split('/auth')[1];
+		const serviceUrl = `${env.AUTH}${subpath}`;
+		const response = await fetch(serviceUrl, {
+			method: 'GET',
+			headers: {
+			  'Content-Type': 'application/json'
+			},
+			body: request.body
+		});
+		const responseData = await response.json();
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+	}
+})
+
+server.delete('/auth/*', async (request: any, reply: any) => { 
+	try {
+		const isHttps = request.protocol === 'https';
+		const subpath = request.url.split('/auth')[1];
+		const serviceUrl = `${env.AUTH}${subpath}`;
+		const response = await fetch(serviceUrl, {
+			method: 'DELETE',
+			headers: {
+			  'Content-Type': 'application/json',
+			},
+			body: request.query
+		});
+		const responseData = await response.json();
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+	}
+})
+
+server.post('/game/*', async (request: any, reply: any) => { 
+	try {
+		const isHttps = request.protocol === 'https';
+		const subpath = request.url.split('/game')[1];
+		const serviceUrl = `${env.GAME}${subpath}`;
+		const response = await fetch(serviceUrl, {
+			method: 'POST',
+			headers: {
+			  'Content-Type': 'application/json',
+			},
+			body: request.query
+		});
+		const responseData = await response.json();
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+	}
+})
+
+server.get('/game/*', async (request: any, reply: any) => { 
+	try {
+		const isHttps = request.protocol === 'https';
+		const subpath = request.url.split('/game')[1];
+		const serviceUrl = `${env.GAME}${subpath}`;
+		const response = await fetch(serviceUrl, {
+			method: 'GET',
+			headers: {
+			  'Content-Type': 'application/json',
+			},
+			body: request.body
+		});
+		const responseData = await response.json();
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+	}
+})
+
+server.delete('/game/*', async (request: any, reply: any) => { 
+	try {
+		const isHttps = request.protocol === 'https';
+		const subpath = request.url.split('/game')[1];
+		const serviceUrl = `${env.GAME}${subpath}`;
+		const response = await fetch(serviceUrl, {
+			method: 'DELETE',
+			headers: {
+			  'Content-Type': 'application/json',
+			},
+			body: request.query
+		});
+		const responseData = await response.json();
+		reply.send([{ from_service: responseData }, {
+				from_client: { 
+					hello: "world",
+					isHttps: isHttps
+				}
+			}
+		])
+	} catch (e: any) {
+		reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+	}
+})
 
 const start = async () => {
 	try {

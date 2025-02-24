@@ -6,6 +6,7 @@ export const envSchema = z.object({
     CERTIF: z.string(),
     KEY: z.string(),
     AUTH: z.string(),
+    GAME: z.string(),
     PORT: z.coerce.number()
         .min(1000, "Port should be more than 1000")
         .max(9000, "Port should be less than 9000")

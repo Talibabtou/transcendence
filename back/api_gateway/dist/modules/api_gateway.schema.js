@@ -8,6 +8,7 @@ exports.envSchema = zod_1.z.object({
     CERTIF: zod_1.z.string(),
     KEY: zod_1.z.string(),
     AUTH: zod_1.z.string(),
+    GAME: zod_1.z.string(),
     PORT: zod_1.z.coerce.number()
         .min(1000, "Port should be more than 1000")
         .max(9000, "Port should be less than 9000")
