@@ -1,0 +1,71 @@
+services:
+  api_gateway:
+    build: ./requirements/api_gateway
+    container_name: api_gateway
+    env_file:
+      - ../.env
+    environment:
+      - PORT=8080
+    ports:
+      - 8080:8080
+    networks:
+      - transcendance-net
+    restart: unless-stopped
+  auth:
+    build: ./requirements/auth
+    container_name: auth
+    env_file:
+      - ../.env
+    environment:
+      - PORT=8082
+    expose:
+      - 8082
+    networks:
+      - transcendance-net
+      - auth-net
+    volumes:
+    - auth-volume:/db
+    restart: unless-stopped
+  # auth_db:
+  #   build: ./requirements/auth_db
+  #   container_name: auth_db
+  #   volumes:
+  #     - auth-volume:/db
+  #   expose:
+  #     - 8090
+  #   networks:
+  #     - auth-net
+  #   restart: unless-stopped
+  # game:
+  #   build: ./requirements/game
+  #   container_name: game
+  #   volumes:
+  #     - game:/db
+  #   expose:
+  #     - 8083
+  #   networks:
+  #     - transcendance-net
+  #     - game-net
+  #   restart: unless-stopped
+  # auth_db:
+  #   build: ./requirements/game_db
+  #   container_name: game_db
+  #   volumes:
+  #     - game-volume:/db
+  #   expose:
+  #     - 8090
+  #   networks:
+  #     - game-net
+  #   restart: unless-stopped
+
+volumes:
+  auth-volume:
+#   game-volume:
+
+networks:
+  transcendance-net:
+    driver: bridge
+  auth-net:
+    driver: bridge
+#   game-net:
+#     driver: bridge
