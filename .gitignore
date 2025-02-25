@@ -1,3 +1,9 @@
 ./django
 ./backend/app/staticfiles
 ./backend/app/backend/__pycache__
+*/node_modules
+*/dist
+*/certs
+*.lock
+*.env
+plugin-decorator-schema-api.js

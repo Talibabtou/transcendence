@@ -1,0 +1,10 @@
+{
+  "extends": "@tsconfig/node23/tsconfig.json",
+  "compilerOptions": {
+		"declaration": true, //TypeScript declaration file that contains type information. These files are useful if your code is going to be consumed by other TypeScript projects
+    "sourceMap": true, //A source map file that maps the compiled JavaScript back to your original TypeScript source. This is useful for debugging
+    "outDir": "dist"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
