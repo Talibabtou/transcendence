@@ -1,14 +1,23 @@
-import { fastify, FastifyInstance,  } from 'fastify';
-import authRoutes from './routes/auth.routes.js'
+import fastify from 'fastify';
+import { readFileSync } from 'fs';
+import path from 'path';
+import authRoutes from './routes/auth.routes.js';
 import checkRoutes from './routes/check.routes.js';
 
-const server: FastifyInstance = fastify({ logger: true });
+const server = fastify.fastify({
+		logger: true,
+		http2: true,
+		https: {
+				key: readFileSync(path.join(path.resolve(), '/certs/key.pem')),
+				cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
+			}
+	});
 
 const start = async () => {
 	try {
-		await server.register(authRoutes);
-		await server.register(checkRoutes);
-		await server.listen({ port: 8082, host: 'localhost' }, (err, address) => {
+		await server.register(authRoutes, {prefix: '/api'});
+		await server.register(checkRoutes, {prefix: '/api'});
+		await server.listen({ port: 8080, host: "localhost" }, (err: any, address: any) => {
 			if (err)
 				throw new Error("server.listen");
 			console.log(`Server listening at ${address}`);
@@ -21,7 +30,6 @@ const start = async () => {
 
 const shutdownServer = async (signal: any) => {
 	console.log(`\nReceived ${signal}. Shutting down gracefully...`);
-	await server.close();
 	console.log('Server has been closed.');
 	process.exit(0);
 };
