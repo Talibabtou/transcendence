@@ -25,8 +25,8 @@ npx tsc // compile .ts to .js
 ```bash
 services:
   api_gateway:
-    build: ./requirements/api_gateway
-    container_name: api_gateway
+    build: ./requirements/api
+    container_name: api
     port:
       - 8080:8080
     networks:
@@ -39,51 +39,17 @@ services:
       - 8082
     networks:
       - transcendance-net
-      - auth-net
-    volumes:
-    - auth-volume:/db
-    restart: always
-  auth_db:
-    build: ./requirements/auth_db
-    container_name: auth_db
-    volumes:
-      - auth-volume:/db
-    expose:
-      - 8090
-    networks:
-      - auth-net
     restart: always
   game:
     build: ./requirements/game
     container_name: game
-    volumes:
-      - game:/db
     expose:
       - 8083
     networks:
       - transcendance-net
-      - game-net
     restart: always
-  auth_db:
-    build: ./requirements/game_db
-    container_name: game_db
-    volumes:
-      - game-volume:/db
-    expose:
-      - 8090
-    networks:
-      - game-net
-    restart: always
-
-volumes:
-  auth-volume:
-  game-volume:
 
 networks:
   transcendance-net:
-    driver: bridge
-  auth-net:
-    driver: bridge
-  game-net:
     driver: bridge
 ```
