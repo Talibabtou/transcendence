@@ -1,16 +1,12 @@
-import fs from 'node:fs'
-import path from 'node:path' //not use curly braces for default exports
-import { fileURLToPath } from 'node:url' //curly braces {} for named exports
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path' //not use curly braces for default exports
 import fastify from 'fastify'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
 
 const server = fastify({
 	http2: true,
   https: {
-    key: fs.readFileSync(path.join(__dirname, '../certs/key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, '../certs/cert.pem'))
+    key: readFileSync(join(process.cwd(), './certs/key.pem')),
+    cert: readFileSync(join(process.cwd(), './certs/cert.pem'))
   }
 })
 

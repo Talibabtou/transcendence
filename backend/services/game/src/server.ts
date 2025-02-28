@@ -1,27 +1,46 @@
-import fs from 'node:fs'
-import path from 'node:path' //not use curly braces for default exports
-import { fileURLToPath } from 'node:url' //curly braces {} for named exports
 import fastify from 'fastify'
+import databaseConnector from './database/database.js'
+import routes from './routes/index.js'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
+// Create the server instance
 const server = fastify({
-	http2: true,
-  https: {
-    key: fs.readFileSync(path.join(__dirname, '../certs/key.pem')),
-    cert: fs.readFileSync(path.join(__dirname, '../certs/cert.pem'))
-  }
+	logger: true
 })
 
-server.get('/', async function (request, reply) {
-  return { hello: 'world' }
+// Register plugins
+await server.register(databaseConnector)
+
+// Register API routes
+// When you call server.register(routes, { prefix: '/api' }), 
+// you're telling Fastify to use the routes defined in your 
+// routes/index.js file and prefix all those routes with /api.
+await server.register(routes, { prefix: '/api' })
+
+// Health check route
+server.get('/health', async (request, reply) => {
+	return { status: 'ok' }
 })
 
-server.listen({ port: 8080 }, (err, address) => {
-  if (err) {
-    console.error(err)
-    process.exit(0)
-  }
-  console.log(`Server listening at ${address}`)
-})
+// Start the server
+const start = async () => {
+	try {
+		const port = process.env.PORT || 8080
+		await server.listen({ port: Number(port), host: '0.0.0.0' })
+		
+		const address = server.server.address()
+		if (address) {
+			// Handle the case when address is an object (IP socket)
+			const addressInfo = typeof address === 'string' 
+				? address 
+				: `${address.address}:${address.port}`
+			console.log(`Server listening on ${addressInfo}`)
+		} else {
+			console.log(`Server started successfully`)
+		}
+	} catch (err) {
+		server.log.error(err)
+		process.exit(1)
+	}
+}
+
+start()

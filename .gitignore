@@ -1,9 +1,11 @@
 node_modules
 dist
-certs
+*/certs/*
 plugin-decorator-schema-api.js
+transcendence.db
 
 .DS_Store
 .env
 .cursor
-.lock
+*.lock
+*.sqlite

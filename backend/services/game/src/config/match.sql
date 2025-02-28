@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS matches (
+  id TEXT PRIMARY KEY, -- UUID
+  player_1 TEXT NOT NULL, -- UUID
+  player_2 TEXT NOT NULL, -- UUID
+  completed BOOLEAN DEFAULT FALSE,
+  duration TEXT,
+  timeout BOOLEAN DEFAULT FALSE,
+  tournament_id TEXT, -- UUID
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);

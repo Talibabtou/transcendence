@@ -1,23 +1,28 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "dist/index.js",
+  "main": "dist/server.js",
   "repository": "git@github.com:Talibabtou/transcendence.git",
   "author": "Bboissen <33459312+Bboissen@users.noreply.github.com>",
   "type": "module",
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "npm run build && node dist/index.js",
-    "dev": "tsc -w & node --watch dist/index.js"
+    "start": "npm run build && node dist/server.js",
+    "dev": "node --watch --loader ts-node/esm src/server.ts"
   },
   "dependencies": {
     "fastify": "^5.2.1",
-    "fastify-plugin": "^5.0.1"
+    "fastify-plugin": "^5.0.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
     "@tsconfig/node23": "^23.0.0",
     "@types/node": "^22.13.5",
+    "ts-node": "^10.9.2",
+    "tsc-alias": "^1.8.11",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"
   }
 }
