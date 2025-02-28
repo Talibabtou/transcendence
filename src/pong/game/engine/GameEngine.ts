@@ -1,13 +1,22 @@
-import { GameContext, SceneParams, GameState } from '@pong/types';
-import { MenuScene, MainScene, Scene } from '@pong/game/scenes';
+import { GameContext, GameState, Player } from '@pong/types';
+import { GameScene } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
+
+// Add this interface for game state
+interface GameStateInfo {
+  player1Score: number;
+  player2Score: number;
+  isGameOver: boolean;
+  winner: Player | null;
+}
 
 export class GameEngine {
   // =========================================
   // Properties
   // =========================================
-  protected scene!: Scene;
+  private scene!: GameScene; // Use definite assignment assertion
   private context: GameContext;
+  private gameMode: 'single' | 'multi' | 'tournament' | 'background' = 'single';
 
   // =========================================
   // Lifecycle
@@ -18,25 +27,66 @@ export class GameEngine {
   }
 
   private initializeGame(): void {
-    const menu = new MenuScene(this.context);
-    this.loadScene(menu);
+    this.scene = new GameScene(this.context);
+    this.scene.setGameContext(this);
     this.bindPauseControls();
   }
 
   // =========================================
-  // Scene Management
+  // Game Mode Initialization
   // =========================================
-  public loadScene(newScene: Scene, params: SceneParams = {}): void {
-    if (this.scene) {
-      this.scene.unload();
-    }
-    this.scene = newScene;
-    this.scene.setGameContext(this);
-    this.scene.load(params);
+  public initializeSinglePlayer(): void {
+    this.gameMode = 'single';
+    this.loadMainScene();
   }
 
-  public getScene(): Scene {
-    return this.scene;
+  public initializeMultiPlayer(): void {
+    this.gameMode = 'multi';
+    this.loadMainScene();
+  }
+
+  public initializeTournament(): void {
+    this.gameMode = 'tournament';
+    // For now, just start a multiplayer game
+    // We'll implement tournament specifics later
+    this.loadMainScene();
+  }
+
+  public initializeBackgroundMode(): void {
+    this.gameMode = 'background';
+    this.loadMainScene();
+  }
+
+  private loadMainScene(): void {
+    // First, ensure background mode is disabled for regular gameplay
+    this.scene.setBackgroundMode(false);
+    
+    // Configure player controls based on mode
+    if (this.gameMode === 'single') {
+        this.scene.setGameMode('single');
+    } else if (this.gameMode === 'multi') {
+        this.scene.setGameMode('multi');
+    } else if (this.gameMode === 'background') {
+        this.scene.setBackgroundMode(true);
+        const pauseManager = this.scene.getPauseManager();
+        if (pauseManager) {
+            pauseManager.setBackgroundDemoMode(true);
+        }
+    }
+
+    // Reset positions of game objects
+    if (this.scene.getBall()) {
+        this.scene.getBall().restart();
+    }
+    if (this.scene.getPlayer1()) {
+        this.scene.getPlayer1().resetPosition();
+    }
+    if (this.scene.getPlayer2()) {
+        this.scene.getPlayer2().resetPosition();
+    }
+
+    // Load the scene
+    this.scene.load();
   }
 
   // =========================================
@@ -48,10 +98,12 @@ export class GameEngine {
   }
 
   public update(): void {
-    if (this.isGamePaused()) {
-      return;
+    const isBackground = this.gameMode === 'background';
+    
+    // In background mode, always update regardless of pause state
+    if (isBackground || !this.isGamePaused()) {
+      this.scene.update?.();
     }
-    this.scene.update?.();
   }
 
   // =========================================
@@ -66,29 +118,50 @@ export class GameEngine {
   }
 
   private togglePause(): void {
-    if (!(this.scene instanceof MainScene)) {
+    if (!(this.scene instanceof GameScene)) {
       return;
     }
 
-    const mainScene = this.scene;
-    const resizeManager = mainScene.getResizeManager();
+    const gameScene = this.scene;
+    const resizeManager = gameScene.getResizeManager();
     if (resizeManager?.isCurrentlyResizing()) {
       return;
     }
     
-    const pauseManager = mainScene.getPauseManager();
+    const pauseManager = gameScene.getPauseManager();
     if (pauseManager.hasState(GameState.PLAYING)) {
-      mainScene.handlePause();
+      gameScene.handlePause();
     } else if (pauseManager.hasState(GameState.PAUSED)) {
-      mainScene.handleResume();
+      gameScene.handleResume();
     }
   }
 
   public isGamePaused(): boolean {
-    if (!(this.scene instanceof MainScene)) {
+    if (!(this.scene instanceof GameScene)) {
       return false;
     }
     return this.scene.getPauseManager().hasState(GameState.PAUSED);
+  }
+
+  // =========================================
+  // Resize handling
+  // =========================================
+  public resize(width: number, height: number): void {
+    // Update the canvas size first
+    if (this.context && this.context.canvas) {
+      this.context.canvas.width = width;
+      this.context.canvas.height = height;
+    }
+    
+    // Inform game objects about the resize
+    if (this.scene instanceof GameScene) {
+      // Let the scene handle updating its objects
+      this.scene.getPlayer1()?.updateSizes();
+      this.scene.getPlayer2()?.updateSizes();
+    }
+    
+    // Redraw the scene
+    this.draw();
   }
 
   // =========================================
@@ -107,5 +180,21 @@ export class GameEngine {
       this.scene = null as any;
     }
     this.context = null as any;
+  }
+
+  // Update getGameState return type
+  public getGameState(): GameStateInfo {
+    return {
+      player1Score: this.scene.getPlayer1().getScore(),
+      player2Score: this.scene.getPlayer2().getScore(),
+      isGameOver: this.scene.isGameOver(),
+      winner: this.scene.getWinner()
+    };
+  }
+
+  // Add method to set player names
+  public setPlayerNames(player1Name: string, player2Name: string): void {
+    this.scene.getPlayer1().setName(player1Name);
+    this.scene.getPlayer2().setName(player2Name);
   }
 }

@@ -5,7 +5,7 @@ import { GameSizes } from '@pong/types';
 // =========================================
 export const GAME_CONFIG = {
   WINNING_SCORE: 5,
-  FPS: 144,
+  FPS: 240,
   MIN_SIZES: {
     BALL_SIZE: 5
   }
@@ -15,9 +15,8 @@ export const GAME_CONFIG = {
 // COLORS
 // =========================================
 export const COLORS = {
-  // Backgrounds
-  MENU_BACKGROUND: '#7E8F7C',
-  GAME_BACKGROUND: '#000000',
+  // Background
+  GAME_BACKGROUND: 'transparent',
   
   // Game elements
   PITCH: '#FFFFFF',
@@ -55,7 +54,7 @@ export const GAME_RATIOS = {
   PADDLE: {
     WIDTH: 0.01,    // % of screen width
     HEIGHT: 0.15,   // % of screen height
-    SPEED: 0.006,   // Reduced from 0.01 to 0.006 for better control
+    SPEED: 0.005,   // control speed
     PADDING: 0.03   // % from edges
   },
   BALL: {

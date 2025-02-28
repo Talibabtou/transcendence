@@ -22,6 +22,16 @@ export enum GameState {
   COUNTDOWN = 'COUNTDOWN'
 }
 
+export enum PlayerPosition {
+  LEFT = 'LEFT',
+  RIGHT = 'RIGHT'
+}
+
+export enum PlayerType {
+  HUMAN = 'HUMAN',
+  AI = 'AI'
+}
+
 // =========================================
 // Game Objects
 // =========================================
@@ -34,6 +44,10 @@ export interface Player extends GraphicalElement {
   resetScore(): void;
   givePoint(): void;
   updateSizes(): void;
+  bindControls(): void;
+  unbindControls(): void;
+  isAIControlled(): boolean;
+  setControlType(type: PlayerType): void;
 }
 
 // =========================================

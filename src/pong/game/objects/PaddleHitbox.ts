@@ -9,78 +9,93 @@ interface CollisionResult {
 }
 
 export class PaddleHitbox {
-  private readonly EDGE_ZONE = BALL_CONFIG.EDGES.ZONE_SIZE;
-  private readonly MAX_DEFLECTION = BALL_CONFIG.EDGES.MAX_DEFLECTION;
+  private readonly paddle: Paddle;
+  private readonly ball: Ball;
 
-  // =========================================
-  // Constructor
-  // =========================================
-  constructor(
-    private readonly paddle: Paddle,
-    private readonly ball: Ball
-  ) {}
+  constructor(paddle: Paddle, ball: Ball) {
+    this.paddle = paddle;
+    this.ball = ball;
+  }
 
-  // =========================================
-  // Public Methods
-  // =========================================
   public checkCollision(): CollisionResult {
     if (this.isStationary()) {
       return { collided: false, hitFace: 'front', deflectionModifier: 0 };
     }
 
-    const ballBox = this.getBallBoundingBox();
-    const paddleBox = this.getPaddleBoundingBox();
+    const ballRadius = this.ball.getSize();
+    
+    // Get current ball position
+    const ballBox = {
+      left: this.ball.x - ballRadius,
+      right: this.ball.x + ballRadius,
+      top: this.ball.y - ballRadius,
+      bottom: this.ball.y + ballRadius
+    };
 
+    const paddleBox = {
+      left: this.paddle.x,
+      right: this.paddle.x + this.paddle.paddleWidth,
+      top: this.paddle.y,
+      bottom: this.paddle.y + this.paddle.paddleHeight
+    };
+
+    // Early exit if no collision possible
     if (!this.doBoxesIntersect(ballBox, paddleBox)) {
       return { collided: false, hitFace: 'front', deflectionModifier: 0 };
     }
 
-    // Determine if ball is approaching the paddle
+    // Determine if ball is approaching paddle
     const isApproachingFromLeft = this.ball.dx > 0 && this.ball.x < this.paddle.x;
     const isApproachingFromRight = this.ball.dx < 0 && this.ball.x > this.paddle.x + this.paddle.paddleWidth;
 
-    // Only register collision if ball is approaching the paddle
     if (!isApproachingFromLeft && !isApproachingFromRight) {
       return { collided: false, hitFace: 'front', deflectionModifier: 0 };
     }
 
-    // Calculate relative hit position
-    const relativeHitPos = (this.ball.y - this.paddle.y) / this.paddle.paddleHeight;
-
-    // Determine hit face and calculate deflection
-    let hitFace: 'front' | 'top' | 'bottom';
-    let deflectionModifier = 0;
-
-    // Check for top/bottom collisions first
-    if (this.ball.dy > 0 && this.ball.y - this.ball.getSize() <= this.paddle.y) {
-      hitFace = 'top';
-    } else if (this.ball.dy < 0 && this.ball.y + this.ball.getSize() >= this.paddle.y + this.paddle.paddleHeight) {
-      hitFace = 'bottom';
-    } else {
-      // Front collision with edge detection
-      hitFace = 'front';
-      if (relativeHitPos < this.EDGE_ZONE) {
-        deflectionModifier = -this.MAX_DEFLECTION * (1 - (relativeHitPos / this.EDGE_ZONE));
-      } else if (relativeHitPos > (1 - this.EDGE_ZONE)) {
-        deflectionModifier = this.MAX_DEFLECTION * ((relativeHitPos - (1 - this.EDGE_ZONE)) / this.EDGE_ZONE);
-      }
+    // Calculate precise collision point
+    const relativeHitPoint = (this.ball.y - this.paddle.y) / this.paddle.paddleHeight;
+    
+    // Ensure hit point is within paddle bounds
+    if (relativeHitPoint < 0 || relativeHitPoint > 1) {
+      return { collided: false, hitFace: 'front', deflectionModifier: 0 };
     }
 
-    // After collision, move ball outside paddle to prevent sticking
-    if (hitFace === 'front') {
-      if (isApproachingFromLeft) {
-        this.ball.x = this.paddle.x - this.ball.getSize();
-      } else {
-        this.ball.x = this.paddle.x + this.paddle.paddleWidth + this.ball.getSize();
-      }
-    }
+    // Very small deflection angle (maximum 3 degrees = ~0.052 radians)
+    const maxDeflection = 0.02; // About 1.15 degrees
+    const deflectionModifier = (relativeHitPoint - 0.5) * maxDeflection;
 
-    return { collided: true, hitFace, deflectionModifier };
+    return {
+      collided: true,
+      hitFace: 'front',
+      deflectionModifier
+    };
   }
 
-  // =========================================
-  // Private Methods
-  // =========================================
+  private handleCollision(): CollisionResult {
+    // Calculate relative hit position (0 = top, 1 = bottom)
+    const relativeHitPoint = (this.ball.y - this.paddle.y) / this.paddle.paddleHeight;
+    
+    // Small deflection angle (maximum 5 degrees = ~0.087 radians)
+    const maxDeflection = 0.027; // About 1.5 degrees in radians
+    
+    // Linear deflection based on hit position
+    const deflectionModifier = (relativeHitPoint - 0.5) * maxDeflection;
+
+    // Prevent ball from getting stuck in paddle
+    const ballRadius = this.ball.getSize();
+    if (this.ball.dx > 0) {
+      this.ball.x = this.paddle.x - ballRadius;
+    } else {
+      this.ball.x = this.paddle.x + this.paddle.paddleWidth + ballRadius;
+    }
+
+    return {
+      collided: true,
+      hitFace: 'front',
+      deflectionModifier
+    };
+  }
+
   private isStationary(): boolean {
     return this.ball.dx === 0 && this.ball.dy === 0;
   }

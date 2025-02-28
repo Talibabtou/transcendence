@@ -1,0 +1,94 @@
+<div class="ascii-container">
+  <h2 class="section-title">Leaderboard</h2>
+  <div class="leaderboard-content">
+    <p class="loading-text">Loading leaderboard data...</p>
+  </div>
+</div>
+
+<style>
+  .ascii-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: rgba(40, 40, 40, 0.9);
+    border: 1px solid rgba(150, 150, 150, 0.5);
+    border-radius: 8px;
+  }
+  
+  .section-title {
+    text-align: center;
+    margin-bottom: 30px;
+    font-family: monospace;
+    color: #fff;
+  }
+  
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: monospace;
+    color: #fff;
+  }
+  
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(150, 150, 150, 0.3);
+  }
+  
+  .leaderboard-table th {
+    background-color: rgba(50, 50, 50, 0.8);
+  }
+  
+  .leaderboard-table tr:nth-child(even) {
+    background-color: rgba(60, 60, 60, 0.5);
+  }
+  
+  .leaderboard-table tr:hover {
+    background-color: rgba(70, 70, 70, 0.8);
+  }
+  
+  .rank-cell {
+    text-align: center;
+    font-weight: bold;
+  }
+  
+  .player-cell {
+    cursor: pointer;
+    color: #7cf;
+  }
+  
+  .player-cell:hover {
+    text-decoration: underline;
+  }
+  
+  .loading-text {
+    text-align: center;
+    color: #aaa;
+    font-family: monospace;
+    padding: 20px;
+  }
+  
+  .error-message {
+    color: #f77;
+    text-align: center;
+    padding: 20px;
+    font-family: monospace;
+  }
+  
+  .retry-button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: rgba(60, 60, 60, 0.8);
+    border: 1px solid rgba(150, 150, 150, 0.8);
+    color: #fff;
+    font-family: monospace;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .retry-button:hover {
+    background-color: rgba(80, 80, 80, 0.9);
+  }
+</style> 

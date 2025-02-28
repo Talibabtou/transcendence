@@ -1,0 +1,66 @@
+<div class="game-container">
+  <!-- Game Menu -->
+  <div id="game-menu" class="game-menu">
+    <div class="ascii-title">
+      <pre class="pong-title"></pre>
+    </div>
+    <div class="menu-buttons">
+      <button class="menu-button" data-mode="single">Single Player</button>
+      <button class="menu-button" data-mode="multi">Multiplayer</button>
+      <button class="menu-button" data-mode="tournament">Tournament</button>
+    </div>
+  </div>
+  <!-- Game Canvas (hidden initially) -->
+  <canvas id="game-canvas" style="display: none;"></canvas>
+</div>
+
+<style>
+  .game-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+  }
+  
+  .game-menu {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    max-width: 80%;
+    background-color: rgba(40, 40, 40, 0.9);
+    border: 1px solid rgba(150, 150, 150, 0.5);
+    border-radius: 8px;
+    padding: 40px;
+  }
+  
+  .ascii-title {
+    margin-bottom: 40px;  /* Add more space after the ASCII art */
+  }
+  
+  .menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;  /* Add more space between buttons */
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .menu-button {
+    padding: 15px;
+    font-family: monospace;
+    font-size: 1.2rem;
+    cursor: pointer;
+    background-color: rgba(60, 60, 60, 0.8);
+    border: 1px solid rgba(150, 150, 150, 0.8);
+    color: #fff;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+  
+  .menu-button:hover {
+    background-color: rgba(80, 80, 80, 0.9);
+    transform: translateY(-2px);
+  }
+</style> 

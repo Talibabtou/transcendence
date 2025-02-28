@@ -2,7 +2,7 @@ import { Ball, Player } from '@pong/game/objects';
 import { PauseManager } from '@pong/game/engine';
 import { GameContext, GameState } from '@pong/types';
 import { calculateGameSizes } from '@pong/constants';
-import { Scene } from '@pong/game/scenes';
+import { GameScene } from '@pong/game/scenes';
 
 export class ResizeManager {
   // =========================================
@@ -11,19 +11,20 @@ export class ResizeManager {
   private resizeTimeout: number | null = null;
   private isResizing: boolean = false;
   private context: GameContext;
-  private scene: Scene;
+  private scene: GameScene;
   private ball: Ball | null;
   private player1: Player | null;
   private player2: Player | null;
   private pauseManager: PauseManager | null;
   private boundResizeHandler: () => void;
+  private isBackgroundDemo: boolean = false;
 
   // =========================================
   // Constructor
   // =========================================
   constructor(
     ctx: GameContext,
-    scene: Scene,
+    scene: GameScene,
     ball: Ball | null,
     player1: Player | null,
     player2: Player | null,
@@ -68,6 +69,10 @@ export class ResizeManager {
     this.boundResizeHandler = null as any;
   }
 
+  public setBackgroundMode(enabled: boolean): void {
+    this.isBackgroundDemo = enabled;
+  }
+
   // =========================================
   // Private Methods
   // =========================================
@@ -84,7 +89,22 @@ export class ResizeManager {
     // Set resizing state
     this.isResizing = true;
 
-    // Only check pauseManager if it exists
+    // Check if we're in background demo mode
+    const isBackgroundDemo = this.isInBackgroundDemo();
+
+    // For background mode, update everything without pausing
+    if (isBackgroundDemo) {
+      this.updateCanvasSize();
+      this.updateGameObjectsForBackgroundMode();
+      
+      // Short timeout to reset resizing state
+      this.resizeTimeout = window.setTimeout(() => {
+        this.isResizing = false;
+      }, 50);
+      return;
+    }
+
+    // Regular resize behavior for normal gameplay
     const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
     if (wasPlaying && this.pauseManager) {
       this.pauseManager.pause();
@@ -258,5 +278,51 @@ export class ResizeManager {
 
   private isGameScene(): boolean {
     return !!(this.ball && this.player1 && this.player2 && this.pauseManager);
+  }
+
+  // Helper to check if we're in background demo mode
+  private isInBackgroundDemo(): boolean {
+    if (this.isBackgroundDemo) return true;
+    
+    if (this.scene instanceof GameScene) {
+      return (this.scene as any).isBackgroundDemo === true;
+    }
+    return false;
+  }
+
+  // New method for background mode updates
+  private updateGameObjectsForBackgroundMode(): void {
+    // Get current dimensions
+    const { width: newWidth, height: newHeight } = this.context.canvas;
+    const sizes = calculateGameSizes(newWidth, newHeight);
+
+    if (!this.ball || !this.player1 || !this.player2) return;
+
+    // Remember key properties before resize
+    const ballState = this.ball.saveState();
+    const ballSpeed = Math.sqrt(this.ball.dx * this.ball.dx + this.ball.dy * this.ball.dy);
+
+    // Update all game objects with new sizes
+    this.ball.updateSizes();
+    this.player1.updateSizes();
+    this.player2.updateSizes();
+
+    // Update paddle positions
+    this.player1.x = sizes.PLAYER_PADDING;
+    this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
+
+    // Keep paddles' relative vertical position
+    const canvas = this.context.canvas;
+    const p1RelativeY = (this.player1.y + this.player1.paddleHeight / 2) / canvas.height;
+    const p2RelativeY = (this.player2.y + this.player2.paddleHeight / 2) / canvas.height;
+    
+    this.player1.y = (p1RelativeY * newHeight) - (this.player1.paddleHeight / 2);
+    this.player2.y = (p2RelativeY * newHeight) - (this.player2.paddleHeight / 2);
+
+    // Restore ball position and scale velocity properly
+    this.ball.restoreState(ballState, newWidth, newHeight);
+
+    // Force redraw
+    this.scene.draw();
   }
 }

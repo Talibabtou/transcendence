@@ -1,5 +1,11 @@
 import { GraphicalElement, GameContext, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
+import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
+
+const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // 240hz physics updates
+const MAX_STEPS_PER_FRAME = 4; // Prevent spiral of death
+
+// Add a constant for maximum allowed delta time
+const MAX_DELTA_TIME = 1000 / 30; // Cap at 30fps equivalent
 
 export interface BallState {
   position: { x: number; y: number };
@@ -24,11 +30,19 @@ export class Ball implements GraphicalElement {
   // Speed control
   private speedMultiplier: number = BALL_CONFIG.ACCELERATION.INITIAL;
   
+  // Visual enhancement properties
+  private readonly trailLength = 3; // Number of trail segments
+  private readonly trailPositions: Array<{x: number, y: number}> = [];
+  private readonly maxGlowSize = 4; // Maximum glow size in pixels
+  
   // =========================================
   // Public Properties
   // =========================================
   public dx = 0;
   public dy = 0;
+
+  private lastPhysicsTime: number = 0;
+  private accumulator: number = 0;
 
   constructor(
     public x: number,
@@ -37,6 +51,11 @@ export class Ball implements GraphicalElement {
   ) {
     this.context = context;
     this.initializeSizes();
+    
+    // Initialize trail positions
+    for (let i = 0; i < this.trailLength; i++) {
+      this.trailPositions.push({x, y});
+    }
   }
 
   // =========================================
@@ -59,6 +78,43 @@ export class Ball implements GraphicalElement {
   }
 
   public draw(): void {
+    // Calculate normalized speed for visual effects
+    const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+    const normalizedSpeed = Math.min(speed / (this.baseSpeed * 2), 1);
+    
+    // Only draw trail if ball is moving fast enough
+    if (normalizedSpeed > 0.3) {
+      // Draw trail segments with decreasing opacity
+      for (let i = 0; i < this.trailPositions.length; i++) {
+        const pos = this.trailPositions[i];
+        const alpha = (i / this.trailPositions.length) * 0.5 * normalizedSpeed;
+        
+        this.context.beginPath();
+        this.context.fillStyle = `rgba(255, 0, 0, ${alpha})`;
+        this.context.arc(pos.x, pos.y, this.size, 0, Math.PI * 2);
+        this.context.fill();
+        this.context.closePath();
+      }
+    }
+    
+    // Draw glow effect for high speeds
+    if (normalizedSpeed > 0.5) {
+      const glowSize = this.maxGlowSize * normalizedSpeed;
+      const gradient = this.context.createRadialGradient(
+        this.x, this.y, this.size,
+        this.x, this.y, this.size + glowSize
+      );
+      gradient.addColorStop(0, 'rgba(255, 100, 100, 0.8)');
+      gradient.addColorStop(1, 'rgba(255, 100, 100, 0)');
+      
+      this.context.beginPath();
+      this.context.fillStyle = gradient;
+      this.context.arc(this.x, this.y, this.size + glowSize, 0, Math.PI * 2);
+      this.context.fill();
+      this.context.closePath();
+    }
+    
+    // Draw the main ball (always the same size regardless of speed)
     this.context.beginPath();
     this.context.fillStyle = this.colour;
     this.context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -68,7 +124,58 @@ export class Ball implements GraphicalElement {
 
   public update(_context: GameContext, deltaTime: number, state: GameState): void {
     if (state !== GameState.PLAYING) return;
-    this.movePosition(deltaTime);
+    
+    // Convert deltaTime to milliseconds and clamp it
+    const dt = Math.min(deltaTime * 1000, MAX_DELTA_TIME);
+    
+    // Reset accumulator if it's too large (tab was inactive)
+    if (this.accumulator > MAX_DELTA_TIME * 2) {
+        this.accumulator = 0;
+    }
+    
+    // Accumulate time since last frame
+    this.accumulator += dt;
+    
+    // Run physics updates at fixed timesteps
+    let steps = 0;
+    while (this.accumulator >= PHYSICS_TIMESTEP && steps < MAX_STEPS_PER_FRAME) {
+        this.updatePhysics(PHYSICS_TIMESTEP / 1000);
+        this.accumulator -= PHYSICS_TIMESTEP;
+        steps++;
+    }
+    
+    // If we still have accumulated time but not too much, do one last update
+    if (this.accumulator > 0 && this.accumulator < PHYSICS_TIMESTEP * 2 && steps < MAX_STEPS_PER_FRAME) {
+        const remainingTime = this.accumulator / 1000;
+        this.updatePhysics(remainingTime);
+        this.accumulator = 0;
+    } else {
+        // If we have too much accumulated time, just drop it
+        this.accumulator = Math.min(this.accumulator, PHYSICS_TIMESTEP * 2);
+    }
+    
+    // Update visual effects (trail, etc.)
+    this.updateTrail();
+  }
+
+  private updatePhysics(deltaTime: number): void {
+    // Add speed cap for background mode
+    if (this.currentSpeed > this.baseSpeed * 2) {
+        this.currentSpeed = this.baseSpeed * 2;
+        const normalized = this.getNormalizedVelocity();
+        this.dx = normalized.dx * this.currentSpeed;
+        this.dy = normalized.dy * this.currentSpeed;
+    }
+    
+    // Calculate how far the ball will move this step
+    const moveX = this.dx * deltaTime;
+    const moveY = this.dy * deltaTime;
+    
+    // Move the ball
+    this.x = this.x + moveX;
+    this.y = this.y + moveY;
+    
+    // Check boundaries
     this.checkBoundaries();
   }
 
@@ -77,53 +184,69 @@ export class Ball implements GraphicalElement {
     this.currentSpeed = this.baseSpeed;
     this.speedMultiplier = BALL_CONFIG.ACCELERATION.INITIAL;
 
-    // Use the new angle configuration
-    const baseAngle = BALL_CONFIG.SPEED.RELATIVE.INITIAL_ANGLE.BASE;
-    const variation = BALL_CONFIG.SPEED.RELATIVE.INITIAL_ANGLE.VARIATION;
-    const randomVariation = (Math.random() * variation * 2) - variation;
-    const launchAngle = (baseAngle + randomVariation) * (Math.PI / 180);
+    // Generate a random angle that prioritizes diagonals but more centered
+    let angle;
+    
+    // First decide if we're going up or down
+    const goingUp = Math.random() > 0.5;
+    
+    // Define the "sweet spot" for diagonal angles that are more centered
+    // For upward: between 25° and 45° from horizontal (more centered diagonal)
+    // For downward: between -25° and -45° from horizontal (more centered diagonal)
+    if (goingUp) {
+      // Upward diagonal trajectory (between 25° and 45° from horizontal)
+      angle = (25 + Math.random() * 20) * (Math.PI / 180);
+    } else {
+      // Downward diagonal trajectory (between -25° and -45° from horizontal)
+      angle = (-25 - Math.random() * 20) * (Math.PI / 180);
+    }
     
     // Convert angle to direction vector
-    this.dx = Math.cos(launchAngle);
-    this.dy = Math.sin(launchAngle);
+    this.dx = Math.cos(angle);
+    this.dy = Math.sin(angle);
     
     // Normalize and apply initial speed
     const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
     this.dx = (this.dx / magnitude) * this.currentSpeed;
     this.dy = (this.dy / magnitude) * this.currentSpeed;
 
-    // Randomize horizontal direction
+    // Randomize horizontal direction (left/right)
     if (Math.random() > 0.5) {
       this.dx = -this.dx;
     }
   }
 
   public hit(hitFace: 'front' | 'top' | 'bottom', deflectionModifier: number = 0): void {
-    const currentAngle = Math.atan2(this.dy, this.dx);
+    // Store current speed
     const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 
-    switch (hitFace) {
-      case 'front':
-        // Reflect horizontally and apply deflection to angle
-        const newAngle = Math.PI - currentAngle + (deflectionModifier * Math.PI);
-        this.dx = Math.cos(newAngle) * speed;
-        this.dy = Math.sin(newAngle) * speed;
-        break;
-      case 'bottom':
-        // Reflect downward with same angle mechanics
-        const topAngle = -currentAngle + (deflectionModifier * Math.PI);
-        this.dx = Math.cos(topAngle) * speed;
-        this.dy = Math.abs(Math.sin(topAngle) * speed); // Force downward
-        break;
-      case 'top':
-        // Reflect upward with same angle mechanics
-        const bottomAngle = -currentAngle + (deflectionModifier * Math.PI);
-        this.dx = Math.cos(bottomAngle) * speed;
-        this.dy = -Math.abs(Math.sin(bottomAngle) * speed); // Force upward
-        break;
+    if (hitFace === 'front') {
+        // Basic reflection
+        this.dx = -this.dx;
+        
+        // Apply minimal deflection
+        if (deflectionModifier !== 0) {
+            // Normalize current velocity
+            const currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+            let nx = this.dx / currentSpeed;
+            let ny = this.dy / currentSpeed;
+            
+            // Apply small rotation
+            const cos = Math.cos(deflectionModifier);
+            const sin = Math.sin(deflectionModifier);
+            const newNx = nx * cos - ny * sin;
+            const newNy = nx * sin + ny * cos;
+            
+            // Apply speed
+            this.dx = newNx * speed;
+            this.dy = newNy * speed;
+        }
+    } else {
+        // Simple reflection for top/bottom
+        this.dy = -this.dy;
     }
-    
-    // Accelerate on every hit
+
+    // Apply acceleration
     this.accelerate();
   }
 
@@ -271,5 +394,10 @@ export class Ball implements GraphicalElement {
       dx: this.dx / magnitude,
       dy: this.dy / magnitude
     };
+  }
+
+  private updateTrail(): void {
+    this.trailPositions.shift();
+    this.trailPositions.push({x: this.x, y: this.y});
   }
 }

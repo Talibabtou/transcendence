@@ -1,22 +1,21 @@
-import { Scene } from './Scene';
-import { EndScene } from './EndScene';
-import { Ball, PlayerLeft, PlayerRight } from '@pong/game/objects';
-import { GraphicalElement, GameContext, GameState } from '@pong/types';
+import { Ball, Player } from '@pong/game/objects';
+import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
 import { COLORS, GAME_CONFIG, FONTS, UI_CONFIG, calculateFontSizes, calculateGameSizes } from '@pong/constants';
-import { PauseManager } from '@pong/game/engine';
-import { ResizeManager } from '@pong/game/engine';
+import { PauseManager, ResizeManager } from '@pong/game/engine';
 
-export class MainScene extends Scene {
+export class GameScene {
   // =========================================
-  // Private Properties
+  // Properties
   // =========================================
   private ball!: Ball;
-  private player1!: PlayerLeft;
-  private player2!: PlayerRight;
+  private player1!: Player;
+  private player2!: Player;
   private readonly winningScore = GAME_CONFIG.WINNING_SCORE;
   private objectsInScene: Array<GraphicalElement> = [];
   private pauseManager!: PauseManager;
-  protected resizeManager: ResizeManager | null = null;
+  private resizeManager: ResizeManager | null = null;
+  private isBackgroundDemo: boolean = false;
+  private gameContext: any; // Will be set by GameEngine
   
   private lastTime: number = 0;
   private countdownText: string | number | string[] | null = null;
@@ -24,23 +23,25 @@ export class MainScene extends Scene {
   // =========================================
   // Constructor
   // =========================================
-  constructor(protected readonly context: GameContext) {
-    super(context);
+  constructor(private readonly context: GameContext) {
     this.setupScene();
     this.lastTime = performance.now();
   }
 
   // =========================================
-  // Lifecycle Methods
+  // Public Methods
   // =========================================
   public load(): void {
-    this.player1.bind();
+    this.player1.bindControls();
     this.pauseManager.startGame();
   }
 
   public unload(): void {
     // Clean up event listeners
-    this.player1.unbind();
+    this.player1.unbindControls();
+    if (this.player2 && !this.player2.isAIControlled()) {
+      this.player2.unbindControls();
+    }
     
     // Clean up game objects
     this.objectsInScene = [];
@@ -50,16 +51,22 @@ export class MainScene extends Scene {
 
     // Clean up managers
     if (this.pauseManager) {
-      this.pauseManager.forceStop(); // Make sure any intervals are cleared
+      this.pauseManager.forceStop();
       this.pauseManager = null as any;
+    }
+    if (this.resizeManager) {
+      this.resizeManager.cleanup();
+      this.resizeManager = null;
     }
 
     // Clean up other properties
     this.countdownText = null;
     this.lastTime = 0;
+    this.gameContext = null;
+  }
 
-    // Call parent cleanup
-    super.unload();
+  public setGameContext(context: any): void {
+    this.gameContext = context;
   }
 
   public update(): void {
@@ -68,6 +75,11 @@ export class MainScene extends Scene {
     const deltaTime = this.calculateDeltaTime();
     this.updateGameState(deltaTime);
     this.checkWinCondition();
+  }
+
+  public draw(): void {
+    this.drawBackground();
+    this.drawContent();
   }
 
   // =========================================
@@ -110,6 +122,61 @@ export class MainScene extends Scene {
     return this.pauseManager;
   }
 
+  public getResizeManager(): ResizeManager | null {
+    return this.resizeManager;
+  }
+
+  public getPlayer1(): Player {
+    return this.player1;
+  }
+
+  public getPlayer2(): Player {
+    return this.player2;
+  }
+
+  public getBall(): Ball {
+    return this.ball;
+  }
+
+  // =========================================
+  // Game Mode Methods
+  // =========================================
+  public setGameMode(mode: 'single' | 'multi'): void {
+    if (this.player1 && this.player2) {
+      if (mode === 'single') {
+        // Left player is human, right player is AI
+        this.player1.setControlType(PlayerType.HUMAN);
+        this.player2.setControlType(PlayerType.AI);
+      } else if (mode === 'multi') {
+        // Both players are human
+        this.player1.setControlType(PlayerType.HUMAN);
+        this.player2.setControlType(PlayerType.HUMAN);
+      }
+      
+      // Bind controls for human players
+      this.player1.bindControls();
+      if (mode === 'multi') {
+        this.player2.bindControls();
+      }
+    }
+  }
+
+  public setBackgroundMode(enabled: boolean): void {
+    this.isBackgroundDemo = enabled;
+    
+    if (enabled) {
+        // Background demo specific settings
+        this.player1.setControlType(PlayerType.AI);
+        this.player2.setControlType(PlayerType.AI);
+        this.countdownText = null;  // No countdown in background mode
+    }
+    
+    // Update resize manager with background mode setting
+    if (this.resizeManager) {
+        this.resizeManager.setBackgroundMode(enabled);
+    }
+  }
+
   // =========================================
   // Private Setup Methods
   // =========================================
@@ -124,7 +191,10 @@ export class MainScene extends Scene {
   private initializePauseManager(): void {
     this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
     this.pauseManager.setCountdownCallback((text) => {
-      this.countdownText = text;
+      // Don't show countdown in background mode
+      if (!this.isBackgroundDemo) {
+        this.countdownText = text;
+      }
     });
   }
 
@@ -153,19 +223,25 @@ export class MainScene extends Scene {
     // Calculate initial center position accounting for paddle height
     const centerPaddleY = height / 2 - sizes.PADDLE_HEIGHT / 2;
     
-    this.player1 = new PlayerLeft(
+    // Create left player
+    this.player1 = new Player(
       sizes.PLAYER_PADDING,
       centerPaddleY, 
       this.ball,
-      this.context
+      this.context,
+      PlayerPosition.LEFT,
+      PlayerType.AI  // Default to AI for background mode
     );
 
+    // Create right player
     const player2X = width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
-    this.player2 = new PlayerRight(
+    this.player2 = new Player(
       player2X,
       centerPaddleY,
       this.ball,
-      this.context
+      this.context,
+      PlayerPosition.RIGHT,
+      PlayerType.AI  // Default to AI for background mode
     );
   }
 
@@ -173,6 +249,12 @@ export class MainScene extends Scene {
   // Private Update Methods
   // =========================================
   private shouldSkipUpdate(): boolean {
+    // In background mode, we should never skip updates
+    if (this.isBackgroundDemo) {
+      return false;
+    }
+    
+    // For regular gameplay, skip if paused
     return this.pauseManager.hasState(GameState.PAUSED);
   }
 
@@ -184,7 +266,11 @@ export class MainScene extends Scene {
   }
 
   private updateGameState(deltaTime: number): void {
-    this.pauseManager.update();
+    // Only update pause manager if not in background mode
+    if (!this.isBackgroundDemo) {
+        this.pauseManager.update();
+    }
+    
     this.handleBallDestruction();
     this.updateGameObjects(deltaTime);
   }
@@ -204,24 +290,46 @@ export class MainScene extends Scene {
     this.player2.resetPosition();
     
     this.pauseManager.handlePointScored();
-    this.pauseManager.startGame();
   }
 
   private updateGameObjects(deltaTime: number): void {
+    // Get current game state
     const currentState = this.pauseManager.hasState(GameState.PLAYING) 
       ? GameState.PLAYING 
-      : GameState.PAUSED;
-      
+      : this.pauseManager.hasState(GameState.PAUSED) 
+        ? GameState.PAUSED 
+        : GameState.COUNTDOWN;
+    
+    // In background mode, force update players even if paused
+    const updateState = this.isBackgroundDemo ? GameState.PLAYING : currentState;
+    
+    // Update game objects
     this.objectsInScene.forEach(object => 
-      object.update(this.context, deltaTime, currentState)
+      object.update(this.context, deltaTime, updateState)
     );
   }
 
   private checkWinCondition(): void {
-    if (this.player1.getScore() >= this.winningScore) {
-      this.gameContext.loadScene(new EndScene(this.context), { winner: this.player1 });
-    } else if (this.player2.getScore() >= this.winningScore) {
-      this.gameContext.loadScene(new EndScene(this.context), { winner: this.player2 });
+    // Skip win condition check in background demo mode
+    if (this.isBackgroundDemo) return;
+    
+    if (this.player1.getScore() >= this.winningScore || 
+        this.player2.getScore() >= this.winningScore) {
+      
+      // Create game result data
+      const gameResult = {
+        winner: this.getWinner(),
+        player1Score: this.player1.getScore(),
+        player2Score: this.player2.getScore(),
+        player1Name: this.player1.name,
+        player2Name: this.player2.name
+      };
+
+      // Dispatch custom event with game result
+      const event = new CustomEvent('gameOver', { 
+        detail: gameResult
+      });
+      window.dispatchEvent(event);
     }
   }
 
@@ -234,6 +342,9 @@ export class MainScene extends Scene {
   }
 
   private drawScores(): void {
+    // Don't draw scores in background demo mode
+    if (this.isBackgroundDemo) return;
+    
     const { width, height } = this.context.canvas;
     const sizes = calculateFontSizes(width, height);
 
@@ -244,7 +355,7 @@ export class MainScene extends Scene {
   }
 
   private drawUI(): void {
-    if (this.pauseManager.hasState(GameState.PAUSED)) {
+    if (this.pauseManager.hasState(GameState.PAUSED) && !this.isBackgroundDemo) {
       this.drawPauseOverlay();
     }
 
@@ -254,6 +365,9 @@ export class MainScene extends Scene {
   }
 
   private shouldDrawCountdown(): boolean {
+    // Don't show countdown in background mode
+    if (this.isBackgroundDemo) return false;
+    
     return this.countdownText !== null && (
       this.pauseManager.hasState(GameState.COUNTDOWN) || 
       this.pauseManager.hasState(GameState.PAUSED)
@@ -300,5 +414,33 @@ export class MainScene extends Scene {
         this.context.fillText(textToDisplay, pos.x, pos.y);
       }
     }
+  }
+
+  // Add these new methods for game state management
+  public isGameOver(): boolean {
+    return this.player1.getScore() >= this.winningScore || 
+           this.player2.getScore() >= this.winningScore;
+  }
+
+  public getWinner(): Player | null {
+    if (!this.isGameOver()) return null;
+    return this.player1.getScore() >= this.winningScore ? this.player1 : this.player2;
+  }
+
+  private getTextPosition(
+    lineIndex: number = 0, 
+    totalLines: number = 1
+  ): { x: number; y: number } {
+    const { width, height } = this.context.canvas;
+    
+    // Calculate vertical offset from center
+    const spacing = height * UI_CONFIG.LAYOUT.VERTICAL_SPACING;
+    const totalHeight = spacing * (totalLines - 1);
+    const startY = height / 2 - totalHeight / 2;
+    
+    return {
+      x: width / 2,
+      y: startY + (lineIndex * spacing)
+    };
   }
 }

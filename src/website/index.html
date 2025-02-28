@@ -4,20 +4,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Pong Website</title>
+  <title>Transcendence</title>
   <link rel="stylesheet" href="./styles/main.css">
-
 </head>
 <body>
-  <div class="game-container">
-    <canvas id="game-canvas"></canvas>
-  </div>
-  
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <a href="/" class="nav-logo"></a>
+    <div class="nav-center">
+      <a href="/game" class="nav-item active">Game</a>
+      <a href="/leaderboard" class="nav-item">Leaderboard</a>
+    </div>
+    <div class="nav-right">
+      <a href="/profile" class="nav-item">Profile</a>
+    </div>
+  </nav>
+
+  <!-- Main Content Container -->
+  <main class="content-container">
+    <!-- Game Section -->
+    <section id="game" class="section">
+      <div class="game-container">
+        <!-- Game Menu -->
+        <div id="game-menu" class="game-menu">
+          <div class="ascii-title">
+            <pre class="pong-title"></pre>
+          </div>
+          <div class="menu-buttons">
+            <button class="menu-button" data-mode="single">Single Player</button>
+            <button class="menu-button" data-mode="multi">Multiplayer</button>
+            <button class="menu-button" data-mode="tournament">Tournament</button>
+          </div>
+        </div>
+        <!-- Game Canvas (hidden initially) -->
+        <canvas id="game-canvas" style="display: none;"></canvas>
+      </div>
+    </section>
+
+    <!-- Leaderboard Section -->
+    <section id="leaderboard" class="section" style="display: none;">
+      <h2 class="section-title">Leaderboard</h2>
+      <div class="leaderboard-content">
+        <!-- Leaderboard content will be dynamically loaded -->
+      </div>
+    </section>
+
+    <!-- Profile Section -->
+    <section id="profile" class="section" style="display: none;">
+      <h2 class="section-title">Profile</h2>
+      <div class="profile-content">
+        <!-- Profile content will be dynamically loaded -->
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-content">© 2025 Transcendence</div>
+  </footer>
+
   <script type="module" src="./scripts/main.ts"></script>
-  <script>
-    const canvas = document.getElementById('game-canvas');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-  </script>
 </body>
 </html>

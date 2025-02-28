@@ -28,6 +28,7 @@ export class PauseManager {
   private countInterval: NodeJS.Timeout | null = null;
   private gameSnapshot: GameSnapshot | null = null;
   private countdownCallback: CountdownCallback | null = null;
+  private isBackgroundDemo: boolean = false;
 
   // =========================================
   // Constructor
@@ -126,9 +127,36 @@ export class PauseManager {
   }
 
   public handlePointScored(): void {
+    // Reset states
     this.states.clear();
     this.states.add(GameState.PAUSED);
     this.gameSnapshot = null;
+    
+    // Clear any existing countdown
+    this.cleanupCountdown();
+    
+    // For background mode, restart the game immediately without countdown
+    if (this.isBackgroundDemo) {
+      setTimeout(() => {
+        this.states.clear();
+        this.states.add(GameState.PLAYING);
+        this.ball.launchBall();
+      }, 500);
+      return;
+    }
+    
+    // Normal game mode with countdown - Remove the pause state immediately
+    this.states.clear();
+    this.states.add(GameState.COUNTDOWN);
+    
+    // Start countdown after a brief delay
+    setTimeout(() => {
+      this.startCountdown(() => {
+        this.ball.launchBall();
+        this.states.delete(GameState.COUNTDOWN);
+        this.states.add(GameState.PLAYING);
+      });
+    }, 1000); // Reduced from 3000ms to 1000ms for better game flow
   }
 
   // =========================================
@@ -327,5 +355,24 @@ export class PauseManager {
     
     // Clear states
     this.states.clear();
+  }
+
+  public setBackgroundDemoMode(enabled: boolean): void {
+    this.isBackgroundDemo = enabled;
+    
+    // If we're switching to background demo, make sure the game is started
+    if (enabled && this.states.has(GameState.PAUSED)) {
+      // Skip countdown for background mode
+      this.states.clear();
+      this.states.add(GameState.PLAYING);
+      
+      // Launch ball immediately for background mode
+      setTimeout(() => {
+        // Make sure we're still in background mode when timeout executes
+        if (this.isBackgroundDemo) {
+          this.ball.launchBall();
+        }
+      }, 500);
+    }
   }
 }
