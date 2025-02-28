@@ -15,7 +15,7 @@ async function authRoutes(fastify: FastifyInstance) {
                 hello: "world",
                 method: request.method,
                 isHttps: isHttps,
-                message: [{message: "/test1 route"}, {schema: loginSchema.parse(request.query)}]
+                message: {message: "user get"}
             });
         } catch (e: any) {
             return reply.code(500).send({ error: e.message });
@@ -26,7 +26,7 @@ async function authRoutes(fastify: FastifyInstance) {
         try {
             const isHttps = request.protocol === 'https';
             const { username, password, email } = regSchema.parse(request.query);
-            fastify.db.all(
+            fastify.db.run(
                 'INSERT INTO auth (username, password, email) VALUES (?, ?, ?);',
                 username,
                 password,
@@ -36,14 +36,14 @@ async function authRoutes(fastify: FastifyInstance) {
                 hello: "world",
                 method: request.method,
                 isHttps: isHttps,
-                message: {message: "user added"}
+                message: {message: "user added successfully"}
             });
         } catch (e: any) {
             return reply.code(500).send({ error: e.message });
         }
     })
 
-    fastify.delete('/auth', (request: any, reply: any) => {
+    fastify.delete('/auth',(request: any, reply: any) => {
         try {
             const isHttps = request.protocol === 'https';
             return reply.code(200).send({
