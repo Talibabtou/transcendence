@@ -6,10 +6,11 @@
   "author": "Bboissen <33459312+Bboissen@users.noreply.github.com>",
   "type": "module",
   "license": "MIT",
+	"overrides": { "glob": "11.0.1", "node-gyp": "11.1.0" },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "npm run build && node dist/server.js",
-    "dev": "node --watch --loader ts-node/esm src/server.ts"
+    "dev": "node --loader ts-node/esm src/server.ts"
   },
   "dependencies": {
     "fastify": "^5.2.1",
