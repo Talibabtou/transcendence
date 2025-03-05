@@ -1,10 +1,16 @@
 CREATE TABLE IF NOT EXISTS matches (
-  id TEXT PRIMARY KEY, -- UUID
+  id TEXT PRIMARY KEY DEFAULT (
+    lower(hex(randomblob(4))) || '-' || 
+    lower(hex(randomblob(2))) || '-' || 
+    lower(hex(randomblob(2))) || '-' || 
+    lower(hex(randomblob(2))) || '-' || 
+    lower(hex(randomblob(6)))
+  ), -- Standard UUID format
   player_1 TEXT NOT NULL, -- UUID
   player_2 TEXT NOT NULL, -- UUID
   completed BOOLEAN DEFAULT FALSE,
-  duration TEXT,
+  duration INTEGER,
   timeout BOOLEAN DEFAULT FALSE,
   tournament_id TEXT, -- UUID
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  created_at TEXT DEFAULT (datetime('now'))
 );

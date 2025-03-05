@@ -20,9 +20,15 @@ declare module 'fastify' {
 async function dbConnector(fastify: FastifyInstance) {
   // Open SQLite database connection
   const db = await open({
-    filename: './game.sqlite',
+    filename: path.join(__dirname, 'game.sqlite'),
     driver: sqlite3.Database
   });
+  
+  // Enable RETURNING clause support
+	// When a foreign key constraint is defined, 
+	// it ensures that the value in the foreign key column must match 
+	// a value in the referenced primary key column of another table.
+  await db.exec('PRAGMA foreign_keys = ON');
   
   // Read SQL commands from files
   const matchSql = fs.readFileSync(path.join(__dirname, '../config/match.sql'), 'utf-8')

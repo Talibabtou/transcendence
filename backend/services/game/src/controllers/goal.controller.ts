@@ -7,7 +7,12 @@ export async function getGoal(request: FastifyRequest<{
   const { id } = request.params
   
   try {
+    // Use a transaction to ensure data consistency
+    await request.server.db.exec('BEGIN TRANSACTION')
+    
     const goal = await request.server.db.get('SELECT * FROM goal WHERE id = ?', id)
+    
+    await request.server.db.exec('COMMIT')
     
     if (!goal) {
       return reply.code(404).send({ error: 'Goal not found' })
@@ -15,6 +20,8 @@ export async function getGoal(request: FastifyRequest<{
     
     return goal
   } catch (error) {
+    // Rollback transaction on error
+    await request.server.db.exec('ROLLBACK')
     request.log.error(error)
     return reply.code(500).send({ error: 'Internal Server Error' })
   }
@@ -27,6 +34,9 @@ export async function getGoals(request: FastifyRequest<{
   const { match_id, player, limit = 10, offset = 0 } = request.query
   
   try {
+    // Use a transaction to ensure data consistency
+    await request.server.db.exec('BEGIN TRANSACTION')
+    
     let query = 'SELECT * FROM goal WHERE 1=1'
     const params = []
     
@@ -44,8 +54,12 @@ export async function getGoals(request: FastifyRequest<{
     params.push(limit, offset)
     
     const goals = await request.server.db.all(query, ...params)
+    
+    await request.server.db.exec('COMMIT')
     return goals
   } catch (error) {
+    // Rollback transaction on error
+    await request.server.db.exec('ROLLBACK')
     request.log.error(error)
     return reply.code(500).send({ error: 'Internal Server Error' })
   }
@@ -58,25 +72,33 @@ export async function createGoal(request: FastifyRequest<{
   const { match_id, player, duration } = request.body
   
   try {
+    // Use a transaction to ensure data consistency
+    await request.server.db.exec('BEGIN TRANSACTION')
+    
     // Verify the match exists
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', match_id)
     if (!match) {
+      await request.server.db.exec('ROLLBACK')
       return reply.code(404).send({ error: 'Match not found' })
     }
     
     // Verify player is part of the match
     if (match.player_1 !== player && match.player_2 !== player) {
+      await request.server.db.exec('ROLLBACK')
       return reply.code(400).send({ error: 'Player is not part of this match' })
     }
     
-    const result = await request.server.db.run(
-      'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?)',
+    // Use db.get() with RETURNING * to get the inserted record directly
+    const newGoal = await request.server.db.get(
+      'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?) RETURNING *',
       match_id, player, duration || null
     )
     
-    const newGoal = await request.server.db.get('SELECT * FROM goal WHERE id = ?', result.lastID)
+    await request.server.db.exec('COMMIT')
     return reply.code(201).send(newGoal)
   } catch (error) {
+    // Rollback transaction on error
+    await request.server.db.exec('ROLLBACK')
     request.log.error(error)
     return reply.code(500).send({ error: 'Internal Server Error' })
   }
