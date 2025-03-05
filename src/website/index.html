@@ -1,68 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Transcendence</title>
-  <link rel="stylesheet" href="./styles/main.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Transcendence</title>
+	<link rel="stylesheet" href="./styles/main.css">
+	<link rel="stylesheet" href="./styles/game.css">
+	<link rel="stylesheet" href="./styles/leaderboard.css">
+	<link rel="stylesheet" href="./styles/profile.css">
 </head>
 <body>
-  <!-- Navigation Bar -->
-  <nav class="navbar">
-    <a href="/" class="nav-logo"></a>
-    <div class="nav-center">
-      <a href="/game" class="nav-item active">Game</a>
-      <a href="/leaderboard" class="nav-item">Leaderboard</a>
-    </div>
-    <div class="nav-right">
-      <a href="/profile" class="nav-item">Profile</a>
-    </div>
-  </nav>
+	<!-- Navigation Bar -->
+	<nav class="navbar">
+		<a href="/" class="nav-logo"></a>
+		<div class="nav-center">
+			<a href="/game" class="nav-item active">Game</a>
+			<a href="/leaderboard" class="nav-item">Leaderboard</a>
+		</div>
+		<div class="nav-right">
+			<a href="/profile" class="nav-item">Profile</a>
+		</div>
+	</nav>
 
-  <!-- Main Content Container -->
-  <main class="content-container">
-    <!-- Game Section -->
-    <section id="game" class="section">
-      <div class="game-container">
-        <!-- Game Menu -->
-        <div id="game-menu" class="game-menu">
-          <div class="ascii-title">
-            <pre class="pong-title"></pre>
-          </div>
-          <div class="menu-buttons">
-            <button class="menu-button" data-mode="single">Single Player</button>
-            <button class="menu-button" data-mode="multi">Multiplayer</button>
-            <button class="menu-button" data-mode="tournament">Tournament</button>
-          </div>
-        </div>
-        <!-- Game Canvas (hidden initially) -->
-        <canvas id="game-canvas" style="display: none;"></canvas>
-      </div>
-    </section>
+	<!-- Main Content Container -->
+	<main class="content-container">
 
-    <!-- Leaderboard Section -->
-    <section id="leaderboard" class="section" style="display: none;">
-      <h2 class="section-title">Leaderboard</h2>
-      <div class="leaderboard-content">
-        <!-- Leaderboard content will be dynamically loaded -->
-      </div>
-    </section>
+		<!-- Game Section -->
+		<section id="game" class="section">
+			<div class="game-container">
 
-    <!-- Profile Section -->
-    <section id="profile" class="section" style="display: none;">
-      <h2 class="section-title">Profile</h2>
-      <div class="profile-content">
-        <!-- Profile content will be dynamically loaded -->
-      </div>
-    </section>
-  </main>
+				<!-- Game Menu -->
+				<div id="game-menu" class="game-menu">
+					<div class="ascii-title">
+						<pre class="pong-title"></pre>
+					</div>
+					<div class="menu-buttons">
+						<button class="menu-button" data-mode="single">Single Player</button>
+						<button class="menu-button" data-mode="multi">Multiplayer</button>
+						<button class="menu-button" data-mode="tournament">Tournament</button>
+					</div>
+				</div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="footer-content">© 2025 Transcendence</div>
-  </footer>
+				<!-- Game Canvas (hidden initially) -->
+				<canvas id="game-canvas" style="display: none;"></canvas>
+			</div>
+		</section>
 
-  <script type="module" src="./scripts/main.ts"></script>
+		<!-- Leaderboard Section -->
+		<section id="leaderboard" class="section" style="display: none;">
+			<h2 class="section-title">Leaderboard</h2>
+			<div class="leaderboard-content">
+				<!-- Leaderboard content will be dynamically loaded -->
+			</div>
+		</section>
+
+		<!-- Profile Section -->
+		<section id="profile" class="section" style="display: none;">
+			<h2 class="section-title">Profile</h2>
+			<div class="profile-content">
+				<!-- Profile content will be dynamically loaded -->
+			</div>
+		</section>
+	</main>
+
+	<!-- Footer -->
+	<footer class="footer">
+		<div class="footer-content">© 2025 Transcendence</div>
+	</footer>
+	<script type="module" src="./scripts/App.ts"></script>
 </body>
 </html>

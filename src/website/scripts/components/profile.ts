@@ -1,355 +1,592 @@
 import { Component } from './component';
+import { DbService, html, render, navigate, ASCII_ART } from '../utils';
 
 interface UserProfile {
-  id: string;
-  username: string;
-  avatarUrl: string;
-  level: number;
-  experience: number;
-  totalGames: number;
-  wins: number;
-  losses: number;
-  achievements: Achievement[];
-  gameHistory: GameHistoryEntry[];
+	id: string;
+	username: string;
+	avatarUrl: string;
+	level: number;
+	experience: number;
+	totalGames: number;
+	wins: number;
+	losses: number;
+	achievements: Achievement[];
+	gameHistory: GameHistoryEntry[];
+	friends: Friend[];
+	messages: Record<string, Message[]>;
+	preferences: {
+		accentColor: string;
+	};
 }
 
 interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  iconUrl: string;
-  unlockedAt: Date | null;
+	id: string;
+	name: string;
+	description: string;
+	iconUrl: string;
+	unlockedAt: Date | null;
 }
 
 interface GameHistoryEntry {
-  id: string;
-  date: Date;
-  opponent: string;
-  playerScore: number;
-  opponentScore: number;
-  result: 'win' | 'loss';
+	id: string;
+	date: Date;
+	opponent: string;
+	playerScore: number;
+	opponentScore: number;
+	result: 'win' | 'loss';
+}
+
+interface Friend {
+	username: string;
+	status: 'online' | 'offline' | 'in-game';
+	avatarUrl: string;
+}
+
+interface Message {
+	id: string;
+	from: string;
+	to: string;
+	content: string;
+	timestamp: Date;
+	read: boolean;
 }
 
 export class ProfileComponent extends Component {
-  private profile: UserProfile | null = null;
-  private isLoading: boolean = false;
-  private isEditing: boolean = false;
-  
-  constructor(container: HTMLElement) {
-    super(container);
-  }
-  
-  async render(): Promise<void> {
-    try {
-      // Show loading state
-      this.renderLoading();
-      
-      // Use inline template as the default approach
-      this.renderWithInlineTemplate();
-      
-      // Fetch user profile data
-      await this.fetchProfileData();
-      
-      // Render the profile content
-      this.renderProfile();
-      
-      // Set up event listeners
-      this.setupEventListeners();
-      
-    } catch (error) {
-      console.error('Error rendering profile:', error);
-      this.renderError('Failed to load profile. Please try again later.');
-    }
-  }
-  
-  private renderWithInlineTemplate(): void {
-    this.container.innerHTML = `
-      <div class="ascii-container">
-        <h2 class="section-title">Profile</h2>
-        <div class="profile-content">
-          <!-- Profile content will be dynamically loaded -->
-        </div>
-      </div>
-    `;
-  }
-  
-  private renderLoading(): void {
-    this.isLoading = true;
-    this.container.innerHTML = `
-      <div class="ascii-container">
-        <h2 class="section-title">Profile</h2>
-        <div class="profile-content">
-          <p class="loading-text">Loading profile data...</p>
-        </div>
-      </div>
-    `;
-  }
-  
-  private renderError(message: string): void {
-    const profileContent = this.container.querySelector('.profile-content');
-    if (profileContent) {
-      profileContent.innerHTML = `
-        <div class="error-message">
-          <p>${message}</p>
-          <button class="retry-button">Retry</button>
-        </div>
-      `;
-      
-      // Add retry button handler
-      const retryButton = this.container.querySelector('.retry-button');
-      if (retryButton) {
-        retryButton.addEventListener('click', () => this.render());
-      }
-    }
-  }
-  
-  private async fetchProfileData(): Promise<void> {
-    // Mock data for now - in the future, this would be a real API call
-    // await fetch('/api/profile')
-    this.isLoading = true;
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Mock data
-    this.profile = {
-      id: 'user123',
-      username: 'PongChampion42',
-      avatarUrl: 'https://placekitten.com/200/200', // Placeholder
-      level: 12,
-      experience: 5840,
-      totalGames: 42,
-      wins: 28,
-      losses: 14,
-      achievements: [
-        {
-          id: 'ach1',
-          name: 'First Win',
-          description: 'Win your first game',
-          iconUrl: '🏆',
-          unlockedAt: new Date('2023-04-15')
-        },
-        {
-          id: 'ach2',
-          name: 'Winning Streak',
-          description: 'Win 5 games in a row',
-          iconUrl: '🔥',
-          unlockedAt: new Date('2023-05-22')
-        },
-        {
-          id: 'ach3',
-          name: 'Perfect Game',
-          description: 'Win a game without conceding a point',
-          iconUrl: '✨',
-          unlockedAt: null
-        }
-      ],
-      gameHistory: [
-        {
-          id: 'game1',
-          date: new Date('2023-06-02'),
-          opponent: 'GameWizard',
-          playerScore: 10,
-          opponentScore: 7,
-          result: 'win'
-        },
-        {
-          id: 'game2',
-          date: new Date('2023-06-01'),
-          opponent: 'PaddlePro',
-          playerScore: 10,
-          opponentScore: 4,
-          result: 'win'
-        },
-        {
-          id: 'game3',
-          date: new Date('2023-05-30'),
-          opponent: 'Champion42',
-          playerScore: 8,
-          opponentScore: 10,
-          result: 'loss'
-        }
-      ]
-    };
-    
-    this.isLoading = false;
-  }
-  
-  private renderProfile(): void {
-    if (this.isLoading || !this.profile) return;
-    
-    const profileContent = this.container.querySelector('.profile-content');
-    if (!profileContent) return;
-    
-    // Create the profile HTML
-    const profileHTML = `
-      <div class="profile-card">
-        <div class="profile-header">
-          <div class="profile-avatar">
-            <img src="${this.profile.avatarUrl}" alt="${this.profile.username}'s avatar">
-          </div>
-          <div class="profile-info">
-            <h3 class="profile-username">${this.profile.username}</h3>
-            <div class="profile-level">Level ${this.profile.level}</div>
-            <div class="profile-stats">
-              <div class="stat">
-                <span class="stat-label">Games</span>
-                <span class="stat-value">${this.profile.totalGames}</span>
-              </div>
-              <div class="stat">
-                <span class="stat-label">Wins</span>
-                <span class="stat-value">${this.profile.wins}</span>
-              </div>
-              <div class="stat">
-                <span class="stat-label">Losses</span>
-                <span class="stat-value">${this.profile.losses}</span>
-              </div>
-            </div>
-          </div>
-          <div class="profile-actions">
-            <button class="edit-profile-button">Edit Profile</button>
-          </div>
-        </div>
-        
-        <div class="profile-tabs">
-          <button class="tab-button active" data-tab="game-history">Game History</button>
-          <button class="tab-button" data-tab="achievements">Achievements</button>
-          <button class="tab-button" data-tab="settings">Settings</button>
-        </div>
-        
-        <div class="profile-tab-content">
-          <div class="tab-pane active" id="game-history">
-            <h4>Recent Games</h4>
-            <table class="game-history-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Opponent</th>
-                  <th>Result</th>
-                  <th>Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${this.profile.gameHistory.map(game => `
-                  <tr class="game-${game.result}">
-                    <td>${game.date.toLocaleDateString()}</td>
-                    <td>${game.opponent}</td>
-                    <td>${game.result.toUpperCase()}</td>
-                    <td>${game.playerScore} - ${game.opponentScore}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          </div>
-          
-          <div class="tab-pane" id="achievements">
-            <h4>Achievements</h4>
-            <div class="achievements-grid">
-              ${this.profile.achievements.map(achievement => `
-                <div class="achievement ${achievement.unlockedAt ? 'unlocked' : 'locked'}">
-                  <div class="achievement-icon">${achievement.iconUrl}</div>
-                  <div class="achievement-info">
-                    <div class="achievement-name">${achievement.name}</div>
-                    <div class="achievement-description">${achievement.description}</div>
-                    ${achievement.unlockedAt 
-                      ? `<div class="achievement-date">Unlocked: ${achievement.unlockedAt.toLocaleDateString()}</div>`
-                      : '<div class="achievement-locked">Locked</div>'
-                    }
-                  </div>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-          
-          <div class="tab-pane" id="settings">
-            <h4>Account Settings</h4>
-            <form class="settings-form">
-              <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" value="${this.profile.username}" disabled>
-              </div>
-              <div class="form-group">
-                <label for="avatar">Avatar URL</label>
-                <input type="text" id="avatar" value="${this.profile.avatarUrl}" disabled>
-              </div>
-              <div class="form-group">
-                <label for="password">Change Password</label>
-                <input type="password" id="password" placeholder="New password" disabled>
-              </div>
-              <button type="button" class="save-settings-button" disabled>Save Changes</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    `;
-    
-    profileContent.innerHTML = profileHTML;
-  }
-  
-  private setupEventListeners(): void {
-    // Set up tab switching
-    const tabButtons = this.container.querySelectorAll('.tab-button');
-    const tabPanes = this.container.querySelectorAll('.tab-pane');
-    
-    tabButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        const tabId = button.getAttribute('data-tab');
-        
-        // Update active tab button
-        tabButtons.forEach(btn => btn.classList.remove('active'));
-        button.classList.add('active');
-        
-        // Show selected tab pane
-        tabPanes.forEach(pane => {
-          pane.classList.remove('active');
-          if (pane.id === tabId) {
-            pane.classList.add('active');
-          }
-        });
-      });
-    });
-    
-    // Set up edit profile button
-    const editButton = this.container.querySelector('.edit-profile-button');
-    if (editButton) {
-      editButton.addEventListener('click', () => {
-        this.toggleEditMode();
-      });
-    }
-  }
-  
-  private toggleEditMode(): void {
-    this.isEditing = !this.isEditing;
-    
-    // Toggle form fields
-    const formInputs = this.container.querySelectorAll('.settings-form input');
-    const saveButton = this.container.querySelector('.save-settings-button');
-    
-    formInputs.forEach(input => {
-      (input as HTMLInputElement).disabled = !this.isEditing;
-    });
-    
-    if (saveButton) {
-      (saveButton as HTMLButtonElement).disabled = !this.isEditing;
-    }
-    
-    // Toggle edit button text
-    const editButton = this.container.querySelector('.edit-profile-button');
-    if (editButton) {
-      editButton.textContent = this.isEditing ? 'Cancel' : 'Edit Profile';
-    }
-    
-    // Select the settings tab when entering edit mode
-    if (this.isEditing) {
-      const settingsTab = this.container.querySelector('[data-tab="settings"]');
-      if (settingsTab) {
-        (settingsTab as HTMLElement).click();
-      }
-    }
-  }
-  
-  destroy(): void {
-    // Clean up any event listeners or resources
-    super.destroy();
-  }
-} 
+	private profile: UserProfile | null = null;
+	private isLoading: boolean = false;
+	private isEditing: boolean = false;
+	private activeTab: string = 'summary';
+	private colorPicker: HTMLInputElement | null = null;
+	
+	constructor(container: HTMLElement) {
+		super(container);
+	}
+	
+	async render(): Promise<void> {
+		try {
+			this.isLoading = true;
+			this.renderView();
+			await this.fetchProfileData();
+			this.isLoading = false;
+			this.renderView();
+		} catch (error) {
+			console.error('Error rendering profile:', error);
+			this.isLoading = false;
+			const errorMessage = error instanceof Error ? error.message : 'Failed to load profile data';
+			this.renderView(errorMessage);
+		}
+	}
+
+	private async fetchProfileData(): Promise<void> {
+		try {
+			const url = new URL(window.location.href);
+			const userId = url.searchParams.get('id') || 'current';
+			
+			// Simulate API delay
+			await new Promise(resolve => setTimeout(resolve, 750));
+			
+			// Always use user ID for API calls
+			console.log(`DB REQUEST: GET /api/users/${userId}`);
+			console.log(`DB REQUEST: GET /api/users/${userId}/matches`);
+			console.log(`DB REQUEST: GET /api/users/${userId}/friends`);
+			console.log(`DB REQUEST: GET /api/users/${userId}/messages`);
+			
+			this.profile = this.createMockProfile(userId);
+		} catch (error) {
+			console.error('Error fetching profile data:', error);
+			throw new Error('Failed to fetch profile data');
+		}
+	}
+
+	private createMockProfile(userId: string): UserProfile {
+		const isCurrentUser = userId === 'current';
+		const id = isCurrentUser ? 'current' : userId;
+		
+		// Create mock friends
+		const mockFriends: Friend[] = [
+			{
+				username: 'PongMaster',
+				status: 'online',
+				avatarUrl: '../../public/images/default-avatar.svg'
+			},
+			{
+				username: 'RetroGamer',
+				status: 'in-game',
+				avatarUrl: '../../public/images/default-avatar.svg'
+			},
+			{
+				username: 'PixelPro',
+				status: 'offline',
+				avatarUrl: '../../public/images/default-avatar.svg'
+			}
+		];
+
+		// Create mock messages
+		const mockMessages: Record<string, Message[]> = {
+			'PongMaster': [
+				{
+					id: '1',
+					from: 'PongMaster',
+					to: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
+					content: 'Hey, want to play a game?',
+					timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+					read: true
+				}
+			],
+			'RetroGamer': [
+				{
+					id: '2',
+					from: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
+					to: 'RetroGamer',
+					content: 'Good game!',
+					timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
+					read: true
+				}
+			]
+		};
+
+		return {
+			id,
+			username: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
+			avatarUrl: '../../public/images/default-avatar.svg',
+			level: Math.floor(Math.random() * 50) + 1,
+			experience: Math.floor(Math.random() * 10000),
+			totalGames: Math.floor(Math.random() * 100),
+			wins: Math.floor(Math.random() * 50),
+			losses: Math.floor(Math.random() * 50),
+			achievements: [
+				{
+					id: '1',
+					name: 'First Win',
+					description: 'Win your first game',
+					iconUrl: '/assets/achievements/first-win.png',
+					unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7) // 7 days ago
+				},
+				{
+					id: '2',
+					name: 'Win Streak',
+					description: 'Win 3 games in a row',
+					iconUrl: '/assets/achievements/win-streak.png',
+					unlockedAt: null
+				}
+			],
+			gameHistory: Array.from({ length: 5 }, (_, i) => ({
+				id: `game-${i}`,
+				date: new Date(Date.now() - 1000 * 60 * 60 * 24 * i), // i days ago
+				opponent: `Opponent${i + 1}`,
+				playerScore: Math.floor(Math.random() * 10),
+				opponentScore: Math.floor(Math.random() * 10),
+				result: Math.random() > 0.5 ? 'win' : 'loss'
+			})),
+			friends: mockFriends,
+			messages: mockMessages,
+			preferences: {
+				accentColor: '#7cf'
+			}
+		};
+	}
+
+	private renderView(errorMessage?: string): void {
+		const template = html`
+			<div class="ascii-container">
+				<div class="ascii-title-container">
+					<pre class="ascii-title">${ASCII_ART.PROFILE}</pre>
+				</div>
+				
+				${this.isLoading ? 
+					html`<p class="loading-text">Loading profile data...</p>` :
+					errorMessage ?
+						html`
+							<div class="error-message">${errorMessage}</div>
+							<button class="retry-button" onClick=${() => this.render()}>Retry</button>
+						` :
+						html`
+							<div class="profile-layout">
+								<nav class="profile-nav">
+									${this.renderNavigation()}
+								</nav>
+								<main class="profile-main">
+									${this.renderActiveTab()}
+								</main>
+							</div>
+						`
+				}
+			</div>
+		`;
+		
+		render(template, this.container);
+		
+		if (!this.isLoading && !errorMessage) {
+			this.setupEventListeners();
+		}
+	}
+
+	private renderNavigation() {
+		const tabs = [
+			{ id: 'summary', label: 'SUMMARY', icon: '📊' },
+			{ id: 'history', label: 'HISTORY', icon: '🕒' },
+			{ id: 'friends', label: 'FRIENDS', icon: '👥' },
+			{ id: 'messages', label: 'MESSAGES', icon: '💬' },
+			{ id: 'achievements', label: 'ACHIEVEMENTS', icon: '🏆' },
+			{ id: 'settings', label: 'SETTINGS', icon: '⚙️' }
+		];
+
+		return html`
+			<ul class="nav-list">
+				${tabs.map(tab => html`
+					<li class="nav-item ${this.activeTab === tab.id ? 'active' : ''}">
+						<button 
+							class="nav-button" 
+							data-tab="${tab.id}"
+							onClick=${() => this.setActiveTab(tab.id)}
+						>
+							<span class="nav-icon">${tab.icon}</span>
+							<span class="nav-label">${tab.label}</span>
+						</button>
+					</li>
+				`)}
+			</ul>
+		`;
+	}
+
+	private renderActiveTab() {
+		if (!this.profile) return html``;
+
+		switch (this.activeTab) {
+			case 'summary':
+				return this.renderSummary();
+			case 'history':
+				return this.renderHistory();
+			case 'friends':
+				return this.renderFriends();
+			case 'messages':
+				return this.renderMessages();
+			case 'achievements':
+				return this.renderAchievements();
+			case 'settings':
+				return this.renderSettings();
+			default:
+				return this.renderSummary();
+		}
+	}
+
+	private renderSummary() {
+		if (!this.profile) return html``;
+		
+		return html`
+			<div class="summary-container">
+				<div class="profile-hero">
+					<div class="profile-avatar-large">
+						<img src="${this.profile.avatarUrl}" alt="${this.profile.username}">
+					</div>
+					<div class="profile-info-large">
+						<h2 class="username-large">${this.profile.username}</h2>
+						<div class="profile-stats-large">
+							<div class="stat-large">
+								<span class="stat-value-large">${this.profile.level}</span>
+								<span class="stat-label-large">LEVEL</span>
+							</div>
+							<div class="stat-large">
+								<span class="stat-value-large wins-value">${this.profile.wins}</span>
+								<span class="stat-label-large">WINS</span>
+							</div>
+							<div class="stat-large">
+								<span class="stat-value-large losses-value">${this.profile.losses}</span>
+								<span class="stat-label-large">LOSSES</span>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="recent-activity">
+					<h3>Recent Activity</h3>
+					${this.renderRecentGames(3)}
+				</div>
+			</div>
+		`;
+	}
+
+	private renderHistory() {
+		if (!this.profile) return html``;
+		
+		return html`
+			<div class="tab-pane active" id="game-history">
+				<table class="game-history-table">
+					<thead>
+						<tr>
+							<th>DATE</th>
+							<th>OPPONENT</th>
+							<th>RESULT</th>
+							<th>SCORE</th>
+						</tr>
+					</thead>
+					<tbody>
+						${this.profile.gameHistory.map(game => html`
+							<tr class="game-${game.result}">
+								<td>${game.date.toLocaleDateString()}</td>
+								<td class="opponent-cell" onClick=${() => this.handlePlayerClick(game.opponent)}>
+									${game.opponent}
+								</td>
+								<td class="result-cell-${game.result}">${game.result.toUpperCase()}</td>
+								<td>${game.playerScore} - ${game.opponentScore}</td>
+							</tr>
+						`)}
+					</tbody>
+				</table>
+			</div>
+		`;
+	}
+
+	private renderAchievements() {
+		if (!this.profile) return html``;
+		
+		return html`
+			<div class="tab-pane" id="achievements">
+				<h4>Achievements</h4>
+				<div class="achievements-grid">
+					${this.profile.achievements.map(achievement => html`
+						<div class="achievement ${achievement.unlockedAt ? 'unlocked' : 'locked'}">
+							<div class="achievement-icon">${achievement.iconUrl}</div>
+							<div class="achievement-info">
+								<div class="achievement-name">${achievement.name}</div>
+								<div class="achievement-description">${achievement.description}</div>
+								${achievement.unlockedAt 
+									? html`<div class="achievement-date">Unlocked: ${achievement.unlockedAt.toLocaleDateString()}</div>`
+									: html`<div class="achievement-locked">Locked</div>`
+								}
+							</div>
+						</div>
+					`)}
+				</div>
+			</div>
+		`;
+	}
+
+	private renderSettings() {
+		if (!this.profile) return html``;
+		
+		return html`
+			<div class="tab-pane" id="settings">
+				<h4>Account Settings</h4>
+				<form class="settings-form">
+					<div class="form-group">
+						<label for="username">Username</label>
+						<input type="text" id="username" value="${this.profile.username}" disabled>
+					</div>
+					<div class="form-group">
+						<label for="avatar">Avatar URL</label>
+						<input type="text" id="avatar" value="${this.profile.avatarUrl}" disabled>
+					</div>
+					<div class="form-group">
+						<label for="password">Change Password</label>
+						<input type="password" id="password" placeholder="New password" disabled>
+					</div>
+					<button type="button" class="save-settings-button" disabled>Save Changes</button>
+				</form>
+			</div>
+		`;
+	}
+
+	private renderRecentGames(limit: number) {
+		if (!this.profile) return html``;
+		
+		const recentGames = this.profile.gameHistory.slice(0, limit);
+		
+		return html`
+			<table class="game-history-table recent-games">
+				<thead>
+					<tr>
+						<th>DATE</th>
+						<th>OPPONENT</th>
+						<th>RESULT</th>
+						<th>SCORE</th>
+					</tr>
+				</thead>
+				<tbody>
+					${recentGames.map(game => html`
+						<tr class="game-${game.result}">
+							<td>${game.date.toLocaleDateString()}</td>
+							<td class="opponent-cell" onClick=${() => this.handlePlayerClick(game.opponent)}>
+								${game.opponent}
+							</td>
+							<td class="result-cell-${game.result}">${game.result.toUpperCase()}</td>
+							<td>${game.playerScore} - ${game.opponentScore}</td>
+						</tr>
+					`)}
+				</tbody>
+			</table>
+		`;
+	}
+
+	private renderFriends() {
+		if (!this.profile) return html``;
+		
+		return html`
+			<div class="friends-container">
+				<h3>Friends</h3>
+				<div class="friends-list">
+					${this.profile.friends.map(friend => html`
+						<div class="friend-card">
+							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
+							<div class="friend-info">
+								<span class="friend-name">${friend.username}</span>
+								<span class="friend-status ${friend.status}">${friend.status}</span>
+							</div>
+							<button class="message-button" onClick=${() => this.openChat(friend.username)}>
+								Message
+							</button>
+						</div>
+					`)}
+				</div>
+			</div>
+		`;
+	}
+
+	private renderMessages() {
+		if (!this.profile) return html``;
+		
+		const conversations = Object.entries(this.profile.messages);
+		
+		return html`
+			<div class="messages-container">
+				<h3>Messages</h3>
+				<div class="conversations-list">
+					${conversations.map(([username, messages]) => html`
+						<div class="conversation">
+							<div class="conversation-header">
+								<span class="conversation-name">${username}</span>
+							</div>
+							<div class="messages-list">
+								${messages.map(message => html`
+									<div class="message ${message.from === this.profile?.username ? 'sent' : 'received'}">
+										<div class="message-content">${message.content}</div>
+										<div class="message-time">
+											${message.timestamp.toLocaleTimeString()}
+										</div>
+									</div>
+								`)}
+							</div>
+						</div>
+					`)}
+				</div>
+			</div>
+		`;
+	}
+
+	private setupEventListeners(): void {
+		// Set up tab switching
+		const tabButtons = this.container.querySelectorAll('.nav-button');
+		const tabPanes = this.container.querySelectorAll('.tab-pane');
+		tabButtons.forEach(button => {
+			button.addEventListener('click', () => {
+				const tabId = button.getAttribute('data-tab');
+				// Update active tab button
+				tabButtons.forEach(btn => btn.classList.remove('active'));
+				button.classList.add('active');
+				// Show selected tab pane
+				tabPanes.forEach(pane => {
+					pane.classList.remove('active');
+					if (pane.id === tabId) {
+						pane.classList.add('active');
+					}
+				});
+			});
+		});
+		// Set up edit profile button
+		const editButton = this.container.querySelector('.edit-profile-button');
+		if (editButton) {
+			editButton.addEventListener('click', () => {
+				this.toggleEditMode();
+			});
+		}
+		// Game history player links
+		this.container.querySelectorAll('.opponent-cell').forEach(cell => {
+			cell.addEventListener('click', () => {
+				const opponentUsername = (cell as HTMLElement).textContent;
+				if (opponentUsername) {
+					this.handlePlayerClick(opponentUsername);
+				}
+			});
+		});
+		// If in edit mode, set up form submission
+		if (this.isEditing) {
+			const form = this.container.querySelector('.settings-form');
+			if (form) {
+				form.addEventListener('submit', (e) => {
+					e.preventDefault();
+					this.saveProfileChanges();
+				});
+			}
+			
+			// Cancel button
+			const cancelButton = this.container.querySelector('.save-settings-button');
+			if (cancelButton) {
+				cancelButton.addEventListener('click', () => {
+					this.isEditing = false;
+					this.renderActiveTab();
+				});
+			}
+		}
+	}
+
+	private toggleEditMode(): void {
+		this.isEditing = !this.isEditing;
+		// Toggle form fields
+		const formInputs = this.container.querySelectorAll('.settings-form input');
+		const saveButton = this.container.querySelector('.save-settings-button');
+		formInputs.forEach(input => {
+			(input as HTMLInputElement).disabled = !this.isEditing;
+		});
+		if (saveButton) {
+			(saveButton as HTMLButtonElement).disabled = !this.isEditing;
+		}
+		// Toggle edit button text
+		const editButton = this.container.querySelector('.edit-profile-button');
+		if (editButton) {
+			editButton.textContent = this.isEditing ? 'Cancel' : 'Edit Profile';
+		}
+		// Select the settings tab when entering edit mode
+		if (this.isEditing) {
+			const settingsTab = this.container.querySelector('[data-tab="settings"]');
+			if (settingsTab) {
+				(settingsTab as HTMLElement).click();
+			}
+		}
+	}
+
+	private saveProfileChanges(): void {
+		// Get form data
+		const form = this.container.querySelector('.settings-form') as HTMLFormElement;
+		if (!form || !this.profile) return;
+		// Example of getting form values
+		const username = (form.querySelector('[name="username"]') as HTMLInputElement)?.value;
+		// Update profile data
+		if (username) this.profile.username = username;
+		// Simulate saving to database
+		DbService.updateUser(parseInt(this.profile.id), {
+			pseudo: username
+		});
+		// Exit edit mode and re-render
+		this.isEditing = false;
+		this.renderActiveTab();
+	}
+
+	private handlePlayerClick(username: string): void {
+		navigate(`/profile?username=${username}`);
+	}
+
+	private setActiveTab(tabId: string): void {
+		this.activeTab = tabId;
+		this.renderView();
+	}
+
+	private openChat(username: string): void {
+		this.activeTab = 'messages';
+		this.renderView();
+		// TODO: Implement chat focus/scroll to specific conversation
+	}
+
+	destroy(): void {
+		// Clean up any event listeners or resources
+		super.destroy();
+	}
+}

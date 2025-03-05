@@ -1,0 +1,58 @@
+/* Game specific styles */
+.game-menu {
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: var(--spacing-md);
+	z-index: 2;
+}
+
+.menu-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	width: 100%;
+	max-width: 300px;
+}
+
+.menu-button {
+	padding: var(--spacing-sm);
+	font-family: var(--font-family);
+	font-size: 1.2rem;
+	cursor: pointer;
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	border-radius: 4px;
+	transition: all var(--transition-fast);
+}
+
+.menu-button:hover {
+	background-color: rgba(80, 80, 80, 0.9);
+	transform: translateY(-2px);
+}
+
+/* Game canvas styles */
+#game-canvas {
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	z-index: 1;
+}
+
+.game-container {
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	z-index: 1;
+}
