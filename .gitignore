@@ -1,6 +1,6 @@
 node_modules
 dist
-*/certs/*
+backend/services/api-gateway/certs
 plugin-decorator-schema-api.js
 transcendence.db
 
