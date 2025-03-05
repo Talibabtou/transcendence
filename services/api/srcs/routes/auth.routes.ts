@@ -1,89 +1,157 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import fetch  from 'node-fetch';
-
-interface ServiceResponse {
-	method?: string;
-	isHttps?: string;
-	message: Array<any>;
-}
+import { BodyInit } from 'node-fetch';
 
 async function authRoutes(fastify: FastifyInstance) {
-	fastify.addContentTypeParser('application/json', { parseAs: 'string' }, fastify.getDefaultJsonParser('ignore', 'ignore'));
-
-	fastify.post('/auth', async (request: any, reply: any) => { 
+	// Get specific user
+	fastify.get('/auth/:id', async (request: FastifyRequest, reply: FastifyReply) => { 
 		try {
-			const isHttps = request.protocol === 'https';
-			const subpath = request.url.split('/api')[1];
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
+			const serviceUrl = `http://localhost:8082${subpath}`;
+			const response = await fetch(serviceUrl, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				  },
+				body: JSON.stringify(request.body)
+			});
+			const responseData: any = await response.json();
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(200).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
+			});
+		}
+	 })
+	// Get all users
+	fastify.get('/auth', async (request: FastifyRequest, reply: FastifyReply) => { 
+		try {
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
+			const serviceUrl = `http://localhost:8082${subpath}`;
+			const response = await fetch(serviceUrl, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				  },
+				body: JSON.stringify(request.body)
+			});
+			const responseData: any = await response.json();
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(200).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
+			});
+		}
+	 })
+	// Create a user
+	fastify.post('/auth', async (request: FastifyRequest, reply: FastifyReply) => { 
+		try {
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
 			const serviceUrl = `http://localhost:8082${subpath}`;
 			const response = await fetch(serviceUrl, {
 				method: 'POST',
 				headers: {
-				  'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(request.query)
+					'Content-Type': 'application/json',
+				  },
+				body: JSON.stringify(request.body)
 			});
-			const responseData = await response.json();
-			reply.send([{ from_service: responseData }, {
-					from_client: { 
-						hello: "world",
-						isHttps: isHttps
-					}
-				}
-			])
-		} catch (e: any) {
-			reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+			const responseData: any = await response.json();
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(201).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
+			});
 		}
-	})
-
-	fastify.get('/auth', async (request: any, reply: any) => { 
+	 })
+	// Modify a user
+	fastify.put('/auth/:id', async (request: FastifyRequest, reply: FastifyReply) => { 
 		try {
-			const isHttps = request.protocol === 'https';
-			const subpath = request.url.split('/api')[1];
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
 			const serviceUrl = `http://localhost:8082${subpath}`;
 			const response = await fetch(serviceUrl, {
-				method: 'GET',
+				method: 'PUT',
 				headers: {
-				  'Content-Type': 'application/json',
-				},
+					'Content-Type': 'application/json',
+				  },
+				body: JSON.stringify(request.body)
+			});
+			const responseData: any = await response.json();
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(200).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
+			});
+		}
+	 })
+	// Delete a user
+	fastify.delete('/auth/:id', async (request: FastifyRequest, reply: FastifyReply) => { 
+		try {
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
+			const serviceUrl = `http://localhost:8082${subpath}`;
+			const response = await fetch(serviceUrl, {
+				method: 'DELETE',
+				headers: {
+					'Content-Type': 'application/json',
+				  },
+				body: JSON.stringify(request.body)
+			});
+			const responseData: any = await response.json();
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(200).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
+			});
+		}
+	 })
+	// Login
+	fastify.post('/login', async (request: FastifyRequest, reply: FastifyReply) => { 
+		try {
+			const subpath = request.url.split('/v1')[1];
+			console.log({ subpath: subpath });
+			const serviceUrl = `http://localhost:8082${subpath}`;
+			const response = await fetch(serviceUrl, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				  },
 				body: JSON.stringify(request.body)
 			});
 			const responseData = await response.json();
-			reply.send([{ from_service: responseData }, {
-					from_client: { 
-						hello: "world",
-						isHttps: isHttps
-					}
-				}
-			])
-		} catch (e: any) {
-			reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
-		}
-	})
-
-	fastify.delete('/auth', async (request: any, reply: any) => { 
-		try {
-			const isHttps = request.protocol === 'https';
-			const subpath = request.url.split('/api')[1];
-			const serviceUrl = `http://localhost:8082${subpath}`;
-			const response = await fetch(serviceUrl, {
-				method: 'GET',
-				headers: {
-				  'Content-Type': 'application/json',
-				},
-				body: JSON.stringify(request.query)
+			if (!responseData)
+				throw new Error(`Response error with route ${subpath}`)
+			return reply.code(200).send(responseData);
+		  } catch (err: any) {
+				console.error(err.message);
+				return reply.code(500).send({
+			  message: 'Internal server error',
+			  error: err.message
 			});
-			const responseData = await response.json();
-			reply.send([{ from_service: responseData }, {
-					from_client: { 
-						hello: "world",
-						isHttps: isHttps
-					}
-				}
-			])
-		} catch (e: any) {
-			reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
 		}
-	})
+	 })
 }
 
 export default authRoutes;

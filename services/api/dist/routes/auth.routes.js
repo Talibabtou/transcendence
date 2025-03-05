@@ -1,35 +1,9 @@
-import fetch from 'node-fetch';
 async function authRoutes(fastify) {
-    fastify.addContentTypeParser('application/json', { parseAs: 'string' }, fastify.getDefaultJsonParser('ignore', 'ignore'));
-    fastify.post('/auth', async (request, reply) => {
+    // Get specific user
+    fastify.get('/auth/:id', async (request, reply) => {
         try {
-            const isHttps = request.protocol === 'https';
-            const subpath = request.url.split('/api')[1];
-            const serviceUrl = `http://localhost:8082${subpath}`;
-            const response = await fetch(serviceUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(request.query)
-            });
-            const responseData = await response.json();
-            reply.send([{ from_service: responseData }, {
-                    from_client: {
-                        hello: "world",
-                        isHttps: isHttps
-                    }
-                }
-            ]);
-        }
-        catch (e) {
-            reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
-        }
-    });
-    fastify.get('/auth', async (request, reply) => {
-        try {
-            const isHttps = request.protocol === 'https';
-            const subpath = request.url.split('/api')[1];
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
             const serviceUrl = `http://localhost:8082${subpath}`;
             const response = await fetch(serviceUrl, {
                 method: 'GET',
@@ -39,41 +13,146 @@ async function authRoutes(fastify) {
                 body: JSON.stringify(request.body)
             });
             const responseData = await response.json();
-            reply.send([{ from_service: responseData }, {
-                    from_client: {
-                        hello: "world",
-                        isHttps: isHttps
-                    }
-                }
-            ]);
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(200).send(responseData);
         }
-        catch (e) {
-            reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
         }
     });
-    fastify.delete('/auth', async (request, reply) => {
+    // Get all users
+    fastify.get('/auth', async (request, reply) => {
         try {
-            const isHttps = request.protocol === 'https';
-            const subpath = request.url.split('/api')[1];
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
             const serviceUrl = `http://localhost:8082${subpath}`;
             const response = await fetch(serviceUrl, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(request.query)
+                body: JSON.stringify(request.body)
             });
             const responseData = await response.json();
-            reply.send([{ from_service: responseData }, {
-                    from_client: {
-                        hello: "world",
-                        isHttps: isHttps
-                    }
-                }
-            ]);
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(200).send(responseData);
         }
-        catch (e) {
-            reply.code(400).send({ e: e instanceof Error ? e.message : 'Unknown error' });
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
+        }
+    });
+    // Create a user
+    fastify.post('/auth', async (request, reply) => {
+        try {
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
+            const serviceUrl = `http://localhost:8082${subpath}`;
+            const response = await fetch(serviceUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request.body)
+            });
+            const responseData = await response.json();
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(201).send(responseData);
+        }
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
+        }
+    });
+    // Modify a user
+    fastify.put('/auth/:id', async (request, reply) => {
+        try {
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
+            const serviceUrl = `http://localhost:8082${subpath}`;
+            const response = await fetch(serviceUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request.body)
+            });
+            const responseData = await response.json();
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(200).send(responseData);
+        }
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
+        }
+    });
+    // Delete a user
+    fastify.delete('/auth/:id', async (request, reply) => {
+        try {
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
+            const serviceUrl = `http://localhost:8082${subpath}`;
+            const response = await fetch(serviceUrl, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request.body)
+            });
+            const responseData = await response.json();
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(200).send(responseData);
+        }
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
+        }
+    });
+    // Login
+    fastify.post('/login', async (request, reply) => {
+        try {
+            const subpath = request.url.split('/v1')[1];
+            console.log({ subpath: subpath });
+            const serviceUrl = `http://localhost:8082${subpath}`;
+            const response = await fetch(serviceUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(request.body)
+            });
+            const responseData = await response.json();
+            if (!responseData)
+                throw new Error(`Response error with route ${subpath}`);
+            return reply.code(200).send(responseData);
+        }
+        catch (err) {
+            console.error(err.message);
+            return reply.code(500).send({
+                message: 'Internal server error',
+                error: err.message
+            });
         }
     });
 }

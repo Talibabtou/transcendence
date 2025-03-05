@@ -1,20 +1,20 @@
-import { fastify, FastifyInstance,  } from 'fastify';
+import { fastify } from 'fastify';
+import { initDb } from './db.js'
 import authRoutes from './routes/auth.routes.js'
-import checkRoutes from './routes/check.routes.js';
 
-const server: FastifyInstance = fastify({ logger: true });
+const server = fastify({ logger: true });
 
 const start = async () => {
 	try {
-		await server.register(authRoutes);
-		await server.register(checkRoutes);
-		await server.listen({ port: 8082, host: 'localhost' }, (err, address) => {
-			if (err)
-				throw new Error("server.listen");
-			console.log(`Server listening at ${address}`);
+		server.decorate('db', await initDb());
+		server.register(authRoutes);
+		server.listen({ port: 8082, host: 'localhost' }, (err: any, address: any) => {
+		if (err)
+			throw new Error(err.message);
+		console.log(`Server listening at ${address}`);
 		})
-	} catch (e: any) {
-		console.error({error: e.message});
+	} catch (err: any) {
+		console.error('Fatal error:', err);
 		process.exit(1);
 	}
 }

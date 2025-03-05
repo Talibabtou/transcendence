@@ -4,6 +4,8 @@
   "_version": "23.0.0",
 
   "compilerOptions": {
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "types": ["node"],
     "lib": ["es2024"],
     "module": "node16",
     "target": "es2024",

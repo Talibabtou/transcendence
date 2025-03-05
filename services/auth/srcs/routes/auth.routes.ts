@@ -1,61 +1,19 @@
-import { regSchema, RegSchemaType, loginSchema, LoginSchemaType } from '../schemas/auth.schema.js';
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { fpSqlitePlugin } from "fastify-sqlite-typed";
-import path from 'path';
+import { createUserSchema, loginSchema, getIdUserSchema } from '../schemas/auth.schemas.js';
+import { FastifyInstance } from 'fastify';
+import { ICreateUser, ILogin, IGetIdUser } from '../types/auth.types.js';
+import { addUser, getUsers, getUser, deleteUser } from '../controllers/auth.controllers.js';
 
 async function authRoutes(fastify: FastifyInstance) {
-    fastify.register(fpSqlitePlugin, {
-        dbFilename: path.join(path.resolve(), "db/auth.db")
-      });
-
-    fastify.get('/auth', (request: any, reply: any) => {
-        try {
-            const isHttps = request.protocol === 'https';
-            return reply.code(200).send({
-                hello: "world",
-                method: request.method,
-                isHttps: isHttps,
-                message: {message: "user get"}
-            });
-        } catch (e: any) {
-            return reply.code(500).send({ error: e.message });
-        }
+  fastify.get('/auth', getUsers);
+  fastify.get<{ Params: IGetIdUser }>('/auth/:id', { schema: { params: getIdUserSchema }}, getUser);
+  fastify.post<{ Body: ICreateUser }>('/auth', { schema: { body: createUserSchema }}, addUser);
+  fastify.put<{ Params: IGetIdUser }>('/auth/:id', { schema: { params: getIdUserSchema }}, async (request: any, reply: any) => {
+    reply.code(200).send({ 
+      status: "success",
+      message: "PUT /auth/:id reached"
     })
-
-    fastify.post('/auth', (request: any, reply: any) => {
-        try {
-            const isHttps = request.protocol === 'https';
-            const { username, password, email } = regSchema.parse(request.query);
-            fastify.db.run(
-                'INSERT INTO auth (username, password, email) VALUES (?, ?, ?);',
-                username,
-                password,
-                email
-              );
-            return reply.code(200).send({
-                hello: "world",
-                method: request.method,
-                isHttps: isHttps,
-                message: {message: "user added successfully"}
-            });
-        } catch (e: any) {
-            return reply.code(500).send({ error: e.message });
-        }
-    })
-
-    fastify.delete('/auth',(request: any, reply: any) => {
-        try {
-            const isHttps = request.protocol === 'https';
-            return reply.code(200).send({
-                hello: "world",
-                method: request.method,
-                isHttps: isHttps,
-                message: [{message: "/test1 route"}, {schema: 'null'}]
-            });
-        } catch (e: any) {
-            return reply.code(500).send({ error: e.message });
-        }
-    })
+  });
+  fastify.delete<{ Params: IGetIdUser }>('/auth/:id', { schema: { params: getIdUserSchema }}, deleteUser);
 }
 
 export default authRoutes;

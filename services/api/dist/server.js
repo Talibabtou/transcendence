@@ -1,9 +1,8 @@
-import fastify from 'fastify';
+import { fastify } from 'fastify';
 import { readFileSync } from 'fs';
 import path from 'path';
 import authRoutes from './routes/auth.routes.js';
-import checkRoutes from './routes/check.routes.js';
-const server = fastify.fastify({
+const server = fastify({
     logger: true,
     http2: true,
     https: {
@@ -13,22 +12,22 @@ const server = fastify.fastify({
 });
 const start = async () => {
     try {
-        await server.register(authRoutes, { prefix: '/api' });
-        await server.register(checkRoutes, { prefix: '/api' });
-        await server.listen({ port: 8080, host: "localhost" }, (err, address) => {
+        await server.register(authRoutes, { prefix: '/api/v1/' });
+        server.listen({ port: 8080, host: "localhost" }, (err, address) => {
             if (err)
                 throw new Error("server.listen");
             console.log(`Server listening at ${address}`);
         });
     }
-    catch (e) {
-        console.error({ error: e.message });
+    catch (err) {
+        console.error('Fatal error:', err);
         process.exit(1);
     }
 };
 const shutdownServer = async (signal) => {
     console.log(`\nReceived ${signal}. Shutting down gracefully...`);
     console.log('Server has been closed.');
+    await server.close();
     process.exit(0);
 };
 process.on('SIGINT', () => shutdownServer('SIGINT'));
