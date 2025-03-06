@@ -25,6 +25,7 @@ export interface UpdateMatchRequest {
 export interface GetMatchesQuery {
   player_id?: string;
   completed?: boolean;
+  tournament_id?: string;
   limit?: number;
   offset?: number;
 }

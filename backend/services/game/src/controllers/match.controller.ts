@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
+import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/errorCodes.js'
 
 import { 
   Match, 
@@ -13,20 +14,15 @@ export async function getMatch(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<Match | void> {
   const { id } = request.params
   try {
-    // Use a transaction to ensure data consistency
-    await request.server.db.exec('BEGIN TRANSACTION')
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)
-    await request.server.db.exec('COMMIT')
-    
     if (!match) {
-      return reply.code(404).send({ error: 'Match not found' })
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
+      reply.code(404).send(errorResponse)
     }
     return match
   } catch (error) {
-    // Rollback transaction on error
-    await request.server.db.exec('ROLLBACK')
-    request.log.error(error)
-    return reply.code(500).send({ error: 'Internal Server Error' })
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    reply.code(500).send(errorResponse)
   }
 }
 
@@ -36,9 +32,6 @@ export async function getMatches(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<Match[] | void> {
   const { player_id, completed, limit = 10, offset = 0 } = request.query
   try {
-    // Use a transaction to ensure data consistency
-    await request.server.db.exec('BEGIN TRANSACTION')
-    
     let query = 'SELECT * FROM matches WHERE 1=1'
     const params = []
     if (player_id !== undefined) {
@@ -52,14 +45,10 @@ export async function getMatches(request: FastifyRequest<{
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
     params.push(limit, offset)
     const matches = await request.server.db.all(query, ...params)
-    
-    await request.server.db.exec('COMMIT')
     return matches
   } catch (error) {
-    // Rollback transaction on error
-    await request.server.db.exec('ROLLBACK')
-    request.log.error(error)
-    return reply.code(500).send({ error: 'Internal Server Error' })
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    reply.code(500).send(errorResponse)
   }
 }
 
@@ -86,13 +75,13 @@ export async function createMatch(request: FastifyRequest<{
     
     await request.server.db.exec('COMMIT')
     
-    // Return the complete match object
-    return reply.code(201).send(newMatch)
+    // Return the match directly instead of using reply.send()
+    return newMatch
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
-    request.log.error(error)
-    return reply.code(500).send({ error: 'Internal Server Error' })
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    reply.code(500).send(errorResponse)
   }
 }
 
@@ -111,7 +100,8 @@ export async function updateMatch(request: FastifyRequest<{
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)
     if (!match) {
       await request.server.db.exec('ROLLBACK')
-      return reply.code(404).send({ error: 'Match not found' })
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
+      reply.code(404).send(errorResponse) 
     }
     // Build update query
     let updates = []
@@ -130,7 +120,8 @@ export async function updateMatch(request: FastifyRequest<{
     }
     if (updates.length === 0) {
       await request.server.db.exec('ROLLBACK')
-      return reply.code(400).send({ error: 'No valid fields to update' })
+      const errorResponse = createErrorResponse(400, ErrorCodes.NO_VALID_FIELDS_TO_UPDATE)
+      reply.code(400).send(errorResponse)
     }
     
     // Add id to params
@@ -146,7 +137,7 @@ export async function updateMatch(request: FastifyRequest<{
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
-    request.log.error(error)
-    return reply.code(500).send({ error: 'Internal Server Error' })
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    reply.code(500).send(errorResponse)
   }
 }
