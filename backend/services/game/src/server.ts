@@ -1,10 +1,28 @@
 import fastify from 'fastify'
 import databaseConnector from './database/database.js'
 import routes from './routes/index.js'
+import fastifyHelmet from '@fastify/helmet'
+import fastifyCors from '@fastify/cors'
+import fastifyRateLimit from '@fastify/rate-limit'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 // Create the server instance
 const server = fastify({
 	logger: true
+})
+
+// Register security plugins
+await server.register(fastifyHelmet)
+await server.register(fastifyCors, {
+	origin: process.env.NODE_ENV === 'production'
+		? (process.env.ALLOWED_ORIGINS || false)
+		: true  // Allow all origins in development
+})
+await server.register(fastifyRateLimit, {
+	max: 100,
+	timeWindow: '1 minute'
 })
 
 // Register plugins
@@ -24,7 +42,7 @@ server.get('/health', async (request, reply) => {
 // Start the server
 const start = async () => {
 	try {
-		const port = process.env.PORT || 8080
+		const port = process.env.PORT || 8082
 		await server.listen({ port: Number(port), host: '0.0.0.0' })
 		
 		const address = server.server.address()
