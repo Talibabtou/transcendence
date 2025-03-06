@@ -1,4 +1,4 @@
-import { ErrorResponse } from '../types/response.type.js';
+import { ErrorResponse } from '@shared/types/response.type.js';
 
 export enum ErrorCodes {
   // Common errors

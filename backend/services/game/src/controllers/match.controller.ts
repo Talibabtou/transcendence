@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/errorCodes.js'
+import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
 
 import { 
   Match, 
@@ -11,25 +11,25 @@ import {
 // Get a single match by ID
 export async function getMatch(request: FastifyRequest<{
   Params: { id: string }
-}>, reply: FastifyReply): Promise<Match | void> {
+}>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
   try {
-    const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)
+    const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id) as Match | null
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
-      reply.code(404).send(errorResponse)
+      return reply.code(404).send(errorResponse)
     }
-    return match
+    return reply.send(match)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    reply.code(500).send(errorResponse)
+    return reply.code(500).send(errorResponse)
   }
 }
 
 // Get multiple matches with optional filters
 export async function getMatches(request: FastifyRequest<{
   Querystring: GetMatchesQuery
-}>, reply: FastifyReply): Promise<Match[] | void> {
+}>, reply: FastifyReply): Promise<void> {
   const { player_id, completed, limit = 10, offset = 0 } = request.query
   try {
     let query = 'SELECT * FROM matches WHERE 1=1'
@@ -44,21 +44,21 @@ export async function getMatches(request: FastifyRequest<{
     }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
     params.push(limit, offset)
-    const matches = await request.server.db.all(query, ...params)
-    return matches
+    const matches = await request.server.db.all(query, ...params) as Match[]
+    return reply.send(matches)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    reply.code(500).send(errorResponse)
+    return reply.code(500).send(errorResponse)
   }
 }
 
 //Create a new match
-// returns a Promise<Match | void> because it performs database operations
+// returns a Promise<void> because it performs database operations
 // that are inherently asynchronous.
 // Promises allow the server to handle other requests while waiting for database
 export async function createMatch(request: FastifyRequest<{
   Body: CreateMatchRequest
-}>, reply: FastifyReply): Promise<Match | void> {
+}>, reply: FastifyReply): Promise<void> {
 	//Request Body Extraction
 	// destructuring to extract the required fields
 	// match the CreateMatchRequest interface
@@ -70,18 +70,18 @@ export async function createMatch(request: FastifyRequest<{
     // Use db.get() with RETURNING * to properly get the inserted record
     const newMatch = await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
-      player_1, player_2, tournament_id || null
-    )
+      [player_1, player_2, tournament_id || null]
+    ) as Match
     
     await request.server.db.exec('COMMIT')
     
     // Return the match directly instead of using reply.send()
-    return newMatch
+    return reply.send(newMatch)
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    reply.code(500).send(errorResponse)
+    return reply.code(500).send(errorResponse)
   }
 }
 
@@ -89,7 +89,7 @@ export async function createMatch(request: FastifyRequest<{
 export async function updateMatch(request: FastifyRequest<{
   Params: { id: string },
   Body: UpdateMatchRequest
-}>, reply: FastifyReply): Promise<Match | void> {
+}>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
   const { completed, duration, timeout } = request.body
   try {
@@ -97,11 +97,11 @@ export async function updateMatch(request: FastifyRequest<{
     await request.server.db.exec('BEGIN TRANSACTION')
     
     // Check if match exists
-    const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)
+    const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
     if (!match) {
       await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
-      reply.code(404).send(errorResponse) 
+      return reply.code(404).send(errorResponse) 
     }
     // Build update query
     let updates = []
@@ -121,7 +121,7 @@ export async function updateMatch(request: FastifyRequest<{
     if (updates.length === 0) {
       await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(400, ErrorCodes.NO_VALID_FIELDS_TO_UPDATE)
-      reply.code(400).send(errorResponse)
+      return reply.code(400).send(errorResponse)
     }
     
     // Add id to params
@@ -130,14 +130,19 @@ export async function updateMatch(request: FastifyRequest<{
       `UPDATE matches SET ${updates.join(', ')} WHERE id = ?`,
       ...params
     )
-    const updatedMatch = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)
+    const updatedMatch = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
+    if (!updatedMatch) {
+      await request.server.db.exec('ROLLBACK')
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
+      return reply.code(404).send(errorResponse)
+    }
     
     await request.server.db.exec('COMMIT')
-    return updatedMatch
+    return reply.send(updatedMatch)
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    reply.code(500).send(errorResponse)
+    return reply.code(500).send(errorResponse)
   }
 }
