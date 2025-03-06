@@ -9,3 +9,5 @@ transcendence.db
 .cursor
 *.lock
 *.sqlite
+*.sqlite-wal
+*.sqlite-shm

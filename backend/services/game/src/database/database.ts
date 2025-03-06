@@ -18,16 +18,15 @@ declare module 'fastify' {
 
 // Initialize database connection
 async function dbConnector(fastify: FastifyInstance) {
-  // Open SQLite database connection
+  // Open SQLite database connection with connection pooling
   const db = await open({
     filename: path.join(__dirname, 'game.sqlite'),
-    driver: sqlite3.Database
+    driver: sqlite3.Database,
   });
   
-  // Enable RETURNING clause support
-	// When a foreign key constraint is defined, 
-	// it ensures that the value in the foreign key column must match 
-	// a value in the referenced primary key column of another table.
+  // Enable Write-Ahead Logging (WAL) mode for better concurrency
+  // This mode allows multiple readers and a single writer to access the database concurrently
+  await db.exec('PRAGMA journal_mode = WAL');
   await db.exec('PRAGMA foreign_keys = ON');
   
   // Read SQL commands from files
