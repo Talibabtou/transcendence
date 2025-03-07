@@ -1,3 +1,5 @@
+import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
+
 export const goalSchema = {
   type: 'object',
   properties: {
@@ -16,12 +18,14 @@ export const createGoalSchema = {
     properties: {
       match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
       player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-      duration: { type: ['integer', 'null'], minimum: 0, default: null }
+      duration: { type: ['integer'], minimum: 0}
     },
     required: ['match_id', 'player', 'duration']
   },
   response: {
-    201: goalSchema
+    201: goalSchema,
+    400: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
 
@@ -34,7 +38,10 @@ export const getGoalSchema = {
     required: ['id']
   },
   response: {
-    200: goalSchema
+    200: goalSchema,
+    400: errorResponseSchema,
+    404: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
 
@@ -52,6 +59,8 @@ export const getGoalsSchema = {
     200: {
       type: 'array',
       items: goalSchema
-    }
+    },
+    400: errorResponseSchema,
+    500: errorResponseSchema
   }
 }

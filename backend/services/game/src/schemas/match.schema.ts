@@ -1,3 +1,5 @@
+import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
+
 export const matchSchema = {
   type: 'object',
   properties: {
@@ -25,7 +27,9 @@ export const createMatchSchema = {
     required: ['player_1', 'player_2']
   },
   response: {
-    201: matchSchema
+    201: matchSchema,
+    400: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
 
@@ -48,7 +52,10 @@ export const updateMatchSchema = {
     additionalProperties: false
   },
   response: {
-    200: matchSchema
+    200: matchSchema,
+    400: errorResponseSchema,
+    404: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
 
@@ -61,7 +68,10 @@ export const getMatchSchema = {
     required: ['id']
   },
   response: {
-    200: matchSchema
+    200: matchSchema,
+    400: errorResponseSchema,
+    404: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
 
@@ -79,6 +89,8 @@ export const getMatchesSchema = {
     200: {
       type: 'array',
       items: matchSchema
-    }
+    },
+    400: errorResponseSchema,
+    500: errorResponseSchema
   }
 }
