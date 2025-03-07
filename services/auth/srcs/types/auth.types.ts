@@ -10,5 +10,11 @@ export interface ILogin {
 }
 
 export interface IGetIdUser {
-  id: number
+  id: string
+}
+
+export interface IModifyUser {
+  username?: string,
+  email?: string,
+  password?: string
 }
