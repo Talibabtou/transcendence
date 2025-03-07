@@ -9,8 +9,8 @@ CREATE TABLE IF NOT EXISTS matches (
   player_1 TEXT NOT NULL, -- UUID
   player_2 TEXT NOT NULL, -- UUID
   completed BOOLEAN DEFAULT FALSE,
-  duration INTEGER,
+  duration INTEGER DEFAULT NULL,
   timeout BOOLEAN DEFAULT FALSE,
-  tournament_id TEXT, -- UUID
-  created_at TEXT DEFAULT (datetime('now'))
+  tournament_id TEXT DEFAULT NULL, -- UUID
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

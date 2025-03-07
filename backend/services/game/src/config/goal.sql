@@ -9,6 +9,6 @@ CREATE TABLE IF NOT EXISTS goal (
   match_id TEXT NOT NULL, -- UUID
   player TEXT NOT NULL, -- UUID
   duration INTEGER NOT NULL,
-  created_at TEXT DEFAULT (datetime('now')),
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (match_id) REFERENCES matches(id)
 );

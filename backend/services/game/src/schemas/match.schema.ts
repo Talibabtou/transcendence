@@ -10,7 +10,7 @@ export const matchSchema = {
     tournament_id: { type: ['string', 'null'], default: null, format: 'uuid' },
     created_at: { type: 'string', format: 'date-time' }
   },
-  required: ['player_1', 'player_2']
+  required: ['id', 'player_1', 'player_2', 'completed', 'duration', 'timeout', 'tournament_id', 'created_at']
 }
 
 export const createMatchSchema = {
@@ -41,10 +41,11 @@ export const updateMatchSchema = {
     type: 'object',
     properties: {
       completed: { type: 'boolean' },
-			duration: { type: ['integer', 'null'], minimum: 0 }, // duration in seconds
+      duration: { type: ['integer', 'null'], minimum: 0 }, // duration in seconds
       timeout: { type: 'boolean' }
     },
-    minProperties: 3
+    required: ['completed', 'duration', 'timeout'],
+    additionalProperties: false
   },
   response: {
     200: matchSchema
