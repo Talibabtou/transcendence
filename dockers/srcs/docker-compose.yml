@@ -1,0 +1,33 @@
+services:
+  api_gateway:
+    build: ./requirements/api_gateway
+    container_name: api_gateway
+    env_file:
+      - ../.env
+    ports:
+      - 8080:8080
+    networks:
+      - transcendance-net
+    restart: unless-stopped
+  # auth:
+  #   build: ./requirements/auth
+  #   container_name: auth
+  #   env_file:
+  #     - ../.env
+  #   expose:
+  #     - 8082
+  #   networks:
+  #     - transcendance-net
+  #   restart: unless-stopped
+  # game:
+  #   build: ./requirements/game
+  #   container_name: game
+  #   expose:
+  #     - 8083
+  #   networks:
+  #     - transcendance-net
+  #   restart: unless-stopped
+
+networks:
+  transcendance-net:
+    driver: bridge
