@@ -5,6 +5,7 @@ import fastifyHelmet from '@fastify/helmet'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
 import dotenv from 'dotenv'
+import { API_PREFIX, HEALTH_CHECK_PATH } from '../../../shared/constants/path.const.js'
 
 dotenv.config()
 
@@ -32,10 +33,10 @@ await server.register(databaseConnector)
 // When you call server.register(routes, { prefix: '/api' }), 
 // you're telling Fastify to use the routes defined in your 
 // routes/index.js file and prefix all those routes with /api.
-await server.register(routes, { prefix: '/api' })
+await server.register(routes, { prefix: API_PREFIX })
 
 // Health check route
-server.get('/health', async (request, reply) => {
+server.get(HEALTH_CHECK_PATH, async (request, reply) => {
 	return { status: 'ok' }
 })
 
