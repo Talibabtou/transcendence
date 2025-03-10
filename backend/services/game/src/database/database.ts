@@ -23,7 +23,8 @@ async function dbConnector(fastify: FastifyInstance) {
     filename: path.join(__dirname, 'game.sqlite'),
     driver: sqlite3.Database,
   });
-  
+  // Set busy timeout to 5 seconds to prevent database lock
+  await db.exec('PRAGMA busy_timeout = 5000');
   // Enable Write-Ahead Logging (WAL) mode for better concurrency
   // This mode allows multiple readers and a single writer to access the database concurrently
   await db.exec('PRAGMA journal_mode = WAL');
