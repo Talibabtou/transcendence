@@ -20,7 +20,7 @@ export async function getGoal(request: FastifyRequest<{
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
       return reply.code(404).send(errorResponse)
     }
-    return reply.send(goal)
+    return reply.code(200).send(goal)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
@@ -50,7 +50,7 @@ export async function getGoals(request: FastifyRequest<{
     params.push(limit, offset)
     
     const goals = await request.server.db.all(query, ...params) as Goal[]
-    return reply.send(goals)
+    return reply.code(200).send(goals)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
@@ -91,8 +91,8 @@ export async function createGoal(request: FastifyRequest<{
     
     await request.server.db.exec('COMMIT')
     
-    // Return the goal directly instead of using reply.send()
-    return reply.send(newGoal)
+    // Return 201 Created for resource creation instead of default 200
+    return reply.code(201).send(newGoal)
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')

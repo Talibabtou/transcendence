@@ -19,7 +19,7 @@ export async function getMatch(request: FastifyRequest<{
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
     }
-    return reply.send(match)
+    return reply.code(200).send(match)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
@@ -44,8 +44,9 @@ export async function getMatches(request: FastifyRequest<{
     }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
     params.push(limit, offset)
-    const matches = await request.server.db.all(query, ...params) as Match[]
-    return reply.send(matches)
+		//parameterized queries
+    const matches = await request.server.db.all(query, params) as Match[]
+    return reply.code(200).send(matches)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
@@ -76,7 +77,7 @@ export async function createMatch(request: FastifyRequest<{
     await request.server.db.exec('COMMIT')
     
     // Return the match directly instead of using reply.send()
-    return reply.send(newMatch)
+    return reply.code(201).send(newMatch)
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
@@ -138,7 +139,7 @@ export async function updateMatch(request: FastifyRequest<{
     }
     
     await request.server.db.exec('COMMIT')
-    return reply.send(updatedMatch)
+    return reply.code(200).send(updatedMatch)
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
