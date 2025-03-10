@@ -8,6 +8,8 @@ import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 import dotenv from 'dotenv'
 import { API_PREFIX, HEALTH_CHECK_PATH } from '../../../shared/constants/path.const.js'
+import { createErrorResponse, ErrorCodes, ErrorExamples } from '../../../shared/constants/error.const.js'
+import { errorResponseSchema } from '../../../shared/schemas/error.schema.js'
 
 dotenv.config()
 
@@ -77,13 +79,33 @@ server.get(HEALTH_CHECK_PATH, {
       200: {
         type: 'object',
         properties: {
-          status: { type: 'string' }
+          status: { type: 'string' },
+          timestamp: { type: 'string' },
+          service: { type: 'string' },
+          version: { type: 'string' }
         }
-      }
+      },
+			503: {
+				...errorResponseSchema,
+				example: ErrorExamples.serviceUnavailable
+			}
     }
   }
 }, async (request, reply) => {
-	return { status: 'ok' }
+  try {
+    // Check database connection
+    await request.server.db.get('SELECT 1')
+    return { 
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'game',
+      version: process.env.SERVICE_VERSION || '1.0.0'
+    }
+  } catch (error) {
+    request.log.error({ err: error }, 'Health check failed')
+		const errorResponse = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE)
+    return reply.code(503).send(errorResponse)
+  }
 })
 
 // Start the server
