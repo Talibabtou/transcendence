@@ -2,7 +2,7 @@
 export interface Goal {
   id: string;
   match_id: string;
-  player: number;
+  player: string;
   duration: number;
   created_at: string;
 }
