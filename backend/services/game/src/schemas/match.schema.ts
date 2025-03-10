@@ -1,4 +1,5 @@
 import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
+import { ErrorExamples } from '../../../../shared/constants/error.const.js';
 
 export const matchSchema = {
   type: 'object',
@@ -15,6 +16,49 @@ export const matchSchema = {
   required: ['id', 'player_1', 'player_2', 'completed', 'duration', 'timeout', 'tournament_id', 'created_at']
 }
 
+export const getMatchSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid' }
+    },
+    required: ['id']
+  },
+  response: {
+    200: matchSchema,
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.matchNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}
+
+export const getMatchesSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      player_id: { type: 'string', format: 'uuid' },
+      completed: { type: 'boolean' },
+      limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
+      offset: { type: 'integer', minimum: 0, default: 0 }
+    }
+  },
+  response: {
+    200: {
+      type: 'array',
+      items: matchSchema
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}
+
 export const createMatchSchema = {
   body: {
     type: 'object',
@@ -28,8 +72,10 @@ export const createMatchSchema = {
   },
   response: {
     201: matchSchema,
-    400: errorResponseSchema,
-    500: errorResponseSchema
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 }
 
@@ -53,44 +99,19 @@ export const updateMatchSchema = {
   },
   response: {
     200: matchSchema,
-    400: errorResponseSchema,
-    404: errorResponseSchema,
-    500: errorResponseSchema
-  }
-}
-
-export const getMatchSchema = {
-  params: {
-    type: 'object',
-    properties: {
-      id: { type: 'string', format: 'uuid' }
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.invalidFields
     },
-    required: ['id']
-  },
-  response: {
-    200: matchSchema,
-    400: errorResponseSchema,
-    404: errorResponseSchema,
-    500: errorResponseSchema
-  }
-}
-
-export const getMatchesSchema = {
-  querystring: {
-    type: 'object',
-    properties: {
-      player_id: { type: 'string', format: 'uuid' },
-      completed: { type: 'boolean' },
-      limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
-      offset: { type: 'integer', minimum: 0, default: 0 }
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.matchNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
     }
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: matchSchema
-    },
-    400: errorResponseSchema,
-    500: errorResponseSchema
   }
 }
+
+

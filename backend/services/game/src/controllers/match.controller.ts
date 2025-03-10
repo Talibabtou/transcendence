@@ -120,7 +120,7 @@ export async function updateMatch(request: FastifyRequest<{
     }
     if (updates.length === 0) {
       await request.server.db.exec('ROLLBACK')
-      const errorResponse = createErrorResponse(400, ErrorCodes.NO_VALID_FIELDS_TO_UPDATE)
+      const errorResponse = createErrorResponse(400, ErrorCodes.INVALID_FIELDS)
       return reply.code(400).send(errorResponse)
     }
     

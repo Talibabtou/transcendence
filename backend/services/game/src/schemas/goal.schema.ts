@@ -1,5 +1,5 @@
 import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
-
+import { ErrorExamples } from '../../../../shared/constants/error.const.js';
 export const goalSchema = {
   type: 'object',
   properties: {
@@ -12,22 +12,6 @@ export const goalSchema = {
   required: ['id', 'match_id', 'player', 'duration', 'created_at']
 }
 
-export const createGoalSchema = {
-  body: {
-    type: 'object',
-    properties: {
-      match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-      player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-      duration: { type: ['integer'], minimum: 0}
-    },
-    required: ['match_id', 'player', 'duration']
-  },
-  response: {
-    201: goalSchema,
-    400: errorResponseSchema,
-    500: errorResponseSchema
-  }
-}
 
 export const getGoalSchema = {
   params: {
@@ -39,9 +23,14 @@ export const getGoalSchema = {
   },
   response: {
     200: goalSchema,
-    400: errorResponseSchema,
-    404: errorResponseSchema,
-    500: errorResponseSchema
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.goalNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 }
 
@@ -60,7 +49,37 @@ export const getGoalsSchema = {
       type: 'array',
       items: goalSchema
     },
-    400: errorResponseSchema,
-    500: errorResponseSchema
+		500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 }
+
+export const createGoalSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      duration: { type: ['integer'], minimum: 0}
+    },
+    required: ['match_id', 'player', 'duration']
+  },
+  response: {
+    201: goalSchema,
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotInMatch
+    },
+		404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.matchNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}
+

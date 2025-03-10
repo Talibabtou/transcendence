@@ -49,11 +49,7 @@ export async function getGoals(request: FastifyRequest<{
     query += ' ORDER BY created_at ASC LIMIT ? OFFSET ?'
     params.push(limit, offset)
     
-    const goals = await request.server.db.all(query, ...params) as Goal[] | null
-    if (!goals) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
-      return reply.code(404).send(errorResponse)
-    }
+    const goals = await request.server.db.all(query, ...params) as Goal[]
     return reply.send(goals)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
