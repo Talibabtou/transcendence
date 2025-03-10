@@ -5,8 +5,9 @@
  * across the application and prevent duplication.
  */
 
-// Base API paths
-export const API_PREFIX = '/api/v1';
+// Define version more explicitly
+export const API_VERSION = 'v1';
+export const API_PREFIX = `/api/${API_VERSION}`;
 export const HEALTH_CHECK_PATH = '/health';
 
 // Game service paths
