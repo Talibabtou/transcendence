@@ -12,11 +12,26 @@ import {
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   // Get all goals with optional filters
-  fastify.get('/', { schema: getGoalsSchema }, getGoals)
+  fastify.get('/', { 
+    schema: {
+      ...getGoalsSchema,
+      tags: ['goals']
+    }
+  }, getGoals)
   
   // Get a specific goal by ID
-  fastify.get('/:id', { schema: getGoalSchema }, getGoal)
+  fastify.get('/:id', { 
+    schema: {
+      ...getGoalSchema,
+      tags: ['goals']
+    }
+  }, getGoal)
   
   // Create a new goal
-  fastify.post('/', { schema: createGoalSchema }, createGoal)
+  fastify.post('/', { 
+    schema: {
+      ...createGoalSchema,
+      tags: ['goals']
+    }
+  }, createGoal)
 }

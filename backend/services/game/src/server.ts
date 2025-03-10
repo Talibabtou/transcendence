@@ -4,6 +4,8 @@ import routes from './routes/index.js'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
+import fastifySwagger from '@fastify/swagger'
+import fastifySwaggerUi from '@fastify/swagger-ui'
 import dotenv from 'dotenv'
 import { API_PREFIX, HEALTH_CHECK_PATH } from '../../../shared/constants/path.const.js'
 
@@ -26,6 +28,37 @@ await server.register(fastifyRateLimit, {
 	timeWindow: '1 minute'
 })
 
+// Register Swagger plugins
+await server.register(fastifySwagger, {
+  openapi: {
+    info: {
+      title: 'Game Service API',
+      description: 'API documentation for the Game microservice',
+      version: '1.0.0'
+    },
+    servers: [
+      {
+        url: `http://localhost:${process.env.PORT || 8082}${API_PREFIX}`,
+        description: 'Local development server'
+      }
+    ],
+    tags: [
+      { name: 'matches', description: 'Match management endpoints' },
+      { name: 'goals', description: 'Goal tracking endpoints' },
+      { name: 'system', description: 'System and health check endpoints' }
+    ]
+  }
+})
+
+await server.register(fastifySwaggerUi, {
+  routePrefix: '/documentation',
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: true
+  },
+  staticCSP: true
+})
+
 // Register plugins
 await server.register(databaseConnector)
 
@@ -36,7 +69,20 @@ await server.register(databaseConnector)
 await server.register(routes, { prefix: API_PREFIX })
 
 // Health check route
-server.get(HEALTH_CHECK_PATH, async (request, reply) => {
+server.get(HEALTH_CHECK_PATH, {
+  schema: {
+    tags: ['system'],
+    description: 'Health check endpoint',
+    response: {
+      200: {
+        type: 'object',
+        properties: {
+          status: { type: 'string' }
+        }
+      }
+    }
+  }
+}, async (request, reply) => {
 	return { status: 'ok' }
 })
 
