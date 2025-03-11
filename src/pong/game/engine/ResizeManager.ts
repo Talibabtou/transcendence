@@ -104,22 +104,31 @@ export class ResizeManager {
 		
 		// Check if we're in background mode
 		const isBackgroundMode = this.isInBackgroundDemo();
-		const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
 		
-		// If not in background mode, pause the game first
+		// Check game state
+		const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
+		const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
+		
+		// If countdown is active, set a pending pause request
+		if (wasInCountdown && this.pauseManager) {
+			this.pauseManager.setPendingPauseRequest(true);
+		}
+		
+		// If not in background mode and playing, pause the game first
 		if (!isBackgroundMode && wasPlaying && this.pauseManager) {
 			this.pauseManager.pause();
 		}
 		
 		// Request animation frame for smoother visual update
 		requestAnimationFrame(() => {
-			// Handle the resize operation uniformly for both modes
+			// Handle the resize operation
 			this.updateCanvasSize();
 			this.resizeGameObjects();
 			
 			// Reset resize state after a short delay
 			this.resizeTimeout = window.setTimeout(() => {
 				this.isResizing = false;
+				
 				// Resume game if it was playing (and not in background mode)
 				if (!isBackgroundMode && wasPlaying && this.pauseManager) {
 					this.pauseManager.resume();
@@ -174,10 +183,10 @@ export class ResizeManager {
 		
 		if (!this.ball || !this.player1 || !this.player2) return;
 		
-		// Save ball state before resize
-		const ballState = this.ball.saveState();
+		// Get game snapshot first - we'll need this for positioning
+		const gameSnapshot = this.pauseManager?.getGameSnapshot();
 		
-		// Update all game objects sizes
+		// Update sizes for all game objects first
 		this.ball.updateSizes();
 		this.player1.updateSizes();
 		this.player2.updateSizes();
@@ -186,19 +195,57 @@ export class ResizeManager {
 		this.player1.x = sizes.PLAYER_PADDING;
 		this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
 		
-		// Update vertical paddle positions (maintaining proportional position)
-		this.updatePaddleVerticalPositions(newHeight);
-		
-		// Restore ball position and velocity proportionally
-		this.ball.restoreState(ballState, newWidth, newHeight);
-		
-		// Maintain countdown state if needed
-		if (this.pauseManager?.hasState(GameState.COUNTDOWN)) {
-			this.pauseManager.maintainCountdownState();
+		// Handle vertical positioning of paddles
+		if (gameSnapshot) {
+			// Use the saved proportional positions from the snapshot
+			this.player1.y = gameSnapshot.player1RelativeY * newHeight - this.player1.paddleHeight / 2;
+			this.player2.y = gameSnapshot.player2RelativeY * newHeight - this.player2.paddleHeight / 2;
+			
+			// Update ball from snapshot immediately for visual consistency
+			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
+			
+			// Update snapshot with new proportions
+			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight / 2) / newHeight;
+			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight / 2) / newHeight;
+		} else {
+			// No snapshot - use current proportional positions
+			this.updatePaddleVerticalPositions(newHeight);
+			
+			// Save and restore ball state to maintain proportions
+			const ballState = this.ball.saveState();
+			this.ball.restoreState(ballState, newWidth, newHeight);
 		}
+		
+		// Ensure paddles stay within bounds
+		const maxY = newHeight - this.player1.paddleHeight;
+		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
+		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
+		
+		// Handle countdown state explicitly
+		this.handleResizeDuringCountdown();
 		
 		// Force redraw
 		this.scene.draw();
+	}
+
+	/**
+	 * Handle resize specifically during countdown
+	 */
+	private handleResizeDuringCountdown(): void {
+		if (!this.pauseManager) return;
+		
+		const isInCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
+		if (isInCountdown) {
+			// Position the ball in the center if we're in countdown
+			if (this.ball) {
+				const { width, height } = this.context.canvas;
+				this.ball.x = width / 2;
+				this.ball.y = height / 2;
+			}
+			
+			// Tell pause manager to maintain countdown state
+			this.pauseManager.maintainCountdownState();
+		}
 	}
 
 	/**

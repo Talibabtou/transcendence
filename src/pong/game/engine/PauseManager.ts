@@ -362,19 +362,6 @@ export class PauseManager {
 	}
 
 	/**
-	 * Get normalized velocity vector
-	 */
-	private getNormalizedVelocity(): { dx: number; dy: number } {
-		const speed = Math.sqrt(this.ball.dx * this.ball.dx + this.ball.dy * this.ball.dy);
-		if (speed === 0) return { dx: 0, dy: 0 };
-		
-		return {
-			dx: this.ball.dx / speed,
-			dy: this.ball.dy / speed
-		};
-	}
-
-	/**
 	 * Check if the current game mode is background demo
 	 */
 	private isBackground(): boolean {
