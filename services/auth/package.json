@@ -18,9 +18,10 @@
   "dependencies": {
     "@fastify/jwt": "^9.0.4",
     "@tsconfig/node23": "^23.0.0",
-    "@types/node": "^22.13.8",
+    "@types/node": "^22.13.10",
     "@types/node-fetch": "^2.6.12",
     "fastify": "^5.2.1",
+    "fastify-plugin": "^5.0.1",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",

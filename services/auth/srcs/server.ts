@@ -1,14 +1,13 @@
 import { fastify } from 'fastify';
-import { initDb } from './db.js'
-import authRoutes from './routes/auth.routes.js'
-import fastifyJwt from '@fastify/jwt';
+import { initDb } from './db.js';
+import authRoutes from './routes/auth.routes.js';
 
 const server = fastify({ logger: false });
 
 const start = async () => {
 	try {
 		server.decorate('db', await initDb());
-		await server.register(fastifyJwt, { secret: "test" });
+		// await server.register(jwtPlugin);
 		await server.register(authRoutes);
 		server.listen({ port: 8082, host: 'localhost' }, (err: any, address: any) => {
 		if (err)

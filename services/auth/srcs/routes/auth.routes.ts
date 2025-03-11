@@ -4,12 +4,32 @@ import { ICreateUser, ILogin, IGetIdUser, IModifyUser } from '../types/auth.type
 import { addUser, getUsers, getUser, deleteUser, modifyUser, login } from '../controllers/auth.controllers.js';
 
 async function authRoutes(fastify: FastifyInstance) {
-  fastify.get('/auth', getUsers);
-  fastify.get<{ Params: IGetIdUser }>('/auth/:id', { schema: { params: getIdUserSchema }}, getUser);
-  fastify.post<{ Body: ICreateUser }>('/auth', { schema: { body: createUserSchema }}, addUser);
-  fastify.put<{ Params: IGetIdUser, Body: IModifyUser }>('/auth/:id', { schema: { params: getIdUserSchema, body: modifyUserSchema }}, modifyUser)
-  fastify.delete<{ Params: IGetIdUser }>('/auth/:id', { schema: { params: getIdUserSchema }}, deleteUser);
-  fastify.post<{ Body: ILogin }>('/login', { schema: { body: loginSchema }}, login);
+  const jwt = { auth: false };
+  const noJwt = { auth: true }
+
+  fastify.get('/auth', { config: jwt },
+    getUsers);
+
+  fastify.get<{ Params: IGetIdUser }>('/auth/:id',
+    { schema: getIdUserSchema, config: jwt },
+    getUser);
+
+  fastify.post<{ Body: ICreateUser }>('/auth',
+    { schema: createUserSchema, config: noJwt },
+    addUser);
+
+  fastify.put<{ Params: IGetIdUser, Body: IModifyUser }>('/auth/:id',
+    { schema: { ...getIdUserSchema, ...modifyUserSchema},
+    config: jwt },
+    modifyUser)
+  
+  fastify.delete<{ Params: IGetIdUser }>('/auth/:id',
+    { schema: getIdUserSchema, config: jwt },
+    deleteUser);
+
+  fastify.post<{ Body: ILogin }>('/login',
+    { schema: loginSchema, config: noJwt },
+    login);
 }
 
 export default authRoutes;

@@ -1,6 +1,13 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import { Database } from 'sqlite';
+
+declare module 'fastify' {
+    interface FastifyInstance {
+        db: Database;
+    }
+}
 
 const dirname = path.resolve();
 const filepath = path.join(dirname, "/db/users.sqlite");
