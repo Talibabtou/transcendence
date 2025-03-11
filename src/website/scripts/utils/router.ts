@@ -1,65 +1,104 @@
+/**
+ * Router Module
+ * Handles client-side routing and component management for the Single Page Application.
+ * Uses Navigo for routing and manages component lifecycle and visibility.
+ */
 import Navigo from 'navigo';
-import { GameComponent } from '../components/game';
-import { LeaderboardComponent } from '../components/leaderboard';
-import { ProfileComponent } from '../components/profile';
+import { GameComponent, LeaderboardComponent, ProfileComponent } from '@website/scripts/components';
+import { GameManager } from '@website/scripts/utils';
 
+/**
+ * Enum defining all available routes in the application.
+ * Used for type-safe route handling and component mapping.
+ */
 export enum Route {
 	GAME = 'game',
 	LEADERBOARD = 'leaderboard',
-	SETTINGS = 'settings',
 	PROFILE = 'profile'
 }
 
-// Create a single router instance
-const router = new Navigo('/');
-
-// Export a navigation function
-export function navigate(path: string) {
-	router.navigate(path);
-}
-
+/**
+ * Router class responsible for handling navigation and component lifecycle.
+ * Manages the creation, display, and destruction of components based on the current route.
+ */
 export class Router {
+	/** Singleton instance of Navigo router */
+	public static routerInstance = new Navigo('/');
+	/** Main container element where components will be rendered */
 	private container: HTMLElement;
+	/** Map storing active component instances */
 	private components: Map<Route, any> = new Map();
+	/** Currently active route */
 	private currentRoute: Route | null = null;
 	
+	/**
+	 * Initializes the router with a container element and sets up route handlers.
+	 * @param container - The DOM element where components will be rendered
+	 */
 	constructor(container: HTMLElement) {
 		this.container = container;
-		
-		// Set up routes
-		router
+		Router.routerInstance
 			.on('/', () => this.handleRoute(Route.GAME))
 			.on('/game', () => this.handleRoute(Route.GAME))
 			.on('/leaderboard', () => this.handleRoute(Route.LEADERBOARD))
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
-			.notFound(() => this.handleRoute(Route.GAME));
-		
-		// Initialize router
-		router.resolve();
-		
-		// Set up nav click handlers
+			.notFound(() => {
+				console.log("404: Route not found, defaulting to game");
+				this.handleRoute(Route.GAME);
+			});
 		this.setupNavClickHandlers();
-		this.setupVisibilityHandler();
+
+		Router.routerInstance.resolve();
 	}
 	
+	/**
+	 * Handles route changes by managing component lifecycle and visibility.
+	 * - Manages background game visibility
+	 * - Cleans up old components
+	 * - Creates and renders new components
+	 * - Updates UI state
+	 * 
+	 * @param route - The route to handle
+	 */
 	private handleRoute(route: Route): void {
-		// Pause current game if leaving game route
+		const gameManager = GameManager.getInstance();
+		
+		// Pause the main game when navigating away from the game route
 		if (this.currentRoute === Route.GAME && route !== Route.GAME) {
-			const gameComponent = this.components.get(Route.GAME);
-			if (gameComponent) {
-				gameComponent.pause();
+			if (gameManager.isMainGameActive()) {
+				const mainEngine = gameManager.getMainGameEngine();
+				if (mainEngine) {
+					// Use the new method to handle pending pause requests
+					mainEngine.requestPause();
+				}
 			}
 		}
+		
+		// Only change background game visibility if needed
+		if (route === Route.GAME) {
+			if (gameManager.isMainGameActive()) {
+				gameManager.hideBackgroundGame();
+			}
+		} else {
+			gameManager.showBackgroundGame();
+		}
 
-		// Hide current component
+		// Clean up current component if exists
 		if (this.currentRoute) {
 			const section = document.getElementById(this.currentRoute);
 			if (section) {
 				section.style.display = 'none';
 			}
+
+			// Destroy non-game components when leaving their route
+			const currentComponent = this.components.get(this.currentRoute);
+			if (this.currentRoute !== Route.GAME && currentComponent && typeof currentComponent.destroy === 'function') {
+				currentComponent.destroy();
+				this.components.delete(this.currentRoute);
+			}
 		}
 
-		// Show or create new component
+		// Create or reuse section for new route
 		let section = document.getElementById(route);
 		if (!section) {
 			section = document.createElement('section');
@@ -69,8 +108,8 @@ export class Router {
 		}
 		section.style.display = 'block';
 
-		// Create component if it doesn't exist
-		if (!this.components.has(route)) {
+		// Create and render new component if needed
+		if (!this.components.has(route) || route !== Route.GAME) {
 			const ComponentClass = this.getComponentClass(route);
 			this.components.set(route, new ComponentClass(section));
 			this.components.get(route).render();
@@ -79,7 +118,12 @@ export class Router {
 		this.currentRoute = route;
 		this.updateActiveNavItem(route);
 	}
-	
+
+	/**
+	 * Returns the component class corresponding to the given route.
+	 * @param route - The route to get the component for
+	 * @returns The component class to instantiate
+	 */
 	private getComponentClass(route: Route): any {
 		switch (route) {
 			case Route.GAME: return GameComponent;
@@ -88,33 +132,36 @@ export class Router {
 			default: return GameComponent;
 		}
 	}
-	
+
+	/**
+	 * Sets up click handlers for navigation elements.
+	 * Prevents default link behavior and uses router navigation instead.
+	 */
 	private setupNavClickHandlers(): void {
-		document.querySelectorAll('.nav-item').forEach(link => {
+		document.querySelectorAll('.nav-item, .nav-logo').forEach(link => {
 			link.addEventListener('click', (e) => {
 				e.preventDefault();
 				const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-				if (href) router.navigate(href);
+				if (href) Router.routerInstance.navigate(href);
 			});
 		});
 	}
-	
-	private setupVisibilityHandler(): void {
-		document.addEventListener('visibilitychange', () => {
-			const gameComponent = this.components.get(Route.GAME);
-			if (gameComponent) {
-				if (document.hidden) {
-					gameComponent.pause();
-				} else if (this.currentRoute === Route.GAME) {
-					gameComponent.resume();
-				}
-			}
-		});
-	}
-	
+
+	/**
+	 * Updates the active state of navigation items based on current route.
+	 * @param route - The current active route
+	 */
 	private updateActiveNavItem(route: Route): void {
 		document.querySelectorAll('.nav-item').forEach(item => {
 			item.classList.toggle('active', item.getAttribute('href') === `/${route}`);
 		});
 	}
+}
+
+/**
+ * Helper function to programmatically navigate to a different route.
+ * @param path - The path to navigate to
+ */
+export function navigate(path: string) {
+	Router.routerInstance.navigate(path);
 }

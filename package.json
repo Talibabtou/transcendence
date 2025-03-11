@@ -4,7 +4,7 @@
 	"description": "",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
+		"dev": "BROWSER=firefox vite",
 		"build:pong": "vite build --config vite.pong.config.ts",
 		"build:website": "vite build --config vite.website.config.ts",
 		"build": "npm run build:pong && npm run build:website",

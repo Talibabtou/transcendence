@@ -1,0 +1,7 @@
+export * from './component'
+export * from './game/game'
+export * from './game/game-canvas.component'
+export * from './game/game-menu.component'
+export * from './game/game-over.component'
+export * from './leaderboard'
+export * from './profile'

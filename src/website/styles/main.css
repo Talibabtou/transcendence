@@ -3,7 +3,10 @@
 	margin: 0;
 	padding: 0;
 	box-sizing: border-box;
+	scrollbar-width: none;
 }
+
+.hidden { display: none; }
 
 :root {
 	/* Colors */
@@ -88,21 +91,6 @@ body {
 	z-index: 1;
 }
 
-.transcendence-title {
-	font-size: 0.7em;
-	margin-bottom: 1rem;
-}
-
-.pong-title {
-	font-family: var(--font-family);
-	font-size: 9px;
-	line-height: 1.2;
-	white-space: pre;
-	font-weight: bold;
-	color: var(--text-color);
-	text-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 20px rgba(255, 255, 255, 0.7);
-}
-
 .ascii-container {
 	padding: 2rem;
 	background-color: var(--menu-bg);
@@ -128,28 +116,34 @@ body {
 }
 
 .nav-logo {
-	font-size: 0.5rem;
+	font-size: 0.4vw;
+	min-width: 20%;
+	font-weight: bold;
 	font-family: var(--font-family);
+	line-height: 1.2;
+	overflow: visible;
 	white-space: pre;
 	display: block;
-	overflow: hidden;
-	line-height: 1;
-	margin-right: 2rem;
+	margin-right: 60%;
 	flex-shrink: 0;
-	min-width: 18.75rem;
 	text-decoration: none;
 	color: var(--text-color);
 	cursor: pointer;
-	transition: all 0.3s ease;
+	z-index: 1;
+	text-shadow: 0 0 0 transparent;  /* Initial state with no shadow */
+  transition: text-shadow 0.3s ease;
 }
 
 .nav-logo:hover {
-	text-shadow: 0 0 20px var(--glow-color);
+	text-shadow: 0 0 5px var(--text-color), 
+						 0 0 10px var(--text-color), 
+						 0 0 15px var(--text-color), 
+						 0 0 20px rgba(255, 255, 255, 0.5);
 }
 
 .nav-center {
 	display: flex;
-	gap: 2rem;
+	gap: var(--spacing-md);
 	position: absolute;
 	left: 50%;
 	transform: translateX(-50%);
@@ -157,7 +151,7 @@ body {
 
 .nav-right {
 	display: flex;
-	gap: 1rem;
+	gap: var(--spacing-md);
 }
 
 .nav-item {
@@ -181,13 +175,6 @@ body {
 .nav-item.active {
 	border: 1px solid var(--text-color);
 	box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
-}
-
-/* Add a media query for smaller screens */
-@media screen and (max-width: 1200px) {
-	.nav-logo {
-		display: none;
-	}
 }
 
 /* Content container */
@@ -232,66 +219,6 @@ body {
 	width: 100%;
 	max-width: 75rem;
 	margin: 0 auto;
-}
-
-/* Game Menu */
-.game-menu {
-	text-align: center;
-	padding: 3rem;
-	min-height: 31.25rem;
-	width: 100%;
-	position: relative;
-	z-index: 1;
-}
-
-.menu-buttons {
-	display: flex;
-	flex-direction: column;
-	gap: 1.5rem;
-	align-items: center;
-	position: relative;
-	z-index: 2;
-}
-
-.menu-button {
-	background: var(--menu-bg);
-	border: 1px solid var(--border-color);
-	color: var(--text-color);
-	font-family: var(--font-family);
-	font-size: 1.2rem;
-	cursor: pointer;
-	transition: all 0.3s ease;
-	padding: 1rem 2rem;
-	min-width: 12.5rem;
-	position: relative;
-}
-
-.menu-button:hover {
-	text-shadow: 0 0 10px var(--glow-color);
-	border-color: var(--text-color);
-	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-	transform: scale(1.05);
-}
-
-.menu-button:before {
-	content: '>';
-	position: absolute;
-	left: 1rem;
-	opacity: 0;
-	transition: all 0.3s ease;
-}
-
-.menu-button:after {
-	content: '<';
-	position: absolute;
-	right: 1rem;
-	opacity: 0;
-	transition: all 0.3s ease;
-}
-
-.menu-button:hover:before,
-.menu-button:hover:after {
-	opacity: 1;
 }
 
 body::before {

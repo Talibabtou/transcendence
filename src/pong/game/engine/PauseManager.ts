@@ -1,6 +1,5 @@
 import { Ball, Player } from '@pong/game/objects';
 import type { BallState } from '@pong/game/objects';
-import { MESSAGES } from '@pong/constants';
 import { GameState } from '@pong/types';
 
 // =========================================
@@ -28,7 +27,8 @@ export class PauseManager {
 	private countInterval: NodeJS.Timeout | null = null;
 	private gameSnapshot: GameSnapshot | null = null;
 	private countdownCallback: CountdownCallback | null = null;
-	private isBackgroundDemo: boolean = false;
+	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
+	private pendingPauseRequest: boolean = false;
 
 	// =========================================
 	// Constructor
@@ -43,12 +43,19 @@ export class PauseManager {
 	}
 
 	// =========================================
-	// Public API
+	// Public API (Facade)
 	// =========================================
+	
+	/**
+	 * Set callback for countdown events
+	 */
 	public setCountdownCallback(callback: CountdownCallback): void {
 		this.countdownCallback = callback;
 	}
 
+	/**
+	 * Start a new game with countdown
+	 */
 	public startGame(): void {
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
@@ -63,92 +70,94 @@ export class PauseManager {
 		});
 	}
 
+	/**
+	 * Pause the current game state
+	 */
 	public pause(): void {
 		if (this.states.has(GameState.PAUSED)) {
 			return;
 		}
 
+		// If we're in countdown, set a flag to pause when countdown ends
 		if (this.states.has(GameState.COUNTDOWN)) {
-			this.handleCountdownPause();
+			this.pendingPauseRequest = true;
 			return;
 		}
 
-		if (this.states.has(GameState.PLAYING)) {
-			this.handleGamePause();
-		}
+		// Save the current game state
+		this.saveGameState();
+		
+		// Remove PLAYING state and add PAUSED state
+		this.states.delete(GameState.PLAYING);
+		this.states.add(GameState.PAUSED);
 	}
 
+	/**
+	 * Resume from paused state
+	 */
 	public resume(): void {
 		if (!this.states.has(GameState.PAUSED)) return;
 		
-		if (this.states.has(GameState.COUNTDOWN)) {
-			this.states.delete(GameState.PAUSED);
-			return;
-		}
+		// Remove pause state
+		this.states.delete(GameState.PAUSED);
 		
+		// Handle different resume scenarios
 		if (this.isFirstStart) {
 			this.startGame();
-			return;
+		} else if (this.states.has(GameState.COUNTDOWN)) {
+			// Just continue with countdown
+		} else {
+			// Resume from regular pause with countdown
+			this.states.add(GameState.COUNTDOWN);
+			this.startCountdown(() => {
+				this.restoreGameState();
+				this.states.delete(GameState.COUNTDOWN);
+				this.states.add(GameState.PLAYING);
+			});
 		}
-		
-		// Keep the snapshot when transitioning to countdown
-		this.states.delete(GameState.PAUSED);
-		this.states.add(GameState.COUNTDOWN);
-		
-		this.startCountdown(() => {
-			this.restoreGameState();
-			this.states.delete(GameState.COUNTDOWN);
-			this.states.add(GameState.PLAYING);
-		});
 	}
 
+	/**
+	 * Update game objects during pause/countdown
+	 */
 	public update(): void {
 		if (this.isCountingDown || this.states.has(GameState.PAUSED)) {
+			// Stop paddle movement during pause/countdown
 			this.player1.stopMovement();
 			this.player2.stopMovement();
-			
-			if (this.gameSnapshot) {
-				const { width, height } = this.ball.getContext().canvas;
-				
-				// Keep ball's position proportional during pause
-				this.ball.x = width * this.gameSnapshot.ballState.position.x;
-				this.ball.y = height * this.gameSnapshot.ballState.position.y;
-				
-				// Keep paddles' positions proportional during pause
-				this.player1.y = (this.gameSnapshot.player1RelativeY * height) - (this.player1.paddleHeight / 2);
-				this.player2.y = (this.gameSnapshot.player2RelativeY * height) - (this.player2.paddleHeight / 2);
-			}
+			// Maintain positions from snapshot if available
+			this.maintainPositionsFromSnapshot();
 		}
 	}
 
+	/**
+	 * Force stop the game (cleanup)
+	 */
 	public forceStop(): void {
 		this.cleanupCountdown();
 		this.resetToPostPoint();
 	}
 
+	/**
+	 * Handle point scored event
+	 */
 	public handlePointScored(): void {
+		// In background demo, skip countdown and just restart
+		if (this.isBackground()) {
+			
+			this.ball.launchBall();
+			return;
+		}
+		// Normal flow for regular gameplay
 		// Reset states
 		this.states.clear();
 		this.states.add(GameState.PAUSED);
 		this.gameSnapshot = null;
-		
 		// Clear any existing countdown
 		this.cleanupCountdown();
-		
-		// For background mode, restart the game immediately without countdown
-		if (this.isBackgroundDemo) {
-			setTimeout(() => {
-				this.states.clear();
-				this.states.add(GameState.PLAYING);
-				this.ball.launchBall();
-			}, 500);
-			return;
-		}
-		
-		// Normal game mode with countdown - Remove the pause state immediately
+		// Normal game mode with countdown
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
-		
 		// Start countdown after a brief delay
 		setTimeout(() => {
 			this.startCountdown(() => {
@@ -156,64 +165,88 @@ export class PauseManager {
 				this.states.delete(GameState.COUNTDOWN);
 				this.states.add(GameState.PLAYING);
 			});
-		}, 1000); // Reduced from 3000ms to 1000ms for better game flow
+		}, 1000);
 	}
 
-	// =========================================
-	// State Management
-	// =========================================
+	/**
+	 * Check if a specific state is active
+	 */
 	public hasState(state: GameState): boolean {
 		return this.states.has(state);
 	}
 
+	/**
+	 * Get a copy of all current states
+	 */
 	public getStates(): Set<GameState> {
 		return new Set(this.states);
 	}
 
-	public canCombineStates(state1: GameState, state2: GameState): boolean {
-		if (this.areStatesExclusive(state1, state2)) return false;
-		if (this.isPostPointState(state1, state2)) {
-			return state1 === GameState.PAUSED || state2 === GameState.PAUSED;
+	/**
+	 * Get the current game snapshot
+	 */
+	public getGameSnapshot(): GameSnapshot | null {
+		return this.gameSnapshot;
+	}
+
+	/**
+	 * Maintain positions during resize
+	 */
+	public maintainCountdownState(): void {
+		// If we're in countdown, make sure we maintain it
+		if (this.states.has(GameState.COUNTDOWN) && !this.isCountingDown) {
+			this.countdownCallback?.(null);
 		}
-		return true;
 	}
 
-	public isStateActive(state: GameState): boolean {
-		return this.states.has(state);
+	/**
+	 * Set game mode
+	 */
+	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
+		this.gameMode = mode;
 	}
 
-	// =========================================
-	// Game State Management
-	// =========================================
-	public updateSavedState(): void {
-		if (!this.gameSnapshot) return;
-		
-		this.gameSnapshot.ballState = this.ball.saveState();
+	/**
+	 * Clean up resources
+	 */
+	public cleanup(): void {
+		this.cleanupCountdown();
+		this.gameSnapshot = null;
+		this.countdownCallback = null;
+		this.states.clear();
 	}
 
-	public updateSavedPositions(): void {
-		if (!this.gameSnapshot) return;
-
-		const canvas = this.ball.getContext().canvas;
-		const relativeX = this.ball.x / canvas.width;
-		const relativeY = this.ball.y / canvas.height;
-		
-		this.gameSnapshot.ballState.position = {
-			x: relativeX,
-			y: relativeY
-		};
-
-		// Keep direction normalized, speed is handled separately
-		const { dx, dy } = this.getNormalizedVelocity();
-		this.gameSnapshot.ballState.velocity = {
-			dx: dx,
-			dy: dy
-		};
+	/**
+	 * Set pending pause request
+	 */
+	public setPendingPauseRequest(value: boolean): void {
+		this.pendingPauseRequest = value;
 	}
 
 	// =========================================
 	// Private Helper Methods
 	// =========================================
+	
+	/**
+	 * Maintain positions from snapshot during pause
+	 */
+	private maintainPositionsFromSnapshot(): void {
+		if (!this.gameSnapshot) return;
+		
+		const { width, height } = this.ball.getContext().canvas;
+		
+		// Keep ball's position proportional during pause
+		this.ball.x = width * this.gameSnapshot.ballState.position.x;
+		this.ball.y = height * this.gameSnapshot.ballState.position.y;
+		
+		// Keep paddles' positions proportional during pause
+		this.player1.y = (this.gameSnapshot.player1RelativeY * height) - (this.player1.paddleHeight / 2);
+		this.player2.y = (this.gameSnapshot.player2RelativeY * height) - (this.player2.paddleHeight / 2);
+	}
+
+	/**
+	 * Save the current game state
+	 */
 	private saveGameState(): void {
 		const canvas = this.ball.getContext().canvas;
 		// Save paddle center positions relative to canvas height
@@ -227,152 +260,124 @@ export class PauseManager {
 		};
 	}
 
+	/**
+	 * Restore the game state from snapshot
+	 */
 	private restoreGameState(): void {
 		if (!this.gameSnapshot) return;
 		this.ball.restoreState(this.gameSnapshot.ballState);
 	}
 
+	/**
+	 * Start the countdown sequence
+	 */
 	private startCountdown(onComplete: () => void): void {
-		if (this.isCountingDown) return;
+		// Cancel any existing countdown
+		this.cleanupCountdown();
+		
+		let count = 3; // Default countdown
+		const intervalTime = 1000; // Default interval (1 second)
+		
+		// Use shorter countdown for background demo
+		if (this.isBackground()) {
+			count = 1;  // Just do a quick 1-count
+			// We could even make it shorter with:
+			// count = 0; // Skip countdown entirely
+		}
 		
 		this.isCountingDown = true;
-		let count = 3;
 		
-		this.countdownCallback?.(count);
+		// If we want to skip countdown entirely for background demo
+		if (this.isBackground() && count === 0) {
+			this.cleanupCountdown();
+			this.isCountingDown = false;
+			onComplete();
+			return;
+		}
 		
+		// Send initial count
+		if (this.countdownCallback) {
+			this.countdownCallback(count);
+		}
+		
+		// Modify the completion callback
+		const originalOnComplete = onComplete;
+		onComplete = () => {
+			originalOnComplete();
+			
+			// If we had a pending pause request, pause immediately after countdown
+			if (this.pendingPauseRequest) {
+				this.pendingPauseRequest = false;
+				this.pause();
+			}
+		};
+		
+		// Set up countdown interval
 		this.countInterval = setInterval(() => {
 			count--;
 			
-			if (count > 0) {
-				this.countdownCallback?.(count);
-			} else {
-				this.countdownCallback?.(null);
-				this.cleanupCountdown();
-				onComplete();
+			// Update countdown display
+			if (this.countdownCallback) {
+				this.countdownCallback(count > 0 ? count : null);
 			}
-		}, 1000);
+			
+			// When countdown reaches zero
+			if (count <= 0) {
+				this.cleanupCountdown();
+				this.isCountingDown = false;
+				
+				// Check for pending pause request before completing countdown
+				if (this.pendingPauseRequest) {
+					this.pendingPauseRequest = false;
+					setTimeout(() => this.pause(), 0);
+					// Call onComplete after the pause has been processed
+					setTimeout(onComplete, 50);
+				} else {
+					onComplete();
+				}
+			}
+		}, intervalTime);
 	}
 
+	/**
+	 * Clean up countdown resources
+	 */
 	private cleanupCountdown(): void {
 		if (this.countInterval) {
 			clearInterval(this.countInterval);
 			this.countInterval = null;
 		}
 		this.isCountingDown = false;
-	}
-
-	private resetToPostPoint(): void {
-		this.gameSnapshot = null;
-		this.states.clear();
-		this.states.add(GameState.PAUSED);
 		this.countdownCallback?.(null);
 	}
 
-	private handleCountdownPause(): void {
-		this.cancelCountdown();
+	/**
+	 * Reset to post-point state
+	 */
+	private resetToPostPoint(): void {
+		this.states.clear();
 		this.states.add(GameState.PAUSED);
-	}
-
-	private handleGamePause(): void {
-		// Save current state before zeroing velocity
-		this.saveGameState();
-		
-		// Store velocity but zero it for pause
-		this.ball.dx = 0;
-		this.ball.dy = 0;
-		
-		this.states.delete(GameState.PLAYING);
-		this.states.add(GameState.PAUSED);
-		
-		this.countdownCallback?.([MESSAGES.PAUSED, MESSAGES.RESUME_PROMPT]);
-	}
-
-	private cancelCountdown(): void {
+		this.gameSnapshot = null;
 		this.cleanupCountdown();
-		this.states.delete(GameState.COUNTDOWN);
-		
-		if (this.isFirstStart) {
-			this.states.add(GameState.PAUSED);
-		}
 	}
 
-	private areStatesExclusive(state1: GameState, state2: GameState): boolean {
-		return (state1 === GameState.PLAYING && state2 === GameState.COUNTDOWN) ||
-					 (state1 === GameState.COUNTDOWN && state2 === GameState.PLAYING);
-	}
-
-	private isPostPointState(state1: GameState, state2: GameState): boolean {
-		return state1 === GameState.PAUSED || state2 === GameState.PAUSED;
-	}
-
+	/**
+	 * Get normalized velocity vector
+	 */
 	private getNormalizedVelocity(): { dx: number; dy: number } {
-		const magnitude = Math.sqrt(this.ball.dx * this.ball.dx + this.ball.dy * this.ball.dy);
-		if (magnitude === 0) {
-			return { dx: 0, dy: 0 };
-		}
+		const speed = Math.sqrt(this.ball.dx * this.ball.dx + this.ball.dy * this.ball.dy);
+		if (speed === 0) return { dx: 0, dy: 0 };
+		
 		return {
-			dx: this.ball.dx / magnitude,
-			dy: this.ball.dy / magnitude
+			dx: this.ball.dx / speed,
+			dy: this.ball.dy / speed
 		};
 	}
 
-	public getGameSnapshot(): GameSnapshot | null {
-		return this.gameSnapshot;
-	}
-
-	public maintainCountdownState(): void {
-		if (this.states.has(GameState.COUNTDOWN)) {
-			const canvas = this.ball.getContext().canvas;
-			
-			// Center everything for first launch or post-point (no snapshot)
-			if (this.isFirstStart || !this.gameSnapshot) {
-				// Center ball
-				this.ball.x = canvas.width / 2;
-				this.ball.y = canvas.height / 2;
-				this.ball.dx = 0;
-				this.ball.dy = 0;
-				
-				// Center paddles
-				this.player1.y = (canvas.height / 2) - (this.player1.paddleHeight / 2);
-				this.player2.y = (canvas.height / 2) - (this.player2.paddleHeight / 2);
-			} else {
-				// For countdown after pause, maintain saved positions
-				this.ball.restoreState(this.gameSnapshot.ballState);
-			}
-		}
-	}
-
-	public cleanup(): void {
-		// Clear countdown interval
-		this.cleanupCountdown();
-		
-		// Clear references
-		this.ball = null as any;
-		this.player1 = null as any;
-		this.player2 = null as any;
-		this.countdownCallback = null;
-		this.gameSnapshot = null;
-		
-		// Clear states
-		this.states.clear();
-	}
-
-	public setBackgroundDemoMode(enabled: boolean): void {
-		this.isBackgroundDemo = enabled;
-		
-		// If we're switching to background demo, make sure the game is started
-		if (enabled && this.states.has(GameState.PAUSED)) {
-			// Skip countdown for background mode
-			this.states.clear();
-			this.states.add(GameState.PLAYING);
-			
-			// Launch ball immediately for background mode
-			setTimeout(() => {
-				// Make sure we're still in background mode when timeout executes
-				if (this.isBackgroundDemo) {
-					this.ball.launchBall();
-				}
-			}, 500);
-		}
+	/**
+	 * Check if the current game mode is background demo
+	 */
+	private isBackground(): boolean {
+		return this.gameMode === 'background_demo';
 	}
 }

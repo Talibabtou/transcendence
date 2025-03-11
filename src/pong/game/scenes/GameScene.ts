@@ -1,6 +1,6 @@
 import { Ball, Player } from '@pong/game/objects';
 import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
-import { COLORS, GAME_CONFIG, FONTS, UI_CONFIG, calculateFontSizes, calculateGameSizes } from '@pong/constants';
+import { COLORS, GAME_CONFIG, FONTS, MESSAGES, UI_CONFIG, calculateFontSizes, calculateGameSizes } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 
 export class GameScene {
@@ -14,11 +14,10 @@ export class GameScene {
 	private objectsInScene: Array<GraphicalElement> = [];
 	private pauseManager!: PauseManager;
 	private resizeManager: ResizeManager | null = null;
-	private isBackgroundDemo: boolean = false;
-	private gameContext: any; // Will be set by GameEngine
-	
+	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
 	private lastTime: number = 0;
 	private countdownText: string | number | string[] | null = null;
+	private isFrozen: boolean = false;
 
 	// =========================================
 	// Constructor
@@ -51,7 +50,7 @@ export class GameScene {
 
 		// Clean up managers
 		if (this.pauseManager) {
-			this.pauseManager.forceStop();
+			this.pauseManager.cleanup();
 			this.pauseManager = null as any;
 		}
 		if (this.resizeManager) {
@@ -62,11 +61,6 @@ export class GameScene {
 		// Clean up other properties
 		this.countdownText = null;
 		this.lastTime = 0;
-		this.gameContext = null;
-	}
-
-	public setGameContext(context: any): void {
-		this.gameContext = context;
 	}
 
 	public update(): void {
@@ -78,33 +72,25 @@ export class GameScene {
 	}
 
 	public draw(): void {
+		// Always draw the background (scores and names)
 		this.drawBackground();
-		this.drawContent();
+		
+		// Only draw game elements (ball and paddles) if not frozen
+		if (!this.isFrozen) {
+			this.drawGameElements();
+		}
+		
+		// Always draw UI elements
+		this.drawUI();
 	}
 
 	// =========================================
 	// Protected Methods
 	// =========================================
-	protected drawContent(): void {
-		this.drawGameElements();
-		this.drawUI();
-	}
-
 	protected drawBackground(): void {
-		const { width, height } = this.context.canvas;
-		
-		// Draw background
-		this.context.fillStyle = COLORS.GAME_BACKGROUND;
-		this.context.fillRect(0, 0, width, height);
-
-		// Draw center line
-		this.context.beginPath();
-		this.context.strokeStyle = COLORS.PITCH;
-		this.context.setLineDash([5, 15]);
-		this.context.moveTo(width / 2, 0);
-		this.context.lineTo(width / 2, height);
-		this.context.stroke();
-		this.context.closePath();
+		if (this.isBackgroundDemo()) return;
+		this.drawPlayerNames();
+		this.drawScores();
 	}
 
 	// =========================================
@@ -141,7 +127,18 @@ export class GameScene {
 	// =========================================
 	// Game Mode Methods
 	// =========================================
-	public setGameMode(mode: 'single' | 'multi'): void {
+	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
+		this.gameMode = mode;
+		
+		// Update all dependent components in one place
+		if (this.pauseManager) {
+			this.pauseManager.setGameMode(mode);
+		}
+		if (this.resizeManager) {
+			this.resizeManager.setGameMode(mode);
+		}
+		
+		// Configure player types based on mode
 		if (this.player1 && this.player2) {
 			if (mode === 'single') {
 				// Left player is human, right player is AI
@@ -161,22 +158,6 @@ export class GameScene {
 		}
 	}
 
-	public setBackgroundMode(enabled: boolean): void {
-		this.isBackgroundDemo = enabled;
-		
-		if (enabled) {
-				// Background demo specific settings
-				this.player1.setControlType(PlayerType.AI);
-				this.player2.setControlType(PlayerType.AI);
-				this.countdownText = null;  // No countdown in background mode
-		}
-		
-		// Update resize manager with background mode setting
-		if (this.resizeManager) {
-				this.resizeManager.setBackgroundMode(enabled);
-		}
-	}
-
 	// =========================================
 	// Private Setup Methods
 	// =========================================
@@ -190,9 +171,11 @@ export class GameScene {
 
 	private initializePauseManager(): void {
 		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
+		this.pauseManager.setGameMode(this.gameMode);
+		
 		this.pauseManager.setCountdownCallback((text) => {
 			// Don't show countdown in background mode
-			if (!this.isBackgroundDemo) {
+			if (!this.isBackgroundDemo()) {
 				this.countdownText = text;
 			}
 		});
@@ -230,7 +213,7 @@ export class GameScene {
 			this.ball,
 			this.context,
 			PlayerPosition.LEFT,
-			PlayerType.AI  // Default to AI for background mode
+			PlayerType.AI
 		);
 
 		// Create right player
@@ -241,7 +224,7 @@ export class GameScene {
 			this.ball,
 			this.context,
 			PlayerPosition.RIGHT,
-			PlayerType.AI  // Default to AI for background mode
+			PlayerType.AI
 		);
 	}
 
@@ -250,10 +233,9 @@ export class GameScene {
 	// =========================================
 	private shouldSkipUpdate(): boolean {
 		// In background mode, we should never skip updates
-		if (this.isBackgroundDemo) {
+		if (this.isBackgroundDemo()) {
 			return false;
 		}
-		
 		// For regular gameplay, skip if paused
 		return this.pauseManager.hasState(GameState.PAUSED);
 	}
@@ -267,10 +249,9 @@ export class GameScene {
 
 	private updateGameState(deltaTime: number): void {
 		// Only update pause manager if not in background mode
-		if (!this.isBackgroundDemo) {
+		if (!this.isBackgroundDemo()) {
 				this.pauseManager.update();
 		}
-		
 		this.handleBallDestruction();
 		this.updateGameObjects(deltaTime);
 	}
@@ -299,10 +280,8 @@ export class GameScene {
 			: this.pauseManager.hasState(GameState.PAUSED) 
 				? GameState.PAUSED 
 				: GameState.COUNTDOWN;
-		
 		// In background mode, force update players even if paused
-		const updateState = this.isBackgroundDemo ? GameState.PLAYING : currentState;
-		
+		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : currentState;
 		// Update game objects
 		this.objectsInScene.forEach(object => 
 			object.update(this.context, deltaTime, updateState)
@@ -311,11 +290,9 @@ export class GameScene {
 
 	private checkWinCondition(): void {
 		// Skip win condition check in background demo mode
-		if (this.isBackgroundDemo) return;
-		
+		if (this.isBackgroundDemo()) return;
 		if (this.player1.getScore() >= this.winningScore || 
 				this.player2.getScore() >= this.winningScore) {
-			
 			// Create game result data
 			const gameResult = {
 				winner: this.getWinner(),
@@ -324,7 +301,6 @@ export class GameScene {
 				player1Name: this.player1.name,
 				player2Name: this.player2.name
 			};
-
 			// Dispatch custom event with game result
 			const event = new CustomEvent('gameOver', { 
 				detail: gameResult
@@ -338,25 +314,24 @@ export class GameScene {
 	// =========================================
 	private drawGameElements(): void {
 		this.objectsInScene.forEach(object => object.draw(this.context));
-		this.drawScores();
 	}
 
 	private drawScores(): void {
-		// Don't draw scores in background demo mode
-		if (this.isBackgroundDemo) return;
-		
 		const { width, height } = this.context.canvas;
 		const sizes = calculateFontSizes(width, height);
 
 		this.context.font = `${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`;
 		this.context.fillStyle = COLORS.SCORE;
+		this.context.textAlign = 'center';
+		this.context.textBaseline = 'middle';
 		this.context.fillText(this.player1.getScore().toString(), width / 4, height / 2);
 		this.context.fillText(this.player2.getScore().toString(), 3 * (width / 4), height / 2);
 	}
 
 	private drawUI(): void {
-		if (this.pauseManager.hasState(GameState.PAUSED) && !this.isBackgroundDemo) {
+		if (this.pauseManager.hasState(GameState.PAUSED) && !this.isBackgroundDemo()) {
 			this.drawPauseOverlay();
+			this.drawPauseText();
 		}
 
 		if (this.shouldDrawCountdown()) {
@@ -366,8 +341,7 @@ export class GameScene {
 
 	private shouldDrawCountdown(): boolean {
 		// Don't show countdown in background mode
-		if (this.isBackgroundDemo) return false;
-		
+		if (this.isBackgroundDemo()) return false;
 		return this.countdownText !== null && (
 			this.pauseManager.hasState(GameState.COUNTDOWN) || 
 			this.pauseManager.hasState(GameState.PAUSED)
@@ -376,10 +350,27 @@ export class GameScene {
 
 	private drawPauseOverlay(): void {
 		const { width, height } = this.context.canvas;
-		
 		// Draw semi-transparent overlay
 		this.context.fillStyle = COLORS.OVERLAY;
 		this.context.fillRect(0, 0, width, height);
+	}
+
+	private drawPauseText(): void {
+		const { width, height } = this.context.canvas;
+		const sizes = calculateFontSizes(width, height);
+		
+		this.context.fillStyle = UI_CONFIG.TEXT.COLOR;
+		this.context.textAlign = UI_CONFIG.TEXT.ALIGN;
+		
+		// Draw "PAUSED" text
+		this.context.font = `${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`;
+		const pausePos = this.getTextPosition(0, 2);
+		this.context.fillText(MESSAGES.PAUSED, pausePos.x, pausePos.y);
+		
+		// Draw resume prompt
+		this.context.font = `${sizes.RESUME_PROMPT_SIZE} ${FONTS.FAMILIES.PAUSE}`;
+		const promptPos = this.getTextPosition(1, 2);
+		this.context.fillText(MESSAGES.RESUME_PROMPT, promptPos.x, promptPos.y);
 	}
 
 	private drawCountdown(): void {
@@ -416,6 +407,28 @@ export class GameScene {
 		}
 	}
 
+	private drawPlayerNames(): void {
+		const { width, height } = this.context.canvas;
+		const sizes = calculateFontSizes(width, height);
+
+		// Calculate padding as percentages of canvas dimensions
+		const paddingTop = height * 0.02; // 2% of height
+		const paddingLeft = width * 0.06;  // 6% of width
+		const paddingRight = width * 0.06; // 6% of width
+		
+		// Configure text properties
+		this.context.font = `${sizes.SUBTITLE_SIZE} ${FONTS.FAMILIES.SUBTITLE}`;
+		this.context.fillStyle = COLORS.NAMES;
+		// Draw player 1 name (top left)
+		this.context.textAlign = 'left';
+		this.context.textBaseline = 'top';
+		this.context.fillText(this.player1.name, paddingLeft, paddingTop);
+		// Draw player 2 name (top right)
+		this.context.textAlign = 'right';
+		this.context.textBaseline = 'top';
+		this.context.fillText(this.player2.name, width - paddingRight, paddingTop);
+	}
+
 	// Add these new methods for game state management
 	public isGameOver(): boolean {
 		return this.player1.getScore() >= this.winningScore || 
@@ -432,15 +445,22 @@ export class GameScene {
 		totalLines: number = 1
 	): { x: number; y: number } {
 		const { width, height } = this.context.canvas;
-		
 		// Calculate vertical offset from center
 		const spacing = height * UI_CONFIG.LAYOUT.VERTICAL_SPACING;
 		const totalHeight = spacing * (totalLines - 1);
 		const startY = height / 2 - totalHeight / 2;
-		
 		return {
 			x: width / 2,
 			y: startY + (lineIndex * spacing)
 		};
+	}
+
+	public setFrozenState(frozen: boolean): void {
+		if (this.isBackgroundDemo()) return;
+		this.isFrozen = frozen;
+	}
+
+	private isBackgroundDemo(): boolean {
+		return this.gameMode === 'background_demo';
 	}
 }

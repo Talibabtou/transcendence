@@ -1,5 +1,5 @@
-import { Component } from './component';
-import { DbService, html, render, navigate, ASCII_ART } from '../utils';
+import { Component } from '@website/scripts/components';
+import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
 
 interface UserProfile {
 	id: string;
@@ -10,21 +10,11 @@ interface UserProfile {
 	totalGames: number;
 	wins: number;
 	losses: number;
-	achievements: Achievement[];
 	gameHistory: GameHistoryEntry[];
 	friends: Friend[];
-	messages: Record<string, Message[]>;
 	preferences: {
 		accentColor: string;
 	};
-}
-
-interface Achievement {
-	id: string;
-	name: string;
-	description: string;
-	iconUrl: string;
-	unlockedAt: Date | null;
 }
 
 interface GameHistoryEntry {
@@ -40,15 +30,6 @@ interface Friend {
 	username: string;
 	status: 'online' | 'offline' | 'in-game';
 	avatarUrl: string;
-}
-
-interface Message {
-	id: string;
-	from: string;
-	to: string;
-	content: string;
-	timestamp: Date;
-	read: boolean;
 }
 
 export class ProfileComponent extends Component {
@@ -81,16 +62,19 @@ export class ProfileComponent extends Component {
 		try {
 			const url = new URL(window.location.href);
 			const userId = url.searchParams.get('id') || 'current';
+
+			// Simulate API delay
+			await new Promise(resolve => setTimeout(resolve, 750));
+			// Convert userId to number since our DB interface expects it
+			const numericId = userId === 'current' ? 1 : parseInt(userId, 10); // You might want to adjust the default ID
+			
+			// Use DbService for all data fetching
+			DbService.getUser(numericId);
+			DbService.getUserMatches(numericId);
+			DbService.getUserFriends(numericId);
 			
 			// Simulate API delay
 			await new Promise(resolve => setTimeout(resolve, 750));
-			
-			// Always use user ID for API calls
-			console.log(`DB REQUEST: GET /api/users/${userId}`);
-			console.log(`DB REQUEST: GET /api/users/${userId}/matches`);
-			console.log(`DB REQUEST: GET /api/users/${userId}/friends`);
-			console.log(`DB REQUEST: GET /api/users/${userId}/messages`);
-			
 			this.profile = this.createMockProfile(userId);
 		} catch (error) {
 			console.error('Error fetching profile data:', error);
@@ -121,30 +105,6 @@ export class ProfileComponent extends Component {
 			}
 		];
 
-		// Create mock messages
-		const mockMessages: Record<string, Message[]> = {
-			'PongMaster': [
-				{
-					id: '1',
-					from: 'PongMaster',
-					to: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
-					content: 'Hey, want to play a game?',
-					timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-					read: true
-				}
-			],
-			'RetroGamer': [
-				{
-					id: '2',
-					from: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
-					to: 'RetroGamer',
-					content: 'Good game!',
-					timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-					read: true
-				}
-			]
-		};
-
 		return {
 			id,
 			username: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
@@ -154,22 +114,6 @@ export class ProfileComponent extends Component {
 			totalGames: Math.floor(Math.random() * 100),
 			wins: Math.floor(Math.random() * 50),
 			losses: Math.floor(Math.random() * 50),
-			achievements: [
-				{
-					id: '1',
-					name: 'First Win',
-					description: 'Win your first game',
-					iconUrl: '/assets/achievements/first-win.png',
-					unlockedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7) // 7 days ago
-				},
-				{
-					id: '2',
-					name: 'Win Streak',
-					description: 'Win 3 games in a row',
-					iconUrl: '/assets/achievements/win-streak.png',
-					unlockedAt: null
-				}
-			],
 			gameHistory: Array.from({ length: 5 }, (_, i) => ({
 				id: `game-${i}`,
 				date: new Date(Date.now() - 1000 * 60 * 60 * 24 * i), // i days ago
@@ -179,7 +123,6 @@ export class ProfileComponent extends Component {
 				result: Math.random() > 0.5 ? 'win' : 'loss'
 			})),
 			friends: mockFriends,
-			messages: mockMessages,
 			preferences: {
 				accentColor: '#7cf'
 			}
@@ -226,8 +169,6 @@ export class ProfileComponent extends Component {
 			{ id: 'summary', label: 'SUMMARY', icon: '📊' },
 			{ id: 'history', label: 'HISTORY', icon: '🕒' },
 			{ id: 'friends', label: 'FRIENDS', icon: '👥' },
-			{ id: 'messages', label: 'MESSAGES', icon: '💬' },
-			{ id: 'achievements', label: 'ACHIEVEMENTS', icon: '🏆' },
 			{ id: 'settings', label: 'SETTINGS', icon: '⚙️' }
 		];
 
@@ -259,10 +200,6 @@ export class ProfileComponent extends Component {
 				return this.renderHistory();
 			case 'friends':
 				return this.renderFriends();
-			case 'messages':
-				return this.renderMessages();
-			case 'achievements':
-				return this.renderAchievements();
 			case 'settings':
 				return this.renderSettings();
 			default:
@@ -336,23 +273,19 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
-	private renderAchievements() {
+	private renderFriends() {
 		if (!this.profile) return html``;
 		
 		return html`
-			<div class="tab-pane" id="achievements">
-				<h4>Achievements</h4>
-				<div class="achievements-grid">
-					${this.profile.achievements.map(achievement => html`
-						<div class="achievement ${achievement.unlockedAt ? 'unlocked' : 'locked'}">
-							<div class="achievement-icon">${achievement.iconUrl}</div>
-							<div class="achievement-info">
-								<div class="achievement-name">${achievement.name}</div>
-								<div class="achievement-description">${achievement.description}</div>
-								${achievement.unlockedAt 
-									? html`<div class="achievement-date">Unlocked: ${achievement.unlockedAt.toLocaleDateString()}</div>`
-									: html`<div class="achievement-locked">Locked</div>`
-								}
+			<div class="friends-container">
+				<h3>Friends</h3>
+				<div class="friends-list">
+					${this.profile.friends.map(friend => html`
+						<div class="friend-card">
+							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
+							<div class="friend-info">
+								<span class="friend-name">${friend.username}</span>
+								<span class="friend-status ${friend.status}">${friend.status}</span>
 							</div>
 						</div>
 					`)}
@@ -414,61 +347,6 @@ export class ProfileComponent extends Component {
 					`)}
 				</tbody>
 			</table>
-		`;
-	}
-
-	private renderFriends() {
-		if (!this.profile) return html``;
-		
-		return html`
-			<div class="friends-container">
-				<h3>Friends</h3>
-				<div class="friends-list">
-					${this.profile.friends.map(friend => html`
-						<div class="friend-card">
-							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
-							<div class="friend-info">
-								<span class="friend-name">${friend.username}</span>
-								<span class="friend-status ${friend.status}">${friend.status}</span>
-							</div>
-							<button class="message-button" onClick=${() => this.openChat(friend.username)}>
-								Message
-							</button>
-						</div>
-					`)}
-				</div>
-			</div>
-		`;
-	}
-
-	private renderMessages() {
-		if (!this.profile) return html``;
-		
-		const conversations = Object.entries(this.profile.messages);
-		
-		return html`
-			<div class="messages-container">
-				<h3>Messages</h3>
-				<div class="conversations-list">
-					${conversations.map(([username, messages]) => html`
-						<div class="conversation">
-							<div class="conversation-header">
-								<span class="conversation-name">${username}</span>
-							</div>
-							<div class="messages-list">
-								${messages.map(message => html`
-									<div class="message ${message.from === this.profile?.username ? 'sent' : 'received'}">
-										<div class="message-content">${message.content}</div>
-										<div class="message-time">
-											${message.timestamp.toLocaleTimeString()}
-										</div>
-									</div>
-								`)}
-							</div>
-						</div>
-					`)}
-				</div>
-			</div>
 		`;
 	}
 
@@ -577,16 +455,5 @@ export class ProfileComponent extends Component {
 	private setActiveTab(tabId: string): void {
 		this.activeTab = tabId;
 		this.renderView();
-	}
-
-	private openChat(username: string): void {
-		this.activeTab = 'messages';
-		this.renderView();
-		// TODO: Implement chat focus/scroll to specific conversation
-	}
-
-	destroy(): void {
-		// Clean up any event listeners or resources
-		super.destroy();
 	}
 }

@@ -19,13 +19,14 @@ export const COLORS = {
 	GAME_BACKGROUND: 'transparent',
 	
 	// Game elements
-	PITCH: '#FFFFFF',
-	BALL: '#FF0000',
-	PADDLE: '#0000FF',
+	PITCH: 'rgba(255, 255, 255, 0.3)',
+	BALL: '#FFFFFF',
+	PADDLE: '#FFFFFF',
 	
 	// UI elements
 	TITLE: '#FDF3E7',
-	SCORE: '#FFFFFF',
+	SCORE: 'rgba(255, 255, 255, 0.1)',
+	NAMES: 'rgba(255, 255, 255, 0.3)',
 	OVERLAY: 'rgba(0, 0, 0, 0.5)'
 } as const;
 
@@ -54,7 +55,7 @@ export const GAME_RATIOS = {
 	PADDLE: {
 		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
-		SPEED: 0.005,   // control speed
+		SPEED: 0.006,   // control speed
 		PADDING: 0.03   // % from edges
 	},
 	BALL: {
@@ -68,7 +69,7 @@ export const GAME_RATIOS = {
 export const BALL_CONFIG = {
 	SPEED: {
 		RELATIVE: {
-			TIME_TO_CROSS: 2.75,
+			TIME_TO_CROSS: 2.50,
 			INITIAL_ANGLE: {
 				BASE: 30,      // Base diagonal angle
 				VARIATION: 10  // Random variation range
@@ -77,12 +78,12 @@ export const BALL_CONFIG = {
 	},
 	ACCELERATION: {
 		MAX_MULTIPLIER: 4.0,    // Maximum speed (4x initial speed)
-		RATE: 0.05,             // 10% speed increase per hit
+		RATE: 0.05,             // 5% speed increase per hit
 		INITIAL: 1.0           // Initial speed multiplier
 	},
 	EDGES: {
 		ZONE_SIZE: 0.05,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.1  // 10% max deflection
+		MAX_DEFLECTION: 0.01  // 10% max deflection
 	}
 } as const;
 
@@ -91,18 +92,18 @@ export const BALL_CONFIG = {
 // =========================================
 export const FONTS = {
 	FAMILIES: {
-		TITLE: 'Arial',
-		SUBTITLE: 'Arial',
+		TITLE: 'monospace',
+		SUBTITLE: 'monospace',
 		SCORE: 'Arial',
 		COUNTDOWN: 'Arial',
-		PAUSE: 'Arial'
+		PAUSE: 'monospace'
 	},
 	SIZE_RATIOS: {
-		TITLE: 0.06,
+		TITLE: 0.05,
 		SUBTITLE: 0.03,
-		SCORE: 0.06,
-		COUNTDOWN: 0.06,
-		PAUSE: 0.06,
+		SCORE: 0.35,
+		COUNTDOWN: 0.1,
+		PAUSE: 0.05,
 		RESUME_PROMPT: 0.03
 	},
 	MIN_SIZES: {

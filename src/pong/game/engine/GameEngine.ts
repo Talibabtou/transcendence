@@ -16,7 +16,8 @@ export class GameEngine {
 	// =========================================
 	private scene!: GameScene; // Use definite assignment assertion
 	private context: GameContext;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background' = 'single';
+	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
+	private keyboardEventListener: ((evt: KeyboardEvent) => void) | null = null;
 
 	// =========================================
 	// Lifecycle
@@ -28,7 +29,6 @@ export class GameEngine {
 
 	private initializeGame(): void {
 		this.scene = new GameScene(this.context);
-		this.scene.setGameContext(this);
 		this.bindPauseControls();
 	}
 
@@ -52,37 +52,31 @@ export class GameEngine {
 		this.loadMainScene();
 	}
 
-	public initializeBackgroundMode(): void {
-		this.gameMode = 'background';
+	public initializeBackgroundDemo(): void {
+		this.gameMode = 'background_demo';
 		this.loadMainScene();
 	}
 
 	private loadMainScene(): void {
-		// First, ensure background mode is disabled for regular gameplay
-		this.scene.setBackgroundMode(false);
-		
-		// Configure player controls based on mode
 		if (this.gameMode === 'single') {
-				this.scene.setGameMode('single');
+			this.scene.setGameMode('single');
 		} else if (this.gameMode === 'multi') {
-				this.scene.setGameMode('multi');
-		} else if (this.gameMode === 'background') {
-				this.scene.setBackgroundMode(true);
-				const pauseManager = this.scene.getPauseManager();
-				if (pauseManager) {
-						pauseManager.setBackgroundDemoMode(true);
-				}
+			this.scene.setGameMode('multi');
+		} else if (this.gameMode === 'tournament') {
+			this.scene.setGameMode('tournament');
+		} else if (this.gameMode === 'background_demo') {
+			this.scene.setGameMode('background_demo');
 		}
 
 		// Reset positions of game objects
 		if (this.scene.getBall()) {
-				this.scene.getBall().restart();
+			this.scene.getBall().restart();
 		}
 		if (this.scene.getPlayer1()) {
-				this.scene.getPlayer1().resetPosition();
+			this.scene.getPlayer1().resetPosition();
 		}
 		if (this.scene.getPlayer2()) {
-				this.scene.getPlayer2().resetPosition();
+			this.scene.getPlayer2().resetPosition();
 		}
 
 		// Load the scene
@@ -98,11 +92,18 @@ export class GameEngine {
 	}
 
 	public update(): void {
-		const isBackground = this.gameMode === 'background';
-		
-		// In background mode, always update regardless of pause state
-		if (isBackground || !this.isGamePaused()) {
-			this.scene.update?.();
+		if (this.scene) {
+			// Only update if the game is active
+			if (this.gameMode === 'background_demo') {
+				// Background demo has special update rules
+				// For example, ignore certain input checks
+			}
+			
+			try {
+				this.scene.update();
+			} catch (error) {
+				console.error('Error updating game scene:', error);
+			}
 		}
 	}
 
@@ -110,11 +111,8 @@ export class GameEngine {
 	// Pause Management
 	// =========================================
 	private bindPauseControls(): void {
-		window.addEventListener('keydown', (evt: KeyboardEvent) => {
-			if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
-				this.togglePause();
-			}
-		});
+		this.keyboardEventListener = this.handleKeydown.bind(this);
+		window.addEventListener('keydown', this.keyboardEventListener);
 	}
 
 	public togglePause(): void {
@@ -196,5 +194,45 @@ export class GameEngine {
 	public setPlayerNames(player1Name: string, player2Name: string): void {
 		this.scene.getPlayer1().setName(player1Name);
 		this.scene.getPlayer2().setName(player2Name);
+	}
+
+	// Add this method to GameEngine class
+	public setKeyboardEnabled(enabled: boolean): void {
+		// If there's an existing listener, remove it
+		if (this.keyboardEventListener) {
+			window.removeEventListener('keydown', this.keyboardEventListener);
+			this.keyboardEventListener = null;
+		}
+		
+		// Only add a new listener if enabled
+		if (enabled) {
+			this.keyboardEventListener = this.handleKeydown.bind(this);
+			window.addEventListener('keydown', this.keyboardEventListener);
+		}
+	}
+
+	// Create a separate method for handling keydown
+	private handleKeydown(evt: KeyboardEvent): void {
+		if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
+			this.togglePause();
+		}
+	}
+
+	// Add a method to handle pause requests that considers game state
+	public requestPause(): void {
+		if (!(this.scene instanceof GameScene)) {
+			return;
+		}
+		
+		const pauseManager = this.scene.getPauseManager();
+		
+		// If in countdown, set a flag for pending pause
+		if (pauseManager.hasState(GameState.COUNTDOWN)) {
+			pauseManager.setPendingPauseRequest(true);
+		} 
+		// Otherwise pause immediately if not already paused
+		else if (!pauseManager.hasState(GameState.PAUSED)) {
+			this.scene.handlePause();
+		}
 	}
 }

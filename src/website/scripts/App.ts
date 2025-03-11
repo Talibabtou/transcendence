@@ -1,26 +1,74 @@
-import { Router, BackgroundPongGame, NavbarComponent } from './utils';
+/**
+ * Main application entry point that initializes core components of the website.
+ * This file handles the setup of navigation, game functionality, and routing.
+ */
+import { Router, NavbarComponent, GameManager } from '@website/scripts/utils';
 
+/**
+ * Core application class responsible for initializing and orchestrating
+ * the website's components and functionality.
+ */
 export class App {
-		constructor() {
-				this.initialize();
-		}
+	private gameManager!: GameManager;
 
-		private initialize(): void {
-				// Initialize the navbar logo
-				NavbarComponent.initialize();
-				// Always initialize the background Pong game
-				window.backgroundPong = new BackgroundPongGame();
-				// Initialize the router with the main content container
-				const contentContainer = document.querySelector('.content-container') as HTMLElement;
-				if (contentContainer) {
-						new Router(contentContainer);
-				} else {
-						console.error('Could not find content container element');
-				}
+	/**
+	 * Creates a new App instance and triggers the initialization process.
+	 */
+	constructor() {
+		this.initialize();
+	}
+
+	/**
+	 * Initializes all core components of the application
+	 * 
+	 * @private
+	 */
+	private initialize(): void {
+		// Initialize components in the correct order
+		this.initializeNavbar();
+		this.initializeGameManager();
+		this.initializeRouter();
+		this.setupEventListeners();
+	}
+
+	private initializeNavbar(): void {
+		NavbarComponent.initialize();
+	}
+
+	private initializeGameManager(): void {
+		try {
+			this.gameManager = GameManager.getInstance();
+			
+			// THIS is the only place that should initialize
+			this.gameManager.initialize();
+			
+			// Start background game ONLY here
+			this.gameManager.startBackgroundGame();
+			
+			window.gameManager = this.gameManager;
+		} catch (error) {
+			console.error('Failed to initialize game manager:', error);
 		}
+	}
+
+	private initializeRouter(): void {
+		const contentContainer = document.querySelector('.content-container') as HTMLElement;
+		if (contentContainer) {
+			new Router(contentContainer);
+		} else {
+			console.error('Could not find content container element');
+		}
+	}
+
+	private setupEventListeners(): void {
+		// Add any app-wide event listeners here
+	}
 }
 
-// Initialize the application when the DOM is loaded
+/**
+ * Bootstrap the application once the DOM is fully loaded.
+ * This ensures all HTML elements are available for manipulation.
+ */
 document.addEventListener('DOMContentLoaded', () => {
-		new App();
+	new App();
 });

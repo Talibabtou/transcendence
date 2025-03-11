@@ -1,9 +1,7 @@
 /**
- * Mock Database Service - Simulates database interactions with console logs
+ * Database schema interfaces
  */
-
-// Types based on your database schema
-interface User {
+export interface User {
 	id: number;
 	theme?: string;
 	pfp?: string;
@@ -13,91 +11,127 @@ interface User {
 	created_at: Date;
 }
 
-interface Match {
+export interface Friend {
+	user_id: number;
+	friend_id: number;
+	created_at: Date;
+}
+
+export interface Match {
 	id: number;
-	player_1: number; // User id
-	player_2: number; // User id
+	player_1: number;
+	player_2: number;
 	completed: boolean;
-	duration?: number; // in seconds
+	duration?: number;
 	timeout: boolean;
 	tournament_id?: number;
 	created_at: Date;
 }
 
-interface Goal {
+export interface Goal {
 	id: number;
 	match_id: number;
-	player: number; // User id
-	duration: number; // seconds into the match
+	player: number;
+	duration: number;
 	created_at: Date;
 }
 
+/**
+ * Service class for handling database operations
+ * Currently mocks API calls for development purposes
+ */
 export class DbService {
-	// Simulate getting a user by id
+	/**
+	 * Retrieves user information by ID
+	 * @param id - The user's ID
+	 */
 	static getUser(id: number): void {
-		console.log('DB REQUEST: GET /api/users/' + id, {
-			method: 'GET',
-			endpoint: `/api/users/${id}`
-		});
+		this.logRequest('GET', `/api/users/${id}`);
 	}
 
-	// Simulate getting a user by username
-	static getUserByUsername(username: string): void {
-		console.log('DB REQUEST: GET /api/users?pseudo=' + username, {
-			method: 'GET',
-			endpoint: `/api/users?pseudo=${username}`
-		});
-	}
-
-	// Simulate getting match history for a user
+	/**
+	 * Retrieves match history for a specific user
+	 * @param userId - The user's ID
+	 */
 	static getUserMatches(userId: number): void {
-		console.log('DB REQUEST: GET /api/users/' + userId + '/matches', {
-			method: 'GET',
-			endpoint: `/api/users/${userId}/matches`
-		});
+		this.logRequest('GET', `/api/users/${userId}/matches`);
 	}
 
-	// Simulate getting leaderboard data
+	/**
+	 * Updates user information
+	 * @param userId - The user's ID
+	 * @param userData - Object containing user data to update
+	 */
+	static updateUser(userId: number, userData: Partial<User>): void {
+		this.logRequest('PUT', `/api/users/${userId}`, userData);
+	}
+
+	/**
+	 * Retrieves friend list for a user
+	 * @param userId - The user's ID
+	 */
+	static getUserFriends(userId: number): void {
+		this.logRequest('GET', `/api/users/${userId}/friends`);
+	}
+
+	/**
+	 * Retrieves statistics for a user
+	 * @param userId - The user's ID
+	 */
+	static getUserStats(userId: number): void {
+		this.logRequest('GET', `/api/users/${userId}/stats`);
+	}
+
+	/**
+	 * Updates user preferences
+	 * @param userId - The user's ID
+	 * @param preferences - Object containing user preferences
+	 */
+	static updateUserPreferences(userId: number, preferences: Record<string, any>): void {
+		this.logRequest('PUT', `/api/users/${userId}/preferences`, preferences);
+	}
+
+	/**
+	 * Retrieves global leaderboard data
+	 */
 	static getLeaderboard(): void {
-		console.log('DB REQUEST: GET /api/leaderboard', {
-			method: 'GET',
-			endpoint: '/api/leaderboard'
-		});
+		this.logRequest('GET', '/api/leaderboard');
 	}
 
-	// Simulate creating a new match
+	/**
+	 * Creates a new match between two players
+	 * @param player1Id - First player's ID
+	 * @param player2Id - Second player's ID
+	 * @param tournamentId - Optional tournament ID
+	 */
 	static createMatch(player1Id: number, player2Id: number, tournamentId?: number): void {
 		const matchData: Partial<Match> = {
 			player_1: player1Id,
 			player_2: player2Id,
-			completed: false,
-			timeout: false,
-			tournament_id: tournamentId,
-			created_at: new Date()
+			tournament_id: tournamentId
 		};
-		
-		console.log('DB REQUEST: POST /api/matches', {
-			method: 'POST',
-			endpoint: '/api/matches',
-			body: matchData
-		});
+		this.logRequest('POST', '/api/matches', matchData);
 	}
-	
-	// Simulate updating a match when completed
+
+	/**
+	 * Marks a match as completed
+	 * @param matchId - The match ID
+	 * @param duration - Match duration in seconds
+	 */
 	static completeMatch(matchId: number, duration: number): void {
 		const updateData = {
 			completed: true,
 			duration
 		};
-		
-		console.log('DB REQUEST: PUT /api/matches/' + matchId, {
-			method: 'PUT',
-			endpoint: `/api/matches/${matchId}`,
-			body: updateData
-		});
+		this.logRequest('PUT', `/api/matches/${matchId}`, updateData);
 	}
-	
-	// Simulate recording a goal
+
+	/**
+	 * Records a goal in a match
+	 * @param matchId - The match ID
+	 * @param playerId - The scoring player's ID
+	 * @param duration - Time of goal in seconds from match start
+	 */
 	static recordGoal(matchId: number, playerId: number, duration: number): void {
 		const goalData: Partial<Goal> = {
 			match_id: matchId,
@@ -105,31 +139,20 @@ export class DbService {
 			duration,
 			created_at: new Date()
 		};
-		
-		console.log('DB REQUEST: POST /api/goals', {
-			method: 'POST',
-			endpoint: '/api/goals',
-			body: goalData
+		this.logRequest('POST', '/api/goals', goalData);
+	}
+
+	/**
+	 * Helper method to standardize API request logging
+	 * @param method - HTTP method
+	 * @param endpoint - API endpoint
+	 * @param body - Optional request body
+	 */
+	private static logRequest(method: string, endpoint: string, body?: any): void {
+		console.log('DB REQUEST: ' + method + ' ' + endpoint, {
+			method,
+			endpoint,
+			...(body && { body })
 		});
 	}
-	
-	// Simulate recovering a match
-	static recoverMatch(matchId: number): void {
-		console.log('DB REQUEST: PUT /api/matches/' + matchId + '/recover', {
-			method: 'PUT',
-			endpoint: `/api/matches/${matchId}/recover`,
-			body: {
-				recovered_at: new Date()
-			}
-		});
-	}
-	
-	// Simulate updating a user
-	static updateUser(userId: number, userData: any): void {
-		console.log('DB REQUEST: PUT /api/users/' + userId, {
-			method: 'PUT',
-			endpoint: `/api/users/${userId}`,
-			body: userData
-		});
-	}
-} 
+}

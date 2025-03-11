@@ -1,4 +1,7 @@
-// ASCII art blocks
+/**
+ * ASCII art blocks to insert into the HTMLs
+ */
+
 export const ASCII_ART = {
   TRANSCENDENCE: 
 `___________                                                    .___                          
