@@ -1,15 +1,14 @@
 import { fastify } from 'fastify';
-import { readFileSync } from 'fs';
-import path from 'path';
 import authRoutes from './routes/auth.routes.js';
-const server = fastify({
-    logger: true,
-    http2: true,
-    https: {
-        key: readFileSync(path.join(path.resolve(), '/certs/key.pem')),
-        cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
-    }
-});
+// const server = fastify({
+// 	logger: true,
+// 	http2: true,
+// 	https: {
+// 		key: readFileSync(path.join(path.resolve(), '/certs/key.pem')),
+// 		cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
+// 	}
+// });
+const server = fastify({ logger: false });
 const start = async () => {
     try {
         await server.register(authRoutes, { prefix: '/api/v1/' });

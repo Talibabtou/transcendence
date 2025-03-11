@@ -4,8 +4,6 @@ export async function getIdAuth(request, reply) {
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const responseData = await response.json();
-        if (!responseData)
-            throw new Error(`Response error with route ${subpath}`);
         return reply.code(response.status).send(responseData); // Response successfully obtained
     }
     catch (err) {
@@ -17,10 +15,8 @@ export async function getAuth(request, reply) {
     try {
         const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
-        const response = await fetch(serviceUrl, { method: 'GET' });
+        const response = await fetch(serviceUrl);
         const responseData = await response.json();
-        if (!responseData)
-            throw new Error(`Response error with route ${subpath}`);
         return reply.code(response.status).send(responseData); // Response successfully obtained
     }
     catch (err) {
@@ -34,14 +30,10 @@ export async function postAuth(request, reply) {
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(request.body)
         });
         const responseData = await response.json();
-        if (!responseData)
-            throw new Error(`Response error with route ${subpath}`);
         return reply.code(response.status).send(responseData); // Response successfully obtained
     }
     catch (err) {
@@ -55,14 +47,10 @@ export async function putAuth(request, reply) {
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(request.body)
         });
         const responseData = await response.json();
-        if (!responseData)
-            throw new Error(`Response error with route ${subpath}`);
         return reply.code(response.status).send(responseData); // Response successfully obtained
     }
     catch (err) {
@@ -75,7 +63,10 @@ export async function deleteIdAuth(request, reply) {
         const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, { method: 'DELETE' });
-        return reply.code(response.status).send(); // Response successfully obtained
+        if (response.status == 204)
+            return reply.code(response.status).send(); // Response successfully obtained
+        const responseData = await response.json();
+        return reply.code(response.status).send(responseData); // Failled
     }
     catch (err) {
         console.error(err.message);
@@ -88,14 +79,10 @@ export async function postLogin(request, reply) {
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(request.body)
         });
         const responseData = await response.json();
-        if (!responseData)
-            throw new Error(`Response error with route ${subpath}`);
         return reply.code(response.status).send(responseData); // Response successfully obtained
     }
     catch (err) {

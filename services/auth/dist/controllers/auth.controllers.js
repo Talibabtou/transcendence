@@ -5,6 +5,8 @@ export async function addUser(request, reply) {
         const result = await request.server.db.run('INSERT INTO users (username, password, email, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP);', [username, password, email]);
         await request.server.db.run('COMMIT');
         const user = await request.server.db.get('SELECT id, username FROM users WHERE email = ?', [email]);
+        const token = request.server.jwt.sign(user);
+        console.log({ token: token });
         return reply.code(201).send({ data: user }); // User created successfully
     }
     catch (err) {
@@ -39,7 +41,7 @@ export async function getUser(request, reply) {
         const id = request.params.id;
         const result = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
         if (!result)
-            return reply.code(404).send(); // User not found
+            return reply.code(404).send({ message: "User not found" }); // User not found
         return reply.code(200).send({ data: result }); // User successfully obtained
     }
     catch (err) {
@@ -53,7 +55,7 @@ export async function deleteUser(request, reply) {
         const id = request.params.id;
         const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
         if (!result)
-            return reply.code(404).send(); // User not found
+            return reply.code(404).send({ message: "User not found" }); // User not found
         await request.server.db.run('BEGIN TRANSACTION');
         await request.server.db.run('DELETE FROM users WHERE id = ?', [id]);
         await request.server.db.run('COMMIT');
@@ -75,7 +77,7 @@ export async function modifyUser(request, reply) {
         const { username, password, email } = request.body;
         let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
         if (!result)
-            return reply.code(404).send(); // User not found
+            return reply.code(404).send({ message: "User not found" }); // User not found
         if (username) {
             dataName = 'username';
             await request.server.db.run('BEGIN TRANSACTION');
@@ -119,13 +121,15 @@ export async function modifyUser(request, reply) {
 export async function login(request, reply) {
     try {
         const { email, password } = request.body;
-        const result = await request.server.db.get('SELECT id, username FROM users WHERE email = ? AND password = ?;', [email, password]);
-        if (result == undefined || result.lastID == 0)
-            return reply.code(401).send(); // Invalid email or password
+        const user = await request.server.db.get('SELECT id, username FROM users WHERE email = ? AND password = ?;', [email, password]);
+        if (user == undefined)
+            return reply.code(401).send({ message: 'Invalid email or password' }); // Invalid email or password
         await request.server.db.run('BEGIN TRANSACTION');
         await request.server.db.run('UPDATE users SET last_login = (CURRENT_TIMESTAMP) WHERE email = ? AND password = ?', [email, password]);
         await request.server.db.run('COMMIT');
-        return reply.code(201).send({ data: result }); // Login success
+        const token = request.server.jwt.sign(user);
+        console.log({ token: token });
+        return reply.code(200).send({ data: user }); // Login success
     }
     catch (err) {
         await request.server.db.run('ROLLBACK');

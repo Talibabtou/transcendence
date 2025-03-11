@@ -65,7 +65,10 @@ export async function deleteIdAuth(request: FastifyRequest, reply: FastifyReply)
         const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
         const response = await fetch(serviceUrl, { method: 'DELETE' });
-        return reply.code(response.status).send(); // Response successfully obtained
+        if (response.status == 204)
+          return reply.code(response.status).send(); // Response successfully obtained
+        const responseData: any = await response.json();
+        return reply.code(response.status).send(responseData); // Failled
       } catch (err: any) {
         console.error(err.message);
         return reply.code(500).send({ error: err.message }); // Internal server error

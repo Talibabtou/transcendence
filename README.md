@@ -14,8 +14,7 @@ rm csr.pem
 ### Install typescript env
 ```bash
 npm init -y // generate .json files
-npm install @types/node typescript fastify sqlite3 @types/node-fetch@2 // install necessary modules
-npm install pino-pretty --save-dev // install in dev dependancy only
+npm install @types/node typescript fastify sqlite3 @types/node-fetch@2 @fastify/jwt // install necessary modules
 npx tsc --init // generate tsconfig file
 ```
 - configure tsconfig.json

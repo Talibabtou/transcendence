@@ -17,7 +17,7 @@ export const createUserSchema = {
 export const getIdUserSchema = {
   type: 'object',
   properties: {
-    id: { type: 'string' }
+    id: { type: 'string', maxLength: 36, minLength: 36 }
   },
   required: ['id'],
   additionalProperties: false,
@@ -43,8 +43,6 @@ export const modifyUserSchema  = {
     {
       properties: {
         username: { type: 'string', minLength: 3, maxLength: 20 },
-        password: { not: {} }, // Forbid password
-        email: { not: {} }    // Forbid email
       },
       required: ['username'],
       additionalProperties: false,
@@ -57,8 +55,6 @@ export const modifyUserSchema  = {
           pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
           maxLength: 255
         }, // Autorise only password with minimum one upper case letter, one lower case and one digit with a minimum length of 8
-       username: { not: {} }, // Forbid username
-       email: { not: {} }    // Forbid email
       },
       required: ['password'],
       additionalProperties: false,
@@ -66,8 +62,6 @@ export const modifyUserSchema  = {
     {
       properties: {
         email: { type: 'string', format: 'email', maxLength: 255 },
-        username: { not: {} }, // Forbid username
-        password: { not: {} } // Forbid password
       },
       required: ['email'],
       additionalProperties: false,
