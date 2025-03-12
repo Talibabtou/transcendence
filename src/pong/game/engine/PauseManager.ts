@@ -1,18 +1,15 @@
 import { Ball, Player } from '@pong/game/objects';
-import type { BallState } from '@pong/game/objects';
-import { GameState } from '@pong/types';
+import { GameState, GameSnapshot } from '@pong/types';
 
-// =========================================
-// Types
-// =========================================
-interface GameSnapshot {
-	ballState: BallState;
-	player1RelativeY: number;
-	player2RelativeY: number;
-}
-
+/**
+ * Callback type for countdown events
+ */
 type CountdownCallback = (text: string | number | string[] | null) => void;
 
+/**
+ * Manages game pause, countdown, and resume functionality,
+ * coordinating the state transitions between different game states.
+ */
 export class PauseManager {
 	// =========================================
 	// Private Properties
@@ -33,6 +30,12 @@ export class PauseManager {
 	// =========================================
 	// Constructor
 	// =========================================
+	/**
+	 * Creates a new PauseManager
+	 * @param ball The ball object
+	 * @param player1 The left player
+	 * @param player2 The right player
+	 */
 	constructor(ball: Ball, player1: Player, player2: Player) {
 		this.ball = ball;
 		this.player1 = player1;
@@ -47,14 +50,15 @@ export class PauseManager {
 	// =========================================
 	
 	/**
-	 * Set callback for countdown events
+	 * Sets the callback function for countdown events
+	 * @param callback The function to call during countdown events
 	 */
 	public setCountdownCallback(callback: CountdownCallback): void {
 		this.countdownCallback = callback;
 	}
 
 	/**
-	 * Start a new game with countdown
+	 * Starts a new game with countdown
 	 */
 	public startGame(): void {
 		this.states.clear();
@@ -71,7 +75,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Pause the current game state
+	 * Pauses the current game state
 	 */
 	public pause(): void {
 		if (this.states.has(GameState.PAUSED)) {
@@ -93,7 +97,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Resume from paused state
+	 * Resumes the game from a paused state
 	 */
 	public resume(): void {
 		if (!this.states.has(GameState.PAUSED)) return;
@@ -118,7 +122,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Update game objects during pause/countdown
+	 * Updates game objects during pause/countdown
 	 */
 	public update(): void {
 		if (this.isCountingDown || this.states.has(GameState.PAUSED)) {
@@ -131,7 +135,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Force stop the game (cleanup)
+	 * Forces the game to stop
 	 */
 	public forceStop(): void {
 		this.cleanupCountdown();
@@ -139,7 +143,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Handle point scored event
+	 * Handles state transitions after a point is scored
 	 */
 	public handlePointScored(): void {
 		// In background demo, skip countdown and just restart
@@ -169,7 +173,7 @@ export class PauseManager {
 	}
 
 	/**
-	 * Check if a specific state is active
+	 * Checks if a specific state is active
 	 */
 	public hasState(state: GameState): boolean {
 		return this.states.has(state);

@@ -4,6 +4,10 @@ import { GameContext, GameState } from '@pong/types';
 import { calculateGameSizes } from '@pong/constants';
 import { GameScene } from '@pong/game/scenes';
 
+/**
+ * Manages window resizing operations for the game, ensuring
+ * that all game elements scale and position correctly.
+ */
 export class ResizeManager {
 	// =========================================
 	// Private Properties
@@ -22,6 +26,15 @@ export class ResizeManager {
 	// =========================================
 	// Constructor
 	// =========================================
+	/**
+	 * Creates a new ResizeManager
+	 * @param ctx Canvas rendering context
+	 * @param scene Game scene reference
+	 * @param ball Ball object reference
+	 * @param player1 Left player reference
+	 * @param player2 Right player reference
+	 * @param pauseManager PauseManager reference
+	 */
 	constructor(
 		ctx: GameContext,
 		scene: GameScene,
@@ -47,14 +60,14 @@ export class ResizeManager {
 	// =========================================
 	
 	/**
-	 * Public facade method to check if resize is in progress
+	 * Returns whether a resize operation is currently in progress
 	 */
 	public isCurrentlyResizing(): boolean {
 		return this.isResizing;
 	}
 
 	/**
-	 * Public facade method to clean up resources
+	 * Cleans up resources and event listeners
 	 */
 	public cleanup(): void {
 		// Clear timeout if exists
@@ -77,21 +90,26 @@ export class ResizeManager {
 	}
 
 	/**
-	 * Public facade method to toggle background mode
+	 * Sets the current game mode
+	 * @param mode The game mode to set
 	 */
 	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
 		this.gameMode = mode;
 	}
 
 	// =========================================
-	// Private Methods
+	// Resize Event Handling
 	// =========================================
+	
+	/**
+	 * Sets up the window resize event listener
+	 */
 	private setupResizeHandler(): void {
 		window.addEventListener('resize', this.boundResizeHandler);
 	}
 
 	/**
-	 * Main resize handler - facade method that orchestrates the resize process
+	 * Main resize handler that orchestrates the resize process
 	 */
 	public handleResize(): void {
 		// Cancel any pending resize timeout
@@ -137,8 +155,12 @@ export class ResizeManager {
 		});
 	}
 
+	// =========================================
+	// Canvas Handling
+	// =========================================
+	
 	/**
-	 * Update the canvas size while preserving context properties
+	 * Updates the canvas size while preserving context properties
 	 */
 	private updateCanvasSize(): void {
 		const targetWidth = window.innerWidth;
@@ -167,8 +189,12 @@ export class ResizeManager {
 		}
 	}
 
+	// =========================================
+	// Game Object Resizing
+	// =========================================
+	
 	/**
-	 * Unified method to resize all game objects while maintaining proper proportions
+	 * Resizes all game objects while maintaining proper proportions
 	 */
 	private resizeGameObjects(): void {
 		// Check if we are in a game scene with objects
@@ -233,7 +259,7 @@ export class ResizeManager {
 	}
 
 	/**
-	 * Handle resize specifically during countdown
+	 * Handles special resize behavior during countdown
 	 */
 	private handleResizeDuringCountdown(): void {
 		if (!this.pauseManager) return;
@@ -253,7 +279,8 @@ export class ResizeManager {
 	}
 
 	/**
-	 * Helper method to update paddle vertical positions while maintaining proportionality
+	 * Updates paddle vertical positions while maintaining proportionality
+	 * @param newHeight The new canvas height
 	 */
 	private updatePaddleVerticalPositions(newHeight: number): void {
 		if (!this.player1 || !this.player2) return;
@@ -279,15 +306,19 @@ export class ResizeManager {
 		}
 	}
 
+	// =========================================
+	// Helper Methods
+	// =========================================
+	
 	/**
-	 * Check if we have a valid game scene with all needed objects
+	 * Checks if we have a valid game scene with all needed objects
 	 */
 	private isGameScene(): boolean {
 		return !!(this.ball && this.player1 && this.player2 && this.pauseManager);
 	}
 
 	/**
-	 * Helper to check if we're in background demo mode
+	 * Checks if we're in background demo mode
 	 */
 	private isInBackgroundDemo(): boolean {
 		return this.gameMode === 'background_demo';

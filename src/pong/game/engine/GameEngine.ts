@@ -1,15 +1,11 @@
-import { GameContext, GameState, Player } from '@pong/types';
+import { GameContext, GameState, GameStateInfo } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
 
-// Add this interface for game state
-interface GameStateInfo {
-	player1Score: number;
-	player2Score: number;
-	isGameOver: boolean;
-	winner: Player | null;
-}
-
+/**
+ * Main game engine that coordinates game scenes, handles input,
+ * and manages the game loop.
+ */
 export class GameEngine {
 	// =========================================
 	// Properties
@@ -22,11 +18,18 @@ export class GameEngine {
 	// =========================================
 	// Lifecycle
 	// =========================================
+	/**
+	 * Creates a new GameEngine
+	 * @param ctx Canvas rendering context
+	 */
 	constructor(ctx: GameContext) {
 		this.context = ctx;
 		this.initializeGame();
 	}
 
+	/**
+	 * Initializes the game engine and scene
+	 */
 	private initializeGame(): void {
 		this.scene = new GameScene(this.context);
 		this.bindPauseControls();
@@ -35,16 +38,25 @@ export class GameEngine {
 	// =========================================
 	// Game Mode Initialization
 	// =========================================
+	/**
+	 * Initializes a single player game
+	 */
 	public initializeSinglePlayer(): void {
 		this.gameMode = 'single';
 		this.loadMainScene();
 	}
 
+	/**
+	 * Initializes a multiplayer game
+	 */
 	public initializeMultiPlayer(): void {
 		this.gameMode = 'multi';
 		this.loadMainScene();
 	}
 
+	/**
+	 * Initializes a tournament game
+	 */
 	public initializeTournament(): void {
 		this.gameMode = 'tournament';
 		// For now, just start a multiplayer game
@@ -52,11 +64,17 @@ export class GameEngine {
 		this.loadMainScene();
 	}
 
+	/**
+	 * Initializes a background demo
+	 */
 	public initializeBackgroundDemo(): void {
 		this.gameMode = 'background_demo';
 		this.loadMainScene();
 	}
 
+	/**
+	 * Loads the main game scene with appropriate settings
+	 */
 	private loadMainScene(): void {
 		if (this.gameMode === 'single') {
 			this.scene.setGameMode('single');
@@ -86,11 +104,17 @@ export class GameEngine {
 	// =========================================
 	// Game Loop
 	// =========================================
+	/**
+	 * Renders the current game scene
+	 */
 	public draw(): void {
 		this.clearScreen();
 		this.scene.draw();
 	}
 
+	/**
+	 * Updates the game state for the current frame
+	 */
 	public update(): void {
 		if (this.scene) {
 			// Only update if the game is active
@@ -110,11 +134,17 @@ export class GameEngine {
 	// =========================================
 	// Pause Management
 	// =========================================
+	/**
+	 * Sets up keyboard event listeners for pause control
+	 */
 	private bindPauseControls(): void {
 		this.keyboardEventListener = this.handleKeydown.bind(this);
 		window.addEventListener('keydown', this.keyboardEventListener);
 	}
 
+	/**
+	 * Toggles the game between paused and playing states
+	 */
 	public togglePause(): void {
 		if (!(this.scene instanceof GameScene)) {
 			return;
@@ -134,6 +164,9 @@ export class GameEngine {
 		}
 	}
 
+	/**
+	 * Returns whether the game is currently paused
+	 */
 	public isGamePaused(): boolean {
 		if (!(this.scene instanceof GameScene)) {
 			return false;
@@ -142,8 +175,13 @@ export class GameEngine {
 	}
 
 	// =========================================
-	// Resize handling
+	// Resize Handling
 	// =========================================
+	/**
+	 * Handles canvas resize operations
+	 * @param width The new canvas width
+	 * @param height The new canvas height
+	 */
 	public resize(width: number, height: number): void {
 		// Update the canvas size first
 		if (this.context && this.context.canvas) {
@@ -163,8 +201,11 @@ export class GameEngine {
 	}
 
 	// =========================================
-	// Private Rendering Methods
+	// Rendering Methods
 	// =========================================
+	/**
+	 * Clears the canvas for a new frame
+	 */
 	private clearScreen(): void {
 		const { width, height } = this.context.canvas;
 		this.context.beginPath();
@@ -172,6 +213,12 @@ export class GameEngine {
 		this.context.closePath();
 	}
 
+	// =========================================
+	// Cleanup and State Management
+	// =========================================
+	/**
+	 * Cleans up resources
+	 */
 	public cleanup(): void {
 		if (this.scene) {
 			this.scene.unload();
@@ -180,7 +227,9 @@ export class GameEngine {
 		this.context = null as any;
 	}
 
-	// Update getGameState return type
+	/**
+	 * Returns information about the current game state
+	 */
 	public getGameState(): GameStateInfo {
 		return {
 			player1Score: this.scene.getPlayer1().getScore(),
@@ -190,13 +239,20 @@ export class GameEngine {
 		};
 	}
 
-	// Add method to set player names
+	/**
+	 * Sets display names for both players
+	 * @param player1Name Name for player 1
+	 * @param player2Name Name for player 2
+	 */
 	public setPlayerNames(player1Name: string, player2Name: string): void {
 		this.scene.getPlayer1().setName(player1Name);
 		this.scene.getPlayer2().setName(player2Name);
 	}
 
-	// Add this method to GameEngine class
+	/**
+	 * Enables or disables keyboard input
+	 * @param enabled Whether keyboard control should be enabled
+	 */
 	public setKeyboardEnabled(enabled: boolean): void {
 		// If there's an existing listener, remove it
 		if (this.keyboardEventListener) {
@@ -211,14 +267,19 @@ export class GameEngine {
 		}
 	}
 
-	// Create a separate method for handling keydown
+	/**
+	 * Handles keyboard input events
+	 * @param evt The keyboard event
+	 */
 	private handleKeydown(evt: KeyboardEvent): void {
 		if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
 			this.togglePause();
 		}
 	}
 
-	// Add a method to handle pause requests that considers game state
+	/**
+	 * Requests the game to pause, considering the current game state
+	 */
 	public requestPause(): void {
 		if (!(this.scene instanceof GameScene)) {
 			return;

@@ -1,6 +1,10 @@
 import { GameContext, MovableObject, Direction } from '@pong/types';
 import { COLORS, GAME_CONFIG, calculateGameSizes } from '@pong/constants';
 
+/**
+ * Represents a paddle in the game, handling its movement,
+ * rendering, and physics properties.
+ */
 export class Paddle implements MovableObject {
 	// =========================================
 	// Properties
@@ -13,6 +17,14 @@ export class Paddle implements MovableObject {
 	// =========================================
 	// Constructor
 	// =========================================
+	/**
+	 * Creates a new Paddle instance
+	 * @param x The horizontal position
+	 * @param y The vertical position
+	 * @param paddleWidth The width of the paddle
+	 * @param paddleHeight The height of the paddle
+	 * @param context The canvas rendering context
+	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -29,17 +41,27 @@ export class Paddle implements MovableObject {
 		this._paddleHeight = paddleHeight;
 	}
 
-	// Getters for dimensions
+	// =========================================
+	// Getters and Setters
+	// =========================================
+	/**
+	 * Gets the paddle width
+	 */
 	public get paddleWidth(): number {
 		return this._paddleWidth;
 	}
 
+	/**
+	 * Gets the paddle height
+	 */
 	public get paddleHeight(): number {
 		return this._paddleHeight;
 	}
 
 	/**
 	 * Updates paddle dimensions
+	 * @param width The new paddle width
+	 * @param height The new paddle height
 	 */
 	public updateDimensions(width: number, height: number): void {
 		this._paddleWidth = width;
@@ -47,7 +69,7 @@ export class Paddle implements MovableObject {
 	}
 
 	// =========================================
-	// Public Methods
+	// Rendering Methods
 	// =========================================
 	/**
 	 * Draws the paddle on the canvas
@@ -57,6 +79,9 @@ export class Paddle implements MovableObject {
 		this.context.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
 	}
 
+	// =========================================
+	// Movement and Physics Methods
+	// =========================================
 	/**
 	 * Gets the current velocity of the paddle
 	 */
@@ -75,6 +100,7 @@ export class Paddle implements MovableObject {
 
 	/**
 	 * Sets the paddle's movement direction
+	 * @param direction The direction to move the paddle
 	 */
 	public setDirection(direction: Direction | null): void {
 		this.direction = direction;
@@ -82,6 +108,7 @@ export class Paddle implements MovableObject {
 
 	/**
 	 * Updates the paddle's movement state
+	 * @param deltaTime Time elapsed since last update
 	 */
 	public updateMovement(deltaTime: number): void {
 		if (this.direction === null) return;
@@ -97,6 +124,8 @@ export class Paddle implements MovableObject {
 
 	/**
 	 * Updates paddle position
+	 * @param x The new x position
+	 * @param y The new y position
 	 */
 	public setPosition(x: number, y: number): void {
 		this.x = x;

@@ -1,10 +1,13 @@
 import { Ball } from './Ball';
-import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS } from '@pong/constants';
-import { GameState } from '@pong/types';
 import { Paddle } from './Paddle';
+import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
+import { COLORS, calculateGameSizes, KEYS } from '@pong/constants';
 import { CollisionManager, PaddleHitbox, BallHitbox } from '@pong/game/physics';
 
+/**
+ * Represents a player in the game, managing paddle movement,
+ * input handling, scoring, and AI behavior.
+ */
 export class Player implements GraphicalElement {
 	// =========================================
 	// Protected Properties
@@ -29,6 +32,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Event Handlers
 	// =========================================
+	/**
+	 * Handles keyboard keydown events for player control
+	 */
 	private readonly handleKeydown = (evt: KeyboardEvent): void => {
 		switch (evt.code) {
 			case this._upKey:
@@ -41,6 +47,9 @@ export class Player implements GraphicalElement {
 		this.updateDirection();
 	};
 
+	/**
+	 * Handles keyboard keyup events for player control
+	 */
 	private readonly handleKeyup = (evt: KeyboardEvent): void => {
 		switch (evt.code) {
 			case this._upKey:
@@ -65,6 +74,15 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Constructor
 	// =========================================
+	/**
+	 * Creates a new Player instance
+	 * @param x The horizontal position
+	 * @param y The vertical position
+	 * @param ball The ball object for tracking and collision
+	 * @param context The canvas rendering context
+	 * @param position The player's position (left or right)
+	 * @param type Whether the player is AI or human controlled
+	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -112,22 +130,37 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Public API
 	// =========================================
+	/**
+	 * Returns the player's current score
+	 */
 	public getScore(): number {
 		return this.score;
 	}
 
+	/**
+	 * Increments the player's score by one point
+	 */
 	public givePoint(): void {
 		this.score += 1;
 	}
 
+	/**
+	 * Resets the player's score to zero
+	 */
 	public resetScore(): void {
 		this.score = 0;
 	}
 
+	/**
+	 * Stops the player's paddle movement
+	 */
 	public stopMovement(): void {
 		this.direction = null;
 	}
 
+	/**
+	 * Resets the player's paddle to the center position
+	 */
 	public resetPosition(): void {
 		const height = this.context.canvas.height;
 		this.y = height * 0.5 - this.paddleHeight * 0.5;
@@ -135,10 +168,16 @@ export class Player implements GraphicalElement {
 		this.paddle.setPosition(this.x, this.y);
 	}
 	
+	/**
+	 * Returns whether this player is AI controlled
+	 */
 	public isAIControlled(): boolean {
 		return this._isAIControlled;
 	}
 	
+	/**
+	 * Returns the player's position (left or right)
+	 */
 	public getPosition(): PlayerPosition {
 		return this._position;
 	}
@@ -146,6 +185,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Size Management
 	// =========================================
+	/**
+	 * Updates the player's paddle dimensions based on canvas size
+	 */
 	public updateSizes(): void {
 		if (!this.context) return;
 		
@@ -165,6 +207,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Game Loop Methods
 	// =========================================
+	/**
+	 * Updates player state for the current frame
+	 */
 	public update(ctx: GameContext, deltaTime: number, state: GameState): void {
 		const { width, height } = ctx.canvas;
 		const sizes = calculateGameSizes(width, height);
@@ -183,6 +228,9 @@ export class Player implements GraphicalElement {
 		this.checkBallCollision();
 	}
 
+	/**
+	 * Draws the player's paddle
+	 */
 	public draw(ctx: GameContext): void {
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
@@ -191,6 +239,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Control Methods
 	// =========================================
+	/**
+	 * Sets up keyboard event listeners for player control
+	 */
 	public bindControls(): void {
 		if (this.isAIControlled()) {
 			return;
@@ -209,6 +260,9 @@ export class Player implements GraphicalElement {
 		window.addEventListener('keyup', this.handleKeyup);
 	}
 
+	/**
+	 * Removes keyboard event listeners for player control
+	 */
 	public unbindControls(): void {
 		this.upPressed = false;
 		this.downPressed = false;
@@ -221,6 +275,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Control Mode Methods
 	// =========================================
+	/**
+	 * Sets whether this player is AI controlled or human controlled
+	 */
 	public setControlType(type: PlayerType): void {
 		const wasAI = this._isAIControlled;
 		this._isAIControlled = type === PlayerType.AI;
@@ -268,6 +325,9 @@ export class Player implements GraphicalElement {
 		this.paddle.setPosition(this.x, this.y);
 	}
 
+	/**
+	 * Updates the paddle's position based on input direction
+	 */
 	protected updateMovement(deltaTime: number): void {
 		// Update paddle direction based on input
 		this.paddle.setDirection(this.direction);
@@ -281,6 +341,9 @@ export class Player implements GraphicalElement {
 		this.y = pos.y;
 	}
 
+	/**
+	 * Updates the movement direction based on current key states
+	 */
 	protected updateDirection(): void {
 		if (this.upPressed && this.downPressed) {
 			this.direction = null;
@@ -293,6 +356,9 @@ export class Player implements GraphicalElement {
 		}
 	}
 
+	/**
+	 * Checks for collision between this player's paddle and the ball
+	 */
 	protected checkBallCollision(): void {
 		if (!this.ball) {
 			console.warn('Ball is undefined in Player.checkBallCollision');
@@ -319,6 +385,9 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// AI Control Methods
 	// =========================================
+	/**
+	 * Updates AI inputs based on ball position and game state
+	 */
 	protected updateAIInputs(ctx: GameContext): void {
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
@@ -352,6 +421,9 @@ export class Player implements GraphicalElement {
 		}
 	}
 
+	/**
+	 * AI helper method to move paddle towards center position
+	 */
 	private moveTowardsCenter(paddleCenter: number, centerY: number): void {
 		// Create a moderate deadzone for center position to prevent jitter
 		const deadzone = this.speed * 1.0;
@@ -369,6 +441,9 @@ export class Player implements GraphicalElement {
 		this.updateDirection();
 	}
 
+	/**
+	 * AI helper method to track the ball with realistic movement
+	 */
 	private trackBallWithDelay(paddleCenter: number): void {
 		// Remove prediction error and directly track ball
 		const targetY = this.ball.y;
@@ -387,6 +462,9 @@ export class Player implements GraphicalElement {
 		this.updateDirection();
 	}
 
+	/**
+	 * Sets the display name for this player
+	 */
 	public setName(name: string): void {
 		this._name = name;
 	}

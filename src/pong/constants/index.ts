@@ -69,10 +69,10 @@ export const GAME_RATIOS = {
 export const BALL_CONFIG = {
 	SPEED: {
 		RELATIVE: {
-			TIME_TO_CROSS: 2.50,
+			TIME_TO_CROSS: 2.2,
 			INITIAL_ANGLE: {
-				BASE: 30,      // Base diagonal angle
-				VARIATION: 10  // Random variation range
+				MIN: 30,     // Minimum angle from horizontal
+				MAX: 40      // Maximum angle from horizontal
 			}
 		}
 	},
@@ -83,7 +83,7 @@ export const BALL_CONFIG = {
 	},
 	EDGES: {
 		ZONE_SIZE: 0.05,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.01  // 10% max deflection
+		MAX_DEFLECTION: 0.01  // 1% max deflection
 	}
 } as const;
 
@@ -160,12 +160,13 @@ export const calculateFontSizes = (width: number, height: number) => {
 };
 
 export const calculateGameSizes = (width: number, height: number): GameSizes => {
-	const baseUnit = Math.min(width, height) / 100;
+	const paddleWidth = Math.floor(width * GAME_RATIOS.PADDLE.WIDTH);
+	
 	return {
-		PADDLE_WIDTH: Math.floor(width * GAME_RATIOS.PADDLE.WIDTH),
+		PADDLE_WIDTH: paddleWidth,
 		PADDLE_HEIGHT: Math.floor(height * GAME_RATIOS.PADDLE.HEIGHT),
 		PADDLE_SPEED: Math.floor(height * GAME_RATIOS.PADDLE.SPEED),
 		PLAYER_PADDING: Math.floor(width * GAME_RATIOS.PADDLE.PADDING),
-		BALL_SIZE: Math.max(Math.floor(baseUnit * GAME_RATIOS.BALL.SIZE * 100), GAME_CONFIG.MIN_SIZES.BALL_SIZE)
+		BALL_SIZE: Math.max(paddleWidth * 0.5, GAME_CONFIG.MIN_SIZES.BALL_SIZE)
 	}
 };

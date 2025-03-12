@@ -1,17 +1,14 @@
-import { GraphicalElement, GameContext, GameState, PhysicsObject } from '@pong/types';
+import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
 
 const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
 const MAX_STEPS_PER_FRAME = 4;
+const MAX_DELTA_TIME = 1000 / 120;
 
-const MAX_DELTA_TIME = 1000 / 120; // Cap at 120fps equivalent
-
-export interface BallState {
-	position: { x: number; y: number };
-	velocity: { dx: number; dy: number };
-	speedMultiplier: number;
-}
-
+/**
+ * Represents the ball in the game, handling its movement,
+ * physics, collisions, and rendering.
+ */
 export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	// Private Properties
@@ -36,6 +33,15 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public dy = 0;
 	private accumulator: number = 0;
 
+	// =========================================
+	// Constructor
+	// =========================================
+	/**
+	 * Creates a new Ball instance
+	 * @param x The initial x position
+	 * @param y The initial y position
+	 * @param context The canvas rendering context
+	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -48,22 +54,37 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	// Public Methods
 	// =========================================
+	/**
+	 * Gets the rendering context
+	 */
 	public getContext(): GameContext {
 		return this.context;
 	}
 
+	/**
+	 * Gets the ball radius
+	 */
 	public getSize(): number {
 		return this.size;
 	}
 
+	/**
+	 * Returns whether the ball is destroyed (out of bounds)
+	 */
 	public isDestroyed(): boolean {
 		return this.destroyed;
 	}
 
+	/**
+	 * Returns whether the ball hit the left border
+	 */
 	public isHitLeftBorder(): boolean {
 		return this.hitLeftBorder;
 	}
 
+	/**
+	 * Draws the ball on the canvas
+	 */
 	public draw(): void {
 		this.context.beginPath();
 		this.context.fillStyle = this.colour;
@@ -72,6 +93,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.context.closePath();
 	}
 
+	/**
+	 * Updates the ball's position and state
+	 */
 	public update(_context: GameContext, deltaTime: number, state: GameState): void {
 		if (state !== GameState.PLAYING) return;
 		// Convert deltaTime to milliseconds and clamp it
@@ -100,6 +124,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 	}
 
+	// =========================================
+	// Physics Update Methods
+	// =========================================
+	/**
+	 * Updates ball physics for a fixed timestep
+	 */
 	private updatePhysics(deltaTime: number): void {
 		// Add speed cap for background mode
 		if (this.currentSpeed > this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
@@ -118,27 +148,36 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.checkBoundaries();
 	}
 
+	/**
+	 * Launches the ball in a random direction
+	 */
 	public launchBall(): void {
 		// Reset speed state
 		this.currentSpeed = this.baseSpeed;
 		this.speedMultiplier = BALL_CONFIG.ACCELERATION.INITIAL;
 
-		// Generate a random angle that prioritizes diagonals but more centered
-		let angle;
+		// Get angle range from constants
+		const { MIN, MAX } = BALL_CONFIG.SPEED.RELATIVE.INITIAL_ANGLE;
 		
 		// First decide if we're going up or down
 		const goingUp = Math.random() > 0.5;
 		
-		// Define the "sweet spot" for diagonal angles that are more centered
-		// For upward: between 25° and 45° from horizontal (more centered diagonal)
-		// For downward: between -25° and -45° from horizontal (more centered diagonal)
+		// Calculate base angle (either at MIN or MAX depending on direction)
+		// This ensures we start from the edges of our allowed range
+		let baseAngle;
 		if (goingUp) {
-			// Upward diagonal trajectory (between 25° and 45° from horizontal)
-			angle = (25 + Math.random() * 20) * (Math.PI / 180);
+			// Randomly choose between MIN and MAX for base angle
+			baseAngle = Math.random() > 0.5 ? MIN : MAX;
 		} else {
-			// Downward diagonal trajectory (between -25° and -45° from horizontal)
-			angle = (-25 - Math.random() * 20) * (Math.PI / 180);
+			// Same for downward direction but negative
+			baseAngle = Math.random() > 0.5 ? -MIN : -MAX;
 		}
+		
+		// Add a small random deviation (up to 20% of the range between MIN and MAX)
+		// but ensure we stay within our MIN/MAX bounds
+		const maxDeviation = (MAX - MIN) * 0.2; // 20% of the range
+		const deviation = (Math.random() - 0.5) * maxDeviation;
+		const angle = (baseAngle + deviation) * (Math.PI / 180);
 		
 		// Convert angle to direction vector
 		this.dx = Math.cos(angle);
@@ -155,6 +194,11 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 	}
 
+	/**
+	 * Handle ball collision with paddle or wall
+	 * @param hitFace The face that was hit
+	 * @param deflectionModifier Angle modification value
+	 */
 	public hit(hitFace: 'front' | 'top' | 'bottom', deflectionModifier: number = 0): void {
 		// Store current speed
 		const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
@@ -192,35 +236,40 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.accelerate();
 	}
 
+	/**
+	 * Updates ball size and speed based on canvas dimensions
+	 */
 	public updateSizes(): void {
-		const oldWidth = this.context.canvas.width;
-		const oldHeight = this.context.canvas.height;
 		const newWidth = this.context.canvas.width;
 		const newHeight = this.context.canvas.height;
-		
-		// Calculate aspect ratio change
-		const widthRatio = newWidth / oldWidth;
-		const heightRatio = newHeight / oldHeight;
-		
-		// Save current velocity components before updating
-		const oldDx = this.dx;
-		const oldDy = this.dy;
 		
 		// Update ball size
 		const sizes = calculateGameSizes(newWidth, newHeight);
 		this.size = sizes.BALL_SIZE;
 		
-		// Update base speed (this won't affect current velocity)
+		// Calculate the new base speed based on current dimensions
+		// This ensures speed is always proportional to screen size
 		this.baseSpeed = newWidth / BALL_CONFIG.SPEED.RELATIVE.TIME_TO_CROSS;
 		
-		// Scale velocity components according to dimension changes
-		if (oldDx !== 0 || oldDy !== 0) {
-			// Simply scale the components by their respective ratios
-			this.dx = oldDx * widthRatio;
-			this.dy = oldDy * heightRatio;
+		// If the ball is moving, adjust its velocity to maintain relative speed
+		if (this.dx !== 0 || this.dy !== 0) {
+			// Get current direction (normalized vector)
+			const currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+			const normalizedDx = this.dx / currentSpeed;
+			const normalizedDy = this.dy / currentSpeed;
+			
+			// Calculate new speed maintaining the current multiplier
+			const newSpeed = this.baseSpeed * this.speedMultiplier;
+			
+			// Apply new speed while keeping direction
+			this.dx = normalizedDx * newSpeed;
+			this.dy = normalizedDy * newSpeed;
 		}
 	}
 
+	/**
+	 * Resets the ball to the center of the screen
+	 */
 	public restart(): void {
 		this.x = this.context.canvas.width * 0.5;
 		this.y = this.context.canvas.height * 0.5;
@@ -230,6 +279,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.hitLeftBorder = false;
 	}
 
+	// =========================================
+	// State Management Methods
+	// =========================================
+	/**
+	 * Saves the ball's current state for serialization
+	 */
 	public saveState(): BallState {
 		const { width, height } = this.context.canvas;
 		return {
@@ -242,6 +297,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		};
 	}
 
+	/**
+	 * Restores the ball's state from saved data
+	 */
 	public restoreState(state: BallState, newWidth?: number, newHeight?: number): void {
 		const width = newWidth ?? this.context.canvas.width;
 		const height = newHeight ?? this.context.canvas.height;
@@ -268,8 +326,11 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	}
 
 	// =========================================
-	// Private Methods
+	// Private Helper Methods
 	// =========================================
+	/**
+	 * Initializes ball size and speed based on canvas dimensions
+	 */
 	private initializeSizes(): void {
 		const sizes = calculateGameSizes(this.context.canvas.width, this.context.canvas.height);
 		this.size = sizes.BALL_SIZE;
@@ -277,6 +338,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.currentSpeed = this.baseSpeed;
 	}
 
+	/**
+	 * Checks if the ball collides with game boundaries
+	 */
 	private checkBoundaries(): void {
 		const ballRadius = this.size;
 		// Vertical boundaries with position correction and acceleration
@@ -307,6 +371,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 	}
 
+	/**
+	 * Increases ball speed based on acceleration settings
+	 */
 	private accelerate(): void {
 		this.speedMultiplier = Math.min(
 			this.speedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
@@ -319,6 +386,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.dy = normalized.dy * this.currentSpeed;
 	}
 
+	/**
+	 * Returns the normalized velocity vector (unit vector of direction)
+	 */
 	private getNormalizedVelocity(): { dx: number; dy: number } {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		if (magnitude === 0) return { dx: 0, dy: 0 };
@@ -328,11 +398,19 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		};
 	}
 
-	// Required by PhysicsObject interface
+	// =========================================
+	// Interface Implementation Methods
+	// =========================================
+	/**
+	 * Gets the current velocity (required by PhysicsObject interface)
+	 */
 	public getVelocity(): { dx: number; dy: number } {
 		return { dx: this.dx, dy: this.dy };
 	}
 
+	/**
+	 * Gets the current position (required by PhysicsObject interface)
+	 */
 	public getPosition(): { x: number; y: number } {
 		return { x: this.x, y: this.y };
 	}
