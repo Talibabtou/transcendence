@@ -240,8 +240,8 @@ export class PauseManager {
 		this.ball.y = height * this.gameSnapshot.ballState.position.y;
 		
 		// Keep paddles' positions proportional during pause
-		this.player1.y = (this.gameSnapshot.player1RelativeY * height) - (this.player1.paddleHeight / 2);
-		this.player2.y = (this.gameSnapshot.player2RelativeY * height) - (this.player2.paddleHeight / 2);
+		this.player1.y = (this.gameSnapshot.player1RelativeY * height) - (this.player1.paddleHeight * 0.5);
+		this.player2.y = (this.gameSnapshot.player2RelativeY * height) - (this.player2.paddleHeight * 0.5);
 	}
 
 	/**
@@ -250,8 +250,8 @@ export class PauseManager {
 	private saveGameState(): void {
 		const canvas = this.ball.getContext().canvas;
 		// Save paddle center positions relative to canvas height
-		const p1Center = (this.player1.y + this.player1.paddleHeight / 2) / canvas.height;
-		const p2Center = (this.player2.y + this.player2.paddleHeight / 2) / canvas.height;
+		const p1Center = (this.player1.y + this.player1.paddleHeight * 0.5) / canvas.height;
+		const p2Center = (this.player2.y + this.player2.paddleHeight * 0.5) / canvas.height;
 		
 		this.gameSnapshot = {
 			ballState: this.ball.saveState(),

@@ -84,8 +84,8 @@ export class UIManager {
 			'middle'
 		);
 
-		this.context.fillText(player1.getScore().toString(), width / 4, height / 2);
-		this.context.fillText(player2.getScore().toString(), 3 * (width / 4), height / 2);
+		this.context.fillText(player1.getScore().toString(), width * 0.25, height * 0.5);
+		this.context.fillText(player2.getScore().toString(), width * 0.75, height * 0.5);
 	}
 
 	/**
@@ -236,10 +236,10 @@ export class UIManager {
 		const { width, height } = this.context.canvas;
 		const spacing = height * UI_CONFIG.LAYOUT.VERTICAL_SPACING;
 		const totalHeight = spacing * (totalLines - 1);
-		const startY = height / 2 - totalHeight / 2;
+		const startY = height * 0.5 - totalHeight * 0.5;
 		
 		return {
-			x: width / 2,
+			x: width * 0.5,
 			y: startY + (lineIndex * spacing)
 		};
 	}

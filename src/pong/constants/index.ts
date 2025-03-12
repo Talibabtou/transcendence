@@ -147,7 +147,7 @@ export const MESSAGES = {
 export const calculateFontSizes = (width: number, height: number) => {
 	const minDimension = Math.min(width, height);
 	const maxDimension = Math.max(width, height);
-	const baseSize = (minDimension + maxDimension) / 2;
+	const baseSize = (minDimension + maxDimension) * 0.5;
 	
 	return {
 		TITLE_SIZE: `${Math.max(Math.floor(baseSize * FONTS.SIZE_RATIOS.TITLE), FONTS.MIN_SIZES.TITLE)}px`,

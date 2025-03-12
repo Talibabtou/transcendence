@@ -219,8 +219,8 @@ export class Ball implements GraphicalElement {
 	}
 
 	public restart(): void {
-		this.x = this.context.canvas.width / 2;
-		this.y = this.context.canvas.height / 2;
+		this.x = this.context.canvas.width * 0.5;
+		this.y = this.context.canvas.height * 0.5;
 		this.dx = 0;
 		this.dy = 0;
 		this.destroyed = false;

@@ -198,15 +198,15 @@ export class ResizeManager {
 		// Handle vertical positioning of paddles
 		if (gameSnapshot) {
 			// Use the saved proportional positions from the snapshot
-			this.player1.y = gameSnapshot.player1RelativeY * newHeight - this.player1.paddleHeight / 2;
-			this.player2.y = gameSnapshot.player2RelativeY * newHeight - this.player2.paddleHeight / 2;
+			this.player1.y = gameSnapshot.player1RelativeY * newHeight - this.player1.paddleHeight * 0.5;
+			this.player2.y = gameSnapshot.player2RelativeY * newHeight - this.player2.paddleHeight * 0.5;
 			
 			// Update ball from snapshot immediately for visual consistency
 			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
 			
 			// Update snapshot with new proportions
-			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight / 2) / newHeight;
-			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight / 2) / newHeight;
+			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
+			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
 		} else {
 			// No snapshot - use current proportional positions
 			this.updatePaddleVerticalPositions(newHeight);
@@ -239,8 +239,8 @@ export class ResizeManager {
 			// Position the ball in the center if we're in countdown
 			if (this.ball) {
 				const { width, height } = this.context.canvas;
-				this.ball.x = width / 2;
-				this.ball.y = height / 2;
+				this.ball.x = width * 0.5;
+				this.ball.y = height * 0.5;
 			}
 			
 			// Tell pause manager to maintain countdown state
@@ -255,12 +255,12 @@ export class ResizeManager {
 		if (!this.player1 || !this.player2) return;
 		
 		// Calculate relative paddle center positions (as percentage of canvas height)
-		const p1RelativeY = (this.player1.y + this.player1.paddleHeight / 2) / this.context.canvas.height;
-		const p2RelativeY = (this.player2.y + this.player2.paddleHeight / 2) / this.context.canvas.height;
+		const p1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / this.context.canvas.height;
+		const p2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / this.context.canvas.height;
 		
 		// Apply relative positions to new height
-		this.player1.y = (p1RelativeY * newHeight) - (this.player1.paddleHeight / 2);
-		this.player2.y = (p2RelativeY * newHeight) - (this.player2.paddleHeight / 2);
+		this.player1.y = (p1RelativeY * newHeight) - (this.player1.paddleHeight * 0.5);
+		this.player2.y = (p2RelativeY * newHeight) - (this.player2.paddleHeight * 0.5);
 		
 		// Ensure paddles stay within bounds
 		const maxY = newHeight - this.player1.paddleHeight;
@@ -270,8 +270,8 @@ export class ResizeManager {
 		// Update snapshot in pause manager if available
 		const gameSnapshot = this.pauseManager?.getGameSnapshot();
 		if (gameSnapshot) {
-			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight / 2) / newHeight;
-			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight / 2) / newHeight;
+			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
+			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
 		}
 	}
 

@@ -71,7 +71,7 @@ export class Player implements GraphicalElement {
 		type: PlayerType = PlayerType.HUMAN
 	) {
 		this.startX = x;
-		this.startY = context.canvas.height / 2 - this.paddleHeight / 2;
+		this.startY = context.canvas.height * 0.5 - this.paddleHeight * 0.5;
 		this.y = this.startY;
 		
 		this._position = position;
@@ -113,7 +113,7 @@ export class Player implements GraphicalElement {
 
 	public resetPosition(): void {
 		const height = this.context.canvas.height;
-		this.y = height / 2 - this.paddleHeight / 2;
+		this.y = height * 0.5 - this.paddleHeight * 0.5;
 	}
 	
 	public isAIControlled(): boolean {
@@ -274,8 +274,8 @@ export class Player implements GraphicalElement {
 	// AI Control Methods
 	// =========================================
 	protected updateAIInputs(ctx: GameContext): void {
-		const paddleCenter = this.y + (this.paddleHeight / 2);
-		const centerY = ctx.canvas.height / 2 - this.paddleHeight / 2;
+		const paddleCenter = this.y + (this.paddleHeight * 0.5);
+		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
 		
 		// Only update AI movement if the ball is actually moving
 		if (this.ball.dx === 0 && this.ball.dy === 0) {
@@ -309,7 +309,7 @@ export class Player implements GraphicalElement {
 	private moveTowardsCenter(paddleCenter: number, centerY: number): void {
 		// Create a moderate deadzone for center position to prevent jitter
 		const deadzone = this.speed * 1.0;
-		const targetY = centerY + (this.paddleHeight / 2);
+		const targetY = centerY + (this.paddleHeight * 0.5);
 		
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
 			// Within deadzone - stop movement

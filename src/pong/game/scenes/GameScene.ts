@@ -191,8 +191,8 @@ export class GameScene {
 	 * Creates game objects with initial positions
 	 */
 	private createGameObjects(width: number, height: number): void {
-		const centerH = width / 2;
-		this.ball = new Ball(centerH, height / 2, this.context);
+		const centerH = width * 0.5;
+		this.ball = new Ball(centerH, height * 0.5, this.context);
 		this.createPlayers(width);
 	}
 
@@ -201,7 +201,7 @@ export class GameScene {
 	 */
 	private createPlayers(width: number): void {
 		const sizes = calculateGameSizes(width, this.context.canvas.height);
-		const centerPaddleY = this.context.canvas.height / 2 - sizes.PADDLE_HEIGHT / 2;
+		const centerPaddleY = this.context.canvas.height * 0.5 - sizes.PADDLE_HEIGHT * 0.5;
 		
 		this.player1 = new Player(
 			sizes.PLAYER_PADDING,
