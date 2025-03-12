@@ -220,6 +220,10 @@ export class ResizeManager {
 		const maxY = newHeight - this.player1.paddleHeight;
 		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
 		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
+
+		// Update paddle positions after bounds check
+		this.player1.updateHorizontalPosition();
+		this.player2.updateHorizontalPosition();
 		
 		// Handle countdown state explicitly
 		this.handleResizeDuringCountdown();

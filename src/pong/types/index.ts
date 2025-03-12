@@ -82,3 +82,30 @@ export interface BoundingBox {
 	top: number;
 	bottom: number;
 }
+
+export interface CollisionResult {
+	collided: boolean;
+	hitFace: 'front' | 'top' | 'bottom';
+	deflectionModifier: number;
+	collisionPoint?: { x: number; y: number };
+}
+
+export interface Collidable {
+	getBoundingBox(): BoundingBox;
+	getVelocity(): { dx: number; dy: number };
+	getPosition(): { x: number; y: number };
+	getPreviousPosition(): { x: number; y: number };
+}
+
+// Add these new interfaces for better separation
+export interface PhysicsObject {
+	x: number;
+	y: number;
+	getVelocity(): { dx: number; dy: number };
+	getPosition(): { x: number; y: number };
+}
+
+export interface MovableObject extends PhysicsObject {
+	setPosition(x: number, y: number): void;
+	updateMovement(deltaTime: number): void;
+}

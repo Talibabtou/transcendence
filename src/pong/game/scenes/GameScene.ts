@@ -38,6 +38,9 @@ export class GameScene {
 	 * @param context The canvas rendering context
 	 */
 	constructor(private readonly context: GameContext) {
+		if (!context) {
+			throw new Error('Context must be provided to GameScene');
+		}
 		this.uiManager = new UIManager(this.context);
 		this.setupScene();
 		this.controlsManager = new ControlsManager(this.player1, this.player2);
@@ -191,35 +194,63 @@ export class GameScene {
 	 * Creates game objects with initial positions
 	 */
 	private createGameObjects(width: number, height: number): void {
-		const centerH = width * 0.5;
-		this.ball = new Ball(centerH, height * 0.5, this.context);
-		this.createPlayers(width);
+		try {
+			// Create ball first
+			const centerH = width * 0.5;
+			this.ball = new Ball(centerH, height * 0.5, this.context);
+			
+			if (!this.ball) {
+				throw new Error('Failed to create ball');
+			}
+
+			// Then create players with the ball reference
+			this.createPlayers(width);
+
+			if (!this.player1 || !this.player2) {
+				throw new Error('Failed to create players');
+			}
+
+			// Initialize scene objects array
+			this.objectsInScene = [this.player1, this.player2, this.ball];
+		} catch (error) {
+			console.error('Error in createGameObjects:', error);
+			throw error;
+		}
 	}
 
 	/**
 	 * Creates and positions players
 	 */
 	private createPlayers(width: number): void {
-		const sizes = calculateGameSizes(width, this.context.canvas.height);
-		const centerPaddleY = this.context.canvas.height * 0.5 - sizes.PADDLE_HEIGHT * 0.5;
-		
-		this.player1 = new Player(
-			sizes.PLAYER_PADDING,
-			centerPaddleY, 
-			this.ball,
-			this.context,
-			PlayerPosition.LEFT,
-			PlayerType.AI
-		);
+		if (!this.ball) {
+			throw new Error('Ball must be created before players');
+		}
 
-		this.player2 = new Player(
-			width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH),
-			centerPaddleY,
-			this.ball,
-			this.context,
-			PlayerPosition.RIGHT,
-			PlayerType.AI
-		);
+		try {
+			const sizes = calculateGameSizes(width, this.context.canvas.height);
+			const centerPaddleY = this.context.canvas.height * 0.5 - sizes.PADDLE_HEIGHT * 0.5;
+			
+			this.player1 = new Player(
+				sizes.PLAYER_PADDING,
+				centerPaddleY, 
+				this.ball,
+				this.context,
+				PlayerPosition.LEFT,
+				PlayerType.AI
+			);
+
+			this.player2 = new Player(
+				width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH),
+				centerPaddleY,
+				this.ball,
+				this.context,
+				PlayerPosition.RIGHT,
+				PlayerType.AI
+			);
+		} catch (error) {
+			console.error('Error in createPlayers:', error);
+			throw error;
+		}
 	}
 
 	// =========================================

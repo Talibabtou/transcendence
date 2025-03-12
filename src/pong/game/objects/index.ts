@@ -1,3 +1,3 @@
 export * from './Ball';
-export * from './PaddleHitbox';
+export * from './Paddle';
 export * from './Player';

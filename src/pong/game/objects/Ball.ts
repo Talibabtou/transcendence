@@ -1,4 +1,4 @@
-import { GraphicalElement, GameContext, GameState } from '@pong/types';
+import { GraphicalElement, GameContext, GameState, PhysicsObject } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
 
 const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
@@ -12,7 +12,7 @@ export interface BallState {
 	speedMultiplier: number;
 }
 
-export class Ball implements GraphicalElement {
+export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	// Private Properties
 	// =========================================
@@ -160,29 +160,32 @@ export class Ball implements GraphicalElement {
 		const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 
 		if (hitFace === 'front') {
-				// Basic reflection
-				this.dx = -this.dx;
+			// Reverse horizontal direction
+			this.dx = -this.dx;
+			
+			if (deflectionModifier !== 0) {
+				// Apply rotation matrix for deflection
+				const cos = Math.cos(deflectionModifier);
+				const sin = Math.sin(deflectionModifier);
 				
-				// Apply minimal deflection
-				if (deflectionModifier !== 0) {
-						// Normalize current velocity
-						const currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-						let nx = this.dx / currentSpeed;
-						let ny = this.dy / currentSpeed;
-						
-						// Apply small rotation
-						const cos = Math.cos(deflectionModifier);
-						const sin = Math.sin(deflectionModifier);
-						const newNx = nx * cos - ny * sin;
-						const newNy = nx * sin + ny * cos;
-						
-						// Apply speed
-						this.dx = newNx * speed;
-						this.dy = newNy * speed;
-				}
+				// Normalize velocity
+				const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+				const nx = this.dx / magnitude;
+				const ny = this.dy / magnitude;
+				
+				// Apply rotation
+				this.dx = (nx * cos - ny * sin) * speed;
+				this.dy = (nx * sin + ny * cos) * speed;
+			}
+
+			// Ensure minimum vertical velocity to prevent horizontal stalemates
+			const minVerticalComponent = speed * 0.1;
+			if (Math.abs(this.dy) < minVerticalComponent) {
+				this.dy = this.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
+			}
 		} else {
-				// Simple reflection for top/bottom
-				this.dy = -this.dy;
+			// Top/bottom collision
+			this.dy = -this.dy;
 		}
 
 		// Apply acceleration
@@ -323,5 +326,14 @@ export class Ball implements GraphicalElement {
 			dx: this.dx / magnitude,
 			dy: this.dy / magnitude
 		};
+	}
+
+	// Required by PhysicsObject interface
+	public getVelocity(): { dx: number; dy: number } {
+		return { dx: this.dx, dy: this.dy };
+	}
+
+	public getPosition(): { x: number; y: number } {
+		return { x: this.x, y: this.y };
 	}
 }

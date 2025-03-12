@@ -1,20 +1,20 @@
 import { Ball } from './Ball';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType } from '@pong/types';
-import { COLORS, GAME_CONFIG, calculateGameSizes, KEYS } from '@pong/constants';
-import { PaddleHitbox } from './PaddleHitbox';
+import { COLORS, calculateGameSizes, KEYS } from '@pong/constants';
 import { GameState } from '@pong/types';
+import { Paddle } from './Paddle';
+import { CollisionManager, PaddleHitbox, BallHitbox } from '@pong/game/physics';
 
 export class Player implements GraphicalElement {
 	// =========================================
 	// Protected Properties
 	// =========================================
 	protected direction: Direction | null = null;
-	protected speed: number = 5;
+	protected speed: number = 0;
 	protected readonly colour = COLORS.PADDLE;
 	protected score = 0;
 	protected readonly startX: number;
 	protected readonly startY: number;
-	protected readonly hitbox: PaddleHitbox;
 	protected upPressed = false;
 	protected downPressed = false;
 	protected _name: string = 'Player';
@@ -22,6 +22,9 @@ export class Player implements GraphicalElement {
 	protected _position: PlayerPosition;
 	protected _upKey: string;
 	protected _downKey: string;
+	private paddle: Paddle;
+	private paddleHitbox: PaddleHitbox;
+	private readonly CollisionManager: CollisionManager;
 
 	// =========================================
 	// Event Handlers
@@ -70,6 +73,13 @@ export class Player implements GraphicalElement {
 		position: PlayerPosition = PlayerPosition.LEFT,
 		type: PlayerType = PlayerType.HUMAN
 	) {
+		if (!ball) {
+			throw new Error('Ball must be provided to Player');
+		}
+		if (!context) {
+			throw new Error('Context must be provided to Player');
+		}
+
 		this.startX = x;
 		this.startY = context.canvas.height * 0.5 - this.paddleHeight * 0.5;
 		this.y = this.startY;
@@ -88,7 +98,14 @@ export class Player implements GraphicalElement {
 			this._name = this._isAIControlled ? 'Computer' : 'Player 2';
 		}
 		
-		this.hitbox = new PaddleHitbox(this, ball);
+		// Initialize paddle first
+		this.paddle = new Paddle(x, y, this.paddleWidth, this.paddleHeight, context);
+		
+		// Then initialize physics components
+		this.paddleHitbox = new PaddleHitbox(this.paddle);
+		this.CollisionManager = new CollisionManager();
+		
+		// Finally update sizes
 		this.updateSizes();
 	}
 
@@ -114,6 +131,8 @@ export class Player implements GraphicalElement {
 	public resetPosition(): void {
 		const height = this.context.canvas.height;
 		this.y = height * 0.5 - this.paddleHeight * 0.5;
+		// Update paddle position
+		this.paddle.setPosition(this.x, this.y);
 	}
 	
 	public isAIControlled(): boolean {
@@ -137,6 +156,9 @@ export class Player implements GraphicalElement {
 		this.paddleHeight = sizes.PADDLE_HEIGHT;
 		this.speed = sizes.PADDLE_SPEED;
 
+		// Update paddle with new sizes
+		this.paddle.updateDimensions(this.paddleWidth, this.paddleHeight);
+		
 		this.updateHorizontalPosition();
 	}
 
@@ -228,7 +250,11 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Protected Methods
 	// =========================================
-	protected updateHorizontalPosition(): void {
+	/**
+	 * Updates the horizontal position of the player's paddle.
+	 * This method should be called whenever the player's x position changes.
+	 */
+	public updateHorizontalPosition(): void {
 		const { width } = this.context.canvas;
 		const sizes = calculateGameSizes(width, this.context.canvas.height);
 		
@@ -237,18 +263,22 @@ export class Player implements GraphicalElement {
 		} else {
 			this.x = width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
 		}
+		
+		// Update paddle position
+		this.paddle.setPosition(this.x, this.y);
 	}
 
 	protected updateMovement(deltaTime: number): void {
-		if (this.direction === null) return;
-
-		const frameSpeed = this.speed * GAME_CONFIG.FPS * deltaTime;
-		const newY = this.direction === Direction.UP 
-			? this.y - frameSpeed 
-			: this.y + frameSpeed;
-
-		const maxY = this.context.canvas.height - this.paddleHeight;
-		this.y = Math.min(Math.max(0, newY), maxY);
+		// Update paddle direction based on input
+		this.paddle.setDirection(this.direction);
+		
+		// Update paddle movement
+		this.paddle.updateMovement(deltaTime);
+		
+		// Sync position with paddle
+		const pos = this.paddle.getPosition();
+		this.x = pos.x;
+		this.y = pos.y;
 	}
 
 	protected updateDirection(): void {
@@ -264,12 +294,28 @@ export class Player implements GraphicalElement {
 	}
 
 	protected checkBallCollision(): void {
-		const collision = this.hitbox.checkCollision();
-		if (collision.collided) {
-			this.ball.hit(collision.hitFace, collision.deflectionModifier);
+		if (!this.ball) {
+			console.warn('Ball is undefined in Player.checkBallCollision');
+			return;
+		}
+
+		try {
+			const ballHitbox = new BallHitbox(this.ball);
+			ballHitbox.updatePreviousPosition();
+			
+			const collision = this.CollisionManager.checkBallPaddleCollision(
+				ballHitbox,
+				this.paddleHitbox
+			);
+			
+			if (collision.collided) {
+				this.ball.hit(collision.hitFace, collision.deflectionModifier);
+			}
+		} catch (error) {
+			console.error('Error in checkBallCollision:', error);
 		}
 	}
-	
+
 	// =========================================
 	// AI Control Methods
 	// =========================================
@@ -283,7 +329,7 @@ export class Player implements GraphicalElement {
 			this.moveTowardsCenter(paddleCenter, centerY);
 			return;
 		}
-		
+
 		// Different behavior based on player position and ball direction
 		if (this._position === PlayerPosition.LEFT) {
 			// Left player AI
@@ -310,7 +356,7 @@ export class Player implements GraphicalElement {
 		// Create a moderate deadzone for center position to prevent jitter
 		const deadzone = this.speed * 1.0;
 		const targetY = centerY + (this.paddleHeight * 0.5);
-		
+
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
 			// Within deadzone - stop movement
 			this.upPressed = false;
