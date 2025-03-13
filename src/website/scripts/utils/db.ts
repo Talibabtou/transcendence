@@ -1,4 +1,14 @@
 /**
+ * Database Service Module
+ * Provides interfaces and methods for interacting with the application database.
+ * Handles data retrieval, updates, and API communication for persistent storage.
+ */
+
+// =========================================
+// DATA MODELS & TYPES
+// =========================================
+
+/**
  * Database schema interfaces
  */
 export interface User {
@@ -36,25 +46,25 @@ export interface Goal {
 	created_at: Date;
 }
 
+// =========================================
+// DATABASE SERVICE
+// =========================================
+
 /**
  * Service class for handling database operations
  * Currently mocks API calls for development purposes
  */
 export class DbService {
+	// =========================================
+	// USER OPERATIONS
+	// =========================================
+	
 	/**
 	 * Retrieves user information by ID
 	 * @param id - The user's ID
 	 */
 	static getUser(id: number): void {
 		this.logRequest('GET', `/api/users/${id}`);
-	}
-
-	/**
-	 * Retrieves match history for a specific user
-	 * @param userId - The user's ID
-	 */
-	static getUserMatches(userId: number): void {
-		this.logRequest('GET', `/api/users/${userId}/matches`);
 	}
 
 	/**
@@ -67,22 +77,6 @@ export class DbService {
 	}
 
 	/**
-	 * Retrieves friend list for a user
-	 * @param userId - The user's ID
-	 */
-	static getUserFriends(userId: number): void {
-		this.logRequest('GET', `/api/users/${userId}/friends`);
-	}
-
-	/**
-	 * Retrieves statistics for a user
-	 * @param userId - The user's ID
-	 */
-	static getUserStats(userId: number): void {
-		this.logRequest('GET', `/api/users/${userId}/stats`);
-	}
-
-	/**
 	 * Updates user preferences
 	 * @param userId - The user's ID
 	 * @param preferences - Object containing user preferences
@@ -91,11 +85,28 @@ export class DbService {
 		this.logRequest('PUT', `/api/users/${userId}/preferences`, preferences);
 	}
 
+	// =========================================
+	// FRIEND OPERATIONS
+	// =========================================
+	
 	/**
-	 * Retrieves global leaderboard data
+	 * Retrieves friend list for a user
+	 * @param userId - The user's ID
 	 */
-	static getLeaderboard(): void {
-		this.logRequest('GET', '/api/leaderboard');
+	static getUserFriends(userId: number): void {
+		this.logRequest('GET', `/api/users/${userId}/friends`);
+	}
+
+	// =========================================
+	// MATCH OPERATIONS
+	// =========================================
+	
+	/**
+	 * Retrieves match history for a specific user
+	 * @param userId - The user's ID
+	 */
+	static getUserMatches(userId: number): void {
+		this.logRequest('GET', `/api/users/${userId}/matches`);
 	}
 
 	/**
@@ -142,6 +153,29 @@ export class DbService {
 		this.logRequest('POST', '/api/goals', goalData);
 	}
 
+	// =========================================
+	// STATISTICS & LEADERBOARD
+	// =========================================
+	
+	/**
+	 * Retrieves statistics for a user
+	 * @param userId - The user's ID
+	 */
+	static getUserStats(userId: number): void {
+		this.logRequest('GET', `/api/users/${userId}/stats`);
+	}
+
+	/**
+	 * Retrieves global leaderboard data
+	 */
+	static getLeaderboard(): void {
+		this.logRequest('GET', '/api/leaderboard');
+	}
+
+	// =========================================
+	// UTILITY METHODS
+	// =========================================
+	
 	/**
 	 * Helper method to standardize API request logging
 	 * @param method - HTTP method

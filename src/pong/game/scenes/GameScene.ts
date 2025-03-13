@@ -89,33 +89,21 @@ export class GameScene {
 	 * Renders the game scene
 	 */
 	public draw(): void {
-		// For background demo, ALWAYS render every frame without exception
-		if (this.isBackgroundDemo()) {
-			// Just draw game objects, nothing else for background mode
-			this.uiManager.drawGameElements(this.objectsInScene);
+		if (this.isBackgroundDemo() && this.lastDrawTime && !this.hasStateChanged) {
 			return;
 		}
 		
-		// Check if we need to render this frame
-		const isPaused = this.pauseManager.hasState(GameState.PAUSED);
-		const isCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
-		
-		// Always render during special states (pause, countdown)
-		// Only skip rendering during active gameplay when nothing changed
-		if (!isPaused && !isCountdown && !this.hasStateChanged && this.lastDrawTime) {
-			return;
+		if (!this.isBackgroundDemo()) {
+			this.uiManager.drawBackground(this.player1, this.player2);
 		}
-		
-		// Render the frame
-		this.uiManager.drawBackground(this.player1, this.player2);
 		
 		if (!this.isFrozen) {
 			this.uiManager.drawGameElements(this.objectsInScene);
 		}
 		
 		this.uiManager.drawUI(
-			isPaused,
-			false
+			this.pauseManager.hasState(GameState.PAUSED),
+			this.isBackgroundDemo()
 		);
 		
 		this.lastDrawTime = performance.now();

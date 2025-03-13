@@ -89,11 +89,7 @@ export class CollisionManager {
 	 * Creates a default no-collision result
 	 */
 	private createNoCollisionResult(): CollisionResult {
-		const result = this.collisionResultCache;
-		result.collided = false;
-		result.hitFace = 'front';
-		result.deflectionModifier = 0;
-		return result;
+		return { collided: false, hitFace: 'front', deflectionModifier: 0 };
 	}
 
 	// =========================================
@@ -149,12 +145,13 @@ export class CollisionManager {
 		// Ray-AABB intersection algorithm
 		const ballRadius = (ballBox.right - ballBox.left) / 2;
 		
-		// Expand paddle box by ball radius using cache
-		const expandedBox = this.expandedBoxCache;
-		expandedBox.left = paddleBox.left - ballRadius;
-		expandedBox.right = paddleBox.right + ballRadius;
-		expandedBox.top = paddleBox.top - ballRadius;
-		expandedBox.bottom = paddleBox.bottom + ballRadius;
+		// Expand paddle box by ball radius
+		const expandedBox = {
+			left: paddleBox.left - ballRadius,
+			right: paddleBox.right + ballRadius,
+			top: paddleBox.top - ballRadius,
+			bottom: paddleBox.bottom + ballRadius
+		};
 
 		// Calculate intersection
 		const txMin = moveX !== 0 ? 
@@ -249,27 +246,4 @@ export class CollisionManager {
 		const normalizedPos = (relativeHitPoint - zoneSize) / (1 - 2 * zoneSize);
 		return BALL_CONFIG.EDGES.MAX_DEFLECTION * (2 * normalizedPos - 1);
 	}
-
-	// =========================================
-	// Helper Properties
-	// =========================================
-	
-	private readonly expandedBoxCache = {
-		left: 0,
-		right: 0,
-		top: 0,
-		bottom: 0
-	};
-
-	private readonly collisionPointCache = {
-		x: 0,
-		y: 0
-	};
-
-	private readonly collisionResultCache = {
-		collided: false,
-		hitFace: 'front' as const,
-		deflectionModifier: 0,
-		collisionPoint: this.collisionPointCache
-	};
 }

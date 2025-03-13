@@ -1,21 +1,48 @@
+/**
+ * Game Menu Component Module
+ * Displays the main game menu with different game mode options.
+ * Handles user selection of game modes and communicates with parent component.
+ */
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART } from '@website/scripts/utils';
 
-// Define possible game modes
+// =========================================
+// TYPES & CONSTANTS
+// =========================================
+
+/**
+ * Define possible game modes
+ */
 export enum GameMode {
 	SINGLE = 'single',
 	MULTI = 'multi',
 	TOURNAMENT = 'tournament'
 }
 
-// Define state interface for type safety
+/**
+ * Define state interface for type safety
+ */
 interface GameMenuState {
 	visible: boolean;
 }
 
+// =========================================
+// GAME MENU COMPONENT
+// =========================================
+
 export class GameMenuComponent extends Component<GameMenuState> {
-	// Event handler for mode selection
+	// =========================================
+	// PROPERTIES
+	// =========================================
+	
+	/**
+	 * Event handler for mode selection
+	 */
 	private onModeSelected: (mode: GameMode) => void;
+	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
 	
 	constructor(container: HTMLElement, onModeSelected: (mode: GameMode) => void) {
 		super(container, {
@@ -24,6 +51,10 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		
 		this.onModeSelected = onModeSelected;
 	}
+	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	render(): void {
 		const state = this.getInternalState();
@@ -52,7 +83,19 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		render(menuContent, this.container);
 		this.setupEventListeners();
 	}
-
+	
+	destroy(): void {
+		super.destroy();
+		// No special cleanup needed
+	}
+	
+	// =========================================
+	// EVENT HANDLING
+	// =========================================
+	
+	/**
+	 * Sets up event listeners for menu buttons
+	 */
 	private setupEventListeners(): void {
 		const buttons = this.container.querySelectorAll('.menu-button');
 		buttons.forEach(button => {
@@ -63,18 +106,21 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		});
 	}
 	
-	// Method to show the menu
+	// =========================================
+	// VISIBILITY MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Shows the menu
+	 */
 	show(): void {
 		this.updateInternalState({ visible: true });
 	}
 	
-	// Method to hide the menu
+	/**
+	 * Hides the menu
+	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
 	}
-	
-	destroy(): void {
-		super.destroy();
-		// No special cleanup needed
-	}
-} 
+}

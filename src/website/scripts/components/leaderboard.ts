@@ -1,5 +1,14 @@
+/**
+ * Leaderboard Component Module
+ * Displays global player rankings and statistics in a tabular format.
+ * Handles data fetching, sorting, and user interaction with the leaderboard.
+ */
 import { Component } from '@website/scripts/components';
 import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
+
+// =========================================
+// TYPES & INTERFACES
+// =========================================
 
 /**
  * Represents a single entry in the leaderboard
@@ -21,11 +30,19 @@ interface LeaderboardState {
 	errorMessage?: string;
 }
 
+// =========================================
+// LEADERBOARD COMPONENT
+// =========================================
+
 /**
  * Component that displays the global leaderboard
  * Shows player rankings based on ELO, wins, and losses
  */
 export class LeaderboardComponent extends Component<LeaderboardState> {
+	// =========================================
+	// INITIALIZATION
+	// =========================================
+	
 	/**
 	 * Creates a new LeaderboardComponent
 	 * @param container - The HTML element to render the leaderboard into
@@ -62,6 +79,10 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		}
 	}
 
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
+	
 	/**
 	 * Renders the component based on current state
 	 */
@@ -69,7 +90,19 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		const state = this.getInternalState();
 		this.renderView(state.errorMessage);
 	}
+	
+	/**
+	 * Cleans up the component when it's destroyed
+	 * Calls parent's destroy method to handle state cleanup
+	 */
+	destroy(): void {
+		super.destroy();
+	}
 
+	// =========================================
+	// DATA MANAGEMENT
+	// =========================================
+	
 	/**
 	 * Fetches leaderboard data from the database
 	 * Currently uses mock data, but prepared for real DB integration
@@ -157,6 +190,10 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		}
 	}
 
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+
 	/**
 	 * Handles clicks on player names in the leaderboard
 	 * Navigates to the clicked player's profile
@@ -173,6 +210,10 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	private handleRetry(): void {
 		this.initialize();
 	}
+
+	// =========================================
+	// RENDERING
+	// =========================================
 
 	/**
 	 * Renders the leaderboard view based on current state
@@ -233,13 +274,5 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			</div>
 		`;
 		render(template, this.container);
-	}
-
-	/**
-	 * Cleans up the component when it's destroyed
-	 * Calls parent's destroy method to handle state cleanup
-	 */
-	destroy(): void {
-		super.destroy();
 	}
 }

@@ -101,6 +101,14 @@ export interface MovableObject extends PhysicsObject {
 	updateMovement(deltaTime: number): void;
 }
 
+export interface CollisionResult {
+	collided: boolean;
+	hitFace: 'front' | 'top' | 'bottom';
+	deflectionModifier: number;
+	collisionPoint?: { x: number; y: number };
+	hardBounce?: boolean;
+}
+
 // =========================================
 // Game Objects
 // =========================================

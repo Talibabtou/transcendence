@@ -1,5 +1,9 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
-import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
+import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
+
+const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
+const MAX_STEPS_PER_FRAME = 4;
+const MAX_DELTA_TIME = 1000 / 120;
 
 /**
  * Represents the ball in the game, handling its movement,
@@ -27,14 +31,11 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	public dx = 0;
 	public dy = 0;
+	private accumulator: number = 0;
 
 	// Pool vector calculations to avoid creating new objects
 	private readonly velocityCache = { dx: 0, dy: 0 };
 	private readonly positionCache = { x: 0, y: 0 };
-
-	// Add to class properties
-	private previousPositionX: number = 0;
-	private previousPositionY: number = 0;
 
 	// =========================================
 	// Constructor
@@ -101,30 +102,29 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 */
 	public update(_context: GameContext, deltaTime: number, state: GameState): void {
 		if (state !== GameState.PLAYING) return;
-		
-		// Save previous position for collision detection
-		this.previousPositionX = this.x;
-		this.previousPositionY = this.y;
-		
-		// Get ball speed
-		const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-		const ballSize = this.size;
-		
-		// Check if ball is moving fast enough to need substeps
-		if (speed * deltaTime > ballSize) {
-			// Calculate number of substeps needed
-			const substeps = Math.ceil(speed * deltaTime / ballSize);
-			const subDeltaTime = deltaTime / substeps;
-			
-			// Update in substeps
-			for (let i = 0; i < substeps; i++) {
-				this.updatePhysics(subDeltaTime);
-				this.checkBoundaries();
-			}
+		// Convert deltaTime to milliseconds and clamp it
+		const dt = Math.min(deltaTime * 1000, MAX_DELTA_TIME);
+		// Reset accumulator if it's too large (tab was inactive)
+		if (this.accumulator > MAX_DELTA_TIME * 2) {
+				this.accumulator = 0;
+		}
+		// Accumulate time since last frame
+		this.accumulator += dt;
+		// Run physics updates at fixed timesteps
+		let steps = 0;
+		while (this.accumulator >= PHYSICS_TIMESTEP && steps < MAX_STEPS_PER_FRAME) {
+				this.updatePhysics(PHYSICS_TIMESTEP / 1000);
+				this.accumulator -= PHYSICS_TIMESTEP;
+				steps++;
+		}
+		// If we still have accumulated time but not too much, do one last update
+		if (this.accumulator > 0 && this.accumulator < PHYSICS_TIMESTEP * 2 && steps < MAX_STEPS_PER_FRAME) {
+				const remainingTime = this.accumulator / 1000;
+				this.updatePhysics(remainingTime);
+				this.accumulator = 0;
 		} else {
-			// Normal update for slower speeds
-			this.updatePhysics(deltaTime);
-			this.checkBoundaries();
+				// If we have too much accumulated time, just drop it
+				this.accumulator = Math.min(this.accumulator, PHYSICS_TIMESTEP * 2);
 		}
 	}
 
@@ -412,13 +412,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public getPosition(): { x: number; y: number } {
 		this.positionCache.x = this.x;
 		this.positionCache.y = this.y;
-		return this.positionCache;
-	}
-
-	// Add method to get previous position
-	public getPreviousPosition(): { x: number; y: number } {
-		this.positionCache.x = this.previousPositionX;
-		this.positionCache.y = this.previousPositionY;
 		return this.positionCache;
 	}
 }

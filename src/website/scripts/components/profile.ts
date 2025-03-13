@@ -1,6 +1,18 @@
+/**
+ * Profile Component Module
+ * Displays and manages user profile information, game history, friends, and settings.
+ * Provides tabbed interface for different sections of user data.
+ */
 import { Component } from '@website/scripts/components';
 import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
 
+// =========================================
+// TYPES & INTERFACES
+// =========================================
+
+/**
+ * Complete user profile data structure
+ */
 interface UserProfile {
 	id: string;
 	username: string;
@@ -17,6 +29,9 @@ interface UserProfile {
 	};
 }
 
+/**
+ * Single game history entry
+ */
 interface GameHistoryEntry {
 	id: string;
 	date: Date;
@@ -26,38 +41,88 @@ interface GameHistoryEntry {
 	result: 'win' | 'loss';
 }
 
+/**
+ * Friend data structure
+ */
 interface Friend {
 	username: string;
 	status: 'online' | 'offline' | 'in-game';
 	avatarUrl: string;
 }
 
-export class ProfileComponent extends Component {
-	private profile: UserProfile | null = null;
-	private isLoading: boolean = false;
-	private isEditing: boolean = false;
-	private activeTab: string = 'summary';
+/**
+ * Profile component state interface
+ */
+interface ProfileState {
+	profile: UserProfile | null;
+	isLoading: boolean;
+	isEditing: boolean;
+	activeTab: string;
+	errorMessage?: string;
+}
+
+// =========================================
+// PROFILE COMPONENT
+// =========================================
+
+/**
+ * Component that displays and manages user profiles
+ * Provides tabbed interface for different sections of user data
+ */
+export class ProfileComponent extends Component<ProfileState> {
+	// =========================================
+	// PROPERTIES
+	// =========================================
+	
 	private colorPicker: HTMLInputElement | null = null;
 	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
+	
+	/**
+	 * Creates a new ProfileComponent
+	 * @param container - The HTML element to render the profile into
+	 */
 	constructor(container: HTMLElement) {
-		super(container);
+		super(container, {
+			profile: null,
+			isLoading: false,
+			isEditing: false,
+			activeTab: 'summary'
+		});
 	}
 	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
+	
+	/**
+	 * Renders the component and fetches profile data
+	 */
 	async render(): Promise<void> {
 		try {
-			this.isLoading = true;
+			this.updateInternalState({ isLoading: true, errorMessage: undefined });
 			this.renderView();
 			await this.fetchProfileData();
-			this.isLoading = false;
+			this.updateInternalState({ isLoading: false });
 			this.renderView();
 		} catch (error) {
 			console.error('Error rendering profile:', error);
-			this.isLoading = false;
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load profile data';
-			this.renderView(errorMessage);
+			this.updateInternalState({ isLoading: false, errorMessage });
+			this.renderView();
 		}
 	}
 
+	// =========================================
+	// DATA MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Fetches profile data from the database
+	 * Currently uses mock data, but prepared for real DB integration
+	 */
 	private async fetchProfileData(): Promise<void> {
 		try {
 			const url = new URL(window.location.href);
@@ -66,7 +131,7 @@ export class ProfileComponent extends Component {
 			// Simulate API delay
 			await new Promise(resolve => setTimeout(resolve, 750));
 			// Convert userId to number since our DB interface expects it
-			const numericId = userId === 'current' ? 1 : parseInt(userId, 10); // You might want to adjust the default ID
+			const numericId = userId === 'current' ? 1 : parseInt(userId, 10);
 			
 			// Use DbService for all data fetching
 			DbService.getUser(numericId);
@@ -75,13 +140,19 @@ export class ProfileComponent extends Component {
 			
 			// Simulate API delay
 			await new Promise(resolve => setTimeout(resolve, 750));
-			this.profile = this.createMockProfile(userId);
+			const profile = this.createMockProfile(userId);
+			this.updateInternalState({ profile });
 		} catch (error) {
 			console.error('Error fetching profile data:', error);
 			throw new Error('Failed to fetch profile data');
 		}
 	}
 
+	/**
+	 * Creates mock profile data for development
+	 * Will be replaced with real API data in production
+	 * @param userId - User ID to create mock data for
+	 */
 	private createMockProfile(userId: string): UserProfile {
 		const isCurrentUser = userId === 'current';
 		const id = isCurrentUser ? 'current' : userId;
@@ -129,18 +200,169 @@ export class ProfileComponent extends Component {
 		};
 	}
 
-	private renderView(errorMessage?: string): void {
+	/**
+	 * Saves profile changes to the database
+	 */
+	private saveProfileChanges(): void {
+		const state = this.getInternalState();
+		// Get form data
+		const form = this.container.querySelector('.settings-form') as HTMLFormElement;
+		if (!form || !state.profile) return;
+		
+		// Example of getting form values
+		const username = (form.querySelector('[name="username"]') as HTMLInputElement)?.value;
+		
+		// Update profile data
+		if (username) {
+			const updatedProfile = {
+				...state.profile,
+				username
+			};
+			
+			// Simulate saving to database
+			DbService.updateUser(parseInt(state.profile.id), {
+				pseudo: username
+			});
+			
+			// Update state and exit edit mode
+			this.updateInternalState({ 
+				profile: updatedProfile,
+				isEditing: false 
+			});
+		}
+	}
+
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
+	/**
+	 * Handles clicks on player names
+	 * Navigates to the clicked player's profile
+	 * @param username - Username of the clicked player
+	 */
+	private handlePlayerClick(username: string): void {
+		navigate(`/profile?username=${username}`);
+	}
+
+	/**
+	 * Sets the active tab and re-renders the view
+	 * @param tabId - ID of the tab to activate
+	 */
+	private setActiveTab(tabId: string): void {
+		this.updateInternalState({ activeTab: tabId });
+	}
+
+	/**
+	 * Toggles edit mode for profile settings
+	 */
+	private toggleEditMode(): void {
+		const state = this.getInternalState();
+		this.updateInternalState({ isEditing: !state.isEditing });
+		
+		// After state update and re-render, update form elements
+		setTimeout(() => {
+			// Toggle form fields
+			const formInputs = this.container.querySelectorAll('.settings-form input');
+			const saveButton = this.container.querySelector('.save-settings-button');
+			
+			formInputs.forEach(input => {
+				(input as HTMLInputElement).disabled = !state.isEditing;
+			});
+			
+			if (saveButton) {
+				(saveButton as HTMLButtonElement).disabled = !state.isEditing;
+			}
+			
+			// Toggle edit button text
+			const editButton = this.container.querySelector('.edit-profile-button');
+			if (editButton) {
+				editButton.textContent = state.isEditing ? 'Cancel' : 'Edit Profile';
+			}
+			
+			// Select the settings tab when entering edit mode
+			if (state.isEditing) {
+				this.setActiveTab('settings');
+			}
+		}, 0);
+	}
+
+	/**
+	 * Sets up event listeners after rendering
+	 */
+	private setupEventListeners(): void {
+		const state = this.getInternalState();
+		
+		// Set up tab switching
+		const tabButtons = this.container.querySelectorAll('.nav-button');
+		tabButtons.forEach(button => {
+			button.addEventListener('click', () => {
+				const tabId = button.getAttribute('data-tab');
+				if (tabId) {
+					this.setActiveTab(tabId);
+				}
+			});
+		});
+		
+		// Set up edit profile button
+		const editButton = this.container.querySelector('.edit-profile-button');
+		if (editButton) {
+			editButton.addEventListener('click', () => {
+				this.toggleEditMode();
+			});
+		}
+		
+		// Game history player links
+		this.container.querySelectorAll('.opponent-cell').forEach(cell => {
+			cell.addEventListener('click', () => {
+				const opponentUsername = (cell as HTMLElement).textContent;
+				if (opponentUsername) {
+					this.handlePlayerClick(opponentUsername);
+				}
+			});
+		});
+		
+		// If in edit mode, set up form submission
+		if (state.isEditing) {
+			const form = this.container.querySelector('.settings-form');
+			if (form) {
+				form.addEventListener('submit', (e) => {
+					e.preventDefault();
+					this.saveProfileChanges();
+				});
+			}
+			
+			// Cancel button
+			const cancelButton = this.container.querySelector('.save-settings-button');
+			if (cancelButton) {
+				cancelButton.addEventListener('click', () => {
+					this.updateInternalState({ isEditing: false });
+				});
+			}
+		}
+	}
+
+	// =========================================
+	// RENDERING
+	// =========================================
+	
+	/**
+	 * Renders the profile view based on current state
+	 */
+	private renderView(): void {
+		const state = this.getInternalState();
+		
 		const template = html`
 			<div class="ascii-container">
 				<div class="ascii-title-container">
 					<pre class="ascii-title">${ASCII_ART.PROFILE}</pre>
 				</div>
 				
-				${this.isLoading ? 
+				${state.isLoading ? 
 					html`<p class="loading-text">Loading profile data...</p>` :
-					errorMessage ?
+					state.errorMessage ?
 						html`
-							<div class="error-message">${errorMessage}</div>
+							<div class="error-message">${state.errorMessage}</div>
 							<button class="retry-button" onClick=${() => this.render()}>Retry</button>
 						` :
 						html`
@@ -159,12 +381,16 @@ export class ProfileComponent extends Component {
 		
 		render(template, this.container);
 		
-		if (!this.isLoading && !errorMessage) {
+		if (!state.isLoading && !state.errorMessage) {
 			this.setupEventListeners();
 		}
 	}
 
+	/**
+	 * Renders the navigation tabs
+	 */
 	private renderNavigation() {
+		const state = this.getInternalState();
 		const tabs = [
 			{ id: 'summary', label: 'SUMMARY', icon: '📊' },
 			{ id: 'history', label: 'HISTORY', icon: '🕒' },
@@ -175,7 +401,7 @@ export class ProfileComponent extends Component {
 		return html`
 			<ul class="nav-list">
 				${tabs.map(tab => html`
-					<li class="nav-item ${this.activeTab === tab.id ? 'active' : ''}">
+					<li class="nav-item ${state.activeTab === tab.id ? 'active' : ''}">
 						<button 
 							class="nav-button" 
 							data-tab="${tab.id}"
@@ -190,10 +416,14 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
+	/**
+	 * Renders the active tab content
+	 */
 	private renderActiveTab() {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 
-		switch (this.activeTab) {
+		switch (state.activeTab) {
 			case 'summary':
 				return this.renderSummary();
 			case 'history':
@@ -207,28 +437,36 @@ export class ProfileComponent extends Component {
 		}
 	}
 
+	// =========================================
+	// TAB CONTENT RENDERING
+	// =========================================
+
+	/**
+	 * Renders the summary tab content
+	 */
 	private renderSummary() {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 		
 		return html`
 			<div class="summary-container">
 				<div class="profile-hero">
 					<div class="profile-avatar-large">
-						<img src="${this.profile.avatarUrl}" alt="${this.profile.username}">
+						<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
 					</div>
 					<div class="profile-info-large">
-						<h2 class="username-large">${this.profile.username}</h2>
+						<h2 class="username-large">${state.profile.username}</h2>
 						<div class="profile-stats-large">
 							<div class="stat-large">
-								<span class="stat-value-large">${this.profile.level}</span>
+								<span class="stat-value-large">${state.profile.level}</span>
 								<span class="stat-label-large">LEVEL</span>
 							</div>
 							<div class="stat-large">
-								<span class="stat-value-large wins-value">${this.profile.wins}</span>
+								<span class="stat-value-large wins-value">${state.profile.wins}</span>
 								<span class="stat-label-large">WINS</span>
 							</div>
 							<div class="stat-large">
-								<span class="stat-value-large losses-value">${this.profile.losses}</span>
+								<span class="stat-value-large losses-value">${state.profile.losses}</span>
 								<span class="stat-label-large">LOSSES</span>
 							</div>
 						</div>
@@ -242,8 +480,12 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
+	/**
+	 * Renders the game history tab content
+	 */
 	private renderHistory() {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 		
 		return html`
 			<div class="tab-pane active" id="game-history">
@@ -257,7 +499,7 @@ export class ProfileComponent extends Component {
 						</tr>
 					</thead>
 					<tbody>
-						${this.profile.gameHistory.map(game => html`
+						${state.profile.gameHistory.map(game => html`
 							<tr class="game-${game.result}">
 								<td>${game.date.toLocaleDateString()}</td>
 								<td class="opponent-cell" onClick=${() => this.handlePlayerClick(game.opponent)}>
@@ -273,14 +515,18 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
+	/**
+	 * Renders the friends tab content
+	 */
 	private renderFriends() {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 		
 		return html`
 			<div class="friends-container">
 				<h3>Friends</h3>
 				<div class="friends-list">
-					${this.profile.friends.map(friend => html`
+					${state.profile.friends.map(friend => html`
 						<div class="friend-card">
 							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
 							<div class="friend-info">
@@ -294,8 +540,12 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
+	/**
+	 * Renders the settings tab content
+	 */
 	private renderSettings() {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 		
 		return html`
 			<div class="tab-pane" id="settings">
@@ -303,15 +553,15 @@ export class ProfileComponent extends Component {
 				<form class="settings-form">
 					<div class="form-group">
 						<label for="username">Username</label>
-						<input type="text" id="username" value="${this.profile.username}" disabled>
+						<input type="text" id="username" name="username" value="${state.profile.username}" disabled>
 					</div>
 					<div class="form-group">
 						<label for="avatar">Avatar URL</label>
-						<input type="text" id="avatar" value="${this.profile.avatarUrl}" disabled>
+						<input type="text" id="avatar" name="avatar" value="${state.profile.avatarUrl}" disabled>
 					</div>
 					<div class="form-group">
 						<label for="password">Change Password</label>
-						<input type="password" id="password" placeholder="New password" disabled>
+						<input type="password" id="password" name="password" placeholder="New password" disabled>
 					</div>
 					<button type="button" class="save-settings-button" disabled>Save Changes</button>
 				</form>
@@ -319,10 +569,15 @@ export class ProfileComponent extends Component {
 		`;
 	}
 
+	/**
+	 * Renders a subset of recent games
+	 * @param limit - Maximum number of games to display
+	 */
 	private renderRecentGames(limit: number) {
-		if (!this.profile) return html``;
+		const state = this.getInternalState();
+		if (!state.profile) return html``;
 		
-		const recentGames = this.profile.gameHistory.slice(0, limit);
+		const recentGames = state.profile.gameHistory.slice(0, limit);
 		
 		return html`
 			<table class="game-history-table recent-games">
@@ -348,112 +603,5 @@ export class ProfileComponent extends Component {
 				</tbody>
 			</table>
 		`;
-	}
-
-	private setupEventListeners(): void {
-		// Set up tab switching
-		const tabButtons = this.container.querySelectorAll('.nav-button');
-		const tabPanes = this.container.querySelectorAll('.tab-pane');
-		tabButtons.forEach(button => {
-			button.addEventListener('click', () => {
-				const tabId = button.getAttribute('data-tab');
-				// Update active tab button
-				tabButtons.forEach(btn => btn.classList.remove('active'));
-				button.classList.add('active');
-				// Show selected tab pane
-				tabPanes.forEach(pane => {
-					pane.classList.remove('active');
-					if (pane.id === tabId) {
-						pane.classList.add('active');
-					}
-				});
-			});
-		});
-		// Set up edit profile button
-		const editButton = this.container.querySelector('.edit-profile-button');
-		if (editButton) {
-			editButton.addEventListener('click', () => {
-				this.toggleEditMode();
-			});
-		}
-		// Game history player links
-		this.container.querySelectorAll('.opponent-cell').forEach(cell => {
-			cell.addEventListener('click', () => {
-				const opponentUsername = (cell as HTMLElement).textContent;
-				if (opponentUsername) {
-					this.handlePlayerClick(opponentUsername);
-				}
-			});
-		});
-		// If in edit mode, set up form submission
-		if (this.isEditing) {
-			const form = this.container.querySelector('.settings-form');
-			if (form) {
-				form.addEventListener('submit', (e) => {
-					e.preventDefault();
-					this.saveProfileChanges();
-				});
-			}
-			
-			// Cancel button
-			const cancelButton = this.container.querySelector('.save-settings-button');
-			if (cancelButton) {
-				cancelButton.addEventListener('click', () => {
-					this.isEditing = false;
-					this.renderActiveTab();
-				});
-			}
-		}
-	}
-
-	private toggleEditMode(): void {
-		this.isEditing = !this.isEditing;
-		// Toggle form fields
-		const formInputs = this.container.querySelectorAll('.settings-form input');
-		const saveButton = this.container.querySelector('.save-settings-button');
-		formInputs.forEach(input => {
-			(input as HTMLInputElement).disabled = !this.isEditing;
-		});
-		if (saveButton) {
-			(saveButton as HTMLButtonElement).disabled = !this.isEditing;
-		}
-		// Toggle edit button text
-		const editButton = this.container.querySelector('.edit-profile-button');
-		if (editButton) {
-			editButton.textContent = this.isEditing ? 'Cancel' : 'Edit Profile';
-		}
-		// Select the settings tab when entering edit mode
-		if (this.isEditing) {
-			const settingsTab = this.container.querySelector('[data-tab="settings"]');
-			if (settingsTab) {
-				(settingsTab as HTMLElement).click();
-			}
-		}
-	}
-
-	private saveProfileChanges(): void {
-		// Get form data
-		const form = this.container.querySelector('.settings-form') as HTMLFormElement;
-		if (!form || !this.profile) return;
-		// Example of getting form values
-		const username = (form.querySelector('[name="username"]') as HTMLInputElement)?.value;
-		// Update profile data
-		if (username) this.profile.username = username;
-		// Simulate saving to database
-		DbService.updateUser(parseInt(this.profile.id), {
-			pseudo: username
-		});
-		// Exit edit mode and re-render
-		this.isEditing = false;
-		this.renderActiveTab();
-	}
-
-	private handlePlayerClick(username: string): void {
-		navigate(`/profile?username=${username}`);
-	}
-
-	private setActiveTab(tabId: string): void {
-		this.activeTab = tabId;
-		this.renderView();
 	}
 }

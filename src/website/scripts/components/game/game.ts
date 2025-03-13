@@ -1,20 +1,41 @@
+/**
+ * Game Component Module
+ * Main component that manages the game interface, state transitions, and sub-components.
+ * Handles the complete game lifecycle from menu to gameplay to game over.
+ */
 import { Component, GameMenuComponent, GameMode, GameOverComponent, GameCanvasComponent } from '@website/scripts/components';
 import { GameManager, DbService } from '@website/scripts/utils';
 
-// Define the possible game states
+// =========================================
+// TYPES & CONSTANTS
+// =========================================
+
+/**
+ * Define the possible game states
+ */
 enum GameState {
 	MENU = 'menu',
 	PLAYING = 'playing',
 	GAME_OVER = 'game_over'
 }
 
-// Define state interface for the game component
+/**
+ * Define state interface for the game component
+ */
 interface GameComponentState {
 	currentState: GameState;
 	currentMode: GameMode;
 }
 
+// =========================================
+// GAME COMPONENT
+// =========================================
+
 export class GameComponent extends Component<GameComponentState> {
+	// =========================================
+	// PROPERTIES
+	// =========================================
+	
 	private gameManager: GameManager;
 	private gameStateInterval: number | null = null;
 	
@@ -26,6 +47,10 @@ export class GameComponent extends Component<GameComponentState> {
 	// Container for game components
 	private gameContainer: HTMLElement | null = null;
 	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
+	
 	constructor(container: HTMLElement) {
 		super(container, {
 			currentState: GameState.MENU,
@@ -34,6 +59,10 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		this.gameManager = GameManager.getInstance();
 	}
+	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	render(): void {
 		// Clear container
@@ -58,6 +87,41 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 	}
 	
+	destroy(): void {
+		// Clean up the main game
+		if (this.canvasComponent) {
+			this.canvasComponent.stopGame();
+		}
+		
+		// Show background game
+		this.gameManager.showBackgroundGame();
+		
+		// Now clean up sub-components
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = null;
+		}
+		if (this.gameOverComponent) {
+			this.gameOverComponent.destroy();
+			this.gameOverComponent = null;
+		}
+		if (this.canvasComponent) {
+			this.canvasComponent.destroy();
+			this.canvasComponent = null;
+		}
+		// Stop monitoring
+		this.stopGameStateMonitoring();
+		// Call parent destroy last
+		super.destroy();
+	}
+	
+	// =========================================
+	// COMPONENT MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Initializes all sub-components
+	 */
 	private initializeComponents(): void {
 		if (!this.gameContainer) return;
 		
@@ -78,6 +142,14 @@ export class GameComponent extends Component<GameComponentState> {
 		// No explicit renderComponent() calls here - let the state system handle it
 	}
 	
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Updates the game state and handles state transitions
+	 * @param newState - The new game state to transition to
+	 */
 	private updateGameState(newState: GameState): void {
 		const state = this.getInternalState();
 		
@@ -105,6 +177,9 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 	}
 	
+	/**
+	 * Shows the game menu and handles related state changes
+	 */
 	private showMenu(): void {
 		if (this.canvasComponent) {
 			this.canvasComponent.stopGame();
@@ -129,6 +204,9 @@ export class GameComponent extends Component<GameComponentState> {
 		this.stopGameStateMonitoring();
 	}
 	
+	/**
+	 * Starts the game with the selected mode
+	 */
 	private startPlaying(): void {
 		const state = this.getInternalState();
 		
@@ -152,6 +230,9 @@ export class GameComponent extends Component<GameComponentState> {
 		this.startGameStateMonitoring();
 	}
 	
+	/**
+	 * Shows the game over screen with results
+	 */
 	private showGameOver(): void {
 		if (!this.canvasComponent) return;
 
@@ -167,13 +248,23 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 	}
 
-	// Handle mode selection from menu
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+
+	/**
+	 * Handles mode selection from the menu
+	 * @param mode - The selected game mode
+	 */
 	private handleModeSelected(mode: GameMode): void {
 		this.updateInternalState({ currentMode: mode });
 		this.updateGameState(GameState.PLAYING);
 	}
 
-	// Handle play again button from game over screen
+	/**
+	 * Handles play again button from game over screen
+	 * @param mode - The game mode to restart
+	 */
 	private handlePlayAgain(mode: GameMode): void {
 		// Now we need to properly clean up the frozen game
 		if (this.canvasComponent) {
@@ -191,7 +282,9 @@ export class GameComponent extends Component<GameComponentState> {
 		}, 50);
 	}
 
-	// Handle back to menu button from game over screen
+	/**
+	 * Handles back to menu button from game over screen
+	 */
 	private handleBackToMenu(): void {
 		// Make sure to clean up the frozen game when going back to menu
 		if (this.canvasComponent) {
@@ -201,7 +294,13 @@ export class GameComponent extends Component<GameComponentState> {
 		this.updateGameState(GameState.MENU);
 	}
 
-	// Monitor game state to detect game over
+	// =========================================
+	// GAME STATE MONITORING
+	// =========================================
+
+	/**
+	 * Starts monitoring game state to detect game over
+	 */
 	private startGameStateMonitoring(): void {
 		this.stopGameStateMonitoring();
 		this.gameStateInterval = window.setInterval(() => {
@@ -212,39 +311,13 @@ export class GameComponent extends Component<GameComponentState> {
 		}, 500);
 	}
 
-	// Stop monitoring game state
+	/**
+	 * Stops monitoring game state
+	 */
 	private stopGameStateMonitoring(): void {
 		if (this.gameStateInterval !== null) {
 			clearInterval(this.gameStateInterval);
 			this.gameStateInterval = null;
 		}
-	}
-
-	destroy(): void {
-		// Clean up the main game
-		if (this.canvasComponent) {
-			this.canvasComponent.stopGame();
-		}
-		
-		// Show background game
-		this.gameManager.showBackgroundGame();
-		
-		// Now clean up sub-components
-		if (this.menuComponent) {
-			this.menuComponent.destroy();
-			this.menuComponent = null;
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-			this.gameOverComponent = null;
-		}
-		if (this.canvasComponent) {
-			this.canvasComponent.destroy();
-			this.canvasComponent = null;
-		}
-		// Stop monitoring
-		this.stopGameStateMonitoring();
-		// Call parent destroy last
-		super.destroy();
 	}
 }

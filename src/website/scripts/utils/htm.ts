@@ -5,6 +5,10 @@
  */
 import htm from 'htm';
 
+// =========================================
+// CORE ELEMENT CREATION
+// =========================================
+
 /**
  * Creates DOM elements from template literal tags.
  * 
@@ -36,6 +40,10 @@ function createElement(
 
 	return element;
 }
+
+// =========================================
+// DOM MANIPULATION HELPERS
+// =========================================
 
 /**
  * Creates a DocumentFragment with the given children.
@@ -103,6 +111,10 @@ function appendChildren(
 		}
 	});
 }
+
+// =========================================
+// PUBLIC API
+// =========================================
 
 /**
  * Tagged template literal function for creating DOM elements.

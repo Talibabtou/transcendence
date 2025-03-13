@@ -1,15 +1,39 @@
+/**
+ * Game Over Component Module
+ * Displays the game over screen with results and options to play again or return to menu.
+ * Handles user interactions after a game has completed.
+ */
 import { Component, GameMode } from '@website/scripts/components';
 import { html, render, ASCII_ART } from '@website/scripts/utils';
 
+// =========================================
+// TYPES & CONSTANTS
+// =========================================
+
+/**
+ * Game over component state interface
+ */
 interface GameOverState {
 	visible: boolean;
 	winner: string;
 	gameMode: GameMode;
 }
 
+// =========================================
+// GAME OVER COMPONENT
+// =========================================
+
 export class GameOverComponent extends Component<GameOverState> {
+	// =========================================
+	// PROPERTIES
+	// =========================================
+	
 	private onPlayAgain: (mode: GameMode) => void;
 	private onBackToMenu: () => void;
+	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
 	
 	constructor(
 		container: HTMLElement, 
@@ -25,6 +49,10 @@ export class GameOverComponent extends Component<GameOverState> {
 		this.onPlayAgain = onPlayAgain;
 		this.onBackToMenu = onBackToMenu;
 	}
+	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	render(): void {
 		const state = this.getInternalState();
@@ -59,6 +87,18 @@ export class GameOverComponent extends Component<GameOverState> {
 		this.setupEventListeners();
 	}
 	
+	destroy(): void {
+		super.destroy();
+		// Remove event listeners if needed
+	}
+	
+	// =========================================
+	// EVENT HANDLING
+	// =========================================
+	
+	/**
+	 * Sets up event listeners for game over buttons
+	 */
 	private setupEventListeners(): void {
 		const playAgainButton = this.container.querySelector('.play-again-button');
 		if (playAgainButton) {
@@ -75,7 +115,14 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 	}
 	
-	// Update to accept simpler result object
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Shows the game over screen with results
+	 * @param result - Object containing game result information
+	 */
 	showGameResult(result: {
 		winner: string;
 		gameMode: GameMode;
@@ -86,13 +133,10 @@ export class GameOverComponent extends Component<GameOverState> {
 		});
 	}
 	
-	// Hide the game over screen
+	/**
+	 * Hides the game over screen
+	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
-	}
-	
-	destroy(): void {
-		super.destroy();
-		// Remove event listeners if needed
 	}
 }

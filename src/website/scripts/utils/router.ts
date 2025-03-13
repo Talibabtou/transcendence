@@ -7,6 +7,10 @@ import Navigo from 'navigo';
 import { GameComponent, LeaderboardComponent, ProfileComponent } from '@website/scripts/components';
 import { GameManager } from '@website/scripts/utils';
 
+// =========================================
+// TYPES & CONSTANTS
+// =========================================
+
 /**
  * Enum defining all available routes in the application.
  * Used for type-safe route handling and component mapping.
@@ -17,11 +21,19 @@ export enum Route {
 	PROFILE = 'profile'
 }
 
+// =========================================
+// ROUTER CLASS
+// =========================================
+
 /**
  * Router class responsible for handling navigation and component lifecycle.
  * Manages the creation, display, and destruction of components based on the current route.
  */
 export class Router {
+	// =========================================
+	// PROPERTIES
+	// =========================================
+	
 	/** Singleton instance of Navigo router */
 	public static routerInstance = new Navigo('/');
 	/** Main container element where components will be rendered */
@@ -30,6 +42,10 @@ export class Router {
 	private components: Map<Route, any> = new Map();
 	/** Currently active route */
 	private currentRoute: Route | null = null;
+	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
 	
 	/**
 	 * Initializes the router with a container element and sets up route handlers.
@@ -50,6 +66,10 @@ export class Router {
 
 		Router.routerInstance.resolve();
 	}
+	
+	// =========================================
+	// ROUTE HANDLING
+	// =========================================
 	
 	/**
 	 * Handles route changes by managing component lifecycle and visibility.
@@ -119,6 +139,10 @@ export class Router {
 		this.updateActiveNavItem(route);
 	}
 
+	// =========================================
+	// COMPONENT MANAGEMENT
+	// =========================================
+
 	/**
 	 * Returns the component class corresponding to the given route.
 	 * @param route - The route to get the component for
@@ -132,6 +156,10 @@ export class Router {
 			default: return GameComponent;
 		}
 	}
+
+	// =========================================
+	// UI MANAGEMENT
+	// =========================================
 
 	/**
 	 * Sets up click handlers for navigation elements.
@@ -157,6 +185,10 @@ export class Router {
 		});
 	}
 }
+
+// =========================================
+// UTILITY FUNCTIONS
+// =========================================
 
 /**
  * Helper function to programmatically navigate to a different route.

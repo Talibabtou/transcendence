@@ -28,6 +28,10 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 */
 	private internalStateListeners: Array<(newState: StateType, oldState: StateType) => void> = [];
 
+	// =========================================
+	// LIFECYCLE MANAGEMENT
+	// =========================================
+
 	/**
 	 * Creates a new component instance
 	 * @param container - The DOM element to render the component into
@@ -84,17 +88,19 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		this.internalStateListeners = [];
 	}
 
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
+
 	/**
-	 * Retrieves the current internal state
-	 * @returns Current state of the component
+	 * Returns the current internal state
 	 */
 	protected getInternalState(): StateType {
 		return this.internalState;
 	}
 
 	/**
-	 * Updates component state and triggers re-render
-	 * @param newState - Partial state to merge with current state
+	 * Updates component state and triggers change listeners
 	 */
 	protected updateInternalState(newState: Partial<StateType>): void {
 		const oldState = { ...this.internalState } as StateType;
@@ -122,15 +128,14 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		};
 	}
 
+	// =========================================
+	// TEMPLATING & RENDERING
+	// =========================================
+
 	/**
-	 * Loads and renders a template with provided data
-	 * @param templatePath - Path to the template file
-	 * @param data - Data to bind to the template
+	 * Loads and renders a template with the provided data
 	 */
-	protected async renderTemplate(
-		templatePath: string, 
-		data: TemplateDataType
-	): Promise<void> {
+	protected async renderTemplate(templatePath: string, data: TemplateDataType): Promise<void> {
 		try {
 			const template = await this.loadTemplate(templatePath);
 			const rendered = this.bindDataToTemplate(template, data);
@@ -183,9 +188,12 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		return result;
 	}
 
+	// =========================================
+	// ERROR HANDLING
+	// =========================================
+
 	/**
 	 * Sets the component into an error state
-	 * @param message - Error message to store
 	 */
 	protected setErrorState(message: string): void {
 		this.errorState = { hasError: true, message };
