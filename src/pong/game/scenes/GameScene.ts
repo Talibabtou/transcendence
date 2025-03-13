@@ -32,6 +32,8 @@ export class GameScene {
 	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
 	private lastTime: number = 0;
 	private isFrozen: boolean = false;
+	private lastDrawTime: number | null = null;
+	private hasStateChanged: boolean = true;
 
 	/**
 	 * Creates a new GameScene instance
@@ -87,18 +89,37 @@ export class GameScene {
 	 * Renders the game scene
 	 */
 	public draw(): void {
-		if (!this.isBackgroundDemo()) {
-			this.uiManager.drawBackground(this.player1, this.player2);
+		// For background demo, ALWAYS render every frame without exception
+		if (this.isBackgroundDemo()) {
+			// Just draw game objects, nothing else for background mode
+			this.uiManager.drawGameElements(this.objectsInScene);
+			return;
 		}
+		
+		// Check if we need to render this frame
+		const isPaused = this.pauseManager.hasState(GameState.PAUSED);
+		const isCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
+		
+		// Always render during special states (pause, countdown)
+		// Only skip rendering during active gameplay when nothing changed
+		if (!isPaused && !isCountdown && !this.hasStateChanged && this.lastDrawTime) {
+			return;
+		}
+		
+		// Render the frame
+		this.uiManager.drawBackground(this.player1, this.player2);
 		
 		if (!this.isFrozen) {
 			this.uiManager.drawGameElements(this.objectsInScene);
 		}
 		
 		this.uiManager.drawUI(
-			this.pauseManager.hasState(GameState.PAUSED),
-			this.isBackgroundDemo()
+			isPaused,
+			false
 		);
+		
+		this.lastDrawTime = performance.now();
+		this.hasStateChanged = false;
 	}
 
 	// =========================================
@@ -266,6 +287,7 @@ export class GameScene {
 		}
 		this.handleBallDestruction();
 		this.updateGameObjects(deltaTime);
+		this.hasStateChanged = true;
 	}
 
 	/**

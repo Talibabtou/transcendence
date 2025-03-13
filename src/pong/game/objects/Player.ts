@@ -243,21 +243,10 @@ export class Player implements GraphicalElement {
 	 * Sets up keyboard event listeners for player control
 	 */
 	public bindControls(): void {
-		if (this.isAIControlled()) {
-			return;
-		}
-
-		// Set up controls based on player position
-		if (this._position === PlayerPosition.LEFT) {
-			this._upKey = KEYS.PLAYER_LEFT_UP;     // 'KeyW'
-			this._downKey = KEYS.PLAYER_LEFT_DOWN;  // 'KeyS'
-		} else {
-			this._upKey = KEYS.PLAYER_RIGHT_UP;     // 'ArrowUp'
-			this._downKey = KEYS.PLAYER_RIGHT_DOWN;  // 'ArrowDown'
-		}
-
-		window.addEventListener('keydown', this.handleKeydown);
-		window.addEventListener('keyup', this.handleKeyup);
+		if (this._isAIControlled) return;
+		
+		window.addEventListener('keydown', this.handleKeydown, { passive: true });
+		window.addEventListener('keyup', this.handleKeyup, { passive: true });
 	}
 
 	/**

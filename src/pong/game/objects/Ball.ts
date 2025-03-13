@@ -1,9 +1,5 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
-import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
-
-const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
-const MAX_STEPS_PER_FRAME = 4;
-const MAX_DELTA_TIME = 1000 / 120;
+import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
 /**
  * Represents the ball in the game, handling its movement,
@@ -31,7 +27,14 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	public dx = 0;
 	public dy = 0;
-	private accumulator: number = 0;
+
+	// Pool vector calculations to avoid creating new objects
+	private readonly velocityCache = { dx: 0, dy: 0 };
+	private readonly positionCache = { x: 0, y: 0 };
+
+	// Add to class properties
+	private previousPositionX: number = 0;
+	private previousPositionY: number = 0;
 
 	// =========================================
 	// Constructor
@@ -98,29 +101,30 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 */
 	public update(_context: GameContext, deltaTime: number, state: GameState): void {
 		if (state !== GameState.PLAYING) return;
-		// Convert deltaTime to milliseconds and clamp it
-		const dt = Math.min(deltaTime * 1000, MAX_DELTA_TIME);
-		// Reset accumulator if it's too large (tab was inactive)
-		if (this.accumulator > MAX_DELTA_TIME * 2) {
-				this.accumulator = 0;
-		}
-		// Accumulate time since last frame
-		this.accumulator += dt;
-		// Run physics updates at fixed timesteps
-		let steps = 0;
-		while (this.accumulator >= PHYSICS_TIMESTEP && steps < MAX_STEPS_PER_FRAME) {
-				this.updatePhysics(PHYSICS_TIMESTEP / 1000);
-				this.accumulator -= PHYSICS_TIMESTEP;
-				steps++;
-		}
-		// If we still have accumulated time but not too much, do one last update
-		if (this.accumulator > 0 && this.accumulator < PHYSICS_TIMESTEP * 2 && steps < MAX_STEPS_PER_FRAME) {
-				const remainingTime = this.accumulator / 1000;
-				this.updatePhysics(remainingTime);
-				this.accumulator = 0;
+		
+		// Save previous position for collision detection
+		this.previousPositionX = this.x;
+		this.previousPositionY = this.y;
+		
+		// Get ball speed
+		const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+		const ballSize = this.size;
+		
+		// Check if ball is moving fast enough to need substeps
+		if (speed * deltaTime > ballSize) {
+			// Calculate number of substeps needed
+			const substeps = Math.ceil(speed * deltaTime / ballSize);
+			const subDeltaTime = deltaTime / substeps;
+			
+			// Update in substeps
+			for (let i = 0; i < substeps; i++) {
+				this.updatePhysics(subDeltaTime);
+				this.checkBoundaries();
+			}
 		} else {
-				// If we have too much accumulated time, just drop it
-				this.accumulator = Math.min(this.accumulator, PHYSICS_TIMESTEP * 2);
+			// Normal update for slower speeds
+			this.updatePhysics(deltaTime);
+			this.checkBoundaries();
 		}
 	}
 
@@ -162,22 +166,14 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		// First decide if we're going up or down
 		const goingUp = Math.random() > 0.5;
 		
-		// Calculate base angle (either at MIN or MAX depending on direction)
-		// This ensures we start from the edges of our allowed range
-		let baseAngle;
+		let angle;
 		if (goingUp) {
-			// Randomly choose between MIN and MAX for base angle
-			baseAngle = Math.random() > 0.5 ? MIN : MAX;
+			// Choose a random angle within the entire MIN to MAX range
+			angle = (MIN + Math.random() * (MAX - MIN)) * (Math.PI / 180);
 		} else {
 			// Same for downward direction but negative
-			baseAngle = Math.random() > 0.5 ? -MIN : -MAX;
+			angle = (-MIN - Math.random() * (MAX - MIN)) * (Math.PI / 180);
 		}
-		
-		// Add a small random deviation (up to 20% of the range between MIN and MAX)
-		// but ensure we stay within our MIN/MAX bounds
-		const maxDeviation = (MAX - MIN) * 0.2; // 20% of the range
-		const deviation = (Math.random() - 0.5) * maxDeviation;
-		const angle = (baseAngle + deviation) * (Math.PI / 180);
 		
 		// Convert angle to direction vector
 		this.dx = Math.cos(angle);
@@ -405,13 +401,24 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * Gets the current velocity (required by PhysicsObject interface)
 	 */
 	public getVelocity(): { dx: number; dy: number } {
-		return { dx: this.dx, dy: this.dy };
+		this.velocityCache.dx = this.dx;
+		this.velocityCache.dy = this.dy;
+		return this.velocityCache;
 	}
 
 	/**
 	 * Gets the current position (required by PhysicsObject interface)
 	 */
 	public getPosition(): { x: number; y: number } {
-		return { x: this.x, y: this.y };
+		this.positionCache.x = this.x;
+		this.positionCache.y = this.y;
+		return this.positionCache;
+	}
+
+	// Add method to get previous position
+	public getPreviousPosition(): { x: number; y: number } {
+		this.positionCache.x = this.previousPositionX;
+		this.positionCache.y = this.previousPositionY;
+		return this.positionCache;
 	}
 }

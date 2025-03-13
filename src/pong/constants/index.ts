@@ -6,6 +6,9 @@ import { GameSizes } from '@pong/types';
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
 	FPS: 240,
+	FIXED_TIMESTEP: 1000 / 240, // 4.16ms per update for 240Hz
+	PHYSICS_SUBSTEPS: 2, // Number of substeps for fast-moving objects
+	MAX_DELTA_TIME: 200, // Maximum delta time to prevent spiral of death
 	MIN_SIZES: {
 		BALL_SIZE: 5
 	}

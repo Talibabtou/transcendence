@@ -1,5 +1,4 @@
 import { GameEngine } from '@pong/game/engine';
-import { GAME_CONFIG } from '@pong/constants';
 
 declare global {
 	interface Window {
@@ -93,99 +92,130 @@ export class GameManager {
 	
 	// Generic method to start any game type
 	private startGame(instance: GameInstance, mode: GameMode, container: HTMLElement | null): void {
-		// Only clean up if the game is already active
-		if (instance.isActive) {
-			this.cleanupGame(instance);
-		}
-		
-		// Create canvas with appropriate settings
-		const canvas = document.createElement('canvas');
-		
-		// Set the appropriate ID based on game type
-		if (instance.type === 'main') {
-			canvas.id = 'game-canvas';
+		try {
+			// Only clean up if the game is already active
+			if (instance.isActive) {
+				this.cleanupGame(instance);
+			}
 			
-			// Append to provided container
-			if (container) {
-				container.innerHTML = ''; // Clear container first
-				container.appendChild(canvas);
+			// Create canvas with appropriate settings
+			const canvas = document.createElement('canvas');
+			
+			// Set the appropriate ID based on game type
+			if (instance.type === 'main') {
+				canvas.id = 'game-canvas';
+				
+				// Append to provided container
+				if (container) {
+					container.innerHTML = ''; // Clear container first
+					container.appendChild(canvas);
+				} else {
+					console.error('No container provided for main game');
+					return;
+				}
 			} else {
-				console.error('No container provided for main game');
+				canvas.id = 'background-game-canvas';
+				
+				// Check if background canvas already exists
+				const existingBgCanvas = document.getElementById('background-game-canvas');
+				if (existingBgCanvas) {
+					existingBgCanvas.remove();
+				}
+				
+				// Insert at the beginning of body with absolute positioning
+				canvas.style.position = 'absolute';
+				canvas.style.zIndex = '-1';
+				canvas.style.top = '0';
+				canvas.style.left = '0';
+				document.body.insertBefore(canvas, document.body.firstChild);
+			}
+			// Size canvas
+			this.resizeCanvas(canvas);
+			// Get context and initialize game engine
+			const ctx = canvas.getContext('2d');
+			if (!ctx) {
+				console.error(`Could not get canvas context for ${instance.type} game`);
 				return;
 			}
-		} else {
-			canvas.id = 'background-game-canvas';
-			
-			// Check if background canvas already exists
-			const existingBgCanvas = document.getElementById('background-game-canvas');
-			if (existingBgCanvas) {
-				existingBgCanvas.remove();
+			// Create game engine
+			const gameEngine = new GameEngine(ctx);
+			// Initialize proper game mode
+			if (instance.type === 'main') {
+				switch (mode) {
+					case 'single': gameEngine.initializeSinglePlayer(); break;
+					case 'multi': gameEngine.initializeMultiPlayer(); break;
+					case 'tournament': gameEngine.initializeTournament(); break;
+				}
+			} else {
+				gameEngine.initializeBackgroundDemo();
 			}
-			
-			// Insert at the beginning of body with absolute positioning
-			canvas.style.position = 'absolute';
-			canvas.style.zIndex = '-1';
-			canvas.style.top = '0';
-			canvas.style.left = '0';
-			document.body.insertBefore(canvas, document.body.firstChild);
+			// Store references
+			instance.canvas = canvas;
+			instance.engine = gameEngine;
+			instance.isActive = true;
+			instance.isPaused = false;
+			// Start the game loop
+			this.startGameLoop(instance);
+			this.dispatchEvent(GameEvent.GAME_STARTED, { type: instance.type, mode });
+		} catch (error) {
+			this.handleGameEngineError(
+				error instanceof Error ? error : new Error(String(error)),
+				instance.type === GameMode.MAIN ? 'main' : 'background'
+			);
 		}
-		// Size canvas
-		this.resizeCanvas(canvas);
-		// Get context and initialize game engine
-		const ctx = canvas.getContext('2d');
-		if (!ctx) {
-			console.error(`Could not get canvas context for ${instance.type} game`);
-			return;
-		}
-		// Create game engine
-		const gameEngine = new GameEngine(ctx);
-		// Initialize proper game mode
-		if (instance.type === 'main') {
-			switch (mode) {
-				case 'single': gameEngine.initializeSinglePlayer(); break;
-				case 'multi': gameEngine.initializeMultiPlayer(); break;
-				case 'tournament': gameEngine.initializeTournament(); break;
-			}
-		} else {
-			gameEngine.initializeBackgroundDemo();
-		}
-		// Store references
-		instance.canvas = canvas;
-		instance.engine = gameEngine;
-		instance.isActive = true;
-		instance.isPaused = false;
-		// Start the game loop
-		this.startGameLoop(instance);
-		this.dispatchEvent(GameEvent.GAME_STARTED, { type: instance.type, mode });
 	}
 	
 	// Generic method to start game loop
 	private startGameLoop(instance: GameInstance): void {
-		if (!instance.engine) return;
-
-		// Setup update interval
-		instance.updateIntervalId = window.setInterval(() => {
-			if (instance.isActive && !instance.isPaused && instance.engine) {
-				try {
+		if (!instance.engine || !instance.canvas) return;
+		
+		let lastFrameTime = 0;
+		
+		// Stop any existing animation loop
+		if (instance.animationFrameId !== null) {
+			cancelAnimationFrame(instance.animationFrameId);
+			instance.animationFrameId = null;
+		}
+		
+		// Initialize performance tracking
+		performance.mark('gameStart');
+		
+		// Create an optimized render function
+		const render = (timestamp: number) => {
+			if (!instance.isActive) return;
+			
+			try {
+				// Calculate frame time for debug purposes
+				const frameTime = timestamp - lastFrameTime;
+				lastFrameTime = timestamp;
+				
+				// Skip update if game is paused
+				if (!instance.isPaused && instance.engine) {
 					instance.engine.update();
-				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameMode.MAIN ? 'main' : 'background');
 				}
-			}
-		}, 1000 / GAME_CONFIG.FPS);
-
-		// Setup render loop
-		const render = () => {
-			if (instance.isActive && instance.engine) {
-				try {
+				
+				// Always draw (even when paused)
+				if (instance.engine) {
 					instance.engine.draw();
-				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameMode.MAIN ? 'main' : 'background');
 				}
+				
+				// Schedule next frame
+				instance.animationFrameId = requestAnimationFrame(render);
+				
+				// Check performance (log slow frames)
+				if (frameTime > 50) { // More than 50ms = less than 20fps
+					console.warn(`Slow frame detected: ${frameTime.toFixed(2)}ms`);
+				}
+			} catch (error) {
+				// Handle any error in the game loop
+				this.handleGameEngineError(
+					error instanceof Error ? error : new Error(String(error)),
+					instance.type === GameMode.MAIN ? 'main' : 'background'
+				);
 			}
-			instance.animationFrameId = requestAnimationFrame(render);
 		};
 		
+		// Start the render loop
 		instance.animationFrameId = requestAnimationFrame(render);
 	}
 
@@ -272,21 +302,30 @@ export class GameManager {
 	}
 
 	private handleResize(): void {
-		// Handle resize for main game
-		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
-			const canvas = this.mainGameInstance.canvas;
-			if (canvas) {
-				this.resizeCanvas(canvas);
-				this.mainGameInstance.engine.resize(canvas.width, canvas.height);
+		try {
+			// Handle resize for main game
+			if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
+				const canvas = this.mainGameInstance.canvas;
+				if (canvas) {
+					this.resizeCanvas(canvas);
+					this.mainGameInstance.engine.resize(canvas.width, canvas.height);
+				}
 			}
-		}
 
-		if (this.backgroundGameInstance.isActive && this.backgroundGameInstance.engine) {
-			const canvas = this.backgroundGameInstance.canvas;
-			if (canvas) {
-				this.resizeCanvas(canvas);
-				this.backgroundGameInstance.engine.resize(canvas.width, canvas.height);
+			if (this.backgroundGameInstance.isActive && this.backgroundGameInstance.engine) {
+				const canvas = this.backgroundGameInstance.canvas;
+				if (canvas) {
+					this.resizeCanvas(canvas);
+					this.backgroundGameInstance.engine.resize(canvas.width, canvas.height);
+				}
 			}
+		} catch (error) {
+			// Determine which game instance caused the error
+			const gameType = this.determineErrorSource(error);
+			this.handleGameEngineError(
+				error instanceof Error ? error : new Error(String(error)),
+				gameType
+			);
 		}
 	}
 
@@ -445,5 +484,15 @@ export class GameManager {
 
 	public getMainGameEngine(): GameEngine | null {
 		return this.mainGameInstance.engine;
+	}
+
+	// Helper method to determine error source
+	private determineErrorSource(error: any): 'main' | 'background' {
+		// This is a simple heuristic - you might want to improve it
+		const errorStr = String(error);
+		if (errorStr.includes('background')) {
+			return 'background';
+		}
+		return 'main'; // Default to main game for most errors
 	}
 }
