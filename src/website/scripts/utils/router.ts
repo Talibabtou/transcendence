@@ -4,7 +4,7 @@
  * Uses Navigo for routing and manages component lifecycle and visibility.
  */
 import Navigo from 'navigo';
-import { GameComponent, LeaderboardComponent, ProfileComponent } from '@website/scripts/components';
+import { GameComponent, LeaderboardComponent, ProfileComponent, AuthComponent } from '@website/scripts/components';
 import { GameManager } from '@website/scripts/utils';
 
 // =========================================
@@ -58,6 +58,7 @@ export class Router {
 			.on('/game', () => this.handleRoute(Route.GAME))
 			.on('/leaderboard', () => this.handleRoute(Route.LEADERBOARD))
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
+			.on('#auth', () => this.handleAuthRoute())
 			.notFound(() => {
 				console.log("404: Route not found, defaulting to game");
 				this.handleRoute(Route.GAME);
@@ -73,15 +74,15 @@ export class Router {
 	
 	/**
 	 * Handles route changes by managing component lifecycle and visibility.
-	 * - Manages background game visibility
-	 * - Cleans up old components
-	 * - Creates and renders new components
-	 * - Updates UI state
+	 * Also ensures auth component is properly closed when navigating.
 	 * 
 	 * @param route - The route to handle
 	 */
 	private handleRoute(route: Route): void {
 		const gameManager = GameManager.getInstance();
+		
+		// Always clean up the auth component when changing routes
+		Router.cleanupAuthComponent();
 		
 		// Pause the main game when navigating away from the game route
 		if (this.currentRoute === Route.GAME && route !== Route.GAME) {
@@ -137,6 +138,61 @@ export class Router {
 
 		this.currentRoute = route;
 		this.updateActiveNavItem(route);
+	}
+
+	/**
+	 * Cleans up any auth component that might be displayed
+	 * Static method so it can be called from anywhere
+	 */
+	public static cleanupAuthComponent(): void {
+		// Find all auth containers in the content area
+		const authContainers = document.querySelectorAll('.auth-container');
+		
+		authContainers.forEach(container => {
+			// Find the parent component that might contain the auth component
+			const parentElement = container.parentElement;
+			if (parentElement) {
+				// Remove the auth container
+				parentElement.removeChild(container);
+				
+				// If this was in the content container, restore its state
+				if (parentElement.classList.contains('content-container')) {
+					// Ensure content container is visible and properly styled
+					parentElement.style.display = 'block';
+					parentElement.style.height = '';
+					parentElement.style.overflow = '';
+				}
+			}
+		});
+		
+		// Also check for auth-wrapper elements that might be left behind
+		const authWrappers = document.querySelectorAll('.auth-wrapper');
+		authWrappers.forEach(wrapper => {
+			if (wrapper.parentElement) {
+				wrapper.parentElement.removeChild(wrapper);
+			}
+		});
+	}
+
+	/**
+	 * Handles the special auth route
+	 */
+	private handleAuthRoute(): void {
+		// Clean up any existing auth components
+		Router.cleanupAuthComponent();
+		
+		// Get content container
+		const contentContainer = document.querySelector('.content-container');
+		if (!contentContainer) return;
+		
+		// Create a proper container for the auth component
+		const authWrapper = document.createElement('div');
+		authWrapper.className = 'auth-wrapper';
+		contentContainer.appendChild(authWrapper);
+		
+		// Create auth component in this container
+		const authComponent = new AuthComponent(authWrapper, 'profile', false);
+		authComponent.show();
 	}
 
 	// =========================================

@@ -1,0 +1,248 @@
+/* Authentication styles */
+
+/* Make the auth container adapt to its parent container instead of being fixed */
+.auth-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: 1;
+}
+
+/* When auth container is in a game section */
+.game-container .auth-container,
+.auth-wrapper .auth-container {
+	min-height: 100%;
+}
+
+.auth-form-container {
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	width: 90%;
+	max-width: 500px;
+	position: relative;
+	box-shadow: var(--shadow-normal);
+	animation: fadeIn 0.3s ease;
+	/* Ensure minimum size even in small containers */
+	min-width: 300px;
+	min-height: 300px;
+	/* Center content inside */
+	display: flex;
+	flex-direction: column;
+}
+
+.auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	margin-bottom: var(--spacing-md);
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.form-group label {
+	font-size: var(--font-size-small);
+	color: var(--text-color);
+}
+
+.form-group input {
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	padding: 0.8rem;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+	outline: none;
+	border-color: var(--text-color);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.auth-error {
+	background-color: rgba(255, 100, 100, 0.2);
+	border: 1px solid var(--error-color);
+	color: var(--error-color);
+	padding: var(--spacing-sm);
+	margin-top: var(--spacing-sm);
+	text-align: center;
+}
+
+.auth-links {
+	margin-top: var(--spacing-md);
+	text-align: center;
+	font-size: var(--font-size-small);
+}
+
+.auth-links a {
+	color: var(--accent-color);
+	text-decoration: none;
+	transition: all 0.3s ease;
+}
+
+.auth-links a:hover {
+	text-shadow: 0 0 5px var(--accent-color);
+}
+
+.auth-social-options {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	margin-top: var(--spacing-md);
+}
+
+.auth-social-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-sm);
+}
+
+.auth-social-button::before {
+	content: '';
+	width: 20px;
+	height: 20px;
+	display: inline-block;
+}
+
+.google-auth::before {
+	content: 'G';
+}
+
+.forty-two-auth::before {
+	content: '42';
+}
+
+.auth-success {
+	text-align: center;
+	padding: var(--spacing-md);
+}
+
+.auth-success h2 {
+	margin-bottom: var(--spacing-md);
+	color: var(--win-color);
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(-20px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+/* Add these styles for future split-screen layouts */
+
+/* For multiplayer (vertical split) */
+.multiplayer-container .auth-container {
+	height: 100%;
+	width: 100%;
+}
+
+/* For tournament (4-way split) */
+.tournament-container .auth-container {
+	height: 100%;
+	width: 100%;
+}
+
+/* Adjust form size for smaller containers */
+.small-container {
+	max-width: 90%;
+	padding: var(--spacing-md);
+}
+
+.small-container .auth-form {
+	gap: var(--spacing-xs);
+}
+
+.small-container .form-title {
+	text-align: center;
+	margin-bottom: var(--spacing-sm);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color);
+}
+
+/* Responsive adjustments for very small containers */
+@media (max-height: 500px), (max-width: 400px) {
+	.auth-form-container {
+		padding: var(--spacing-sm);
+	}
+	
+	.auth-social-options {
+		gap: var(--spacing-xs);
+	}
+	
+	.form-group input {
+		padding: 0.5rem;
+	}
+}
+
+/* Add this to your auth.css */
+.checkbox-group {
+	display: flex;
+	align-items: center;
+	margin-bottom: var(--spacing-sm);
+}
+
+.checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	font-size: var(--font-size-small);
+}
+
+.checkbox-label input[type="checkbox"] {
+	width: 16px;
+	height: 16px;
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	appearance: none;
+	-webkit-appearance: none;
+	cursor: pointer;
+	position: relative;
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+	content: '✓';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: var(--accent-color);
+	font-size: 12px;
+}
+
+.checkbox-label input[type="checkbox"]:focus {
+	outline: none;
+	border-color: var(--text-color);
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+/* Logout button */
+.logout-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 4px;
+	background-color: transparent;
+	border: 1px solid #ccc;
+	color: #ccc;
+	font-size: 16px;
+	cursor: pointer;
+	margin-left: 10px;
+	transition: all 0.2s ease;
+}
+
+.logout-button:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+	color: #fff;
+	border-color: #fff;
+}

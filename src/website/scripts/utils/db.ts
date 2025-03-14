@@ -44,6 +44,7 @@ export interface Goal {
 	player: number;
 	duration: number;
 	created_at: Date;
+	hash: string;
 }
 
 // =========================================
@@ -122,6 +123,23 @@ export class DbService {
 			tournament_id: tournamentId
 		};
 		this.logRequest('POST', '/api/matches', matchData);
+	}
+
+	/**
+	 * Records a goal in a match
+	 * @param matchId - The match ID
+	 * @param playerId - The scoring player's ID
+	 * @param duration - Time of goal in seconds from match start
+	 * @param hash - The hash of the goal
+	 */
+	static scoreGoal(matchId: number, playerId: number, duration: number, hash: string): void {
+		const goalData: Partial<Goal> = {
+			match_id: matchId,
+			player: playerId,
+			duration,
+			hash: hash
+		};
+		this.logRequest('POST', '/api/goals', goalData);
 	}
 
 	/**

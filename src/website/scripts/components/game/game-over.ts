@@ -65,8 +65,8 @@ export class GameOverComponent extends Component<GameOverState> {
 		const gameOverContent = html`
 			<div class="game-container">
 				<div class="game-menu">
-					<div class="ascii-title">
-						<pre class="game-over-title">${ASCII_ART.GAME_OVER}</pre>
+					<div class="ascii-title-container">
+						<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
 					</div>
 					<div class="game-result">
 						<div class="winner">${state.winner} Wins!</div>

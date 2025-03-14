@@ -59,6 +59,7 @@ interface ProfileState {
 	isEditing: boolean;
 	activeTab: string;
 	errorMessage?: string;
+	initialized: boolean;
 }
 
 // =========================================
@@ -89,7 +90,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			profile: null,
 			isLoading: false,
 			isEditing: false,
-			activeTab: 'summary'
+			activeTab: 'summary',
+			initialized: false
 		});
 	}
 	
@@ -98,21 +100,59 @@ export class ProfileComponent extends Component<ProfileState> {
 	// =========================================
 	
 	/**
-	 * Renders the component and fetches profile data
+	 * Initializes the component by fetching data
+	 * Separated from render to prevent recursion
 	 */
-	async render(): Promise<void> {
+	async initialize(): Promise<void> {
+		const state = this.getInternalState();
+		if (state.initialized || state.isLoading) return;
+		
 		try {
-			this.updateInternalState({ isLoading: true, errorMessage: undefined });
-			this.renderView();
+			this.updateInternalState({ 
+				isLoading: true, 
+				errorMessage: undefined,
+				initialized: true
+			});
+			
 			await this.fetchProfileData();
-			this.updateInternalState({ isLoading: false });
-			this.renderView();
+			
+			this.updateInternalState({ 
+				isLoading: false 
+			});
 		} catch (error) {
-			console.error('Error rendering profile:', error);
+			console.error('Error initializing profile:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load profile data';
-			this.updateInternalState({ isLoading: false, errorMessage });
-			this.renderView();
+			this.updateInternalState({ 
+				isLoading: false, 
+				errorMessage,
+				initialized: false
+			});
 		}
+	}
+	
+	/**
+	 * Renders the component based on current state
+	 * Only handles UI rendering, not data fetching
+	 */
+	render(): void {
+		this.renderView();
+	}
+	
+	/**
+	 * Called after initial render
+	 * This is where we trigger data fetching
+	 */
+	afterRender(): void {
+		if (!this.getInternalState().initialized) {
+			this.initialize();
+		}
+	}
+	
+	/**
+	 * Cleans up the component when it's destroyed
+	 */
+	destroy(): void {
+		super.destroy();
 	}
 
 	// =========================================
@@ -141,6 +181,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			// Simulate API delay
 			await new Promise(resolve => setTimeout(resolve, 750));
 			const profile = this.createMockProfile(userId);
+			
+			// Update state with profile data
 			this.updateInternalState({ profile });
 		} catch (error) {
 			console.error('Error fetching profile data:', error);

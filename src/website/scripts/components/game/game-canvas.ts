@@ -84,20 +84,46 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * Stops and hides the game
 	 */
 	stopGame(): void {
-		this.updateInternalState({
-			visible: false,
-			isPlaying: false
-		});
-		this.gameManager.cleanupMainGame();
+		try {
+			// Update internal state first
+			this.updateInternalState({
+				visible: false,
+				isPlaying: false,
+				isPaused: false
+			});
+			
+			// Then clean up the game
+			this.gameManager.cleanupMainGame();
+		} catch (error) {
+			console.error('Error stopping game:', error);
+			// Force cleanup on error
+			try {
+				this.gameManager.cleanupMainGame();
+			} catch {}
+		}
 	}
 
 	/**
-	 * Checks if the game is over
+	 * Checks if the game is over with proper safeguards
 	 * @returns True if the game is over, false otherwise
 	 */
 	isGameOver(): boolean {
-		const gameState = this.gameManager.getMainGameState();
-		return gameState?.isGameOver || false;
+		// Only check if component is in a valid state
+		if (!this.getInternalState().isPlaying) {
+			return false;
+		}
+		
+		try {
+			const gameState = this.gameManager.getMainGameState();
+			if (!gameState) {
+				return false;
+			}
+			
+			return Boolean(gameState.isGameOver);
+		} catch (error) {
+			console.error('Error checking game over state:', error);
+			return false;
+		}
 	}
 	
 	/**
