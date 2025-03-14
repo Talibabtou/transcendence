@@ -4,8 +4,7 @@
  * Uses Navigo for routing and manages component lifecycle and visibility.
  */
 import Navigo from 'navigo';
-import { GameComponent, LeaderboardComponent, ProfileComponent, AuthComponent } from '@website/scripts/components';
-import { GameManager } from '@website/scripts/utils';
+import { GameComponent, LeaderboardComponent, ProfileComponent, AuthManager, GameManager } from '@website/scripts/components';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -53,6 +52,16 @@ export class Router {
 	 */
 	constructor(container: HTMLElement) {
 		this.container = container;
+		
+		// Listen for authentication events to update routes
+		document.addEventListener('user-authenticated', () => {
+			console.log('Router detected authentication event');
+			// Re-resolve current route to refresh components
+			if (this.currentRoute) {
+				this.handleRoute(this.currentRoute);
+			}
+		});
+		
 		Router.routerInstance
 			.on('/', () => this.handleRoute(Route.GAME))
 			.on('/game', () => this.handleRoute(Route.GAME))
@@ -191,7 +200,7 @@ export class Router {
 		contentContainer.appendChild(authWrapper);
 		
 		// Create auth component in this container
-		const authComponent = new AuthComponent(authWrapper, 'profile', false);
+		const authComponent = new AuthManager(authWrapper, 'profile', false);
 		authComponent.show();
 	}
 
@@ -251,5 +260,6 @@ export class Router {
  * @param path - The path to navigate to
  */
 export function navigate(path: string) {
+	console.log('Navigating to:', path);
 	Router.routerInstance.navigate(path);
 }

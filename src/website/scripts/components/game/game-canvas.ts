@@ -3,8 +3,8 @@
  * Manages the game canvas and interfaces with the GameManager.
  * Handles game rendering, state tracking, and lifecycle management.
  */
-import { Component, GameMode } from '@website/scripts/components';
-import { GameManager } from '@website/scripts/utils';
+import { Component, GameMode, GameManager } from '@website/scripts/components';
+import { appState } from '@website/scripts/utils';
 import { GameEngine } from '@pong/game/engine';
 
 // =========================================
@@ -31,6 +31,8 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	
 	private canvas: HTMLCanvasElement | null = null;
 	private gameManager: GameManager;
+	private context: CanvasRenderingContext2D | null = null;
+	private playerPaddle: { x: number; y: number; width: number; height: number } = { x: 0, y: 0, width: 0, height: 0 };
 
 	// =========================================
 	// INITIALIZATION
@@ -166,5 +168,20 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 */
 	public getEngine(): GameEngine | null {
 		return this.gameManager.getMainGameEngine();
+	}
+
+	private renderGame(): void {
+		// Get the user's accent color
+		const playerColor = appState.getAccentColorHex();
+		
+		// Use this color for the player's paddle
+		if (this.canvas) {
+			const ctx = this.canvas.getContext('2d');
+			if (ctx) {
+				this.context = ctx; // Now this.context is properly assigned
+				this.context.fillStyle = playerColor;
+				this.context.fillRect(this.playerPaddle.x, this.playerPaddle.y, this.playerPaddle.width, this.playerPaddle.height);
+			}
+		}
 	}
 }

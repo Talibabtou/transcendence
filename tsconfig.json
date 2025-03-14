@@ -18,6 +18,7 @@
 		"paths": {
 			"@pong/*": ["src/pong/*"],
 			"@website/*": ["src/website/*"],
+			"@shared/*": ["src/shared/*"]
 		}
 	},
 	"include": ["src/**/*.ts"],

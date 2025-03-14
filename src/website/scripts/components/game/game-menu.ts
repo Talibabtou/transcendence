@@ -3,8 +3,8 @@
  * Displays the main game menu with different game mode options.
  * Handles user selection of game modes and communicates with parent component.
  */
-import { Component, AuthComponent } from '@website/scripts/components';
-import { html, render, ASCII_ART } from '@website/scripts/utils';
+import { Component, AuthManager } from '@website/scripts/components';
+import { html, render, ASCII_ART, appState } from '@website/scripts/utils';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -44,7 +44,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	/**
 	 * Authentication component instance
 	 */
-	private authComponent: AuthComponent | null = null;
+	private authManager: AuthManager | null = null;
 	
 	// =========================================
 	// INITIALIZATION
@@ -81,53 +81,15 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
 	
 	render(): void {
-		const state = this.getInternalState();
-		if (!state.visible) {
-			this.container.innerHTML = '';
-			return;
-		}
+		// Check if user is authenticated
+		const isAuthenticated = appState.isAuthenticated();
 		
-		// Add game menu with ASCII art title
-		let menuContent;
-		
-		if (state.isAuthenticated) {
-			// User is authenticated, show game mode options
-			menuContent = html`
-				<div id="game-menu" class="game-menu">
-					<div class="ascii-title">
-						<pre class="pong-title">${ASCII_ART.PONG}</pre>
-					</div>
-					<div class="menu-buttons">
-						<button class="menu-button" data-mode="${GameMode.SINGLE}">
-							Single Player
-						</button>
-						<button class="menu-button" data-mode="${GameMode.MULTI}">
-							Multiplayer
-						</button>
-						<button class="menu-button" data-mode="${GameMode.TOURNAMENT}">
-							Tournament
-						</button>
-					</div>
-				</div>
-			`;
+		// Render different UI based on authentication state
+		if (isAuthenticated) {
+			this.renderAuthenticatedMenu();
 		} else {
-			// User is not authenticated, show login button
-			menuContent = html`
-				<div id="game-menu" class="game-menu">
-					<div class="ascii-title">
-						<pre class="pong-title">${ASCII_ART.PONG}</pre>
-					</div>
-					<div class="menu-buttons">
-						<button class="menu-button auth-trigger">
-							Connect to Play
-						</button>
-					</div>
-				</div>
-			`;
+			this.renderUnauthenticatedMenu();
 		}
-		
-		render(menuContent, this.container);
-		this.setupEventListeners();
 	}
 	
 	destroy(): void {
@@ -184,15 +146,15 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		}
 		
 		// Show auth component with non-persistent session by default
-		this.authComponent = new AuthComponent(authWrapper as HTMLElement, 'game', false);
-		this.authComponent.show();
+		this.authManager = new AuthManager(authWrapper as HTMLElement, 'game', false);
+		this.authManager.show();
 		
 		// Listen for authentication event
 		const authListener = () => {
-			// Clean up auth component
-			if (this.authComponent) {
-				this.authComponent.destroy();
-				this.authComponent = null;
+			// Clean up auth manager
+			if (this.authManager) {
+				this.authManager.destroy();
+				this.authManager = null;
 			}
 			
 			// Remove auth container
@@ -228,5 +190,71 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
+	}
+	
+	// =========================================
+	// PRIVATE METHODS
+	// =========================================
+	
+	/**
+	 * Renders the menu for authenticated users
+	 */
+	private renderAuthenticatedMenu(): void {
+		const state = this.getInternalState();
+		if (!state.visible) {
+			this.container.innerHTML = '';
+			return;
+		}
+		
+		// Add game menu with ASCII art title
+		let menuContent = html`
+			<div id="game-menu" class="game-menu">
+				<div class="ascii-title">
+					<pre class="pong-title">${ASCII_ART.PONG}</pre>
+				</div>
+				<div class="menu-buttons">
+					<button class="menu-button" data-mode="${GameMode.SINGLE}">
+						Single Player
+					</button>
+					<button class="menu-button" data-mode="${GameMode.MULTI}">
+						Multiplayer
+					</button>
+					<button class="menu-button" data-mode="${GameMode.TOURNAMENT}">
+						Tournament
+					</button>
+				</div>
+			</div>
+		`;
+		
+		render(menuContent, this.container);
+		this.setupEventListeners();
+	}
+	
+	/**
+	 * Renders the menu for unauthenticated users
+	 */
+	private renderUnauthenticatedMenu(): void {
+		const state = this.getInternalState();
+		if (!state.visible) {
+			this.container.innerHTML = '';
+			return;
+		}
+		
+		// Add game menu with ASCII art title
+		let menuContent = html`
+			<div id="game-menu" class="game-menu">
+				<div class="ascii-title">
+					<pre class="pong-title">${ASCII_ART.PONG}</pre>
+				</div>
+				<div class="menu-buttons">
+					<button class="menu-button auth-trigger">
+						Connect to Play
+					</button>
+				</div>
+			</div>
+		`;
+		
+		render(menuContent, this.container);
+		this.setupEventListeners();
 	}
 }

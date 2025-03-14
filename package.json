@@ -10,7 +10,7 @@
 		"build": "npm run build:pong && npm run build:website",
 		"preview": "vite preview"
 	},
-	"author": "Jack Deadman",
+	"author": "Talibabtou",
 	"license": "ISC",
 	"devDependencies": {
 		"@types/node": "^22.13.10",

@@ -3,8 +3,8 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameMode, GameOverComponent, GameCanvasComponent } from '@website/scripts/components';
-import { GameManager, DbService } from '@website/scripts/utils';
+import { Component, GameMenuComponent, GameMode, GameOverComponent, GameCanvasComponent, GameManager } from '@website/scripts/components';
+import { DbService, appState } from '@website/scripts/utils';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -51,6 +51,7 @@ export class GameComponent extends Component<GameComponentState> {
 	private lastGameOverCheck = 0;
 	private readonly MIN_GAME_DURATION_MS = 2000;
 	private gameStartTime = 0;
+	private unsubscribe: (() => void) | null = null;
 	
 	// =========================================
 	// INITIALIZATION
@@ -63,6 +64,13 @@ export class GameComponent extends Component<GameComponentState> {
 		});
 		
 		this.gameManager = GameManager.getInstance();
+		
+		// Subscribe to app state changes
+		this.unsubscribe = appState.subscribe((newState) => {
+			if ('auth' in newState) {
+				this.handleAuthStateChange();
+			}
+		});
 	}
 	
 	// =========================================
@@ -93,6 +101,11 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 	
 	destroy(): void {
+		// Unsubscribe from app state
+		if (this.unsubscribe) {
+			this.unsubscribe();
+		}
+		
 		// Clean up the main game
 		if (this.canvasComponent) {
 			this.canvasComponent.stopGame();
@@ -468,6 +481,29 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.gameStateInterval !== null) {
 			clearInterval(this.gameStateInterval);
 			this.gameStateInterval = null;
+		}
+	}
+
+	// =========================================
+	// AUTHENTICATION HANDLERS
+	// =========================================
+
+	/**
+	 * Handles authentication events
+	 * @param event - The authentication event
+	 */
+	private handleAuthStateChange(): void {
+		// Re-render the component
+		this.renderComponent();
+		
+		// If we're on the menu, update it to reflect authenticated state
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = new GameMenuComponent(
+				this.gameContainer!, 
+				this.handleModeSelected.bind(this)
+			);
+			this.menuComponent.show();
 		}
 	}
 }

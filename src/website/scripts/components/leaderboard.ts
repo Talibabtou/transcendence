@@ -5,34 +5,7 @@
  */
 import { Component } from '@website/scripts/components';
 import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
-
-// =========================================
-// TYPES & INTERFACES
-// =========================================
-
-/**
- * Represents a single entry in the leaderboard
- */
-interface LeaderboardEntry {
-	rank: number;
-	username: string;
-	elo: number;
-	wins: number;
-	losses: number;
-}
-
-/**
- * Defines the state structure for the LeaderboardComponent
- */
-interface LeaderboardState {
-	leaderboardData: LeaderboardEntry[];
-	isLoading: boolean;
-	errorMessage?: string;
-}
-
-// =========================================
-// LEADERBOARD COMPONENT
-// =========================================
+import { LeaderboardState } from '@shared/types';
 
 /**
  * Component that displays the global leaderboard

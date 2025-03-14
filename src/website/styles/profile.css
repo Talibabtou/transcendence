@@ -349,7 +349,28 @@
 	display: block;
 }
 
-/* Status indicators */
-.status-online { color: #98FB98; }
-.status-offline { color: #aaa; }
-.status-in-game { color: #7cf; }
+.color-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.color-option {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+	border: 2px solid transparent;
+}
+
+.color-option:hover {
+	transform: scale(1.1);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}

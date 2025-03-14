@@ -2,8 +2,9 @@
  * Main application entry point that initializes core components of the website.
  * This file handles the setup of navigation, game functionality, and routing.
  */
-import { Router, NavbarComponent, GameManager } from '@website/scripts/utils';
 
+import { Router, NavbarComponent } from '@website/scripts/utils';
+import { GameManager } from '@website/scripts/components';
 /**
  * Core application class responsible for initializing and orchestrating
  * the website's components and functionality.
@@ -24,7 +25,6 @@ export class App {
 	 * @private
 	 */
 	private initialize(): void {
-		// Initialize components in the correct order
 		this.initializeNavbar();
 		this.initializeGameManager();
 		this.initializeRouter();

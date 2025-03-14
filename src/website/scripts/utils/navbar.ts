@@ -3,8 +3,8 @@
  * Utility class for navbar-specific functionality.
  * Handles the ASCII art logo rendering and authentication in the navbar.
  */
-import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
-import { AuthComponent } from '@website/scripts/components';
+import { html, render, ASCII_ART, Router, navigate, appState } from '@website/scripts/utils';
+import { AuthManager } from '@website/scripts/components';
 
 declare global {
 	interface DocumentEventMap {
@@ -18,7 +18,7 @@ declare global {
 export class NavbarComponent {
 	private static authButton: HTMLAnchorElement | null = null;
 	private static profileButton: HTMLAnchorElement | null = null;
-	private static currentAuthComponent: AuthComponent | null = null;
+	private static currentAuthComponent: AuthManager | null = null;
 	
 	/**
 	 * Initializes the navbar by rendering the ASCII art logo and auth buttons.
@@ -34,15 +34,19 @@ export class NavbarComponent {
 		// Initialize auth-related UI
 		this.initializeAuthUI();
 		
-		// Listen for authentication events
-		document.addEventListener('user-authenticated', this.handleUserAuthenticated.bind(this) as EventListener);
+		// Subscribe to app state changes
+		appState.subscribe((newState) => {
+			if ('auth' in newState) {
+				this.updateAuthUI();
+			}
+		});
 		
 		// Listen for navigation events to clean up auth component if needed
 		window.addEventListener('popstate', this.handleNavigation.bind(this));
 	}
 	
 	/**
-	 * Initializes the auth UI based on stored session
+	 * Initializes the auth UI based on app state
 	 */
 	private static initializeAuthUI(): void {
 		const navRight = document.querySelector('.nav-right');
@@ -51,18 +55,21 @@ export class NavbarComponent {
 		// Clear existing content
 		navRight.innerHTML = '';
 		
-		// Check both storage locations for user data
-		const localUser = localStorage.getItem('auth_user');
-		const sessionUser = sessionStorage.getItem('auth_user');
-		const storedUser = localUser || sessionUser;
-		
-		if (storedUser) {
-			// User is already logged in, show profile button and logout button
+		// Check auth state
+		if (appState.isAuthenticated()) {
+			// User is logged in, show profile button and logout button
 			this.showProfileButton(navRight);
 		} else {
 			// User is not logged in, show auth button
 			this.showAuthButton(navRight);
 		}
+	}
+	
+	/**
+	 * Updates the auth UI when state changes
+	 */
+	private static updateAuthUI(): void {
+		this.initializeAuthUI();
 	}
 	
 	/**
@@ -84,35 +91,45 @@ export class NavbarComponent {
 			
 			this.authButton.addEventListener('click', (e) => {
 				e.preventDefault();
+				console.log('Auth button clicked');
 				
-				// Clean up any existing auth component directly
-				// Don't rely on Router.cleanupAuthComponent
-				if (this.currentAuthComponent) {
-					this.currentAuthComponent.destroy();
-					this.currentAuthComponent = null;
-				}
+				// Use the static method from Router
+				Router.cleanupAuthComponent();
+				console.log('Cleaned up existing auth components');
 				
 				// Get content container
 				const contentContainer = document.querySelector('.content-container');
-				if (!contentContainer) return;
+				if (!contentContainer) {
+					console.error('Content container not found');
+					return;
+				}
+				console.log('Found content container:', contentContainer);
 				
 				// Create a proper container for the auth component
 				let authWrapper = document.querySelector('.auth-wrapper') as HTMLElement;
 				if (!authWrapper) {
+					console.log('Creating new auth wrapper');
 					authWrapper = document.createElement('div');
 					authWrapper.className = 'auth-wrapper';
 					contentContainer.appendChild(authWrapper);
 				} else {
-					// Clear existing content
+					console.log('Clearing existing auth wrapper');
 					authWrapper.innerHTML = '';
 				}
 				
-				// Create auth component in this container
-				this.currentAuthComponent = new AuthComponent(authWrapper, 'profile', false);
-				this.currentAuthComponent.show();
+				try {
+					console.log('Creating AuthManager instance');
+					this.currentAuthComponent = new AuthManager(authWrapper, 'profile', false);
+					console.log('AuthManager created successfully');
+					this.currentAuthComponent.show();
+					console.log('AuthManager show() called');
+				} catch (error) {
+					console.error('Error creating or showing AuthManager:', error);
+				}
 				
 				// Mark the current route as special
 				window.history.pushState({}, 'Auth', '#auth');
+				console.log('Updated URL hash to #auth');
 			});
 		}
 		
@@ -154,24 +171,6 @@ export class NavbarComponent {
 	}
 	
 	/**
-	 * Handles user authentication event
-	 */
-	private static handleUserAuthenticated(event: Event): void {
-		const navRight = document.querySelector('.nav-right');
-		if (!navRight) return;
-		
-		// Cast to CustomEvent to access detail property
-		const customEvent = event as CustomEvent;
-		const isPersistent = customEvent.detail?.persistent || false;
-		
-		// Store this setting for later use
-		localStorage.setItem('auth_persistent', isPersistent.toString());
-		
-		// Show profile button
-		this.showProfileButton(navRight);
-	}
-	
-	/**
 	 * Clean up auth component when navigating away
 	 */
 	private static handleNavigation(): void {
@@ -185,16 +184,8 @@ export class NavbarComponent {
 	 * Handles user logout
 	 */
 	static logout(): void {
-		// Clear user data from both storage types
-		localStorage.removeItem('auth_user');
-		sessionStorage.removeItem('auth_user');
-		localStorage.removeItem('auth_persistent');
-		
-		// Update navbar
-		const navRight = document.querySelector('.nav-right');
-		if (navRight) {
-			this.showAuthButton(navRight);
-		}
+		// Use AppState to logout
+		appState.logout();
 		
 		// Redirect to home
 		navigate('/');
