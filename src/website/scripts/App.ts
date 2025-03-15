@@ -72,3 +72,51 @@ export class App {
 document.addEventListener('DOMContentLoaded', () => {
 	new App();
 });
+
+// TODO:
+/*
+Code Organization & Architecture:
+- Refactor Profile Component into multiple files (stats, history, friends, settings)
+- Improve Game Architecture by refactoring large game files (game.ts and game-manager.ts)
+
+UI & Styling:
+- Game menu buttons all the same size
+- Verify everything works fine on 4k screens
+
+
+Features & Functionality:
+- Implement the real AI for the game, and keep the current one for the background demo mode
+- Implement different difficulty levels for AI
+
+- Create a structured tournament system with pool visualization (4 players per pool, best 2 out of 3 games go to finals and then best 2 out of 3 games to decide the winner)
+- Add the process of logging a second user, just to connect results to db, meaning the main logged in is current user and the second one is guest player (same for tournament).
+- Remove the setting tab when visiting someone else's profile.
+
+- Implement tournament history and stats
+- Implement friend requests/management system
+- Implement a poke feature to notify a friend (you send them a ping, they replys a pong)
+- Notifications for friend requests, pings, etc.
+- Add user preferences for UI themes, game settings
+- Create a dashboard view showing recent activity
+
+- Game should send mock API requests to POST matches, POST goals, and PUT matches when over
+
+- Refine connect/disconnect routing flow
+
+Performance & Security:
+- Implement code splitting for faster initial load
+- Add caching strategies for frequently accessed data
+- Audit and improve authentication security
+- Implement proper input validation throughout
+- Implement better state management (consider Redux or Context API)
+- Optimize database queries
+
+Documentation:
+- Add JSDoc comments to all main functions
+- Add README for the pong and the website
+
+Deployment & DevOps:
+// - Vite configurations
+- Set up proper environment-specific builds
+- Implement full error managing and tracking
+*/

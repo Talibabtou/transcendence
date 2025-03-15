@@ -151,7 +151,7 @@ export class AuthManager extends Component<AuthComponentState> {
 					} else if (provider === AuthMethod.FORTY_TWO) {
 						this.fortyTwoAuthHandler.simulateOAuthLogin();
 					}
-				}, 1000);
+				}, 500);
 			} catch (e) {
 				console.error('Failed to parse OAuth state', e);
 				this.updateInternalState({
@@ -338,4 +338,5 @@ export class AuthManager extends Component<AuthComponentState> {
 		// Clean up event listeners and call parent's destroy
 		super.destroy();
 	}
-} 
+}
+

@@ -67,9 +67,7 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Subscribe to app state changes
 		this.unsubscribe = appState.subscribe((newState) => {
-			if ('auth' in newState) {
-				this.handleAuthStateChange();
-			}
+			this.handleStateChange(newState);
 		});
 	}
 	
@@ -239,9 +237,31 @@ export class GameComponent extends Component<GameComponentState> {
 		// Hide background game (but keep it running)
 		this.gameManager.hideBackgroundGame();
 		
-		// Start the game with selected mode
+		// Ensure the canvas component is properly created and rendered
+		if (!this.canvasComponent) {
+			if (this.gameContainer) {
+				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
+				this.canvasComponent.render();
+			} else {
+				console.error('Game container not available');
+				return;
+			}
+		} else {
+			// Re-render the canvas component
+			this.canvasComponent.render();
+		}
+		
+		// Get current user info
+		const currentUser = appState.getCurrentUser();
+		const playerName = currentUser?.username || 'Player 1';
+		const playerColor = appState.getAccentColorHex();
+		
+		// Start the game with selected mode and player info
 		if (this.canvasComponent) {
-			this.canvasComponent.startGame(state.currentMode);
+			this.canvasComponent.startGame(state.currentMode, {
+				playerName: playerName,
+				playerColor: playerColor
+			});
 		}
 		
 		// Start monitoring game state
@@ -283,8 +303,7 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private handleModeSelected(mode: GameMode): void {
 		// Check if user is authenticated before starting game
-		const storedUser = localStorage.getItem('auth_user');
-		if (!storedUser) {
+		if (!appState.isAuthenticated()) {
 			console.error('User not authenticated');
 			this.updateGameState(GameState.MENU);
 			return;
@@ -489,21 +508,35 @@ export class GameComponent extends Component<GameComponentState> {
 	// =========================================
 
 	/**
-	 * Handles authentication events
-	 * @param event - The authentication event
+	 * Handles app state changes
+	 * @param newState - The updated state properties
 	 */
-	private handleAuthStateChange(): void {
-		// Re-render the component
-		this.renderComponent();
+	private handleStateChange(newState: Partial<any>): void {
+		// Handle authentication changes
+		if ('auth' in newState) {
+			// Re-render the component
+			this.renderComponent();
+			
+			// If we're on the menu, update it to reflect authenticated state
+			if (this.menuComponent) {
+				this.menuComponent.destroy();
+				this.menuComponent = new GameMenuComponent(
+					this.gameContainer!, 
+					this.handleModeSelected.bind(this)
+				);
+				this.menuComponent.show();
+			}
+		}
 		
-		// If we're on the menu, update it to reflect authenticated state
-		if (this.menuComponent) {
-			this.menuComponent.destroy();
-			this.menuComponent = new GameMenuComponent(
-				this.gameContainer!, 
-				this.handleModeSelected.bind(this)
-			);
-			this.menuComponent.show();
+		// For accent color changes, update the player's color in the game
+		if ('accentColor' in newState) {
+			const accentColorHex = appState.getAccentColorHex();
+			console.log('Accent color changed to:', accentColorHex);
+			
+			// Update color using the GameManager
+			if (this.gameManager.isMainGameActive()) {
+				this.gameManager.updateMainGamePlayerColor(accentColorHex);
+			}
 		}
 	}
 }

@@ -169,7 +169,7 @@ export class PauseManager {
 				this.states.delete(GameState.COUNTDOWN);
 				this.states.add(GameState.PLAYING);
 			});
-		}, 1000);
+		}, 500);
 	}
 
 	/**

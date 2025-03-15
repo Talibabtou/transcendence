@@ -164,7 +164,7 @@ export class RegistrationHandler {
 					
 					// Switch to success state
 					this.switchToSuccessState();
-				}, 1000);
+				}, 100);
 			})
 			.catch(error => {
 				console.error('Auth: Registration error', error);

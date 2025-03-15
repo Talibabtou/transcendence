@@ -4,79 +4,14 @@
  * Provides tabbed interface for different sections of user data.
  */
 import { Component } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
-
-// =========================================
-// TYPES & INTERFACES
-// =========================================
-
-/**
- * Complete user profile data structure
- */
-interface UserProfile {
-	id: string;
-	username: string;
-	avatarUrl: string;
-	level: number;
-	experience: number;
-	totalGames: number;
-	wins: number;
-	losses: number;
-	gameHistory: GameHistoryEntry[];
-	friends: Friend[];
-	preferences: {
-		accentColor: string;
-	};
-}
-
-/**
- * Single game history entry
- */
-interface GameHistoryEntry {
-	id: string;
-	date: Date;
-	opponent: string;
-	playerScore: number;
-	opponentScore: number;
-	result: 'win' | 'loss';
-}
-
-/**
- * Friend data structure
- */
-interface Friend {
-	username: string;
-	status: 'online' | 'offline' | 'in-game';
-	avatarUrl: string;
-}
-
-/**
- * Profile component state interface
- */
-interface ProfileState {
-	profile: UserProfile | null;
-	isLoading: boolean;
-	isEditing: boolean;
-	activeTab: string;
-	errorMessage?: string;
-	initialized: boolean;
-}
-
-// =========================================
-// PROFILE COMPONENT
-// =========================================
+import { DbService, html, render, navigate, ASCII_ART, appState, AccentColor } from '@website/scripts/utils';
+import { UserProfile, FriendProfile, ProfileState } from '@shared/types';
 
 /**
  * Component that displays and manages user profiles
  * Provides tabbed interface for different sections of user data
  */
 export class ProfileComponent extends Component<ProfileState> {
-	// =========================================
-	// PROPERTIES
-	// =========================================
-	
-	private colorPicker: HTMLInputElement | null = null;
-	
 	// =========================================
 	// INITIALIZATION
 	// =========================================
@@ -161,24 +96,72 @@ export class ProfileComponent extends Component<ProfileState> {
 	
 	/**
 	 * Fetches profile data from the database
-	 * Currently uses mock data, but prepared for real DB integration
 	 */
 	private async fetchProfileData(): Promise<void> {
 		try {
 			const url = new URL(window.location.href);
 			const userId = url.searchParams.get('id') || 'current';
-
-			// Simulate API delay
-			await new Promise(resolve => setTimeout(resolve, 750));
-			// Convert userId to number since our DB interface expects it
 			const numericId = userId === 'current' ? 1 : parseInt(userId, 10);
 			
-			// Use DbService for all data fetching
+			// SIMULATION: API calls
 			DbService.getUser(numericId);
 			DbService.getUserMatches(numericId);
 			DbService.getUserFriends(numericId);
 			
-			// Simulate API delay
+			/* 
+			FUTURE IMPLEMENTATION:
+			
+			// 1. Get basic user data
+			const userData = await api.getUser(numericId);
+			// 2. Get user's match history
+			const matches = await api.getUserMatches(numericId);
+			// 3. Get user's friend relationships
+			const friendRelationships = await api.getUserFriends(numericId);
+			// 4. For each friend relationship, get the friend's profile data
+			const friendProfiles: FriendProfile[] = await Promise.all(
+				friendRelationships.map(async (relationship) => {
+					const friendId = relationship.friend_id;
+					const friendData = await api.getUser(friendId);
+					
+					return {
+						id: friendId,
+						username: friendData.pseudo,
+						avatarUrl: friendData.pfp || '../../public/images/default-avatar.svg',
+						lastLogin: friendData.last_login
+					};
+				})
+			);
+			// 5. Build game history from matches
+			const gameHistory = matches.map(match => ({
+				id: match.id.toString(),
+				date: match.created_at,
+				opponent: match.player_1 === numericId ? 
+						  (await api.getUser(match.player_2)).pseudo : 
+						  (await api.getUser(match.player_1)).pseudo,
+				playerScore: (await api.getMatchGoals(match.id, numericId)).length,
+				opponentScore: (await api.getMatchGoals(match.id, 
+							   match.player_1 === numericId ? match.player_2 : match.player_1)).length,
+				result: playerScore > opponentScore ? 'win' : 'loss'
+			}));
+			// 6. Construct the complete profile
+			const profile: UserProfile = {
+				id: userId,
+				username: userData.pseudo,
+				avatarUrl: userData.pfp || '../../public/images/default-avatar.svg',
+				level: calculateLevel(matches), // Calculate level based on matches
+				experience: calculateExperience(matches), // Calculate XP based on matches
+				totalGames: matches.length,
+				wins: matches.filter(m => isWin(m, numericId)).length,
+				losses: matches.filter(m => !isWin(m, numericId)).length,
+				gameHistory: gameHistory,
+				friends: friendProfiles,
+				preferences: {
+					accentColor: userData.theme || '#7cf'
+				}
+			};
+			*/
+			
+			// SIMULATION: Use mock data for now
 			await new Promise(resolve => setTimeout(resolve, 750));
 			const profile = this.createMockProfile(userId);
 			
@@ -199,24 +182,25 @@ export class ProfileComponent extends Component<ProfileState> {
 		const isCurrentUser = userId === 'current';
 		const id = isCurrentUser ? 'current' : userId;
 		
-		// Create mock friends
-		const mockFriends: Friend[] = [
-			{
-				username: 'PongMaster',
-				status: 'online',
-				avatarUrl: '../../public/images/default-avatar.svg'
-			},
-			{
-				username: 'RetroGamer',
-				status: 'in-game',
-				avatarUrl: '../../public/images/default-avatar.svg'
-			},
-			{
-				username: 'PixelPro',
-				status: 'offline',
-				avatarUrl: '../../public/images/default-avatar.svg'
-			}
-		];
+		// Create mock friends - simulating fetching friend data from DB
+		const mockFriendIds = [101, 102, 103]; // Simulated friend IDs from DB
+		
+		// Simulate fetching friend profiles from the database
+		const mockFriends: FriendProfile[] = mockFriendIds.map((friendId, index) => {
+			// In a real implementation, you would fetch each friend's data using DbService
+			// DbService.getUser(friendId) would return username, avatar, last_login
+			
+			// For mock data, create some sample friends
+			const friendNames = ['PongMaster', 'RetroGamer', 'PixelPro'];
+			const lastLoginDays = [0, 2, 5]; // days ago
+			
+			return {
+				id: friendId,
+				username: friendNames[index],
+				avatarUrl: '../../public/images/default-avatar.svg',
+				lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 24 * lastLoginDays[index])
+			};
+		});
 
 		return {
 			id,
@@ -573,7 +557,9 @@ export class ProfileComponent extends Component<ProfileState> {
 							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
 							<div class="friend-info">
 								<span class="friend-name">${friend.username}</span>
-								<span class="friend-status ${friend.status}">${friend.status}</span>
+								<span class="friend-last-login">
+									Last seen: ${friend.lastLogin ? this.formatLastSeen(friend.lastLogin) : 'Unknown'}
+								</span>
 							</div>
 						</div>
 					`)}
@@ -588,6 +574,10 @@ export class ProfileComponent extends Component<ProfileState> {
 	private renderSettings() {
 		const state = this.getInternalState();
 		if (!state.profile) return html``;
+		
+		// Get available colors from app state
+		const availableColors = appState.getAvailableColors();
+		const currentColor = appState.getAccentColor();
 		
 		return html`
 			<div class="tab-pane" id="settings">
@@ -604,6 +594,19 @@ export class ProfileComponent extends Component<ProfileState> {
 					<div class="form-group">
 						<label for="password">Change Password</label>
 						<input type="password" id="password" name="password" placeholder="New password" disabled>
+					</div>
+					<div class="form-group">
+						<label>Accent Color</label>
+						<div class="color-picker">
+							${Object.entries(availableColors).map(([colorName, colorHex]) => html`
+								<div 
+									class="color-option ${colorName === currentColor ? 'selected' : ''}"
+									style="background-color: ${colorHex}"
+									onClick=${() => this.handleColorSelect(colorName as AccentColor)}
+									title="${colorName}"
+								></div>
+							`)}
+						</div>
 					</div>
 					<button type="button" class="save-settings-button" disabled>Save Changes</button>
 				</form>
@@ -645,5 +648,35 @@ export class ProfileComponent extends Component<ProfileState> {
 				</tbody>
 			</table>
 		`;
+	}
+
+	// Helper function to format the last seen date in a user-friendly way
+	private formatLastSeen(date: Date): string {
+		const now = new Date();
+		const diffMs = now.getTime() - date.getTime();
+		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+		
+		if (diffDays === 0) {
+			const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+			if (diffHours === 0) {
+				const diffMinutes = Math.floor(diffMs / (1000 * 60));
+				return diffMinutes <= 5 ? 'Just now' : `${diffMinutes} minutes ago`;
+			}
+			return `${diffHours} hours ago`;
+		} else if (diffDays === 1) {
+			return 'Yesterday';
+		} else if (diffDays < 7) {
+			return `${diffDays} days ago`;
+		} else {
+			return date.toLocaleDateString();
+		}
+	}
+
+	// Add a method to handle color selection
+	private handleColorSelect(color: AccentColor): void {
+		// Update app state
+		appState.setAccentColor(color);
+		// Re-render settings to show the selection
+		this.renderSettings();
 	}
 }

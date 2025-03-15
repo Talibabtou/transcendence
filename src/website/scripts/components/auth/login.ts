@@ -177,7 +177,7 @@ export class LoginHandler {
 							error: 'Invalid email or password'
 						});
 					}
-				}, 1000);
+				}, 100);
 			})
 			.catch(error => {
 				console.error('Auth: Login error', error);

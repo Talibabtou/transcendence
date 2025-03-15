@@ -296,4 +296,27 @@ export class GameEngine {
 			this.scene.handlePause();
 		}
 	}
+
+	/**
+	 * Updates the color of player paddles
+	 * @param playerOneColor Color for player one (hex format)
+	 * @param playerTwoColor Optional color for player two (hex format)
+	 */
+	public updatePlayerColors(playerOneColor: string, playerTwoColor?: string): void {
+		if (this.scene) {
+			// Update Player 1's color
+			const player1 = this.scene.getPlayer1();
+			if (player1) {
+				player1.setColor(playerOneColor);
+			}
+			
+			// If player two color is provided, update it as well
+			if (playerTwoColor) {
+				const player2 = this.scene.getPlayer2();
+				if (player2) {
+					player2.setColor(playerTwoColor);
+				}
+			}
+		}
+	}
 }

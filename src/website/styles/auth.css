@@ -229,20 +229,21 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 32px;
-	height: 32px;
-	border-radius: 4px;
-	background-color: transparent;
-	border: 1px solid #ccc;
-	color: #ccc;
-	font-size: 16px;
+	color: var(--error-color);
+	text-decoration: none;
+	padding: 0.8rem 1rem;
+	transition: all 0.3s ease;
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: relative;
+	overflow: hidden;
 	cursor: pointer;
-	margin-left: 10px;
-	transition: all 0.2s ease;
+	font-size: var(--font-size-small);
 }
 
 .logout-button:hover {
-	background-color: rgba(255, 255, 255, 0.1);
-	color: #fff;
-	border-color: #fff;
+	text-shadow: 0 0 10px var(--error-color);
+	border-color: var(--error-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
 }

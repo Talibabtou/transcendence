@@ -14,7 +14,7 @@ export class Player implements GraphicalElement {
 	// =========================================
 	protected direction: Direction | null = null;
 	protected speed: number = 0;
-	protected readonly colour = COLORS.PADDLE;
+	protected colour = COLORS.PADDLE;
 	protected score = 0;
 	protected readonly startX: number;
 	protected readonly startY: number;
@@ -456,5 +456,13 @@ export class Player implements GraphicalElement {
 	 */
 	public setName(name: string): void {
 		this._name = name;
+	}
+
+	/**
+	 * Sets the color of the player's paddle
+	 * @param color New color in hex format (e.g. '#3498db')
+	 */
+	public setColor(color: string): void {
+		(this as any).colour = color;
 	}
 }

@@ -3,16 +3,82 @@
  * Provides interfaces and methods for interacting with the application database.
  * Handles data retrieval, updates, and API communication for persistent storage.
  */
-import {
-	User,
-	Friend,
-	Match,
-	Goal,
-	AuthCredentials,
-	RegisterData,
-	AuthResponse,
-	OAuthRequest
-} from '@shared/types';
+
+// =========================================
+// DATA MODELS & TYPES
+// =========================================
+
+/**
+ * Database schema interfaces
+ */
+export interface User {
+	id: number;
+	theme?: string;
+	pfp?: string;
+	human: boolean;
+	pseudo: string;
+	last_login?: Date;
+	created_at: Date;
+	email?: string;
+	auth_method?: string;
+}
+
+export interface Friend {
+	user_id: number;
+	friend_id: number;
+	created_at: Date;
+}
+
+export interface Match {
+	id: number;
+	player_1: number;
+	player_2: number;
+	completed: boolean;
+	duration?: number;
+	timeout: boolean;
+	tournament_id?: number;
+	created_at: Date;
+}
+
+export interface Goal {
+	id: number;
+	match_id: number;
+	player: number;
+	duration: number;
+	created_at: Date;
+	hash: string;
+}
+
+/**
+ * Authentication related interfaces
+ */
+export interface AuthCredentials {
+	email: string;
+	password: string;
+}
+
+export interface RegisterData {
+	username: string;
+	email: string;
+	password: string;
+}
+
+export interface AuthResponse {
+	user: User;
+	token: string;
+	refreshToken?: string;
+}
+
+export interface OAuthRequest {
+	provider: string;
+	code: string;
+	redirectUri: string;
+	state?: string;
+}
+
+// =========================================
+// DATABASE SERVICE
+// =========================================
 
 /**
  * Service class for handling database operations
@@ -357,8 +423,15 @@ export class DbService {
 	/**
 	 * Retrieves global leaderboard data
 	 */
-	static getLeaderboard() {
+	static getLeaderboard(): Promise<any[]> {
 		this.logRequest('GET', '/api/leaderboard');
+		
+		// Mock leaderboard data
+		return Promise.resolve([
+			{ id: 1, pseudo: 'Player1', wins: 10, losses: 2 },
+			{ id: 2, pseudo: 'Player2', wins: 8, losses: 3 },
+			{ id: 3, pseudo: 'Player3', wins: 7, losses: 5 }
+		]);
 	}
 
 	// =========================================

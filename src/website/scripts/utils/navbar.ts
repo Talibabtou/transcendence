@@ -86,8 +86,8 @@ export class NavbarComponent {
 		if (!this.authButton) {
 			this.authButton = document.createElement('a');
 			this.authButton.className = 'nav-item';
-			this.authButton.textContent = 'Login';
-			this.authButton.href = '#auth';  // Use a special hash for auth
+			this.authButton.textContent = 'Log in';
+			this.authButton.href = '#auth';
 			
 			this.authButton.addEventListener('click', (e) => {
 				e.preventDefault();
@@ -162,7 +162,7 @@ export class NavbarComponent {
 		const logoutButton = document.createElement('button');
 		logoutButton.className = 'nav-item logout-button';
 		logoutButton.innerHTML = '⏻'; // Power symbol for logout
-		logoutButton.title = 'Logout';
+		logoutButton.title = 'Log out';
 		logoutButton.addEventListener('click', () => {
 			this.logout();
 		});

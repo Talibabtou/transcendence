@@ -107,7 +107,7 @@ export class GameManager {
 			
 			// Append to provided container
 			if (container) {
-				container.innerHTML = ''; // Clear container first
+				container.innerHTML = '';
 				container.appendChild(canvas);
 			} else {
 				console.error('No container provided for main game');
@@ -238,11 +238,61 @@ export class GameManager {
 		instance.isPaused = false;
 	}
 
-	// Public methods that use the generic methods
-	public startMainGame(mode: GameMode, container: HTMLElement): void {
+	/**
+	 * Starts the main game with player information
+	 * @param mode Game mode to start
+	 * @param container HTML element to render the game in
+	 * @param playerInfo Optional player information
+	 */
+	public startMainGame(
+		mode: GameMode, 
+		container: HTMLElement, 
+		playerInfo?: { 
+			playerName?: string,
+			playerColor?: string 
+		}
+	): void {
+		// Start the game
 		this.startGame(this.mainGameInstance, mode, container);
+		
+		// Set player information if provided
+		if (playerInfo) {
+			const currentUser = playerInfo.playerName || 'Player 1';
+			let opponent = 'Computer';
+			// If multiplayer, set appropriate names
+			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
+				opponent = 'Player 2';
+			}
+			
+			// Set player names
+			if (this.mainGameInstance.engine) {
+				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
+			}
+			
+			// Set player color if provided
+			if (playerInfo.playerColor && this.mainGameInstance.engine) {
+				this.mainGameInstance.engine.updatePlayerColors(playerInfo.playerColor);
+			}
+		}
 	}
 
+	/**
+	 * Sets player names for the main game
+	 * @param player1Name Name for player 1
+	 * @param player2Name Name for player 2
+	 */
+	public setMainGamePlayerNames(player1Name: string, player2Name: string): void {
+		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
+			try {
+				this.mainGameInstance.engine.setPlayerNames(player1Name, player2Name);
+				console.log('Set player names:', player1Name, player2Name);
+			} catch (error) {
+				console.error('Error setting player names:', error);
+			}
+		}
+	}
+
+	// Public methods that use the generic methods
 	public startBackgroundGame(): void {
 		// Skip if not fully initialized
 		if (!GameManager.isInitialized) {
@@ -445,5 +495,21 @@ export class GameManager {
 
 	public getMainGameEngine(): GameEngine | null {
 		return this.mainGameInstance.engine;
+	}
+
+	/**
+	 * Updates the color of player paddles in the main game
+	 * @param playerColor Color for the player's paddle (hex format)
+	 */
+	public updateMainGamePlayerColor(playerColor: string): void {
+		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
+			try {
+				// The GameEngine has an updatePlayerColors method we can use
+				this.mainGameInstance.engine.updatePlayerColors(playerColor);
+				console.log('Updated player color to:', playerColor);
+			} catch (error) {
+				console.error('Error updating player color:', error);
+			}
+		}
 	}
 }
