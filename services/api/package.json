@@ -17,6 +17,7 @@
   "description": "",
   "dependencies": {
     "@fastify/jwt": "^9.0.4",
+    "@fastify/multipart": "^9.0.3",
     "@tsconfig/node23": "^23.0.0",
     "@types/node": "^22.13.8",
     "@types/node-fetch": "^2.6.12",

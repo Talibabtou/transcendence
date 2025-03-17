@@ -7,23 +7,23 @@ const jwt = { auth: true };
 const noJwt = { auth: false };
 
 export default async function authRoutes(fastify: FastifyInstance) {
-  fastify.get('/auth',
+  fastify.get('/users',
     { config: jwt },
     getUsers);
 
-  fastify.get<{ Params: IGetIdUser }>('/auth/:id',
+  fastify.get<{ Params: IGetIdUser }>('/user/:id',
     { schema: getIdUserSchema, config: jwt },
     getUser);
 
-  fastify.post<{ Body: ICreateUser }>('/auth',
+  fastify.post<{ Body: ICreateUser }>('/users',
     { schema: createUserSchema, config: noJwt },
     addUser);
 
-  fastify.patch<{ Params: IGetIdUser, Body: IModifyUser }>('/auth/:id',
+  fastify.patch<{ Params: IGetIdUser, Body: IModifyUser }>('/user/:id',
     { schema: { ...getIdUserSchema, ...modifyUserSchema}, config: jwt },
     modifyUser)
   
-  fastify.delete<{ Params: IGetIdUser }>('/auth/:id',
+  fastify.delete<{ Params: IGetIdUser }>('/user/:id',
     { schema: getIdUserSchema, config: jwt },
     deleteUser);
 

@@ -14,7 +14,7 @@ rm csr.pem
 ### Install typescript env
 ```bash
 npm init -y // generate .json files
-npm install @types/node typescript fastify sqlite3 sqlite @types/node-fetch@2 @fastify/jwt fastify-plugin // install necessary modules
+npm install @types/node typescript fastify sqlite3 sqlite @types/node-fetch@2 @fastify/jwt fastify-plugin @fastify/multipart // install necessary modules
 npx tsc --init // generate tsconfig file
 ```
 - configure tsconfig.json

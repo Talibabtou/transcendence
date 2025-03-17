@@ -36,7 +36,7 @@ export const loginSchema = {
         minLength: 8,
         pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
         maxLength: 255 
-      } // Autorise only password with minimum one upper case letter, one lower case and one digit with a minimum length of 8
+      } // Only password with minimum one upper, one lower, one digit and min length of 8.
     },
     required: ['password', 'email'],
     additionalProperties: false,
@@ -61,7 +61,7 @@ export const modifyUserSchema  = {
             minLength: 8,
             pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
             maxLength: 255
-          }, // Autorise only password with minimum one upper case letter, one lower case and one digit with a minimum length of 8
+          },// Only password with minimum one upper, one lower, one digit and min length of 8.
        },
        required: ['password'],
         additionalProperties: false,

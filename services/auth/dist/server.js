@@ -12,19 +12,19 @@ const start = async () => {
         await server.register(authRoutes);
         server.listen({ port: 8082, host: 'localhost' }, (err, address) => {
             if (err)
-                throw new Error(err.message);
-            console.log(`Server listening at ${address}`);
+                throw new Error("server listen");
+            server.log.info(`Server listening at ${address}`);
         });
     }
     catch (err) {
-        console.error('Fatal error:', err);
+        server.log.error('Fatal error', err.message);
         process.exit(1);
     }
 };
 const shutdownServer = async (signal) => {
-    console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+    server.log.info(`\nReceived ${signal}. Shutting down gracefully...`);
+    server.log.info('Server has been closed.');
     await server.close();
-    console.log('Server has been closed.');
     process.exit(0);
 };
 process.on('SIGINT', () => shutdownServer('SIGINT'));

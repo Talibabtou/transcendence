@@ -6,6 +6,7 @@ declare module 'fastify' {
     user: {
       id: string;
       username: string;
+      role: string;
     };
   }
 }
@@ -14,10 +15,11 @@ export async function addUser(request: FastifyRequest<{ Body: ICreateUser }>, re
     try {
         const { username, password, email } = request.body;
         await request.server.db.run('BEGIN TRANSACTION');
-        await request.server.db.run('INSERT INTO users (username, password, email, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP);', [username, password, email]);
+        await request.server.db.run('INSERT INTO users (role, username, password, email, created_at) VALUES ("user", ?, ?, ?, CURRENT_TIMESTAMP);', [username, password, email]);
         await request.server.db.run('COMMIT');
         await request.server.db.get('SELECT id, username FROM users WHERE email = ?', [email]);
-        return reply.code(201).send({ message: 'User created successfully' }); // User created successfully
+        request.server.log.info("User created successfully");
+        return reply.code(201).send({ message: 'User created successfully' });
     }  catch (err: any) {
         let message = '';
         if (err.code === 'SQLITE_CONSTRAINT') {
@@ -30,57 +32,76 @@ export async function addUser(request: FastifyRequest<{ Body: ICreateUser }>, re
           if (message == '')
             message = 'Unique constraint violation';
           await request.server.db.run('ROLLBACK');
-          return reply.code(409).send({ message: message, error: err.message }); // User not created
+          request.server.log.error("User not created", err);
+          return reply.code(409).send({ message: message });
         }
         await request.server.db.run('ROLLBACK');
-        return reply.code(500).send({ error: err.message }); // Internal server error
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({ message: "Internal server error" });
     }
 }
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     try {
       const users = await request.server.db.all('SELECT username, email FROM users');
-      return reply.code(200).send({ data: users }); // Users successfully obtained
+      request.server.log.info("Users successfully obtained");
+      return reply.code(200).send({ data: users });
     } catch (err: any) {
-      return reply.code(500).send({ error: err.message }); // Internal server error
+      request.server.log.error("Internal server error", err);
+      return reply.code(500).send({ error: err.message });
     }
 }
 
 export async function getUser(request: FastifyRequest<{ Params: IGetIdUser }>, reply: FastifyReply) {
     try {
         const id = request.params.id;
-        if (request.user && id !== request.user.id)
+        if (request.user && id !== request.user.id) {
+          request.server.log.error("Unauthorized");
           return reply.status(401).send({ message: 'Unauthorized' });
+        }
         const result = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
-        if (!result)
-          return reply.code(404).send({ message: "User not found" }); // User not found
-        return reply.code(200).send({ data: result }); // User successfully obtained
+        if (!result) {
+          request.server.log.error("User not found");
+          return reply.code(404).send({ message: "User not found" });
+        }
+        request.server.log.info("User successfully obtained");
+        return reply.code(200).send({ data: result });
     } catch (err: any) {
-        if (err.message.includes('SQLITE_MISMATCH'))
-          return reply.code(400).send({ error: err.message }); // Invalid ID format
-        return reply.code(500).send({ error: err.message }); // Internal server error
+        if (err.message.includes('SQLITE_MISMATCH')) {
+          request.server.log.error("Invalid ID format", err);
+          return reply.code(400).send({ error: err.message });
+        }
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({ error: err.message });
     }
 }
 
 export async function deleteUser(request: FastifyRequest<{ Params: IGetIdUser }>, reply: FastifyReply) {
     try {
       const id = request.params.id;
-      if (request.user && id !== request.user.id)
+      if (request.user && id !== request.user.id){
+        request.server.log.error("Unauthorized");
         return reply.status(401).send({ message: 'Unauthorized' });
+      }
       const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
-      if (!result)
-        return reply.code(404).send({ message: "User not found" }); // User not found
+      if (!result){
+        request.server.log.error("User not found");
+        return reply.code(404).send({ message: "User not found" });
+      }
       await request.server.db.run('BEGIN TRANSACTION');
       await request.server.db.run('DELETE FROM users WHERE id = ?', [id]);
       await request.server.db.run('COMMIT');
-      return reply.code(204).send(); // User successfully deleted
+      request.server.log.info("User successfully deleted");
+      return reply.code(204).send();
     } catch (err: any) {
       if (err.message.includes('SQLITE_MISMATCH')) {
         await request.server.db.run('ROLLBACK');
-        return reply.code(400).send({ error: err.message }); // Invalid ID format
+        request.server.log.error("Invalid ID format", err);
+        return reply.code(400).send({ error: err.message });
       }
       await request.server.db.run('ROLLBACK');
-      return reply.code(500).send({ error: err.message }); // Internal server error
+      request.server.log.error("Internal server error", err);
+      return reply.code(500).send({ error: err.message });
     }
 }
 
@@ -88,12 +109,16 @@ export async function modifyUser(request: FastifyRequest<{ Params: IGetIdUser, B
     try {
         let dataName = '';
         const id = request.params.id;
-        if (request.user && id !== request.user.id)
+        if (request.user && id !== request.user.id){
+          request.server.log.error("Unauthorized");
           return reply.status(401).send({ message: 'Unauthorized' });
+        }
         const { username, password, email } = request.body;
         let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
-        if (!result)
-          return reply.code(404).send({ message: "User not found" }); // User not found
+        if (!result){
+          request.server.log.error("User not found");
+          return reply.code(404).send({ message: "User not found" });
+        }
         if (username) {
           dataName = 'username';
           await request.server.db.run('BEGIN TRANSACTION');
@@ -110,7 +135,8 @@ export async function modifyUser(request: FastifyRequest<{ Params: IGetIdUser, B
           await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
           await request.server.db.run('COMMIT');
         }
-        return reply.code(200).send({ message: `${dataName} has been modified successfully`, data: result, }); // Has been modified successfully
+        request.server.log.info(`${dataName} has been modified successfully`);
+        return reply.code(200).send({ message: `${dataName} has been modified successfully` });
     } catch (err: any) {
         let message = '';
         if (err.code === 'SQLITE_CONSTRAINT') {
@@ -121,30 +147,40 @@ export async function modifyUser(request: FastifyRequest<{ Params: IGetIdUser, B
           else if (!message)
             message = 'Unique constraint violation';
           await request.server.db.run('ROLLBACK');
-          return reply.code(409).send({ message: message, error: err.message }); // SQLITE CONSTRAINT
+          request.server.log.error(message, err);
+          return reply.code(409).send({ message: message, error: err.message });
         } else if (err.message.includes('SQLITE_MISMATCH')) {
           await request.server.db.run('ROLLBACK');
-          return reply.code(400).send({ error: err.message }); // Invalid ID format
+          request.server.log.error("Invalid ID format", err);
+          return reply.code(400).send({ error: err.message });
         }
         await request.server.db.run('ROLLBACK');
-        return reply.code(500).send({ error: err.message }); // Internal server error
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({ error: err.message });
     }
 }
 
 export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const { email, password } = request.body;
-    const user = await request.server.db.get('SELECT id, username FROM users WHERE email = ? AND password = ?;', [email, password]);
-    if (user == undefined)
-      return reply.code(401).send({ message: 'Invalid email or password' }); // Invalid email or password
     await request.server.db.run('BEGIN TRANSACTION');
+    const user = await request.server.db.get('SELECT id, role, username FROM users WHERE email = ? AND password = ?;', [email, password]);
+    if (user == undefined){
+      await request.server.db.run('ROLLBACK');
+      request.server.log.error("Invalid email or password");
+      return reply.code(401).send({ message: 'Invalid email or password' });
+    }
     await request.server.db.run('UPDATE users SET last_login = (CURRENT_TIMESTAMP) WHERE email = ? AND password = ?', [email, password]);
     await request.server.db.run('COMMIT');
-    const token = request.server.jwt.sign( user );
+    const token = request.server.jwt.sign( { id: user.id, role: user.role} );
     console.log({ token: token });
-    return reply.code(200).send({ token: token }); // Login success and jwt generated
+    return reply.code(200).send({
+      token: token,
+      user: user
+    });
   }  catch (err: any) {
     await request.server.db.run('ROLLBACK');
-    return reply.code(500).send({ error: err.message }); // Internal server error
+    request.server.log.error("Internal server error", err);
+    return reply.code(500).send({ error: err.message });
   }
 }

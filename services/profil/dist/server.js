@@ -1,17 +1,8 @@
 import { fastify } from 'fastify';
 import fastifyMultipart from '@fastify/multipart';
-import authRoutes from './routes/auth.routes.js';
 import profilRoutes from './routes/profil.routes.js';
+import { jwtPluginRegister, jwtPluginHook } from './plugins/jwtPlugin.js';
 import fastifyJwt from '@fastify/jwt';
-import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
-// const server = fastify({
-// 	logger: true,
-// 	http2: true,
-// 	https: {
-// 		key: readFileSync(path.join(path.resolve(), '/certs/key.pem')),
-// 		cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
-// 	}
-// });
 const server = fastify({ logger: true });
 const start = async () => {
     try {
@@ -28,9 +19,8 @@ const start = async () => {
         });
         await server.register(fastifyJwt, jwtPluginRegister);
         server.addHook('onRequest', jwtPluginHook);
-        await server.register(authRoutes, { prefix: '/api/v1/' });
-        await server.register(profilRoutes, { prefix: '/api/v1/' });
-        server.listen({ port: 8080, host: "localhost" }, (err, address) => {
+        await server.register(profilRoutes);
+        server.listen({ port: 8081, host: 'localhost' }, (err, address) => {
             if (err)
                 throw new Error("server listen");
             server.log.info(`Server listening at ${address}`);

@@ -1,32 +1,33 @@
 import { FastifyInstance } from 'fastify';
-import { getAuth, getIdAuth, postAuth, patchAuth, deleteIdAuth, postLogin } from '../controllers/auth.controllers.js'
+import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js'
 
 const jwt = { auth: true };
-const noJwt = { auth: false }
+const noJwt = { auth: false };
 
 export default async function authRoutes(fastify: FastifyInstance) {
   
-	fastify.get('/auth/:id', 
+	fastify.get('/auth/user/:id', 
 		{ config: jwt },
-		getIdAuth);
+		getUser);
 
-	fastify.get('/auth', 
+	fastify.get('/auth/users', 
 		{ config: jwt },
-		getAuth);
+		getUsers);
 
-	fastify.post('/auth', 
+	fastify.post('/auth/user', 
 		{ config: noJwt },
-		postAuth);
+		postUser);
 
-	fastify.patch('/auth/:id',
+	fastify.patch('/auth/user/:id',
 		{ config: jwt },
-		patchAuth);
+		patchUser);
 
-	fastify.delete('/auth/:id',
+	fastify.delete('/auth/user/:id',
 		{ config: jwt },
-		deleteIdAuth);
+		deleteUser);
 
-	fastify.post('/login',
+	fastify.post('/auth/login',
 		{ config: noJwt },
 		postLogin);
+
 }

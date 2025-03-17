@@ -20,18 +20,18 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
       return;
     }
 
-    // Check if Authorization header exists
     if (!authHeader?.startsWith('Bearer ')) {
+      request.server.log.error("Missing or invalid Authorization header");
       return reply.status(401).send({ message: 'Missing or invalid Authorization header' });
     }
 
     try {
       await request.jwtVerify();
     } catch (err: any) {
-      // More specific error handling
       const message = err.code === 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED' 
         ? 'Token expired' 
         : 'Unauthorized';
+      request.server.log.error(message, err);
       return reply.status(401).send({ message });
     }
 }

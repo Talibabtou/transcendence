@@ -1,6 +1,6 @@
 import { fastify } from 'fastify';
-import { initDb } from './db.js';
-import authRoutes from './routes/auth.routes.js';
+import fastifyMultipart from '@fastify/multipart';
+import profilRoutes from './routes/profil.routes.js';
 import { jwtPluginRegister, jwtPluginHook } from './plugins/jwtPlugin.js'
 import fastifyJwt from '@fastify/jwt';
 
@@ -8,11 +8,21 @@ const server = fastify({ logger: true });
 
 const start = async () => {
 	try {
-		server.decorate('db', await initDb());
+		await server.register(fastifyMultipart, {
+			limits: {
+			  fieldNameSize: 100,
+			  fieldSize: 100,
+			  fields: 10,
+			  fileSize: 1000000,
+			  files: 1,
+			  headerPairs: 2000,
+			  parts: 1000
+			}
+		});
 		await server.register(fastifyJwt, jwtPluginRegister);
 		server.addHook('onRequest', jwtPluginHook)
-		await server.register(authRoutes);
-		server.listen({ port: 8082, host: 'localhost' }, (err: any, address: any) => {
+		await server.register(profilRoutes);
+		server.listen({ port: 8081, host: 'localhost' }, (err: any, address: any) => {
 		if (err)
 			throw new Error("server listen");
 		server.log.info(`Server listening at ${address}`);

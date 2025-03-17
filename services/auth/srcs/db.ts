@@ -24,6 +24,7 @@ export async function initDb() {
           lower(hex(randomblob(2))) || '-' || 
           lower(hex(randomblob(6)))
         ), -- Standard UUID format
+        role VARCHAR(5) NOT NULL,
         username VARCHAR(20) NOT NULL UNIQUE,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
