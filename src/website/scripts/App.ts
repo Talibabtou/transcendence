@@ -83,7 +83,6 @@ UI & Styling:
 - Game menu buttons all the same size
 - Verify everything works fine on 4k screens
 
-
 Features & Functionality:
 - Implement the real AI for the game, and keep the current one for the background demo mode
 - Implement different difficulty levels for AI
@@ -110,6 +109,7 @@ Performance & Security:
 - Implement proper input validation throughout
 - Implement better state management (consider Redux or Context API)
 - Optimize database queries
+- Refactor to the component pool pattern
 
 Documentation:
 - Add JSDoc comments to all main functions

@@ -17,7 +17,8 @@ import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, Aut
 export enum Route {
 	GAME = 'game',
 	LEADERBOARD = 'leaderboard',
-	PROFILE = 'profile'
+	PROFILE = 'profile',
+	AUTH = 'auth'
 }
 
 // =========================================
@@ -32,20 +33,17 @@ export class Router {
 	// =========================================
 	// PROPERTIES
 	// =========================================
-	
-	/** Singleton instance of Navigo router */
+
 	public static routerInstance = new Navigo('/');
-	/** Main container element where components will be rendered */
 	private container: HTMLElement;
-	/** Map storing active component instances */
-	private components: Map<Route, any> = new Map();
-	/** Currently active route */
+	private components: Map<Route | string, any> = new Map();
 	private currentRoute: Route | null = null;
-	
+	private previousRoute: Route | null = null;
+
 	// =========================================
 	// INITIALIZATION
 	// =========================================
-	
+
 	/**
 	 * Initializes the router with a container element and sets up route handlers.
 	 * @param container - The DOM element where components will be rendered
@@ -57,7 +55,7 @@ export class Router {
 			.on('/game', () => this.handleRoute(Route.GAME))
 			.on('/leaderboard', () => this.handleRoute(Route.LEADERBOARD))
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
-			.on('#auth', () => this.handleAuthRoute())
+			.on('/auth', () => this.handleAuthRoute())
 			.notFound(() => {
 				console.log("404: Route not found, defaulting to game");
 				this.handleRoute(Route.GAME);
@@ -66,11 +64,11 @@ export class Router {
 
 		Router.routerInstance.resolve();
 	}
-	
+
 	// =========================================
 	// ROUTE HANDLING
 	// =========================================
-	
+
 	/**
 	 * Handles route changes by managing component lifecycle and visibility.
 	 * Also ensures auth component is properly closed when navigating.
@@ -81,7 +79,12 @@ export class Router {
 		const gameManager = GameManager.getInstance();
 		
 		// Always clean up the auth component when changing routes
-		Router.cleanupAuthComponent();
+		this.cleanupCurrentRoute();
+		
+		// Remember this route if we're not going to auth
+		if (route !== Route.AUTH) {
+			this.previousRoute = this.currentRoute;
+		}
 		
 		// Pause the main game when navigating away from the game route
 		if (this.currentRoute === Route.GAME && route !== Route.GAME) {
@@ -103,21 +106,6 @@ export class Router {
 			gameManager.showBackgroundGame();
 		}
 
-		// Clean up current component if exists
-		if (this.currentRoute) {
-			const section = document.getElementById(this.currentRoute);
-			if (section) {
-				section.style.display = 'none';
-			}
-
-			// Destroy non-game components when leaving their route
-			const currentComponent = this.components.get(this.currentRoute);
-			if (this.currentRoute !== Route.GAME && currentComponent && typeof currentComponent.destroy === 'function') {
-				currentComponent.destroy();
-				this.components.delete(this.currentRoute);
-			}
-		}
-
 		// Create or reuse section for new route
 		let section = document.getElementById(route);
 		if (!section) {
@@ -137,6 +125,25 @@ export class Router {
 
 		this.currentRoute = route;
 		this.updateActiveNavItem(route);
+	}
+
+	/**
+	 * Cleans up the current route's component
+	 */
+	private cleanupCurrentRoute(): void {
+		if (!this.currentRoute) return;
+		
+		const section = document.getElementById(this.currentRoute);
+		if (section) {
+			section.style.display = 'none';
+		}
+
+		// Destroy non-game components when leaving their route
+		const currentComponent = this.components.get(this.currentRoute);
+		if (this.currentRoute !== Route.GAME && currentComponent && typeof currentComponent.destroy === 'function') {
+			currentComponent.destroy();
+			this.components.delete(this.currentRoute);
+		}
 	}
 
 	/**
@@ -174,24 +181,72 @@ export class Router {
 	}
 
 	/**
-	 * Handles the special auth route
+	 * Handles the auth route with specific redirect target
 	 */
 	private handleAuthRoute(): void {
-		// Clean up any existing auth components
+		// Clean up any existing components
+		this.cleanupCurrentRoute();
+		
+		// Get the return path from history state
+		const returnTo = history.state?.returnTo || '/';
+		
+		// Get or create auth section
+		let section = document.getElementById(Route.AUTH);
+		if (!section) {
+			section = document.createElement('section');
+			section.id = Route.AUTH;
+			section.className = 'section auth-section';
+			this.container.appendChild(section);
+		}
+		section.style.display = 'block';
+		
+		// Create auth component with the correct redirect
+		// Determine the redirect target based on return path
+		const redirectTarget = returnTo === '/game' ? 'game' : 'profile';
+		const authManager = new AuthManager(section, redirectTarget, false);
+		this.components.set(Route.AUTH, authManager);
+		authManager.show();
+		
+		// Update current route
+		this.currentRoute = Route.AUTH;
+		
+		// Add event listener for auth cancellation
+		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this), { once: true });
+		this.setupNavClickHandlers();
+	}
+	
+	/**
+	 * Handles auth cancellation by returning to the previous route
+	 */
+	private handleAuthCancelled(): void {
+		// First clean up the auth component
 		Router.cleanupAuthComponent();
 		
-		// Get content container
-		const contentContainer = document.querySelector('.content-container');
-		if (!contentContainer) return;
+		// Determine the route to navigate to
+		const routeToNavigateTo = this.previousRoute || Route.GAME;
 		
-		// Create a proper container for the auth component
-		const authWrapper = document.createElement('div');
-		authWrapper.className = 'auth-wrapper';
-		contentContainer.appendChild(authWrapper);
+		// Update the current route immediately before navigation
+		this.currentRoute = null; // Reset first to force component recreation
 		
-		// Create auth component in this container
-		const authComponent = new AuthManager(authWrapper, 'profile', false);
-		authComponent.show();
+		// Special case for game component - must completely rebuild it
+		if (routeToNavigateTo === Route.GAME) {
+			// Remove game component from our components map to force it to rebuild
+			this.components.delete(Route.GAME);
+			
+			// Navigate to game route
+			Router.routerInstance.navigate(`/${routeToNavigateTo}`);
+			
+			// After navigation, check if we need to reset the game component
+			setTimeout(() => {
+				const gameComponent = this.components.get(Route.GAME) as GameComponent;
+				if (gameComponent && typeof gameComponent.resetToMenu === 'function') {
+					gameComponent.resetToMenu();
+				}
+			}, 50);
+		} else {
+			// For other components, just navigate normally
+			Router.routerInstance.navigate(`/${routeToNavigateTo}`);
+		}
 	}
 
 	// =========================================
@@ -208,6 +263,7 @@ export class Router {
 			case Route.GAME: return GameComponent;
 			case Route.LEADERBOARD: return LeaderboardComponent;
 			case Route.PROFILE: return ProfileComponent;
+			case Route.AUTH: return AuthManager;
 			default: return GameComponent;
 		}
 	}
@@ -248,7 +304,22 @@ export class Router {
 /**
  * Helper function to programmatically navigate to a different route.
  * @param path - The path to navigate to
+ * @param options - Optional state information to pass along with the navigation
  */
-export function navigate(path: string) {
-	Router.routerInstance.navigate(path);
+export function navigate(path: string, options?: { state?: any }): void {
+	// Ensure path starts with a slash
+	if (!path.startsWith('/')) {
+		path = '/' + path;
+	}
+	
+	// If options with state are provided, use the History API directly
+	if (options && options.state) {
+		// Push the new state and URL to the history
+		window.history.pushState(options.state, '', path);
+		// Manually trigger Navigo routing
+		Router.routerInstance.resolve(path);
+	} else {
+		// Use standard Navigo navigation for backward compatibility
+		Router.routerInstance.navigate(path);
+	}
 }

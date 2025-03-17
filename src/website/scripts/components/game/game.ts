@@ -3,8 +3,9 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameMode, GameOverComponent, GameCanvasComponent, GameManager } from '@website/scripts/components';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager } from '@website/scripts/components';
 import { DbService, appState } from '@website/scripts/utils';
+import { GameMode } from '@shared/types';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -538,5 +539,14 @@ export class GameComponent extends Component<GameComponentState> {
 				this.gameManager.updateMainGamePlayerColor(accentColorHex);
 			}
 		}
+	}
+
+	/**
+	 * Public method to reset the game component to menu state
+	 * Called by the router when returning from auth cancellation
+	 */
+	public resetToMenu(): void {
+		// Force a transition to menu state
+		this.updateGameState(GameState.MENU);
 	}
 }

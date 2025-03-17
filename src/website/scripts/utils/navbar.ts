@@ -1,193 +1,142 @@
 /**
  * NavbarComponent
- * Utility class for navbar-specific functionality.
- * Handles the ASCII art logo rendering and authentication in the navbar.
+ * Handles the rendering and functionality of the application's navigation bar.
  */
-import { html, render, ASCII_ART, Router, navigate, appState } from '@website/scripts/utils';
-import { AuthManager } from '@website/scripts/components';
+import { html, render, ASCII_ART, navigate, appState } from '@website/scripts/utils';
 
+// Add custom event type
 declare global {
 	interface DocumentEventMap {
 		'user-authenticated': CustomEvent<{
 			user: any;
 			persistent: boolean;
 		}>;
+		'user-logout': CustomEvent;
 	}
 }
 
 export class NavbarComponent {
-	private static authButton: HTMLAnchorElement | null = null;
-	private static profileButton: HTMLAnchorElement | null = null;
-	private static currentAuthComponent: AuthManager | null = null;
+	private container: HTMLElement;
+	private authButtonActive: boolean = false;
 	
 	/**
-	 * Initializes the navbar by rendering the ASCII art logo and auth buttons.
-	 * Should be called once when the application starts.
+	 * Creates a new NavbarComponent
+	 * @param container - The container element to render the navbar into
 	 */
-	static initialize(): void {
-		// Initialize logo
-		const navLogo = document.querySelector('.nav-logo');
-		if (navLogo) {
-			render(html`<pre>${ASCII_ART.TRANSCENDENCE}</pre>`, navLogo as HTMLElement);
-		}
-		
-		// Initialize auth-related UI
-		this.initializeAuthUI();
+	constructor(container: HTMLElement) {
+		this.container = container;
 		
 		// Subscribe to app state changes
 		appState.subscribe((newState) => {
 			if ('auth' in newState) {
-				this.updateAuthUI();
+				this.renderNavbar();
 			}
 		});
 		
-		// Listen for navigation events to clean up auth component if needed
-		window.addEventListener('popstate', this.handleNavigation.bind(this));
+		// Initial render
+		this.renderNavbar();
 	}
 	
 	/**
-	 * Initializes the auth UI based on app state
+	 * Initializes the navbar
+	 * @param targetSelector - Query selector for the container element
 	 */
-	private static initializeAuthUI(): void {
-		const navRight = document.querySelector('.nav-right');
-		if (!navRight) return;
+	static initialize(targetSelector: string = 'body'): NavbarComponent {
+		// Find target container 
+		const targetContainer = document.querySelector(targetSelector);
 		
-		// Clear existing content
-		navRight.innerHTML = '';
-		
-		// Check auth state
-		if (appState.isAuthenticated()) {
-			// User is logged in, show profile button and logout button
-			this.showProfileButton(navRight);
-		} else {
-			// User is not logged in, show auth button
-			this.showAuthButton(navRight);
-		}
-	}
-	
-	/**
-	 * Updates the auth UI when state changes
-	 */
-	private static updateAuthUI(): void {
-		this.initializeAuthUI();
-	}
-	
-	/**
-	 * Shows the authentication button
-	 */
-	private static showAuthButton(container: Element): void {
-		// Remove profile button if it exists
-		if (this.profileButton && this.profileButton.parentNode) {
-			this.profileButton.parentNode.removeChild(this.profileButton);
-			this.profileButton = null;
+		if (!targetContainer) {
+			throw new Error(`Navbar target container "${targetSelector}" not found`);
 		}
 		
-		// Create auth button if it doesn't exist
-		if (!this.authButton) {
-			this.authButton = document.createElement('a');
-			this.authButton.className = 'nav-item';
-			this.authButton.textContent = 'Log in';
-			this.authButton.href = '#auth';
-			
-			this.authButton.addEventListener('click', (e) => {
-				e.preventDefault();
-				console.log('Auth button clicked');
-				
-				// Use the static method from Router
-				Router.cleanupAuthComponent();
-				console.log('Cleaned up existing auth components');
-				
-				// Get content container
-				const contentContainer = document.querySelector('.content-container');
-				if (!contentContainer) {
-					console.error('Content container not found');
-					return;
+		// Create navbar container if needed
+		let navbarContainer = document.querySelector('nav.navbar');
+		
+		if (!navbarContainer) {
+			navbarContainer = document.createElement('nav');
+			navbarContainer.className = 'navbar';
+			// Insert at the beginning of the target
+			targetContainer.insertBefore(navbarContainer, targetContainer.firstChild);
+		}
+		
+		// Create component instance
+		return new NavbarComponent(navbarContainer as HTMLElement);
+	}
+	
+	/**
+	 * Renders the entire navbar
+	 */
+	renderNavbar(): void {
+		const isAuthenticated = appState.isAuthenticated();
+		
+		// Create navbar template
+		const navbarTemplate = html`
+			<a href="/" class="nav-logo">
+				<pre>${ASCII_ART.TRANSCENDENCE}</pre>
+			</a>
+			<div class="nav-center">
+				<a href="/game" class="nav-item${location.pathname === '/' || location.pathname === '/game' ? ' active' : ''}">Game</a>
+				<a href="/leaderboard" class="nav-item${location.pathname === '/leaderboard' ? ' active' : ''}">Leaderboard</a>
+			</div>
+			<div class="nav-right">
+				${isAuthenticated ? 
+					html`
+						<a href="/profile" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
+						<button class="nav-item logout-button" title="Log out" onClick=${() => this.handleLogout()}>⏻</button>
+					` : 
+					html`
+						<a href="/auth" class="nav-item${this.authButtonActive ? ' active' : ''}" onClick=${(e: Event) => this.handleAuthClick(e)}>Log in</a>
+					`
 				}
-				console.log('Found content container:', contentContainer);
-				
-				// Create a proper container for the auth component
-				let authWrapper = document.querySelector('.auth-wrapper') as HTMLElement;
-				if (!authWrapper) {
-					console.log('Creating new auth wrapper');
-					authWrapper = document.createElement('div');
-					authWrapper.className = 'auth-wrapper';
-					contentContainer.appendChild(authWrapper);
-				} else {
-					console.log('Clearing existing auth wrapper');
-					authWrapper.innerHTML = '';
-				}
-				
-				try {
-					console.log('Creating AuthManager instance');
-					this.currentAuthComponent = new AuthManager(authWrapper, 'profile', false);
-					console.log('AuthManager created successfully');
-					this.currentAuthComponent.show();
-					console.log('AuthManager show() called');
-				} catch (error) {
-					console.error('Error creating or showing AuthManager:', error);
-				}
-				
-				// Mark the current route as special
-				window.history.pushState({}, 'Auth', '#auth');
-				console.log('Updated URL hash to #auth');
-			});
-		}
+			</div>
+		`;
 		
-		// Add auth button to navbar
-		container.appendChild(this.authButton);
+		// Render navbar
+		render(navbarTemplate, this.container);
 	}
 	
 	/**
-	 * Shows the profile button and logout button
+	 * Handles authentication button click
 	 */
-	private static showProfileButton(container: Element): void {
-		// Remove auth button if it exists
-		if (this.authButton && this.authButton.parentNode) {
-			this.authButton.parentNode.removeChild(this.authButton);
-			this.authButton = null;
-		}
+	private handleAuthClick(e: Event): void {
+		e.preventDefault();
+		this.authButtonActive = true;
+		this.renderNavbar();
 		
-		// Create profile button if it doesn't exist
-		if (!this.profileButton) {
-			this.profileButton = document.createElement('a');
-			this.profileButton.className = 'nav-item';
-			this.profileButton.textContent = 'Profile';
-			this.profileButton.href = '/profile';
-		}
-		
-		// Add profile button to navbar
-		container.appendChild(this.profileButton);
-		
-		// Add logout button
-		const logoutButton = document.createElement('button');
-		logoutButton.className = 'nav-item logout-button';
-		logoutButton.innerHTML = '⏻'; // Power symbol for logout
-		logoutButton.title = 'Log out';
-		logoutButton.addEventListener('click', () => {
-			this.logout();
+		// Navigate to auth with current path as return location
+		navigate('/auth', { 
+			state: { 
+				returnTo: location.pathname 
+			}
 		});
-		
-		container.appendChild(logoutButton);
-	}
-	
-	/**
-	 * Clean up auth component when navigating away
-	 */
-	private static handleNavigation(): void {
-		if (this.currentAuthComponent) {
-			this.currentAuthComponent.destroy();
-			this.currentAuthComponent = null;
-		}
 	}
 	
 	/**
 	 * Handles user logout
 	 */
-	static logout(): void {
+	private handleLogout(): void {
 		// Use AppState to logout
 		appState.logout();
 		
+		// Dispatch logout event
+		const logoutEvent = new CustomEvent('user-logout');
+		document.dispatchEvent(logoutEvent);
+		
 		// Redirect to home
 		navigate('/');
+	}
+	
+	/**
+	 * Updates the active navigation item
+	 * Should be called on route changes
+	 */
+	updateActiveItem(path: string): void {
+		// Reset auth button active state if not on auth page
+		if (path !== '/auth') {
+			this.authButtonActive = false;
+		}
+		
+		// Re-render with updated active states
+		this.renderNavbar();
 	}
 }

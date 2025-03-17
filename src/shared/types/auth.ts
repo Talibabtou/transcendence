@@ -47,6 +47,7 @@ export interface UserData {
 	avatar?: string;
 	authMethod?: AuthMethod; // Track how the user authenticated
 	lastLogin?: Date;
+	persistent?: boolean;
 }
 
 /**

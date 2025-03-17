@@ -46,3 +46,24 @@ export interface LeaderboardEntry {
 	wins: number;
 	losses: number;
 }
+
+/**
+ * Game menu state interface
+ */
+
+/**
+ * Define possible game modes
+ */
+export enum GameMode {
+	SINGLE = 'single',
+	MULTI = 'multi',
+	TOURNAMENT = 'tournament'
+}
+
+/**
+ * Define state interface
+ */
+export interface GameMenuState {
+	visible: boolean;
+	isAuthenticated: boolean;
+}

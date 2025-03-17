@@ -5,7 +5,7 @@
 import { Component, LoginHandler, RegistrationHandler, GoogleAuthHandler, FortyTwoAuthHandler } from '@website/scripts/components';
 import { html, render, navigate } from '@website/scripts/utils';
 import { AuthState, AuthMethod, AuthComponentState, UserData } from '@shared/types';
-import { appState } from '@website/scripts/utils/app-state';
+import { appState } from '@website/scripts/utils';
 
 export class AuthManager extends Component<AuthComponentState> {
 	// =========================================
@@ -26,6 +26,9 @@ export class AuthManager extends Component<AuthComponentState> {
 	private registrationHandler: RegistrationHandler;
 	private googleAuthHandler: GoogleAuthHandler;
 	private fortyTwoAuthHandler: FortyTwoAuthHandler;
+	
+	// Close button reference
+	private closeButton: HTMLButtonElement | null = null;
 	
 	// =========================================
 	// INITIALIZATION
@@ -138,11 +141,6 @@ export class AuthManager extends Component<AuthComponentState> {
 				const stateData = JSON.parse(atob(state));
 				const provider = stateData.provider;
 				
-				console.log('Auth: Processing OAuth callback', {
-					provider,
-					code: code.substring(0, 10) + '...' // Log partial code for debugging
-				});
-				
 				// In a real app, we would exchange the code for a token
 				// For simulation, we'll create a fake user based on the provider
 				setTimeout(() => {
@@ -177,14 +175,16 @@ export class AuthManager extends Component<AuthComponentState> {
 	 * Switches to the success state
 	 */
 	private switchToSuccessState(): void {
-		console.log('Switching to success state');
-		this.switchState(AuthState.SUCCESS);
-		
-		// Ensure redirection happens after a delay
+		this.updateInternalState({
+			currentState: AuthState.SUCCESS,
+			isLoading: false,
+			error: null
+		});
+
+		// Set a timeout to handle redirection after displaying success message
 		setTimeout(() => {
-			console.log('Success state timeout triggered');
 			this.handleSuccessfulAuth();
-		}, 2000); // Slightly longer delay to ensure the success message is seen
+		}, 500);
 	}
 	
 	/**
@@ -206,6 +206,21 @@ export class AuthManager extends Component<AuthComponentState> {
 		}, 100);
 	}
 	
+	/**
+	 * Cancels the authentication process and dispatches an event
+	 */
+	private cancelAuth(): void {
+		// First clean up to prevent any lingering elements
+		this.destroy();
+		
+		// Then dispatch the event - after cleanup is complete
+		const cancelEvent = new CustomEvent('auth-cancelled', {
+			bubbles: true,
+			detail: { timestamp: Date.now() }
+		});
+		document.dispatchEvent(cancelEvent);
+	}
+	
 	// =========================================
 	// RENDERING
 	// =========================================
@@ -219,9 +234,10 @@ export class AuthManager extends Component<AuthComponentState> {
 		// Create the template based on the current state
 		let template;
 		
-		// Create auth form container wrapper
+		// Create auth form container wrapper with close button
 		template = html`
 			<div class="auth-form-container">
+				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
 				${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
 			</div>
@@ -229,6 +245,9 @@ export class AuthManager extends Component<AuthComponentState> {
 		
 		// Render the template
 		render(template, this.container);
+		
+		// Set up close button reference
+		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
 	
 	/**
@@ -236,6 +255,18 @@ export class AuthManager extends Component<AuthComponentState> {
 	 */
 	private renderAuthContent(): any {
 		const state = this.getInternalState();
+		
+		// For success state, always show success message regardless of loading state
+		if (state.currentState === AuthState.SUCCESS) {
+			return this.renderSuccessMessage();
+		}
+		
+		// For other states, only show loading indicator if needed
+		if (state.isLoading) {
+			// We could completely remove this and provide no visual feedback during loading
+			// or keep a minimal indication that something is happening
+			return html`<div class="auth-processing"></div>`;
+		}
 		
 		switch (state.currentState) {
 			case AuthState.LOGIN:
@@ -252,8 +283,6 @@ export class AuthManager extends Component<AuthComponentState> {
 					() => this.googleAuthHandler.initiateOAuthLogin(),
 					() => this.fortyTwoAuthHandler.initiateOAuthLogin()
 				);
-			case AuthState.SUCCESS:
-				return this.renderSuccessMessage();
 			default:
 				return this.loginHandler.renderLoginForm(
 					this.persistSession,
@@ -269,13 +298,10 @@ export class AuthManager extends Component<AuthComponentState> {
 	 * Renders a success message after authentication
 	 */
 	private renderSuccessMessage(): any {
-		console.log('Rendering success message');
-		
 		// Set a timeout to trigger redirection
 		setTimeout(() => {
-			console.log('Success message timeout triggered, calling handleSuccessfulAuth');
 			this.handleSuccessfulAuth();
-		}, 1500);
+		}, 500);
 		
 		return html`
 			<div class="auth-success">
@@ -300,13 +326,12 @@ export class AuthManager extends Component<AuthComponentState> {
 			this.destroy();
 			
 			// Redirect based on origin using router navigation
-			console.log('Redirecting to', this.redirectAfterAuth === 'game' ? '/game' : '/profile');
 			if (this.redirectAfterAuth === 'game') {
 				navigate('/game');
 			} else {
 				navigate('/profile');
 			}
-		}, 1500);
+		}, 500);
 	}
 	
 	// =========================================
@@ -329,6 +354,12 @@ export class AuthManager extends Component<AuthComponentState> {
 	}
 	
 	destroy(): void {
+		// Remove close button event listener if it exists
+		if (this.closeButton) {
+			this.closeButton.removeEventListener('click', () => this.cancelAuth());
+			this.closeButton = null;
+		}
+		
 		// Ensure component is properly removed from DOM
 		if (this.container) {
 			this.container.innerHTML = '';

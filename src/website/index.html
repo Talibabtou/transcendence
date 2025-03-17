@@ -2,7 +2,7 @@
 	Transcendence - Single Page Application (SPA) Main Index
 
 	This is the entry point HTML file for the entire application.
-	It defines the core structure including navigation, content sections,
+	It defines the core structure including content sections,
 	and loads the necessary stylesheets and scripts. The application
 	uses a client-side routing mechanism that displays different sections
 	based on the current URL path.
@@ -23,25 +23,9 @@
 	<link rel="stylesheet" href="./styles/game.css">
 	<link rel="stylesheet" href="./styles/leaderboard.css">
 	<link rel="stylesheet" href="./styles/profile.css">
-	<link rel="stylesheet" href="styles/auth.css">
+	<link rel="stylesheet" href="./styles/auth.css">
 </head>
 <body>
-	<!-- 
-		Navigation bar
-		Contains links to different sections of the application.
-		The Router component in App.ts handles these navigation events.
-	-->
-	<nav class="navbar">
-		<a href="/" class="nav-logo"></a>
-		<div class="nav-center">
-			<a href="/game" class="nav-item active">Game</a>
-			<a href="/leaderboard" class="nav-item">Leaderboard</a>
-		</div>
-		<div class="nav-right">
-			<a href="/profile" class="nav-item">Profile</a>
-		</div>
-	</nav>
-
 	<!-- 
 		Main content container
 		This element is targeted by the Router to swap content based on navigation.

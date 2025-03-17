@@ -285,7 +285,6 @@ export class GameManager {
 		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
 			try {
 				this.mainGameInstance.engine.setPlayerNames(player1Name, player2Name);
-				console.log('Set player names:', player1Name, player2Name);
 			} catch (error) {
 				console.error('Error setting player names:', error);
 			}

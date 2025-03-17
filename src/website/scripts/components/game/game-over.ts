@@ -3,8 +3,9 @@
  * Displays the game over screen with results and options to play again or return to menu.
  * Handles user interactions after a game has completed.
  */
-import { Component, GameMode } from '@website/scripts/components';
+import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART } from '@website/scripts/utils';
+import { GameMode } from '@shared/types';
 
 // =========================================
 // TYPES & CONSTANTS

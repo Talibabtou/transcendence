@@ -4,46 +4,15 @@
  * Handles user selection of game modes and communicates with parent component.
  */
 import { Component, AuthManager } from '@website/scripts/components';
-import { html, render, ASCII_ART } from '@website/scripts/utils';
-
-// =========================================
-// TYPES & CONSTANTS
-// =========================================
-
-/**
- * Define possible game modes
- */
-export enum GameMode {
-	SINGLE = 'single',
-	MULTI = 'multi',
-	TOURNAMENT = 'tournament'
-}
-
-/**
- * Define state interface for type safety
- */
-interface GameMenuState {
-	visible: boolean;
-	isAuthenticated: boolean;
-}
-
-// =========================================
-// GAME MENU COMPONENT
-// =========================================
+import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
+import { GameMode, GameMenuState } from '@shared/types';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
 	// PROPERTIES
 	// =========================================
-	
-	/**
-	 * Event handler for mode selection
-	 */
+
 	private onModeSelected: (mode: GameMode) => void;
-	
-	/**
-	 * Authentication component instance
-	 */
 	private authManager: AuthManager | null = null;
 	
 	// =========================================
@@ -60,6 +29,10 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		
 		// Check authentication status
 		this.checkAuthentication();
+		
+		// Add event listener for authentication state changes
+		document.addEventListener('user-logout', this.handleAuthStateChange.bind(this));
+		document.addEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
 	}
 	
 	/**
@@ -74,6 +47,14 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		this.updateInternalState({
 			isAuthenticated: !!storedUser
 		});
+	}
+	
+	/**
+	 * Handles authentication state changes (login/logout)
+	 */
+	private handleAuthStateChange(): void {
+		this.checkAuthentication();
+		this.renderComponent();
 	}
 	
 	// =========================================
@@ -131,8 +112,11 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	}
 	
 	destroy(): void {
+		// Remove the event listeners when component is destroyed
+		document.removeEventListener('user-logout', this.handleAuthStateChange.bind(this));
+		document.removeEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
+		
 		super.destroy();
-		// No special cleanup needed
 	}
 	
 	// =========================================
@@ -159,7 +143,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			const authButton = this.container.querySelector('.auth-trigger');
 			if (authButton) {
 				authButton.addEventListener('click', () => {
-					this.showAuthManager();
+					this.showAuthComponent();
 				});
 			}
 		}
@@ -168,46 +152,16 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	/**
 	 * Shows the authentication component
 	 */
-	private showAuthManager(): void {
-		// Hide this menu
+	private showAuthComponent(): void {
+		// Hide the game menu
 		this.hide();
 		
-		// Create a container for auth if it doesn't exist
-		let authWrapper = this.container.querySelector('.auth-wrapper');
-		if (!authWrapper) {
-			authWrapper = document.createElement('div');
-			authWrapper.className = 'auth-wrapper';
-			this.container.appendChild(authWrapper);
-		} else {
-			// Clear existing content
-			authWrapper.innerHTML = '';
-		}
-		
-		// Show auth component with non-persistent session by default
-		this.authManager = new AuthManager(authWrapper as HTMLElement, 'game', false);
-		this.authManager.show();
-		
-		// Listen for authentication event
-		const authListener = () => {
-			// Clean up auth component
-			if (this.authManager) {
-				this.authManager.destroy();
-				this.authManager = null;
+		// Use history state to store the return location
+		navigate('/auth', { 
+			state: { 
+				returnTo: '/game' 
 			}
-			
-			// Remove auth container
-			if (authWrapper && authWrapper.parentElement) {
-				authWrapper.parentElement.removeChild(authWrapper);
-			}
-			
-			// Check authentication again
-			this.checkAuthentication();
-			// Show menu again
-			this.show();
-			// Remove this listener
-			document.removeEventListener('user-authenticated', authListener);
-		};
-		document.addEventListener('user-authenticated', authListener);
+		});
 	}
 	
 	// =========================================
@@ -221,6 +175,9 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		// Check authentication status again
 		this.checkAuthentication();
 		this.updateInternalState({ visible: true });
+		
+		// Force a render to ensure everything is visible
+		this.renderComponent();
 	}
 	
 	/**
