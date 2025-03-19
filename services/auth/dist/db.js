@@ -29,3 +29,4 @@ export async function initDb() {
         throw new Error(`Database initialization failed: ${err.message}`);
     }
 }
+;

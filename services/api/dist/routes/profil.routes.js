@@ -3,6 +3,6 @@ const jwt = { auth: true };
 const noJwt = { auth: false };
 export default async function authRoutes(fastify) {
     fastify.post('/profil/upload', { config: jwt }, upload);
-    fastify.get('/profil/pic/:id', { config: jwt }, getPic);
-    fastify.delete('/profil/pic/:id', { config: jwt }, deletePic);
+    fastify.get('/profil/pic/:id', { config: noJwt }, getPic);
+    fastify.delete('/profil/pic', { config: jwt }, deletePic);
 }

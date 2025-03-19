@@ -11,7 +11,10 @@ export async function jwtPluginHook(request, reply) {
     }
     if (!authHeader?.startsWith('Bearer ')) {
         request.server.log.error("Missing or invalid Authorization header");
-        return reply.status(401).send({ message: 'Missing or invalid Authorization header' });
+        return reply.status(401).send({
+            success: false,
+            message: 'Missing or invalid Authorization header'
+        });
     }
     try {
         await request.jwtVerify();
@@ -21,6 +24,9 @@ export async function jwtPluginHook(request, reply) {
             ? 'Token expired'
             : 'Unauthorized';
         request.server.log.error(message, err);
-        return reply.status(401).send({ message });
+        return reply.status(401).send({
+            success: false,
+            message: message
+        });
     }
 }

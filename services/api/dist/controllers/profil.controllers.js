@@ -8,26 +8,68 @@ export async function getPic(request, reply) {
                 'Authorization': request.headers.authorization || 'no token'
             },
         });
-        const responseData = await response.json();
-        request.server.log.info("Request GET successfully treated");
-        return reply.code(response.status).send(responseData);
+        if (!response.ok) {
+            const errorData = await response.json();
+            request.server.log.error("Error from auth service", errorData);
+            return reply.code(response.status).send({
+                success: false,
+                message: errorData.message || 'Error from auth service'
+            });
+        }
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const jsonData = await response.json();
+            return reply.code(response.status).send(jsonData);
+        }
+        else {
+            const blob = await response.blob();
+            const arrayBuffer = await blob.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            console.log({
+                buffer: blob
+            });
+            request.server.log.info("Request GET successfully treated");
+            return reply.code(response.status)
+                .header('Content-Type', contentType || 'application/octet-stream')
+                .send(buffer);
+        }
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
+}
+function verifTypeFile(file) {
+    const allowedExt = ['.jpg', '.jpeg', '.png'];
+    const allowedMimeTypes = ['image/png', 'image/jpeg'];
+    const ext = file.filename.substring(file.filename.lastIndexOf('.')).toLowerCase();
+    if (!allowedMimeTypes.includes(file.mimetype) || !allowedExt.includes(ext)) {
+        return { valid: false, error: "Invalid file type or extension" };
+    }
+    return { valid: true };
 }
 export async function upload(request, reply) {
     try {
         const subpath = request.url.split('/profil')[1];
         const serviceUrl = `http://localhost:8081${subpath}`;
         const file = await request.file();
-        console.log({ mimetype: file.mimetype });
         if (!file) {
-            return reply.code(404).send({ error: "No file found" });
+            request.server.log.error("No file provided");
+            return reply.code(404).send({
+                success: false,
+                message: "No file provided"
+            });
         }
-        else if (file.mimetype != 'image/png' && file.mimetype != 'image/jpeg') {
-            return reply.code(403).send({ error: "Bad format, allow only png, jpg and jpeg" });
+        const verif = verifTypeFile(file);
+        if (verif.valid === false) {
+            request.server.log.error("Invalid file type or extension");
+            return reply.code(403).send({
+                success: false,
+                message: "Invalid file type or extension"
+            });
         }
         const buffer = await file.toBuffer();
         const formData = new FormData();
@@ -40,12 +82,15 @@ export async function upload(request, reply) {
             body: formData
         });
         const responseData = await response.json();
-        request.server.log.info("Request GET successfully treated");
+        request.server.log.info(`Uploading file: ${file.filename}, size: ${file.fileSize}, mimetype: ${file.mimetype}`);
         return reply.code(response.status).send(responseData);
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function deletePic(request, reply) {
@@ -64,10 +109,19 @@ export async function deletePic(request, reply) {
         }
         const responseData = await response.json();
         request.server.log.error("Request DELETE failled");
-        return reply.code(response.status).send(responseData);
+        return reply.code(response.status).send({
+            success: response.status < 400,
+            message: "Request DELETE failled",
+            option: {
+                data: responseData
+            }
+        });
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }

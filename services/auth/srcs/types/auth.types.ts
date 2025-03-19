@@ -18,3 +18,9 @@ export interface IModifyUser {
   email?: string,
   password?: string
 }
+
+export interface IReply {
+  success: boolean,
+  message: string,
+  data?: any
+}

@@ -1,40 +1,104 @@
 import fs from 'node:fs';
+import path from 'path';
 export async function getPic(request, reply) {
     try {
-        return reply.code(200).send({ message: "get Pic reached 200" });
+        const id = request.params.id;
+        const uploadDir = process.env.UPLOAD || './uploads';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir);
+        }
+        const fileName = fs.readdirSync(uploadDir).find(f => f.startsWith(id));
+        if (!fileName) {
+            request.server.log.error("No picture found");
+            return reply.code(404).send({
+                success: false,
+                message: "No picture found"
+            });
+        }
+        const filePath = path.join(uploadDir, fileName);
+        const file = fs.readFileSync(filePath);
+        const ext = fileName.substring(fileName.lastIndexOf('.'));
+        const mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+        const blob = new Blob([file], { type: mimeType });
+        console.log({
+            blob: blob
+        });
+        return reply.code(200).header('Content-Type', mimeType).send(blob);
     }
     catch (err) {
-        return reply.code(500).send({ message: "get Pic reached 400" });
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function deletePic(request, reply) {
     try {
-        return reply.code(204).send({ message: "delete Pic reached 200" });
+        const uploadDir = process.env.UPLOAD || './uploads';
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir);
+        }
+        const existingFiles = fs.readdirSync(uploadDir).filter(file => file.startsWith(request.user.id));
+        if (existingFiles.length > 0) {
+            existingFiles.forEach(file => {
+                const filePath = path.join(uploadDir, file);
+                fs.unlinkSync(filePath);
+            });
+        }
+        else {
+            request.server.log.error("No picture found");
+            return reply.code(404).send({
+                success: false,
+                message: "No picture found"
+            });
+        }
+        return reply.code(204).send();
     }
     catch (err) {
-        return reply.code(500).send({ message: "delete Pic reached 400" });
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function upload(request, reply) {
     try {
         const file = await request.file();
         if (!file) {
-            return reply.code(404).send({ error: "No file provided" });
+            request.server.log.error("No file provided");
+            return reply.code(404).send({
+                success: false,
+                message: "No file provided"
+            });
         }
-        const uploadDir = './uploads';
+        const uploadDir = process.env.UPLOAD || './uploads';
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir);
         }
+        const existingFiles = fs.readdirSync(uploadDir).filter(f => f.startsWith(request.user.id));
+        if (existingFiles.length > 0) {
+            existingFiles.forEach(file => {
+                const filePath = path.join(uploadDir, file);
+                fs.unlinkSync(filePath);
+            });
+        }
         const ext = file.filename.substring(file.filename.lastIndexOf('.'));
-        const filePath = `${uploadDir}/${request.user.id}${ext}`;
-        fs.readdirSync(uploadDir).forEach(file => {
-            if (file.match(new RegExp(`^${request.user.id}(\\..*)?$`)))
-                fs.unlinkSync(`${uploadDir}/${file}`);
+        const filePath = path.join(uploadDir, `${request.user.id}${ext}`);
+        const buffer = await file.toBuffer();
+        fs.promises.writeFile(filePath, buffer);
+        request.server.log.info(`File: ${file.filename} has been upload`);
+        return reply.code(201).send({
+            success: true,
+            message: `File: ${file.filename} has been upload`
         });
-        fs.promises.writeFile(filePath, await file.toBuffer());
-        return reply.code(201).send({ message: "File uploaded successfully" });
     }
     catch (err) {
-        return reply.code(500).send({ error: err.message });
+        request.server.log.error("Internal server error", err);
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }

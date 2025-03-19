@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
+import { IReply } from '../types/types.js'
 
-export async function getUser(request: FastifyRequest, reply: FastifyReply) {
+export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -15,11 +16,14 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
           request.server.log.error("Internal server error", err);
-          return reply.code(500).send({ error: err.message });
+          return reply.code(500).send({
+            success: false,
+            message: err.message
+          });
     }
  }
 
-export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
+export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -34,11 +38,14 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
           request.server.log.error("Internal server error", err);
-          return reply.code(500).send({ error: err.message });
+          return reply.code(500).send({
+            success: false,
+            message: err.message
+          });
     }
  }
 
- export async function postUser(request: FastifyRequest, reply: FastifyReply) {
+ export async function postUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -55,11 +62,14 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
           request.server.log.error("Internal server error", err);
-          return reply.code(500).send({ error: err.message });
+          return reply.code(500).send({
+            success: false,
+            message: err.message
+          });
     }
  }
 
-export async function patchUser(request: FastifyRequest, reply: FastifyReply) {
+export async function patchUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -76,11 +86,14 @@ export async function patchUser(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
           request.server.log.error("Internal server error", err);
-          return reply.code(500).send({ error: err.message });
+          return reply.code(500).send({ 
+            success: false,
+            message: err.message
+          });
     }
  }
 
-export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
+export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -99,11 +112,14 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+          success: false,
+          message: err.message
+        });
     }
  }
 
-export async function postLogin(request: FastifyRequest, reply: FastifyReply) {
+export async function postLogin(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -115,11 +131,14 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply) {
           },
           body: JSON.stringify(request.body)
         });
-        const responseData = await response.json();
+        const responseData: any = await response.json();
         request.server.log.info("Request POST successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
           request.server.log.error("Internal server error", err);
-          return reply.code(500).send({ error: err.message });
+          return reply.code(500).send({ 
+            success: false,
+            message: err.message
+          });
     }
  }

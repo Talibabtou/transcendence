@@ -14,7 +14,10 @@ export async function getUser(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function getUsers(request, reply) {
@@ -33,7 +36,10 @@ export async function getUsers(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function postUser(request, reply) {
@@ -54,7 +60,10 @@ export async function postUser(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function patchUser(request, reply) {
@@ -75,7 +84,10 @@ export async function patchUser(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function deleteUser(request, reply) {
@@ -98,7 +110,10 @@ export async function deleteUser(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }
 export async function postLogin(request, reply) {
@@ -119,6 +134,9 @@ export async function postLogin(request, reply) {
     }
     catch (err) {
         request.server.log.error("Internal server error", err);
-        return reply.code(500).send({ error: err.message });
+        return reply.code(500).send({
+            success: false,
+            message: err.message
+        });
     }
 }

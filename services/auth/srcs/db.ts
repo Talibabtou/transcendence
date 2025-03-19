@@ -9,12 +9,12 @@ declare module 'fastify' {
     }
 }
 
-const dirname = path.resolve();
-const filepath = path.join(dirname, "/db/users.sqlite");
+const dirname: string = path.resolve();
+const filepath: string = path.join(dirname, "/db/users.sqlite");
 
-export async function initDb() {
+export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.Statement>>{
   try {
-    const db = await open({ filename: filepath, driver: sqlite3.Database });
+    const db: Database<sqlite3.Database, sqlite3.Statement> = await open({ filename: filepath, driver: sqlite3.Database });
     await db.exec(`
         CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY DEFAULT (
@@ -36,4 +36,4 @@ export async function initDb() {
     } catch (err: any) {
       throw new Error(`Database initialization failed: ${err.message}`)
     }
-  }
+  };
