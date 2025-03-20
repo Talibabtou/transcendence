@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { Readable } from 'stream';
-import { IReply, IGetIdUser } from '../types/types.js'
+import { IReply } from '../types/types.js'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -9,44 +8,6 @@ declare module 'fastify' {
       username: string;
       role: string;
     };
-  }
-}
-
-export async function getPic(request: FastifyRequest<{ Params: IGetIdUser }>, reply: FastifyReply): Promise<void> {
-  try {
-    const subpath: string = request.url.split('/profil')[1];
-    const serviceUrl: string = `http://localhost:8081${subpath}`;
-    const response: Response = await fetch(serviceUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': request.headers.authorization || 'no token'
-      },
-    });
-    if (!response.ok) {
-      const errorData: any = await response.json();
-      request.server.log.error("Error from auth service", errorData);
-      return reply.code(response.status).send({
-        success: false,
-        message: errorData.message || 'Error from auth service'
-      });
-    }
-    const contentType = response.headers.get('content-type');
-    if (contentType && contentType.includes('application/json')) {
-      const jsonData = await response.json();
-      return reply.code(response.status).send(jsonData);
-    } else {
-      const blob: Blob = await response.blob();
-      request.server.log.info("Request GET successfully treated");
-      return reply.code(response.status)
-        .header('Content-Type', contentType)
-        .send(blob);
-    }
-  } catch (err: any) {
-      request.server.log.error("Internal server error", err);
-      return reply.code(500).send({
-        success: false,
-        message: err.message
-      });
   }
 }
 
@@ -121,7 +82,7 @@ export async function deletePic(request: FastifyRequest, reply: FastifyReply<{ R
     return reply.code(response.status).send({
       success: response.status < 400,
       message: "Request DELETE failled",
-      option: {
+      data: {
         data: responseData
       }
     });

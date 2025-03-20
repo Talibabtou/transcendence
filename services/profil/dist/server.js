@@ -1,7 +1,7 @@
 import { fastify } from 'fastify';
 import fastifyMultipart from '@fastify/multipart';
 import profilRoutes from './routes/profil.routes.js';
-import { jwtPluginRegister } from './plugins/jwtPlugin.js';
+import { jwtPluginRegister, jwtPluginHook } from './plugins/jwtPlugin.js';
 import fastifyJwt from '@fastify/jwt';
 class Server {
     static instance;
@@ -29,7 +29,7 @@ class Server {
                 }
             });
             await server.register(fastifyJwt, jwtPluginRegister);
-            // server.addHook('onRequest', jwtPluginHook)
+            server.addHook('onRequest', jwtPluginHook);
             await server.register(profilRoutes);
             server.listen({ port: 8081, host: 'localhost' }, (err, address) => {
                 if (err)

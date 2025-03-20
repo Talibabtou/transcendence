@@ -1,47 +1,3 @@
-export async function getPic(request, reply) {
-    try {
-        const subpath = request.url.split('/profil')[1];
-        const serviceUrl = `http://localhost:8081${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            },
-        });
-        if (!response.ok) {
-            const errorData = await response.json();
-            request.server.log.error("Error from auth service", errorData);
-            return reply.code(response.status).send({
-                success: false,
-                message: errorData.message || 'Error from auth service'
-            });
-        }
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            const jsonData = await response.json();
-            return reply.code(response.status).send(jsonData);
-        }
-        else {
-            const blob = await response.blob();
-            const arrayBuffer = await blob.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            console.log({
-                buffer: blob
-            });
-            request.server.log.info("Request GET successfully treated");
-            return reply.code(response.status)
-                .header('Content-Type', contentType || 'application/octet-stream')
-                .send(buffer);
-        }
-    }
-    catch (err) {
-        request.server.log.error("Internal server error", err);
-        return reply.code(500).send({
-            success: false,
-            message: err.message
-        });
-    }
-}
 function verifTypeFile(file) {
     const allowedExt = ['.jpg', '.jpeg', '.png'];
     const allowedMimeTypes = ['image/png', 'image/jpeg'];
@@ -112,7 +68,7 @@ export async function deletePic(request, reply) {
         return reply.code(response.status).send({
             success: response.status < 400,
             message: "Request DELETE failled",
-            option: {
+            data: {
                 data: responseData
             }
         });

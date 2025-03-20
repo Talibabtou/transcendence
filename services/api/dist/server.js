@@ -1,9 +1,13 @@
-import { fastify } from 'fastify';
-import fastifyMultipart from '@fastify/multipart';
-import authRoutes from './routes/auth.routes.js';
-import profilRoutes from './routes/profil.routes.js';
-import fastifyJwt from '@fastify/jwt';
-import { jwtPluginRegister } from './plugins/jwtPlugin.js';
+import { fastify } from "fastify";
+import fastifyMultipart from "@fastify/multipart";
+import authRoutes from "./routes/auth.routes.js";
+import profilRoutes from "./routes/profil.routes.js";
+import apiRoutes from "./routes/api.routes.js";
+import fastifyJwt from "@fastify/jwt";
+import { jwtPluginHook, jwtPluginRegister, } from "./shared/plugins/jwtPlugin.js";
+import fastifyStatic from "@fastify/static";
+import fastifyWebsocket from "@fastify/websocket";
+import path from "path";
 // const server = fastify({
 // 	logger: true,
 // 	http2: true,
@@ -12,8 +16,9 @@ import { jwtPluginRegister } from './plugins/jwtPlugin.js';
 // 		cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
 // 	}
 // });
-class Server {
+export class Server {
     static instance;
+    static microservices = new Map();
     constructor() { }
     static getInstance() {
         if (!Server.instance) {
@@ -24,8 +29,8 @@ class Server {
     static async start() {
         const server = Server.getInstance();
         try {
-            process.on('SIGINT', () => Server.shutdown('SIGINT'));
-            process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
+            process.on("SIGINT", () => Server.shutdown("SIGINT"));
+            process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
             await server.register(fastifyMultipart, {
                 limits: {
                     fieldNameSize: 100, // Max field name size in bytes
@@ -34,13 +39,19 @@ class Server {
                     fileSize: 1000000, // For multipart forms, the max file size in bytes
                     files: 1, // Max number of file fields
                     headerPairs: 2000, // Max number of header key=>value pairs
-                    parts: 1000 // For multipart forms, the max number of parts (fields + files)
-                }
+                    parts: 1000, // For multipart forms, the max number of parts (fields + files)
+                },
+            });
+            await server.register(fastifyWebsocket);
+            await server.register(fastifyStatic, {
+                root: path.join(path.resolve(), "./srcs/shared/uploads"),
+                prefix: "/uploads",
             });
             await server.register(fastifyJwt, jwtPluginRegister);
-            // server.addHook('onRequest', jwtPluginHook)
-            await server.register(authRoutes, { prefix: '/api/v1/' });
-            await server.register(profilRoutes, { prefix: '/api/v1/' });
+            server.addHook("onRequest", jwtPluginHook);
+            await server.register(apiRoutes, { prefix: "/api/v1/" });
+            await server.register(authRoutes, { prefix: "/api/v1/" });
+            await server.register(profilRoutes, { prefix: "/api/v1/" });
             server.listen({ port: 8080, host: "localhost" }, (err, address) => {
                 if (err)
                     throw new Error("server listen");
@@ -48,17 +59,16 @@ class Server {
             });
         }
         catch (err) {
-            server.log.error('Fatal error', err.message);
+            server.log.error("Fatal error", err.message);
             process.exit(1);
         }
     }
     static async shutdown(signal) {
         const server = Server.getInstance();
-        server.log.info('Server has been closed.');
+        server.log.info("Server has been closed.");
         server.log.info(`Received ${signal}.`);
         await server.close();
         process.exit(0);
     }
-    ;
 }
 Server.start();

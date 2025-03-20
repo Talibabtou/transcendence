@@ -1,21 +1,17 @@
 import { FastifyInstance } from 'fastify';
-import { deletePic, getPic, upload } from '../controllers/profil.controllers.js'
-import { IReply, IGetIdUser } from '../types/types.js'
+import { deletePic, upload } from '../controllers/profil.controllers.js'
+import { IReply } from '../types/types.js'
 
 
 const jwt = { auth: true };
 const noJwt = { auth: false };
 
 export default async function authRoutes(fastify: FastifyInstance) {
-	fastify.post<{ Reply: IReply }>('/profil/upload', 
+	fastify.post<{ Reply: IReply }>('/profil/uploads', 
 		{ config: jwt },
 		upload);
 
-	fastify.get<{ Params: IGetIdUser }>('/profil/pic/:id', 
-		{ config: noJwt },
-		getPic);
-
-	fastify.delete<{ Reply: IReply }>('/profil/pic', 
+	fastify.delete<{ Reply: IReply }>('/profil/uploads', 
 		{ config: jwt },
 		deletePic);
 }

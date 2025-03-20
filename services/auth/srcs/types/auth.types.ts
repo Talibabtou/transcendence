@@ -9,10 +9,6 @@ export interface ILogin {
   password: string
 }
 
-export interface IGetIdUser {
-  id: string
-}
-
 export interface IModifyUser {
   username?: string,
   email?: string,

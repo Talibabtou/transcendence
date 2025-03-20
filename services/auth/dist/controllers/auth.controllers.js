@@ -58,15 +58,7 @@ export async function getUsers(request, reply) {
 }
 export async function getUser(request, reply) {
     try {
-        const id = request.params.id;
-        if (request.user && id !== request.user.id) {
-            request.server.log.error("Unauthorized");
-            return reply.status(401).send({
-                success: false,
-                message: 'Unauthorized'
-            });
-        }
-        const user = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
+        const user = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [request.user.id]);
         if (!user) {
             request.server.log.error("User not found");
             return reply.code(404).send({
@@ -100,15 +92,7 @@ export async function getUser(request, reply) {
 }
 export async function deleteUser(request, reply) {
     try {
-        const id = request.params.id;
-        if (request.user && id !== request.user.id) {
-            request.server.log.error("Unauthorized");
-            return reply.status(401).send({
-                success: false,
-                message: 'Unauthorized'
-            });
-        }
-        const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
+        const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [request.user.id]);
         if (!result) {
             request.server.log.error("User not found");
             return reply.code(404).send({
@@ -117,7 +101,7 @@ export async function deleteUser(request, reply) {
             });
         }
         await request.server.db.run('BEGIN TRANSACTION');
-        await request.server.db.run('DELETE FROM users WHERE id = ?', [id]);
+        await request.server.db.run('DELETE FROM users WHERE id = ?', [request.user.id]);
         await request.server.db.run('COMMIT');
         request.server.log.info("User successfully deleted");
         return reply.code(204).send();
@@ -142,16 +126,8 @@ export async function deleteUser(request, reply) {
 export async function modifyUser(request, reply) {
     try {
         let dataName = '';
-        const id = request.params.id;
-        if (request.user && id !== request.user.id) {
-            request.server.log.error("Unauthorized");
-            return reply.status(401).send({
-                success: false,
-                message: 'Unauthorized'
-            });
-        }
         const { username, password, email } = request.body;
-        let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
+        let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [request.user.id]);
         if (!result) {
             request.server.log.error("User not found");
             return reply.code(404).send({
@@ -162,19 +138,19 @@ export async function modifyUser(request, reply) {
         if (username) {
             dataName = 'username';
             await request.server.db.run('BEGIN TRANSACTION');
-            await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, id]);
+            await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, request.user.id]);
             await request.server.db.run('COMMIT');
         }
         else if (password) {
             dataName = 'password';
             await request.server.db.run('BEGIN TRANSACTION');
-            await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, id]);
+            await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, request.user.id]);
             await request.server.db.run('COMMIT');
         }
         else {
             dataName = 'email';
             await request.server.db.run('BEGIN TRANSACTION');
-            await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
+            await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, request.user.id]);
             await request.server.db.run('COMMIT');
         }
         request.server.log.info(`${dataName} has been modified successfully`);

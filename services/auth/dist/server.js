@@ -1,8 +1,9 @@
-import { fastify } from 'fastify';
-import { initDb } from './db.js';
-import authRoutes from './routes/auth.routes.js';
-import { jwtPluginRegister } from './plugins/jwtPlugin.js';
-import fastifyJwt from '@fastify/jwt';
+import { fastify } from "fastify";
+import { initDb } from "./db.js";
+import authRoutes from "./routes/auth.routes.js";
+import WebSocket from "ws";
+import { jwtPluginRegister, jwtPluginHook } from "./plugins/jwtPlugin.js";
+import fastifyJwt from "@fastify/jwt";
 class Server {
     static instance;
     constructor() { }
@@ -14,31 +15,42 @@ class Server {
     }
     static async start() {
         const server = Server.getInstance();
+        const microserviceId = "microservice-auth";
         try {
-            process.on('SIGINT', () => Server.shutdown('SIGINT'));
-            process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
-            server.decorate('db', await initDb());
+            const ws = new WebSocket("ws://localhost:8080/ws?id=" + microserviceId);
+            ws.on("open", () => {
+                console.log("Connecté au serveur WebSocket");
+                // Envoyer un heartbeat toutes les 5 secondes
+                setInterval(() => {
+                    ws.send(JSON.stringify({ type: "heartbeat" }));
+                }, 5000);
+            });
+            ws.on("close", () => {
+                console.log("Déconnecté du serveur WebSocket");
+            });
+            process.on("SIGINT", () => Server.shutdown("SIGINT"));
+            process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
+            server.decorate("db", await initDb());
             await server.register(fastifyJwt, jwtPluginRegister);
-            // server.addHook('onRequest', jwtPluginHook)
+            server.addHook("onRequest", jwtPluginHook);
             await server.register(authRoutes);
-            server.listen({ port: 8082, host: 'localhost' }, (err, address) => {
+            server.listen({ port: 8082, host: "localhost" }, (err, address) => {
                 if (err)
                     throw new Error("server listen");
                 server.log.info(`Server listening at ${address}`);
             });
         }
         catch (err) {
-            server.log.error('Fatal error', err.message);
+            server.log.error("Fatal error", err.message);
             process.exit(1);
         }
     }
     static async shutdown(signal) {
         const server = Server.getInstance();
-        server.log.info('Server has been closed.');
+        server.log.info("Server has been closed.");
         server.log.info(`Received ${signal}.`);
         await server.close();
         process.exit(0);
     }
-    ;
 }
 Server.start();

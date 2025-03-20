@@ -34,7 +34,7 @@ class Server {
 				}
 			});
 			await server.register(fastifyJwt, jwtPluginRegister);
-			// server.addHook('onRequest', jwtPluginHook)
+			server.addHook('onRequest', jwtPluginHook)
 			await server.register(profilRoutes);
 			server.listen({ port: 8081, host: 'localhost' }, (err: any, address: any) => {
 				if (err)

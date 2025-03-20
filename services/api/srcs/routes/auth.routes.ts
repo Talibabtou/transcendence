@@ -7,7 +7,7 @@ const noJwt = { auth: false };
 
 export default async function authRoutes(fastify: FastifyInstance) {
   
-	fastify.get<{ Reply: IReply }>('/auth/user/:id', 
+	fastify.get<{ Reply: IReply }>('/auth/user', 
 		{ config: jwt },
 		getUser);
 
@@ -19,11 +19,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
 		{ config: noJwt },
 		postUser);
 
-	fastify.patch<{ Reply: IReply }>('/auth/user/:id',
+	fastify.patch<{ Reply: IReply }>('/auth/user',
 		{ config: jwt },
 		patchUser);
 
-	fastify.delete<{ Reply: IReply }>('/auth/user/:id',
+	fastify.delete<{ Reply: IReply }>('/auth/user',
 		{ config: jwt },
 		deleteUser);
 

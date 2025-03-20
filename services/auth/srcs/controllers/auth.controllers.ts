@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ICreateUser, ILogin, IGetIdUser, IModifyUser, IReply } from '../types/auth.types.js';
+import { ICreateUser, ILogin, IModifyUser, IReply } from '../types/auth.types.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -69,17 +69,9 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Re
     }
 }
 
-export async function getUser(request: FastifyRequest<{ Params: IGetIdUser }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
     try {
-        const id: string = request.params.id;
-        if (request.user && id !== request.user.id) {
-          request.server.log.error("Unauthorized");
-          return reply.status(401).send({
-            success: false,
-            message: 'Unauthorized'
-          });
-        }
-        const user: any = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
+        const user: any = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [request.user.id]);
         if (!user) {
           request.server.log.error("User not found");
           return reply.code(404).send({
@@ -111,17 +103,9 @@ export async function getUser(request: FastifyRequest<{ Params: IGetIdUser }>, r
     }
 }
 
-export async function deleteUser(request: FastifyRequest<{ Params: IGetIdUser}>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
     try {
-      const id: string = request.params.id;
-      if (request.user && id !== request.user.id){
-        request.server.log.error("Unauthorized");
-        return reply.status(401).send({
-          success: false,
-          message: 'Unauthorized'
-        });
-      }
-      const result: any = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
+      const result: any = await request.server.db.get('SELECT * FROM users WHERE id = ?', [request.user.id]);
       if (!result){
         request.server.log.error("User not found");
         return reply.code(404).send({
@@ -130,7 +114,7 @@ export async function deleteUser(request: FastifyRequest<{ Params: IGetIdUser}>,
         });
       }
       await request.server.db.run('BEGIN TRANSACTION');
-      await request.server.db.run('DELETE FROM users WHERE id = ?', [id]);
+      await request.server.db.run('DELETE FROM users WHERE id = ?', [request.user.id]);
       await request.server.db.run('COMMIT');
       request.server.log.info("User successfully deleted");
       return reply.code(204).send();
@@ -152,19 +136,11 @@ export async function deleteUser(request: FastifyRequest<{ Params: IGetIdUser}>,
     }
 }
 
-export async function modifyUser(request: FastifyRequest<{ Params: IGetIdUser, Body: IModifyUser }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
     try {
         let dataName: string = '';
-        const id: string = request.params.id;
-        if (request.user && id !== request.user.id){
-          request.server.log.error("Unauthorized");
-          return reply.status(401).send({
-            success: false,
-            message: 'Unauthorized'
-          });
-        }
         const { username, password, email } = request.body;
-        let result: any = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
+        let result: any = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [request.user.id]);
         if (!result){
           request.server.log.error("User not found");
           return reply.code(404).send({
@@ -175,17 +151,17 @@ export async function modifyUser(request: FastifyRequest<{ Params: IGetIdUser, B
         if (username) {
           dataName = 'username';
           await request.server.db.run('BEGIN TRANSACTION');
-          await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, id]);
+          await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, request.user.id]);
           await request.server.db.run('COMMIT');
         } else if (password) {
           dataName = 'password';
           await request.server.db.run('BEGIN TRANSACTION');
-          await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, id]);
+          await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, request.user.id]);
           await request.server.db.run('COMMIT');
         } else {
           dataName = 'email';
           await request.server.db.run('BEGIN TRANSACTION');
-          await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
+          await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, request.user.id]);
           await request.server.db.run('COMMIT');
         }
         request.server.log.info(`${dataName} has been modified successfully`);
