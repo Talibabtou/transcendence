@@ -274,3 +274,182 @@
 	align-items: center;
 	z-index: 100;
 }
+
+/* Players Register Styling */
+.players-register-container {
+	position: relative;
+	width: 100%;
+	height: 100%; /* Take full height of the container */
+	display: flex;
+	flex-direction: column;
+	z-index: 10; /* Above background game but below modal overlays */
+}
+
+/* Main title - match the style in screenshot */
+.multiplayer-title-container {
+	width: 100%;
+	text-align: center;
+	margin: 20px 0;
+}
+
+.multiplayer-title {
+	font-size: 2.5rem;
+	color: var(--text-color);
+	text-shadow: 0 0 10px var(--accent-color);
+	letter-spacing: 3px;
+	font-family: 'VT323', monospace;
+}
+
+/* Players grid container - takes full remaining height */
+.players-grid {
+	display: flex;
+	flex: 1;
+	width: 100%;
+	position: relative;
+}
+
+/* Vertical separator line */
+.vertical-separator {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: 1px;
+	height: 100%;
+	background-color: var(--border-color);
+	box-shadow: 0 0 5px var(--border-color);
+}
+
+/* Player sides - left and right */
+.player-side {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+/* Player label (HOST/GUEST) */
+.player-label {
+	font-size: 1.5rem;
+	text-transform: uppercase;
+	color: var(--text-color);
+	letter-spacing: 2px;
+	margin-bottom: 40px;
+}
+
+/* Player avatar */
+.player-avatar {
+	width: 140px;
+	height: 140px;
+	border-radius: 50%;
+	overflow: hidden;
+	margin-bottom: 20px;
+	border: 2px solid var(--accent-color);
+	box-shadow: 0 0 10px var(--accent-color);
+}
+
+.player-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Player name and status */
+.player-name {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: var(--text-color);
+	margin-bottom: 10px;
+}
+
+.player-status {
+	font-size: 1rem;
+	color: var(--accent-color);
+	margin-bottom: 30px;
+}
+
+/* Play button container - fixed at bottom center */
+.play-button-container {
+	position: absolute;
+	bottom: 40px;
+	left: 0;
+	right: 0;
+	text-align: center;
+	z-index: 5;
+}
+
+.play-button {
+	min-width: 200px;
+}
+
+/* Error message */
+.register-error {
+	position: absolute;
+	bottom: 10px;
+	left: 50%;
+	transform: translateX(-50%);
+	background-color: rgba(255, 100, 100, 0.2);
+	border: 1px solid var(--error-color);
+	color: var(--error-color);
+	padding: 8px 15px;
+	text-align: center;
+	width: 80%;
+	max-width: 500px;
+}
+
+/* Auth container for player registration - takes the entire right side */
+.player-auth-wrapper {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+/* Custom styles for simplified auth in the player registration */
+.simplified-auth-container {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+.simplified-auth-form-container {
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	width: 90%;
+	max-width: 400px;
+	box-shadow: var(--shadow-normal);
+	animation: fadeIn 0.3s ease;
+}
+
+.simplified-auth-form-container .auth-close-button {
+	display: none; /* Hide close button */
+}
+
+.simplified-auth-form-container .ascii-title-container {
+	display: none; /* Hide ASCII art */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+	.players-grid {
+		flex-direction: column;
+		height: auto;
+	}
+	
+	.player-side {
+		width: 100%;
+		margin-bottom: var(--spacing-lg);
+	}
+	
+	.player-auth-wrapper {
+		left: 0;
+		width: 100%;
+		top: 50%;
+		height: 50%;
+	}
+}

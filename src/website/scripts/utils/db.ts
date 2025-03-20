@@ -456,4 +456,123 @@ export class DbService {
 			requestId
 		});
 	}
+
+	/**
+	 * Verifies user credentials and returns user data
+	 * @param email - User's email
+	 * @param password - User's password
+	 */
+	public static verifyUser(email: string, password: string): Promise<{
+		success: boolean;
+		user?: {
+			id: string;
+			username: string;
+			email: string;
+			profilePicture?: string;
+		};
+	}> {
+		// Log the verification attempt
+		this.logRequest('POST', '/api/auth/verify', { email, password: '********' });
+
+		return new Promise((resolve) => {
+			// Simulate API delay
+			setTimeout(() => {
+				try {
+					// Get users from localStorage
+					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
+					
+					// Find user with matching credentials
+					const user = users.find((u: any) => 
+						u.email === email && u.password === password
+					);
+
+					if (user) {
+						// Return success with user data
+						resolve({
+							success: true,
+							user: {
+								id: user.id,
+								username: user.username,
+								email: user.email,
+								profilePicture: user.pfp || '/images/default-avatar.svg'
+							}
+						});
+
+						// Log successful verification
+						console.log('Auth: User verified successfully', {
+							userId: user.id,
+							username: user.username
+						});
+					} else {
+						// User not found or invalid credentials
+						resolve({ success: false });
+						
+						// Log failed verification
+						console.warn('Auth: User verification failed', { email });
+					}
+				} catch (error) {
+					console.error('Auth: Verification error', error);
+					resolve({ success: false });
+				}
+			}, 300); // Simulate network delay
+		});
+	}
+
+	/**
+	 * Updates user's last connection timestamp
+	 * @param userId - The user's ID
+	 */
+	public static updateUserLastConnection(userId: string): Promise<void> {
+		// Log the update attempt
+		this.logRequest('PUT', `/api/users/${userId}/last-connection`);
+
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				try {
+					// Get users from localStorage
+					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
+					
+					// Find and update user
+					const userIndex = users.findIndex((u: any) => u.id === userId);
+					
+					if (userIndex !== -1) {
+						// Update last login time
+						users[userIndex].lastLogin = new Date().toISOString();
+						
+						// Save back to localStorage
+						localStorage.setItem('auth_users', JSON.stringify(users));
+						
+						// Log successful update
+						console.log('Auth: Updated user last connection', {
+							userId,
+							timestamp: users[userIndex].lastLogin
+						});
+						
+						resolve();
+					} else {
+						// User not found
+						console.warn('Auth: User not found for last connection update', { userId });
+						reject(new Error('User not found'));
+					}
+				} catch (error) {
+					console.error('Auth: Last connection update error', error);
+					reject(error);
+				}
+			}, 200); // Simulate network delay
+		});
+	}
+
+	/**
+	 * Helper method to ensure auth_users exists in localStorage
+	 */
+	private static initializeAuthUsers(): void {
+		if (!localStorage.getItem('auth_users')) {
+			localStorage.setItem('auth_users', '[]');
+		}
+	}
+
+	// Call this in the constructor or as a static initialization
+	static {
+		DbService.initializeAuthUsers();
+	}
 }

@@ -7,9 +7,9 @@ export interface Match {
 	id: number;
 	player_1: number;
 	player_2: number;
-	completed: boolean;
+	completed?: boolean;
 	duration?: number;
-	timeout: boolean;
+	timeout?: boolean;
 	tournament_id?: number;
 	created_at: Date;
 }
@@ -66,4 +66,25 @@ export enum GameMode {
 export interface GameMenuState {
 	visible: boolean;
 	isAuthenticated: boolean;
+}
+
+/**
+ * Player data interface
+ */
+export interface PlayerData {
+	id: number;
+	username: string;
+	pfp?: string;
+	isConnected: boolean;
+}
+
+/**
+ * Players register component state
+ */
+export interface PlayersRegisterState {
+	gameMode: GameMode;
+	host: PlayerData | null;
+	guests: PlayerData[];
+	isReadyToPlay: boolean;
+	error: string | null;
 }

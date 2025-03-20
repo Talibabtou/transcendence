@@ -3,8 +3,8 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager } from '@website/scripts/components';
-import { DbService, appState } from '@website/scripts/utils';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent } from '@website/scripts/components';
+import { appState } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
 
 // =========================================
@@ -16,6 +16,7 @@ import { GameMode } from '@shared/types';
  */
 enum GameState {
 	MENU = 'menu',
+	PLAYER_REGISTRATION = 'player_registration',
 	PLAYING = 'playing',
 	GAME_OVER = 'game_over'
 }
@@ -26,6 +27,7 @@ enum GameState {
 interface GameComponentState {
 	currentState: GameState;
 	currentMode: GameMode;
+	playerIds?: number[];
 }
 
 // =========================================
@@ -54,6 +56,9 @@ export class GameComponent extends Component<GameComponentState> {
 	private gameStartTime = 0;
 	private unsubscribe: (() => void) | null = null;
 	
+	// Add a reference to the player registration component
+	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
+	
 	// =========================================
 	// INITIALIZATION
 	// =========================================
@@ -80,8 +85,8 @@ export class GameComponent extends Component<GameComponentState> {
 		// Clear container
 		this.container.innerHTML = '';
 		
-		// Style the main container
-		this.container.style.height = "700px";
+		// Style the main container - match background canvas size
+		this.container.style.height = "100%"; // Change from 700px to match the whole available space
 		
 		// Create container for game components
 		this.gameContainer = document.createElement('div');
@@ -182,6 +187,10 @@ export class GameComponent extends Component<GameComponentState> {
 		switch (newState) {
 			case GameState.MENU:
 				this.showMenu();
+				break;
+				
+			case GameState.PLAYER_REGISTRATION:
+				this.showPlayerRegistration();
 				break;
 				
 			case GameState.PLAYING:
@@ -311,7 +320,14 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		this.updateInternalState({ currentMode: mode });
-		this.updateGameState(GameState.PLAYING);
+		
+		// For multiplayer and tournament modes, show player registration first
+		if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
+			this.updateGameState(GameState.PLAYER_REGISTRATION);
+		} else {
+			// For single player, go straight to game
+			this.updateGameState(GameState.PLAYING);
+		}
 	}
 
 	/**
@@ -548,5 +564,78 @@ export class GameComponent extends Component<GameComponentState> {
 	public resetToMenu(): void {
 		// Force a transition to menu state
 		this.updateGameState(GameState.MENU);
+	}
+
+	// =========================================
+	// NEW METHODS FOR GAME COMPONENT
+	// =========================================
+
+	/**
+	 * Shows the player registration screen
+	 */
+	private showPlayerRegistration(): void {
+		const state = this.getInternalState();
+		
+		if (this.menuComponent) {
+			this.menuComponent.hide();
+		}
+		
+		if (this.gameOverComponent) {
+			this.gameOverComponent.hide();
+		}
+		
+		// Keep the background game visible (don't hide it)
+		
+		// Destroy previous player registration component if it exists
+		if (this.playerRegistrationComponent) {
+			this.playerRegistrationComponent.destroy();
+			this.playerRegistrationComponent = null;
+		}
+		
+		// Create new player registration component
+		if (this.gameContainer) {
+			this.playerRegistrationComponent = new PlayersRegisterComponent(
+				this.gameContainer,
+				state.currentMode,
+				this.handlePlayersRegistered.bind(this)
+			);
+			
+			// Show the player registration component
+			this.playerRegistrationComponent.render();
+		}
+	}
+
+	/**
+	 * Handles when players are registered
+	 * @param playerIds - The registered player IDs
+	 */
+	private handlePlayersRegistered(playerIds: number[]): void {
+		console.log('Players registered for game with valid IDs:', playerIds);
+		
+		// Prevent handling if already transitioning
+		if (this.isTransitioning) {
+			console.warn('Already transitioning, ignoring duplicate registration');
+			return;
+		}
+		
+		// Set transitioning flag
+		this.isTransitioning = true;
+		
+		// Store player IDs for the game
+		this.updateInternalState({
+			playerIds: playerIds
+		});
+		
+		// Clean up the player registration component
+		if (this.playerRegistrationComponent) {
+			this.playerRegistrationComponent.destroy();
+			this.playerRegistrationComponent = null;
+		}
+		
+		// Proceed to the game after a short delay to allow cleanup
+		setTimeout(() => {
+			this.updateGameState(GameState.PLAYING);
+			this.isTransitioning = false;
+		}, 200);
 	}
 }

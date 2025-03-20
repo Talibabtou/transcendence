@@ -315,7 +315,7 @@ export class AuthManager extends Component<AuthComponentState> {
 	/**
 	 * Handles successful authentication
 	 */
-	private handleSuccessfulAuth(): void {
+	protected handleSuccessfulAuth(): void {
 		if (!this.currentUser) return;
 		
 		// Use AppState to login

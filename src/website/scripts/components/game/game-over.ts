@@ -18,6 +18,7 @@ interface GameOverState {
 	visible: boolean;
 	winner: string;
 	gameMode: GameMode;
+	playerIds?: number[];
 }
 
 // =========================================
@@ -127,6 +128,7 @@ export class GameOverComponent extends Component<GameOverState> {
 	showGameResult(result: {
 		winner: string;
 		gameMode: GameMode;
+		playerIds?: number[];
 	}): void {
 		this.updateInternalState({
 			...result,
