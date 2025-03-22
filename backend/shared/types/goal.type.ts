@@ -7,6 +7,16 @@ export interface Goal {
   created_at: string;
 }
 
+export interface FastestGoal {
+  player: string;
+  duration: number;
+}
+export interface MatchGoals {
+  match_id: string;
+  player: string;
+  duration: number;
+}
+
 export interface CreateGoalRequest {
   match_id: string;
   player: string;

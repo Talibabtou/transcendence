@@ -114,4 +114,102 @@ export const updateMatchSchema = {
   }
 }
 
+export const matchTimelineSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      match_id: { type: 'string', format: 'uuid' },
+			player_id: { type: 'string', format: 'uuid' },
+			duration: { type: 'integer', minimum: 0 }
+    },
+    required: ['match_id', 'player_id', 'duration']
+  },
+  response: {
+    200: matchSchema,
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.invalidFields
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.matchNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}
 
+export const matchStatsSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      player_id: { type: 'string', format: 'uuid' }
+    },
+    required: ['player_id']
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        player_id: { type: 'string', format: 'uuid' },
+        summary: { 
+          type: 'object', 
+          properties: {
+            total_matches: { type: 'integer', minimum: 0 },
+            completed_matches: { type: 'integer', minimum: 0 },
+            victories: { type: 'integer', minimum: 0 },
+            win_ratio: { type: 'number', minimum: 0, maximum: 1 }
+          },
+          required: ['total_matches', 'completed_matches', 'victories', 'win_ratio']
+        },
+        goal_stats: {
+          type: 'object',
+          properties: {
+            fastest_goal_duration: { type: ['integer', 'null'], minimum: 0 },
+            average_goal_duration: { type: ['number', 'null'], minimum: 0 },
+            total_goals: { type: 'integer', minimum: 0 }
+          },
+          required: ['fastest_goal_duration', 'average_goal_duration', 'total_goals']
+        },
+        daily_performance: { 
+          type: 'array', 
+          items: { 
+            type: 'object', 
+            properties: {
+              match_date: { type: 'string', format: 'date' },
+              matches_played: { type: 'integer', minimum: 0 },
+              wins: { type: 'integer', minimum: 0 },
+              losses: { type: 'integer', minimum: 0 },
+              daily_win_ratio: { type: 'number', minimum: 0, maximum: 1 }
+            },
+            required: ['match_date', 'matches_played', 'wins', 'losses', 'daily_win_ratio']
+          }
+        },
+        goal_durations: { type: 'array', items: { type: 'number', minimum: 0 } },
+        match_durations: { type: 'array', items: { type: 'number', minimum: 0 } },
+        elo_history: { 
+          type: 'array', 
+          items: { 
+            type: 'object', 
+            properties: {
+              match_date: { type: 'string', format: 'date' },
+              elo: { type: 'number', minimum: 0 }
+            },
+            required: ['match_date', 'elo']
+          }
+        }
+      },
+      required: ['player_id', 'summary', 'goal_stats', 'daily_performance', 'goal_durations', 'match_durations', 'elo_history']
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}

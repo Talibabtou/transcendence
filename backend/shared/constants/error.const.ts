@@ -15,6 +15,9 @@ export enum ErrorCodes {
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
   PLAYER_NOT_IN_MATCH = 'PLAYER_NOT_IN_MATCH',
+
+	//elo related errors
+	PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
 }
 
 // Create a map of error codes to their messages
@@ -37,6 +40,9 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],
+
+	//elo related errors
+	[ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
 ]);
 
 // Helper function to create error response objects
@@ -91,5 +97,13 @@ export const ErrorExamples = {
 		code: ErrorCodes.GOAL_NOT_FOUND,
 		error: ErrorTypes.get(404),
 		message: ErrorMessages.get(ErrorCodes.GOAL_NOT_FOUND)
+	},
+
+	//elo related errors
+	playerNotFound: {
+		statusCode: 404,
+		code: ErrorCodes.PLAYER_NOT_FOUND,
+		error: ErrorTypes.get(404),
+		message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND)
 	},
 };

@@ -4,6 +4,7 @@ import { Match } from '@shared/types/match.type.js'
 
 import { 
   Goal, 
+	FastestGoal,
   CreateGoalRequest, 
   GetGoalsQuery 
 } from '@shared/types/goal.type.js'
@@ -62,7 +63,6 @@ export async function createGoal(request: FastifyRequest<{
   Body: CreateGoalRequest
 }>, reply: FastifyReply): Promise<void> {
   const { match_id, player, duration } = request.body
-  
   try {
     // Use a transaction to ensure data consistency
     await request.server.db.exec('BEGIN TRANSACTION')
@@ -96,6 +96,23 @@ export async function createGoal(request: FastifyRequest<{
   } catch (error) {
     // Rollback transaction on error
     await request.server.db.exec('ROLLBACK')
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    return reply.code(500).send(errorResponse)
+  }
+}
+
+export async function fastestGoal(request: FastifyRequest<{
+  Params: { player_id: string }
+}>, reply: FastifyReply): Promise<void> {
+  const { player_id } = request.params
+  try {
+    const goal = await request.server.db.get('SELECT duration FROM goal WHERE player = ? ORDER BY duration ASC LIMIT 1', [player_id]) as FastestGoal | null
+    if (!goal) {
+      const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
+      return reply.code(404).send(errorResponse)
+    }
+    return reply.code(200).send(goal)
+  } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
   }
