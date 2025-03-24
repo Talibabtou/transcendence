@@ -4,13 +4,10 @@ import authRoutes from "./routes/auth.routes.js";
 import profilRoutes from "./routes/profil.routes.js";
 import apiRoutes from "./routes/api.routes.js";
 import fastifyJwt from "@fastify/jwt";
-import {
-  jwtPluginHook,
-  jwtPluginRegister,
-} from "./shared/plugins/jwtPlugin.js";
+import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 import fastifyStatic from "@fastify/static";
-import fastifyWebsocket from "@fastify/websocket";
 import path from "path";
+import WebSocketPlugin from "@fastify/websocket";
 
 // const server = fastify({
 // 	logger: true,
@@ -36,7 +33,6 @@ export class Server {
 
   public static async start(): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
-
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
@@ -51,21 +47,26 @@ export class Server {
           parts: 1000, // For multipart forms, the max number of parts (fields + files)
         },
       });
-      await server.register(fastifyWebsocket);
-
       await server.register(fastifyStatic, {
-        root: path.join(path.resolve(), "./srcs/shared/uploads"),
+        root: path.join(path.resolve(), process.env.UPLOADS_DIR || "./srcs/shared/uploads"),
         prefix: "/uploads",
       });
+      await server.register(WebSocketPlugin);
       await server.register(fastifyJwt, jwtPluginRegister);
-      server.addHook("onRequest", jwtPluginHook);
+      server.addHook("preHandler", jwtPluginHook);
       await server.register(apiRoutes, { prefix: "/api/v1/" });
       await server.register(authRoutes, { prefix: "/api/v1/" });
       await server.register(profilRoutes, { prefix: "/api/v1/" });
       server.listen(
-        { port: 8080, host: "localhost" },
+        { port: Number(process.env.API_PORT) || 8080, host: "localhost" },
         (err: any, address: any) => {
-          if (err) throw new Error("server listen");
+          if (err) {
+            server.log.error(`Failed to start server: ${err.message}`);
+            if (err.code === 'EADDRINUSE') {
+              server.log.error(`Port ${Number(process.env.API_PORT) || 8080} is already in use`);
+            }
+            process.exit(1);
+          }
           server.log.info(`Server listening at ${address}`);
         }
       );

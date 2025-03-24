@@ -1,53 +1,84 @@
 import fs from "node:fs";
 import path from "path";
-import { Server } from "../server.js";
 export async function getPic(request, reply) {
+    const id = request.params.id;
     const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
     const existingFile = fs
         .readdirSync(uploadDir)
-        .find((file) => file.startsWith(request.user.id));
+        .find((file) => file.startsWith(id));
     if (existingFile) {
         request.server.log.info(`Picture ${existingFile} found`);
         return reply.code(200).send({
             success: true,
             message: `Picture ${existingFile} found`,
             data: {
-                link: `/uploads/${existingFile}`,
+                dir: '/uploads',
+                image: existingFile
             },
         });
     }
     else {
-        request.server.log.error("No picture found");
+        request.server.log.error("Picture not found");
         return reply.code(404).send({
             success: false,
-            message: "No picture found",
+            message: "Picture not found",
         });
     }
 }
-export async function handleWebsocket(connection, request) {
-    const microserviceId = request.query.id;
-    Server.microservices.set(microserviceId, {
-        lastHeartbeat: Date.now(),
-        connection,
-    });
-    console.log(`Microservice ${microserviceId} connecté`);
-    connection.socket.on("message", (message) => {
-        const data = JSON.parse(message);
-        if (data.type === "heartbeat") {
-            Server.microservices.get(microserviceId).lastHeartbeat = Date.now();
-            console.log(`Heartbeat reçu de ${microserviceId}`);
-        }
-    });
-    connection.socket.on("close", () => {
-        Server.microservices.delete(microserviceId);
-        console.log(`Microservice ${microserviceId} déconnecté`);
-    });
+export async function getPics(request, reply) {
+    const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
+    const existingFiles = fs
+        .readdirSync(uploadDir);
+    if (existingFiles) {
+        request.server.log.info(`Pictures found`);
+        return reply.code(200).send({
+            success: true,
+            message: 'Pictures found',
+            data: {
+                dir: '/uploads',
+                images: existingFiles
+            },
+        });
+    }
+    else {
+        request.server.log.error("Pictures not found");
+        return reply.code(404).send({
+            success: false,
+            message: "Pictures not found",
+        });
+    }
 }
-export async function statusWebsocket(request, reply) {
-    const status = {};
-    Server.microservices.forEach((value, key) => {
-        const isOnline = Date.now() - value.lastHeartbeat < 10000; // 10 secondes of tolerance
-        status[key] = isOnline ? "online" : "offline";
-    });
-    reply.send(status);
+export async function webSocket(ws, request) {
+    try {
+        ws.on('message', (message) => {
+            const { serviceName, type, date } = JSON.parse(message);
+            if (type === 'heartbeat') {
+                console.log({
+                    serviceName: serviceName,
+                    message: 'Message received',
+                    date: date
+                });
+            }
+            else {
+                console.log({
+                    serviceName: serviceName,
+                    message: 'Message received',
+                    date: date
+                });
+            }
+            ws.on('close', (message) => {
+                const { serviceName, type, date } = JSON.parse(message);
+                console.log({
+                    serviceName: serviceName,
+                    message: 'Disconnected',
+                    date: date
+                });
+            });
+        });
+    }
+    catch (err) {
+        console.error({
+            error: err.message
+        });
+    }
 }

@@ -16,7 +16,7 @@ rm csr.pem
 npm init -y // generate .json files
 
 // API
-npm install @types/node typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/websocket
+npm install @types/node typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/websocket npm i @types/ws
 
 // AUTH
 npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt @types/ws

@@ -2,33 +2,46 @@ import { FastifyInstance } from 'fastify';
 import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js'
 import { IReply } from '../types/types.js'
 
-const jwt = { auth: true };
-const noJwt = { auth: false };
-
 export default async function authRoutes(fastify: FastifyInstance) {
   
-	fastify.get<{ Reply: IReply }>('/auth/user', 
-		{ config: jwt },
+	fastify.get<{ Reply: IReply }>('/auth/user', {
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
 		getUser);
 
-	fastify.get<{ Reply: IReply }>('/auth/users', 
-		{ config: jwt },
+	fastify.get<{ Reply: IReply }>('/auth/users', {
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
 		getUsers);
 
-	fastify.post<{ Reply: IReply }>('/auth/user', 
-		{ config: noJwt },
+	fastify.post<{ Reply: IReply }>('/auth/user', {
+		config: { 
+		  auth: false
+		}},
 		postUser);
 
-	fastify.patch<{ Reply: IReply }>('/auth/user',
-		{ config: jwt },
+	fastify.patch<{ Reply: IReply }>('/auth/user', {
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
 		patchUser);
 
-	fastify.delete<{ Reply: IReply }>('/auth/user',
-		{ config: jwt },
+	fastify.delete<{ Reply: IReply }>('/auth/user', {
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
 		deleteUser);
 
-	fastify.post<{ Reply: IReply }>('/auth/login',
-		{ config: noJwt },
+	fastify.post<{ Reply: IReply }>('/auth/login', {
+		config: { 
+		  auth: false
+		}},
 		postLogin);
 
 }

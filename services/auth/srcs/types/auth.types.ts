@@ -18,5 +18,5 @@ export interface IModifyUser {
 export interface IReply {
   success: boolean,
   message: string,
-  data?: any
+  data?: unknown
 }

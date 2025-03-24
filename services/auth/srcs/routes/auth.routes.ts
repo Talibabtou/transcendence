@@ -3,31 +3,47 @@ import { createUserSchema, loginSchema, modifyUserSchema } from '../schemas/auth
 import { ICreateUser, ILogin, IModifyUser, IReply } from '../types/auth.types.js';
 import { addUser, getUsers, getUser, deleteUser, modifyUser, login } from '../controllers/auth.controllers.js';
 
-const jwt = { auth: true };
-const noJwt = { auth: false };
-
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Reply: IReply }>('/users',
-    { config: jwt },
+  fastify.get<{ Reply: IReply }>('/users', {
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
     getUsers);
 
-  fastify.get<{ Reply: IReply }>('/user',
-    { config: jwt },
+  fastify.get<{ Reply: IReply }>('/user', {
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
     getUser);
 
-  fastify.post<{ Body: ICreateUser, Reply: IReply }>('/user',
-    { schema: createUserSchema, config: noJwt },
+  fastify.post<{ Body: ICreateUser, Reply: IReply }>('/user', {
+    schema: createUserSchema,
+    config: { 
+      auth: false
+    }},
     addUser);
 
-  fastify.patch<{ Body: IModifyUser, Reply: IReply }>('/user',
-    { schema: modifyUserSchema, config: jwt },
+  fastify.patch<{ Body: IModifyUser, Reply: IReply }>('/user', {
+    schema: modifyUserSchema,
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
     modifyUser)
   
-  fastify.delete<{ Reply: IReply }>('/user',
-    { config: jwt },
+  fastify.delete<{ Reply: IReply }>('/user', {
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
     deleteUser);
 
-  fastify.post<{ Body: ILogin, Reply: IReply }>('/login',
-    { schema: loginSchema, config: noJwt },
+  fastify.post<{ Body: ILogin, Reply: IReply }>('/login', {
+    schema: loginSchema,
+    config: { 
+      auth: false
+    }},
     login);
 }

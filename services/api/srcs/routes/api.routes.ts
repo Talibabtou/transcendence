@@ -1,14 +1,24 @@
 import { FastifyInstance } from "fastify";
-import { handleWebsocket, statusWebsocket } from "../controllers/api.controllers.js";
-import { getPic } from "../controllers/api.controllers.js";
-import { IReply } from "../types/types.js";
-
-const jwt = { auth: true };
+import { getPic, getPics, webSocket } from "../controllers/api.controllers.js";
+import { IReply, IGetId } from "../types/types.js";
+import { getIdSchema } from "../schemas/schemas.js";
 
 export default async function apiRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Reply: IReply }>("/uploads", { config: jwt }, getPic);
+  fastify.get<{ Reply: IReply }>("/uploads", {
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
+    getPics);
 
-  fastify.get("/ws", { config: jwt, websocket: true }, handleWebsocket);
+  fastify.get<{ Params: IGetId, Reply: IReply }>("/uploads/:id", {
+    schema: getIdSchema,
+    config: { 
+      auth: true, 
+      roles: ['user', 'admin']
+    }},
+    getPic);
 
-  fastify.get("/status", { config: jwt }, statusWebsocket);
+    fastify.get('/ws', { websocket: true },
+      webSocket)
 }

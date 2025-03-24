@@ -57,18 +57,22 @@ export async function upload(request: FastifyRequest, reply: FastifyReply<{ Repl
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir);
     }
+    console.log({ debug: 1 })
     const existingFiles: string[] = fs.readdirSync(uploadDir).filter(f => f.startsWith(request.user.id));
+    console.log({ debug: 2 })
     if (existingFiles.length > 0) {
       existingFiles.forEach(file => {
         const filePath: string = path.join(uploadDir, file);
         fs.unlinkSync(filePath);
       })
     }
+    console.log({ debug: 3 })
     const ext: string = file.filename.substring(file.filename.lastIndexOf('.'));
     const filePath: string = path.join(uploadDir, `${request.user.id}${ext}`);
     const buffer: Buffer = await file.toBuffer();
     fs.promises.writeFile(filePath, buffer);
     request.server.log.info(`File: ${file.filename} has been upload`);
+
     return reply.code(201).send({
       success: true,
       message: `File: ${file.filename} has been upload`

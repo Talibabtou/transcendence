@@ -34,12 +34,17 @@ class Server {
 				}
 			});
 			await server.register(fastifyJwt, jwtPluginRegister);
-			server.addHook('onRequest', jwtPluginHook)
+			server.addHook('preHandler', jwtPluginHook)
 			await server.register(profilRoutes);
-			server.listen({ port: 8081, host: 'localhost' }, (err: any, address: any) => {
-				if (err)
-					throw new Error("server listen");
-				server.log.info(`Server listening at ${address}`);
+			server.listen({ port: Number(process.env.PROFIL_PORT) || 8081, host: process.env.PROFIL_ADD || 'localhost' }, (err: any, address: any) => {
+				if (err) {
+					server.log.error(`Failed to start server: ${err.message}`);
+					if (err.code === 'EADDRINUSE') {
+					  server.log.error(`Port ${Number(process.env.API_PORT) || 8081} is already in use`);
+					}
+					process.exit(1);
+				  }
+				  server.log.info(`Server listening at ${address}`);
 			})
 		} catch (err: any) {
 			server.log.error('Fatal error', err.message);

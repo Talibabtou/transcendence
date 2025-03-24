@@ -1,9 +1,55 @@
 import { fastify, FastifyInstance } from "fastify";
 import { initDb } from "./db.js";
 import authRoutes from "./routes/auth.routes.js";
-import WebSocket from "ws";
 import { jwtPluginRegister, jwtPluginHook } from "./plugins/jwtPlugin.js";
 import fastifyJwt from "@fastify/jwt";
+import WebSocket from "ws";
+
+function sendHeartbeat(ws: WebSocket) {
+  if (ws.readyState === ws.OPEN) {
+    const heartbeat = {
+      type: 'heartbeat',
+      serviceName: 'auth',
+      date: new Date().toISOString()
+    }
+    ws.send(JSON.stringify(heartbeat));
+  }
+}
+
+function connectWebSocket() {
+  const connect = () => {
+    try {
+      const ws: WebSocket = new WebSocket("ws://localhost:8080/api/v1/ws", {
+        headers: {
+          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI4MTczNDIsImV4cCI6MTc0MjkwMzc0Mn0.yY8m6ICGcy_condmG1jYlOmvpvB1qSWMApMYnNl3ass'
+        }
+      })
+      ws.on('open', () => {
+        console.log({
+          message: 'Connected to API GATEWAY'
+        })
+        sendHeartbeat(ws)
+        setInterval(() => sendHeartbeat(ws), 5000);
+      }) ;
+      ws.on('close', () => {
+        console.log({
+          message: 'Disconnected from API GATEWAY, reconnecting...'
+        })
+      });
+      ws.on('error', (err: any) => {
+        console.error({
+          error: err.code
+        })
+        setTimeout(connect, 5000);
+      });
+    } catch (err: any) {
+      console.error({
+        error: err.message
+      })
+    }
+  }
+  connect();
+}
 
 class Server {
   private static instance: FastifyInstance;
@@ -19,30 +65,24 @@ class Server {
 
   public static async start(): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
-    const microserviceId = "microservice-auth";
     try {
-      const ws: WebSocket = new WebSocket("ws://localhost:8080/ws?id=" + microserviceId);
-      ws.on("open", () => {
-        console.log("Connecté au serveur WebSocket");
-
-        // Envoyer un heartbeat toutes les 5 secondes
-        setInterval(() => {
-          ws.send(JSON.stringify({ type: "heartbeat" }));
-        }, 5000);
-      });
-      ws.on("close", () => {
-        console.log("Déconnecté du serveur WebSocket");
-      });
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
       server.decorate("db", await initDb());
       await server.register(fastifyJwt, jwtPluginRegister);
-      server.addHook("onRequest", jwtPluginHook);
+      server.addHook("preHandler", jwtPluginHook);
       await server.register(authRoutes);
+      connectWebSocket();
       server.listen(
-        { port: 8082, host: "localhost" },
+        { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" },
         (err: any, address: any) => {
-          if (err) throw new Error("server listen");
+          if (err) {
+            server.log.error(`Failed to start server: ${err.message}`);
+            if (err.code === 'EADDRINUSE') {
+              server.log.error(`Port ${Number(process.env.API_PORT) || 8082} is already in use`);
+            }
+            process.exit(1);
+          }
           server.log.info(`Server listening at ${address}`);
         }
       );

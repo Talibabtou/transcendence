@@ -44,13 +44,16 @@ export async function upload(request, reply) {
         if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir);
         }
+        console.log({ debug: 1 });
         const existingFiles = fs.readdirSync(uploadDir).filter(f => f.startsWith(request.user.id));
+        console.log({ debug: 2 });
         if (existingFiles.length > 0) {
             existingFiles.forEach(file => {
                 const filePath = path.join(uploadDir, file);
                 fs.unlinkSync(filePath);
             });
         }
+        console.log({ debug: 3 });
         const ext = file.filename.substring(file.filename.lastIndexOf('.'));
         const filePath = path.join(uploadDir, `${request.user.id}${ext}`);
         const buffer = await file.toBuffer();

@@ -13,6 +13,8 @@ class Server {
         return Server.instance;
     }
     static async start() {
+        const jwt = process.env.JWT_MICROSERVICES || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI1NTcwOTcsImV4cCI6MTc3NDA5MzA5N30.DIkqyR5GObBVWSFOxdjo-tsdnBNtMaSF5BlJgEOLQFM";
+        const microserviceId = process.env.AUTH_NAME || "microservice-auth";
         const server = Server.getInstance();
         try {
             process.on('SIGINT', () => Server.shutdown('SIGINT'));
@@ -29,11 +31,16 @@ class Server {
                 }
             });
             await server.register(fastifyJwt, jwtPluginRegister);
-            server.addHook('onRequest', jwtPluginHook);
+            server.addHook('preHandler', jwtPluginHook);
             await server.register(profilRoutes);
-            server.listen({ port: 8081, host: 'localhost' }, (err, address) => {
-                if (err)
-                    throw new Error("server listen");
+            server.listen({ port: Number(process.env.PROFIL_PORT) || 8081, host: process.env.PROFIL_ADD || 'localhost' }, (err, address) => {
+                if (err) {
+                    server.log.error(`Failed to start server: ${err.message}`);
+                    if (err.code === 'EADDRINUSE') {
+                        server.log.error(`Port ${Number(process.env.API_PORT) || 8081} is already in use`);
+                    }
+                    process.exit(1);
+                }
                 server.log.info(`Server listening at ${address}`);
             });
         }
