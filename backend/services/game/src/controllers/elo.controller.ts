@@ -16,7 +16,7 @@ export async function getElo(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
 	try {
-		const elo = await request.server.db.get('SELECT * FROM elo WHERE player = ?', [id]) as Elo | null
+		const elo = await request.server.db.get('SELECT * FROM elo WHERE player = ? ORDER BY created_at DESC LIMIT 1', [id]) as Elo | null
 		if (!elo) {
 			const errorResponse = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
 			return reply.code(404).send(errorResponse)
