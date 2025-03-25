@@ -33,13 +33,14 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
     try {
       await request.jwtVerify();
       const requiredRoles = request.routeOptions.config?.roles;
-      if (requiredRoles && !requiredRoles.includes(request.user.role)) {
+      const userRole = (request.user as { role: string }).role;
+      if (requiredRoles && !requiredRoles.includes(userRole)) {
         request.server.log.warn("Insufficient permissions", {
           ip: request.ip,
           method: request.method,
           url: request.url,
           requiredRoles,
-          userRole: request.user.role
+          userRole: userRole
         });
         return reply.status(403).send({
           success: false,

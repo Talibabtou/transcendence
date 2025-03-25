@@ -21,9 +21,9 @@ class Server {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
       server.decorate("db", await initDb());
-      server.addHook("preHandler", jwtPluginHook);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(authRoutes);
+      server.addHook("preHandler", jwtPluginHook);
       server.listen(
         { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" },
         (err: any, address: any) => {

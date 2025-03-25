@@ -1,12 +1,14 @@
-import { fastify, FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import fastifyMultipart from "@fastify/multipart";
-import authRoutes from "./routes/auth.routes.js";
-import profilRoutes from "./routes/profil.routes.js";
-import apiRoutes from "./routes/api.routes.js";
-import fastifyJwt from "@fastify/jwt";
-import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
-import fastifyStatic from "@fastify/static";
 import path from "path";
+// import cors from '@fastify/cors'
+import fastifyJwt from "@fastify/jwt";
+import rateLimit from '@fastify/rate-limit'
+import fastifyStatic from "@fastify/static";
+import apiRoutes from "./routes/api.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import fastifyMultipart from "@fastify/multipart";
+import { fastify, FastifyInstance } from "fastify";
+import profilRoutes from "./routes/profil.routes.js";
+import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js'
 
 // const server = fastify({
@@ -35,8 +37,14 @@ export class Server {
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-      server.addHook("onRequest", checkMicroservicesHook);
-      server.addHook("preHandler", jwtPluginHook);
+      // await server.register(cors, {
+      //   origin: "*",
+      //   methods: ['GET', 'PATCH', 'POST', 'DELETE']
+      // })
+      await server.register(rateLimit, {
+        max: 100,
+        timeWindow: '1 minute'
+      })
       await server.register(fastifyMultipart, {
         limits: {
           fieldNameSize: 100, // Max field name size in bytes
@@ -56,6 +64,8 @@ export class Server {
       await server.register(apiRoutes, { prefix: "/api/v1/" });
       await server.register(authRoutes, { prefix: "/api/v1/" });
       await server.register(profilRoutes, { prefix: "/api/v1/" });
+      server.addHook("preValidation", checkMicroservicesHook);
+      server.addHook("preHandler", jwtPluginHook);
       server.listen(
         { port: Number(process.env.API_PORT) || 8080, host: "localhost" },
         (err: any, address: any) => {

@@ -2,11 +2,11 @@ import { FastifyRequest, FastifyReply } from 'fastify'
 import { IReply } from '../types/types.js'
 
 declare module 'fastify' {
-  interface FastifyRequest {
+  interface FastifyJWT {
     user: {
       id: string;
       username: string;
-      role: string;
+      role: string | object | Buffer<ArrayBufferLike>;
     };
   }
 }

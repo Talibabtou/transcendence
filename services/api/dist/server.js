@@ -1,12 +1,14 @@
-import { fastify } from "fastify";
-import fastifyMultipart from "@fastify/multipart";
-import authRoutes from "./routes/auth.routes.js";
-import profilRoutes from "./routes/profil.routes.js";
-import apiRoutes from "./routes/api.routes.js";
-import fastifyJwt from "@fastify/jwt";
-import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
-import fastifyStatic from "@fastify/static";
 import path from "path";
+import cors from '@fastify/cors';
+import fastifyJwt from "@fastify/jwt";
+import rateLimit from '@fastify/rate-limit';
+import fastifyStatic from "@fastify/static";
+import apiRoutes from "./routes/api.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import fastifyMultipart from "@fastify/multipart";
+import { fastify } from "fastify";
+import profilRoutes from "./routes/profil.routes.js";
+import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js';
 // const server = fastify({
 // 	logger: true,
@@ -21,9 +23,8 @@ export class Server {
     static microservices = new Map();
     constructor() { }
     static getInstance() {
-        if (!Server.instance) {
+        if (!Server.instance)
             Server.instance = fastify({ logger: true });
-        }
         return Server.instance;
     }
     static async start() {
@@ -31,6 +32,14 @@ export class Server {
         try {
             process.on("SIGINT", () => Server.shutdown("SIGINT"));
             process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
+            await server.register(cors, {
+                origin: "*",
+                methods: ['GET', 'PATCH', 'POST', 'DELETE']
+            });
+            await server.register(rateLimit, {
+                max: 100,
+                timeWindow: '1 minute'
+            });
             await server.register(fastifyMultipart, {
                 limits: {
                     fieldNameSize: 100, // Max field name size in bytes
@@ -47,17 +56,16 @@ export class Server {
                 prefix: "/uploads",
             });
             await server.register(fastifyJwt, jwtPluginRegister);
-            server.addHook("preHandler", jwtPluginHook);
-            server.addHook("onRequest", checkMicroservicesHook);
             await server.register(apiRoutes, { prefix: "/api/v1/" });
             await server.register(authRoutes, { prefix: "/api/v1/" });
             await server.register(profilRoutes, { prefix: "/api/v1/" });
+            server.addHook("preValidation", checkMicroservicesHook);
+            server.addHook("preHandler", jwtPluginHook);
             server.listen({ port: Number(process.env.API_PORT) || 8080, host: "localhost" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
-                    if (err.code === 'EADDRINUSE') {
+                    if (err.code === 'EADDRINUSE')
                         server.log.error(`Port ${Number(process.env.API_PORT) || 8080} is already in use`);
-                    }
                     process.exit(1);
                 }
                 server.log.info(`Server listening at ${address}`);

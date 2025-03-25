@@ -7,9 +7,8 @@ class Server {
     static instance;
     constructor() { }
     static getInstance() {
-        if (!Server.instance) {
+        if (!Server.instance)
             Server.instance = fastify({ logger: true });
-        }
         return Server.instance;
     }
     static async start() {
@@ -19,8 +18,8 @@ class Server {
             process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
             server.decorate("db", await initDb());
             await server.register(fastifyJwt, jwtPluginRegister);
-            server.addHook("preHandler", jwtPluginHook);
             await server.register(authRoutes);
+            server.addHook("preHandler", jwtPluginHook);
             server.listen({ port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
