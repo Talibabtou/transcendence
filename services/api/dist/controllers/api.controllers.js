@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "path";
+import { Server } from '../server.js';
 export async function getPic(request, reply) {
     const id = request.params.id;
     const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
@@ -48,37 +49,42 @@ export async function getPics(request, reply) {
         });
     }
 }
-export async function webSocket(ws, request) {
-    try {
-        ws.on('message', (message) => {
-            const { serviceName, type, date } = JSON.parse(message);
-            if (type === 'heartbeat') {
-                console.log({
-                    serviceName: serviceName,
-                    message: 'Message received',
-                    date: date
-                });
-            }
-            else {
-                console.log({
-                    serviceName: serviceName,
-                    message: 'Message received',
-                    date: date
-                });
-            }
-            ws.on('close', (message) => {
-                const { serviceName, type, date } = JSON.parse(message);
-                console.log({
-                    serviceName: serviceName,
-                    message: 'Disconnected',
-                    date: date
-                });
-            });
+export async function checkMicroservicesHook(request, reply) {
+    if (request.url.includes('auth') && Server.microservices.get('auth') === false) {
+        reply.code(503).send({
+            success: false,
+            message: 'Service Auth Unavailable'
         });
+    }
+    else if (request.url.includes('profil') && Server.microservices.get('profil') === false) {
+        reply.code(503).send({
+            success: false,
+            message: 'Service Profil Unavailable'
+        });
+    }
+}
+export async function checkMicroservices() {
+    try {
+        Server.microservices.set('auth', await checkService(process.env.AUTH_PORT || '8082'));
+        Server.microservices.set('profil', await checkService(process.env.PROFIL_PORT || '8081'));
     }
     catch (err) {
-        console.error({
-            error: err.message
-        });
+        console.error('Error checking microservices:', err);
     }
+}
+async function checkService(servicePort) {
+    try {
+        const serviceUrl = `http://localhost:${servicePort}/check`;
+        const response = await fetch(serviceUrl, {
+            method: 'GET',
+        });
+        return response.ok;
+    }
+    catch (err) {
+        return false;
+    }
+}
+export async function getStatus(request, reply) {
+    const microservices = Object.fromEntries(Server.microservices);
+    reply.code(200).send({ microservices });
 }

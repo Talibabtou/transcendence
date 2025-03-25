@@ -1,4 +1,4 @@
-import { getPic, getPics, webSocket } from "../controllers/api.controllers.js";
+import { getPic, getPics, getStatus } from "../controllers/api.controllers.js";
 import { getIdSchema } from "../schemas/schemas.js";
 export default async function apiRoutes(fastify) {
     fastify.get("/uploads", {
@@ -14,5 +14,9 @@ export default async function apiRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, getPic);
-    fastify.get('/ws', { websocket: true }, webSocket);
+    fastify.get("/status", {
+        config: {
+            auth: false
+        }
+    }, getStatus);
 }

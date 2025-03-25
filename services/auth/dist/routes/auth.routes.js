@@ -38,4 +38,9 @@ export default async function authRoutes(fastify) {
             auth: false
         }
     }, login);
+    fastify.get('/check', {
+        config: {
+            auth: false
+        }
+    }, (request, reply) => { reply.code(204).send(); });
 }

@@ -8,12 +8,11 @@ import fastifyJwt from '@fastify/jwt';
 class Server {
     private static instance: FastifyInstance;
 
-    private constructor() { }
+    private constructor() {}
 
     public static getInstance(): FastifyInstance {
-        if (!Server.instance) {
+        if (!Server.instance)
             Server.instance = fastify({ logger: true });
-        }
         return Server.instance;
     }
 
@@ -33,15 +32,14 @@ class Server {
 					parts: 1000         // For multipart forms, the max number of parts (fields + files)
 				}
 			});
-			await server.register(fastifyJwt, jwtPluginRegister);
 			server.addHook('preHandler', jwtPluginHook)
+			await server.register(fastifyJwt, jwtPluginRegister);
 			await server.register(profilRoutes);
 			server.listen({ port: Number(process.env.PROFIL_PORT) || 8081, host: process.env.PROFIL_ADD || 'localhost' }, (err: any, address: any) => {
 				if (err) {
 					server.log.error(`Failed to start server: ${err.message}`);
-					if (err.code === 'EADDRINUSE') {
+					if (err.code === 'EADDRINUSE')
 					  server.log.error(`Port ${Number(process.env.API_PORT) || 8081} is already in use`);
-					}
 					process.exit(1);
 				  }
 				  server.log.info(`Server listening at ${address}`);

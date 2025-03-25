@@ -3,7 +3,6 @@ import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '.
 import { IReply } from '../types/types.js'
 
 export default async function authRoutes(fastify: FastifyInstance) {
-  
 	fastify.get<{ Reply: IReply }>('/auth/user', {
 		config: { 
 		  auth: true, 

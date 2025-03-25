@@ -3,53 +3,6 @@ import { initDb } from "./db.js";
 import authRoutes from "./routes/auth.routes.js";
 import { jwtPluginRegister, jwtPluginHook } from "./plugins/jwtPlugin.js";
 import fastifyJwt from "@fastify/jwt";
-import WebSocket from "ws";
-
-function sendHeartbeat(ws: WebSocket) {
-  if (ws.readyState === ws.OPEN) {
-    const heartbeat = {
-      type: 'heartbeat',
-      serviceName: 'auth',
-      date: new Date().toISOString()
-    }
-    ws.send(JSON.stringify(heartbeat));
-  }
-}
-
-function connectWebSocket() {
-  const connect = () => {
-    try {
-      const ws: WebSocket = new WebSocket("ws://localhost:8080/api/v1/ws", {
-        headers: {
-          Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI4MTczNDIsImV4cCI6MTc0MjkwMzc0Mn0.yY8m6ICGcy_condmG1jYlOmvpvB1qSWMApMYnNl3ass'
-        }
-      })
-      ws.on('open', () => {
-        console.log({
-          message: 'Connected to API GATEWAY'
-        })
-        sendHeartbeat(ws)
-        setInterval(() => sendHeartbeat(ws), 5000);
-      }) ;
-      ws.on('close', () => {
-        console.log({
-          message: 'Disconnected from API GATEWAY, reconnecting...'
-        })
-      });
-      ws.on('error', (err: any) => {
-        console.error({
-          error: err.code
-        })
-        setTimeout(connect, 5000);
-      });
-    } catch (err: any) {
-      console.error({
-        error: err.message
-      })
-    }
-  }
-  connect();
-}
 
 class Server {
   private static instance: FastifyInstance;
@@ -57,9 +10,8 @@ class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) {
+    if (!Server.instance)
       Server.instance = fastify({ logger: true });
-    }
     return Server.instance;
   }
 
@@ -69,10 +21,9 @@ class Server {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
       server.decorate("db", await initDb());
-      await server.register(fastifyJwt, jwtPluginRegister);
       server.addHook("preHandler", jwtPluginHook);
+      await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(authRoutes);
-      connectWebSocket();
       server.listen(
         { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" },
         (err: any, address: any) => {

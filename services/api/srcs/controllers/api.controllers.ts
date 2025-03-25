@@ -1,13 +1,10 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { IGetId, IReply } from "../types/types.js";
-import { WebSocket } from "@fastify/websocket";
 import fs from "node:fs";
 import path from "path";
+import { Server } from '../server.js'
 
-export async function getPic(
-  request: FastifyRequest<{ Params: IGetId }>,
-  reply: FastifyReply<{ Reply: IReply }>
-) {
+export async function getPic(request: FastifyRequest<{ Params: IGetId }>, reply: FastifyReply<{ Reply: IReply }>) {
   const id: string = request.params.id;
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFile: string | undefined = fs
@@ -32,10 +29,7 @@ export async function getPic(
   }
 }
 
-export async function getPics(
-  request: FastifyRequest,
-  reply: FastifyReply<{ Reply: IReply }>
-) {
+export async function getPics(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFiles: string[] | undefined = fs
     .readdirSync(uploadDir)
@@ -58,22 +52,42 @@ export async function getPics(
   }
 }
 
-export async function webSocket(ws: WebSocket, request: FastifyRequest) {
-  try {
-    ws.on('message', (message: string) => {
-      const { serviceName, type, date } = JSON.parse(message);
-      if (type === 'heartbeat') {
-        
-      } else {
-        
-      }
-      ws.on('close', (message: string) => {
-        const { serviceName, type, date } = JSON.parse(message);
-      })
+export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
+  if (request.url.includes('auth') && Server.microservices.get('auth') === false) {
+    reply.code(503).send({
+      success: false,
+      message: 'Service Auth Unavailable'
     })
-  } catch (err: any) {
-      console.error({
-        error: err.message
-      })
+  } else if (request.url.includes('profil') && Server.microservices.get('profil') === false) {
+    reply.code(503).send({
+      success: false,
+      message: 'Service Profil Unavailable'
+    })
   }
+}
+
+export async function checkMicroservices() {
+  try {
+    Server.microservices.set('auth', await checkService(process.env.AUTH_PORT || '8082'));
+    Server.microservices.set('profil', await checkService(process.env.PROFIL_PORT || '8081'));
+  } catch (err) {
+    console.error('Error checking microservices:', err);
+  }
+}
+
+async function checkService(servicePort: string): Promise<boolean> {
+  try {
+    const serviceUrl = `http://localhost:${servicePort}/check`;
+    const response = await fetch(serviceUrl, {
+      method: 'GET',
+    });
+    return response.ok;
+  } catch (err: any) {
+    return false;
+  }
+}
+
+export async function getStatus(request: FastifyRequest, reply: FastifyReply) {
+  const microservices = Object.fromEntries(Server.microservices);
+  reply.code(200).send({ microservices });
 }

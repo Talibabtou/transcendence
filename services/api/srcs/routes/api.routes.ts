@@ -1,5 +1,5 @@
 import { FastifyInstance } from "fastify";
-import { getPic, getPics, webSocket } from "../controllers/api.controllers.js";
+import { getPic, getPics, getStatus } from "../controllers/api.controllers.js";
 import { IReply, IGetId } from "../types/types.js";
 import { getIdSchema } from "../schemas/schemas.js";
 
@@ -19,6 +19,9 @@ export default async function apiRoutes(fastify: FastifyInstance) {
     }},
     getPic);
 
-    fastify.get('/ws', { websocket: true },
-      webSocket)
+  fastify.get("/status", {
+    config: { 
+      auth: false
+    }},
+    getStatus);
 }

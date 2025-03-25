@@ -8,4 +8,9 @@ export default async function profilRoutes(fastify) {
             auth: true,
             roles: ['user', 'admin']
         } }, deletePic);
+    fastify.get('/check', {
+        config: {
+            auth: false
+        }
+    }, (request, reply) => { reply.code(204).send(); });
 }

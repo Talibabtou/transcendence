@@ -13,8 +13,6 @@ class Server {
         return Server.instance;
     }
     static async start() {
-        const jwt = process.env.JWT_MICROSERVICES || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI1NTcwOTcsImV4cCI6MTc3NDA5MzA5N30.DIkqyR5GObBVWSFOxdjo-tsdnBNtMaSF5BlJgEOLQFM";
-        const microserviceId = process.env.AUTH_NAME || "microservice-auth";
         const server = Server.getInstance();
         try {
             process.on('SIGINT', () => Server.shutdown('SIGINT'));

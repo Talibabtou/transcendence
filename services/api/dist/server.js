@@ -7,7 +7,7 @@ import fastifyJwt from "@fastify/jwt";
 import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 import fastifyStatic from "@fastify/static";
 import path from "path";
-import WebSocketPlugin from "@fastify/websocket";
+import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js';
 // const server = fastify({
 // 	logger: true,
 // 	http2: true,
@@ -46,9 +46,9 @@ export class Server {
                 root: path.join(path.resolve(), process.env.UPLOADS_DIR || "./srcs/shared/uploads"),
                 prefix: "/uploads",
             });
-            await server.register(WebSocketPlugin);
             await server.register(fastifyJwt, jwtPluginRegister);
             server.addHook("preHandler", jwtPluginHook);
+            server.addHook("onRequest", checkMicroservicesHook);
             await server.register(apiRoutes, { prefix: "/api/v1/" });
             await server.register(authRoutes, { prefix: "/api/v1/" });
             await server.register(profilRoutes, { prefix: "/api/v1/" });
@@ -62,6 +62,7 @@ export class Server {
                 }
                 server.log.info(`Server listening at ${address}`);
             });
+            setInterval(checkMicroservices, 2000);
         }
         catch (err) {
             server.log.error("Fatal error", err.message);

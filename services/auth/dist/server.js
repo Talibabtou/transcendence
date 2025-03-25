@@ -3,52 +3,6 @@ import { initDb } from "./db.js";
 import authRoutes from "./routes/auth.routes.js";
 import { jwtPluginRegister, jwtPluginHook } from "./plugins/jwtPlugin.js";
 import fastifyJwt from "@fastify/jwt";
-import WebSocket from "ws";
-function sendHeartbeat(ws) {
-    if (ws.readyState === ws.OPEN) {
-        const heartbeat = {
-            type: 'heartbeat',
-            serviceName: 'auth',
-            date: new Date().toISOString()
-        };
-        ws.send(JSON.stringify(heartbeat));
-    }
-}
-function connectWebSocket() {
-    const connect = () => {
-        try {
-            const ws = new WebSocket("ws://localhost:8080/api/v1/ws", {
-                headers: {
-                    Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3NDI4MTczNDIsImV4cCI6MTc0MjkwMzc0Mn0.yY8m6ICGcy_condmG1jYlOmvpvB1qSWMApMYnNl3ass'
-                }
-            });
-            ws.on('open', () => {
-                console.log({
-                    message: 'Connected to API GATEWAY'
-                });
-                sendHeartbeat(ws);
-                setInterval(() => sendHeartbeat(ws), 5000);
-            });
-            ws.on('close', () => {
-                console.log({
-                    message: 'Disconnected from API GATEWAY, reconnecting...'
-                });
-            });
-            ws.on('error', (err) => {
-                console.error({
-                    error: err.code
-                });
-                setTimeout(connect, 5000);
-            });
-        }
-        catch (err) {
-            console.error({
-                error: err.message
-            });
-        }
-    };
-    connect();
-}
 class Server {
     static instance;
     constructor() { }
@@ -67,7 +21,6 @@ class Server {
             await server.register(fastifyJwt, jwtPluginRegister);
             server.addHook("preHandler", jwtPluginHook);
             await server.register(authRoutes);
-            connectWebSocket();
             server.listen({ port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);

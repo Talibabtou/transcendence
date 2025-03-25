@@ -1,4 +1,4 @@
-import { fastify, FastifyInstance } from "fastify";
+import { fastify, FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 import authRoutes from "./routes/auth.routes.js";
 import profilRoutes from "./routes/profil.routes.js";
@@ -7,7 +7,7 @@ import fastifyJwt from "@fastify/jwt";
 import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 import fastifyStatic from "@fastify/static";
 import path from "path";
-import WebSocketPlugin from "@fastify/websocket";
+import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js'
 
 // const server = fastify({
 // 	logger: true,
@@ -20,14 +20,13 @@ import WebSocketPlugin from "@fastify/websocket";
 
 export class Server {
   private static instance: FastifyInstance;
-  public static microservices: Map<string, any> = new Map();
+  public static microservices: Map<string, boolean> = new Map();
 
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) {
+    if (!Server.instance)
       Server.instance = fastify({ logger: true });
-    }
     return Server.instance;
   }
 
@@ -36,6 +35,8 @@ export class Server {
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
+      server.addHook("onRequest", checkMicroservicesHook);
+      server.addHook("preHandler", jwtPluginHook);
       await server.register(fastifyMultipart, {
         limits: {
           fieldNameSize: 100, // Max field name size in bytes
@@ -51,9 +52,7 @@ export class Server {
         root: path.join(path.resolve(), process.env.UPLOADS_DIR || "./srcs/shared/uploads"),
         prefix: "/uploads",
       });
-      await server.register(WebSocketPlugin);
       await server.register(fastifyJwt, jwtPluginRegister);
-      server.addHook("preHandler", jwtPluginHook);
       await server.register(apiRoutes, { prefix: "/api/v1/" });
       await server.register(authRoutes, { prefix: "/api/v1/" });
       await server.register(profilRoutes, { prefix: "/api/v1/" });
@@ -62,14 +61,14 @@ export class Server {
         (err: any, address: any) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);
-            if (err.code === 'EADDRINUSE') {
+            if (err.code === 'EADDRINUSE')
               server.log.error(`Port ${Number(process.env.API_PORT) || 8080} is already in use`);
-            }
             process.exit(1);
           }
           server.log.info(`Server listening at ${address}`);
         }
       );
+      setInterval(checkMicroservices, 2000);
     } catch (err: any) {
       server.log.error("Fatal error", err.message);
       process.exit(1);
