@@ -63,25 +63,30 @@ export async function createGoal(request: FastifyRequest<{
   Body: CreateGoalRequest
 }>, reply: FastifyReply): Promise<void> {
   const { match_id, player, duration } = request.body
+  
+  request.log.info({
+    msg: 'Creating goal',
+    data: { match_id, player, duration }
+  });
+  
   try {
-    // Use a transaction to ensure data consistency
-    await request.server.db.exec('BEGIN TRANSACTION')
-    
     // Verify the match exists
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', match_id) as Match | null
     if (!match) {
-      await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
     }
     
     // Verify player is part of the match
     if (match.player_1 !== player && match.player_2 !== player) {
-      await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(400, ErrorCodes.PLAYER_NOT_IN_MATCH)
       return reply.code(400).send(errorResponse)
-      
     }
+    
+    request.log.info({
+      msg: 'Match and player verified, inserting goal',
+      match_id: match_id
+    });
     
     // Use db.get() with RETURNING * to get the inserted record directly
     const newGoal = await request.server.db.get(
@@ -89,13 +94,22 @@ export async function createGoal(request: FastifyRequest<{
       match_id, player, duration || null
     ) as Goal
     
-    await request.server.db.exec('COMMIT')
+    request.log.info({
+      msg: 'Goal created successfully',
+      goal_id: newGoal?.id
+    });
     
     // Return 201 Created for resource creation instead of default 200
     return reply.code(201).send(newGoal)
   } catch (error) {
-    // Rollback transaction on error
-    await request.server.db.exec('ROLLBACK')
+    request.log.error({
+      msg: 'Error in createGoal',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
   }

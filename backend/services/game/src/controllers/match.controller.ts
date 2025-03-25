@@ -69,23 +69,38 @@ export async function createMatch(request: FastifyRequest<{
 	// destructuring to extract the required fields
 	// match the CreateMatchRequest interface
   const { player_1, player_2, tournament_id } = request.body
+  
+  // Add debugging logs
+  request.log.info({
+    msg: 'Creating match',
+    data: { player_1, player_2, tournament_id }
+  });
+  
   try {
-		// Use a transaction to ensure data consistency
-    await request.server.db.exec('BEGIN TRANSACTION')
+    // Try a more direct approach without explicit transaction management
+    request.log.info('Inserting match directly');
     
-    // Use db.get() with RETURNING * to properly get the inserted record
     const newMatch = await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
       [player_1, player_2, tournament_id || null]
     ) as Match
     
-    await request.server.db.exec('COMMIT')
+    request.log.info({
+      msg: 'Match inserted successfully',
+      match_id: newMatch?.id
+    });
     
-    // Return the match directly instead of using reply.send()
     return reply.code(201).send(newMatch)
   } catch (error) {
-    // Rollback transaction on error
-    await request.server.db.exec('ROLLBACK')
+    request.log.error({
+      msg: 'Error in createMatch',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error
+    });
+    
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
   }
@@ -98,17 +113,21 @@ export async function updateMatch(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
   const { completed, duration, timeout } = request.body
+  
+  request.log.info({
+    msg: 'Updating match',
+    match_id: id,
+    updates: { completed, duration, timeout }
+  });
+  
   try {
-    // Use a transaction to ensure data consistency
-    await request.server.db.exec('BEGIN TRANSACTION')
-    
-    // Check if match exists
+    // Check if match exists without transactions
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
     if (!match) {
-      await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse) 
     }
+    
     // Build update query
     let updates = []
     let params = []
@@ -125,29 +144,34 @@ export async function updateMatch(request: FastifyRequest<{
       params.push(timeout)
     }
     if (updates.length === 0) {
-      await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(400, ErrorCodes.INVALID_FIELDS)
       return reply.code(400).send(errorResponse)
     }
     
     // Add id to params
     params.push(id)
+    
     await request.server.db.run(
       `UPDATE matches SET ${updates.join(', ')} WHERE id = ?`,
       ...params
     )
+    
     const updatedMatch = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
     if (!updatedMatch) {
-      await request.server.db.exec('ROLLBACK')
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
     }
     
-    await request.server.db.exec('COMMIT')
     return reply.code(200).send(updatedMatch)
   } catch (error) {
-    // Rollback transaction on error
-    await request.server.db.exec('ROLLBACK')
+    request.log.error({
+      msg: 'Error in updateMatch',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
   }
@@ -172,10 +196,7 @@ export async function matchStats(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<void> {
   const { player_id } = request.params
   try {
-    // Begin transaction to ensure data consistency across queries
-    await request.server.db.exec('BEGIN TRANSACTION')
-    
-    // Get player match summary
+    // Get player match summary without transaction
     const matchSummaryResult = await request.server.db.get(
       'SELECT total_matches, completed_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
       [player_id]
@@ -219,9 +240,6 @@ export async function matchStats(request: FastifyRequest<{
       [player_id]
     ) as EloRating[] || []
     
-    // Commit the transaction after all queries are complete
-    await request.server.db.exec('COMMIT')
-    
     // Calculate goal stats with safe handling of empty arrays
     let fastestGoalDuration = null
     let averageGoalDuration = null
@@ -248,10 +266,14 @@ export async function matchStats(request: FastifyRequest<{
     
     return reply.code(200).send(playerStats)
   } catch (error) {
-    // Rollback transaction on error to maintain database integrity
-    await request.server.db.exec('ROLLBACK')
+    request.log.error({
+      msg: 'Error in matchStats',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
     
-    request.log.error(error)
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
   }

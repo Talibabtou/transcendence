@@ -48,11 +48,14 @@ async function dbConnector(fastify: FastifyInstance) {
     filename: dbPath,
     driver: sqlite3.Database,
   });
-  // Set busy timeout to 5 seconds to prevent database lock
-  await db.exec('PRAGMA busy_timeout = 5000');
-  // Enable Write-Ahead Logging (WAL) mode for better concurrency
-  // This mode allows multiple readers and a single writer to access the database concurrently
+  // Increase busy timeout to 30 seconds
+  await db.exec('PRAGMA busy_timeout = 30000');
+  // Enable Write-Ahead Logging (WAL) mode
   await db.exec('PRAGMA journal_mode = WAL');
+  // Set synchronous mode to NORMAL for better performance
+  await db.exec('PRAGMA synchronous = NORMAL');
+  // Set locking mode to EXCLUSIVE
+  await db.exec('PRAGMA locking_mode = EXCLUSIVE');
   await db.exec('PRAGMA foreign_keys = ON');
   
   // Read SQL commands from files

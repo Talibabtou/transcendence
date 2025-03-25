@@ -26,7 +26,7 @@ await server.register(fastifyCors, {
 		: true  // Allow all origins in development
 })
 await server.register(fastifyRateLimit, {
-	max: 100,
+	max: 2000,
 	timeWindow: '1 minute'
 })
 

@@ -58,25 +58,37 @@ export async function getElos(request: FastifyRequest<{
 export async function createElo(request: FastifyRequest<{
   Body: CreateEloRequest
 }>, reply: FastifyReply): Promise<void> {
-	const { player, elo } = request.body
-	try {
-		// Use a transaction to ensure data consistency
-		await request.server.db.exec('BEGIN TRANSACTION')
-
-		const newElo = await request.server.db.get(
-			'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
-			player, elo
-		) as Elo
-
-		await request.server.db.exec('COMMIT')
-		return reply.code(201).send(newElo)
-		
-	} catch (error) {
-		// Rollback transaction on error
-		await request.server.db.exec('ROLLBACK')
-		const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-		return reply.code(500).send(errorResponse)
-	}
+  const { player, elo } = request.body
+  
+  request.log.info({
+    msg: 'Creating elo entry',
+    data: { player, elo }
+  });
+  
+  try {
+    const newElo = await request.server.db.get(
+      'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+      player, elo
+    ) as Elo
+    
+    request.log.info({
+      msg: 'Elo entry created successfully',
+      id: newElo?.id
+    });
+    
+    return reply.code(201).send(newElo)
+  } catch (error) {
+    request.log.error({
+      msg: 'Error in createElo',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    return reply.code(500).send(errorResponse)
+  }
 }
 
 export async function dailyElo(request: FastifyRequest<{
