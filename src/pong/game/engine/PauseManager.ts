@@ -26,6 +26,8 @@ export class PauseManager {
 	private countdownCallback: CountdownCallback | null = null;
 	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
 	private pendingPauseRequest: boolean = false;
+	private gameEngine: any;
+	private pointStartedCallback: (() => void) | null = null;
 
 	// =========================================
 	// Constructor
@@ -58,6 +60,14 @@ export class PauseManager {
 	}
 
 	/**
+	 * Sets the callback function for when a point starts
+	 * @param callback The function to call when a point starts
+	 */
+	public setPointStartedCallback(callback: () => void): void {
+		this.pointStartedCallback = callback;
+	}
+
+	/**
 	 * Starts a new game with countdown
 	 */
 	public startGame(): void {
@@ -69,6 +79,16 @@ export class PauseManager {
 			this.states.delete(GameState.COUNTDOWN);
 			this.states.add(GameState.PLAYING);
 			this.isFirstStart = false;
+			
+			// Signal that a point has started and reset goal timer
+			if (this.pointStartedCallback) {
+				this.pointStartedCallback();
+			}
+			
+			// Resume match timer if game engine is available
+			if (this.gameEngine && typeof this.gameEngine.resumeMatchTimer === 'function') {
+				this.gameEngine.resumeMatchTimer();
+			}
 			
 			this.countdownCallback?.(null);
 		});
@@ -94,6 +114,11 @@ export class PauseManager {
 		// Remove PLAYING state and add PAUSED state
 		this.states.delete(GameState.PLAYING);
 		this.states.add(GameState.PAUSED);
+		
+		// Notify game engine about pause
+		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
+			this.gameEngine.pauseMatchTimer();
+		}
 	}
 
 	/**
@@ -104,6 +129,11 @@ export class PauseManager {
 		
 		// Remove pause state
 		this.states.delete(GameState.PAUSED);
+		
+		// Notify game engine about resume
+		if (this.gameEngine && typeof this.gameEngine.resumeMatchTimer === 'function') {
+			this.gameEngine.resumeMatchTimer();
+		}
 		
 		// Handle different resume scenarios
 		if (this.isFirstStart) {
@@ -148,26 +178,44 @@ export class PauseManager {
 	public handlePointScored(): void {
 		// In background demo, skip countdown and just restart
 		if (this.isBackground()) {
-			
 			this.ball.launchBall();
 			return;
 		}
+		
 		// Normal flow for regular gameplay
 		// Reset states
 		this.states.clear();
 		this.states.add(GameState.PAUSED);
 		this.gameSnapshot = null;
+		
 		// Clear any existing countdown
 		this.cleanupCountdown();
+		
+		// Pause match timer when point is scored
+		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
+			this.gameEngine.pauseMatchTimer();
+		}
+		
 		// Normal game mode with countdown
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
+		
 		// Start countdown after a brief delay
 		setTimeout(() => {
 			this.startCountdown(() => {
 				this.ball.launchBall();
 				this.states.delete(GameState.COUNTDOWN);
 				this.states.add(GameState.PLAYING);
+				
+				// Signal that a point has started and reset goal timer
+				if (this.pointStartedCallback) {
+					this.pointStartedCallback();
+				}
+				
+				// Resume match timer after countdown
+				if (this.gameEngine && typeof this.gameEngine.resumeMatchTimer === 'function') {
+					this.gameEngine.resumeMatchTimer();
+				}
 			});
 		}, 500);
 	}
@@ -225,6 +273,13 @@ export class PauseManager {
 	 */
 	public setPendingPauseRequest(value: boolean): void {
 		this.pendingPauseRequest = value;
+	}
+
+	/**
+	 * Sets the game engine reference
+	 */
+	public setGameEngine(engine: any): void {
+		this.gameEngine = engine;
 	}
 
 	// =========================================

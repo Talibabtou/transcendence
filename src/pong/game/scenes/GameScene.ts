@@ -35,6 +35,11 @@ export class GameScene {
 	private lastDrawTime: number | null = null;
 	private hasStateChanged: boolean = true;
 
+	// =========================================
+	// Game Engine
+	// =========================================
+	private gameEngine: any;
+
 	/**
 	 * Creates a new GameScene instance
 	 * @param context The canvas rendering context
@@ -174,9 +179,22 @@ export class GameScene {
 	private initializePauseManager(): void {
 		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
 		this.pauseManager.setGameMode(this.gameMode);
+		
+		// Set game engine reference if available
+		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function') {
+			this.pauseManager.setGameEngine(this.gameEngine);
+		}
+		
 		this.pauseManager.setCountdownCallback((text) => {
 			if (!this.isBackgroundDemo()) {
 				this.uiManager.setCountdownText(text);
+			}
+		});
+		
+		// Set point started callback
+		this.pauseManager.setPointStartedCallback(() => {
+			if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function') {
+				this.gameEngine.resetGoalTimer();
 			}
 		});
 	}
@@ -297,10 +315,42 @@ export class GameScene {
 	private handleBallDestruction(): void {
 		if (!this.ball.isDestroyed()) return;
 
+		let scoringPlayerIndex: number;
+		
 		if (this.ball.isHitLeftBorder()) {
+			// Player 2 scored (right side)
 			this.player2.givePoint();
+			scoringPlayerIndex = 1;
 		} else {
+			// Player 1 scored (left side)
 			this.player1.givePoint();
+			scoringPlayerIndex = 0;
+		}
+
+		// Skip DB operations for background demo
+		if (!this.isBackgroundDemo()) {
+			// Get the game engine reference
+			const gameEngine = this.getGameEngine();
+			
+			// Record the goal if we have access to the game engine
+			if (gameEngine && typeof gameEngine.recordGoal === 'function') {
+				gameEngine.recordGoal(scoringPlayerIndex);
+			}
+
+			// Check if game is over
+			if (this.isGameOver()) {
+				const winnerIndex = this.player1.getScore() > this.player2.getScore() ? 0 : 1;
+				
+				// Complete the match if we have access to the game engine
+				if (gameEngine && typeof gameEngine.completeMatch === 'function') {
+					gameEngine.completeMatch(winnerIndex);
+				}
+			}
+
+			// Reset goal timer for the next point
+			if (gameEngine && typeof gameEngine.resetGoalTimer === 'function') {
+				gameEngine.resetGoalTimer();
+			}
 		}
 
 		this.resetPositions();
@@ -400,5 +450,22 @@ export class GameScene {
 			});
 			window.dispatchEvent(event);
 		}
+	}
+
+	// =========================================
+	// Game Engine
+	// =========================================
+
+	public setGameEngine(engine: any): void {
+		this.gameEngine = engine;
+		
+		// Update pause manager if it exists
+		if (this.pauseManager && typeof this.pauseManager.setGameEngine === 'function') {
+			this.pauseManager.setGameEngine(engine);
+		}
+	}
+
+	public getGameEngine(): any {
+		return this.gameEngine;
 	}
 }

@@ -249,30 +249,54 @@ export class GameManager {
 		container: HTMLElement, 
 		playerInfo?: { 
 			playerName?: string,
-			playerColor?: string 
+			playerColor?: string,
+			playerIds?: number[],
+			playerNames?: string[]
 		}
 	): void {
 		// Start the game
 		this.startGame(this.mainGameInstance, mode, container);
 		
+		// Skip player info and timers for background demo
+		if (mode === GameMode.BACKGROUND_DEMO) {
+			console.log('Background demo mode - skipping player info and timers');
+			return;
+		}
+		
 		// Set player information if provided
 		if (playerInfo) {
-			const currentUser = playerInfo.playerName || 'Player 1';
+			// Use provided player names array or fallback to single name
+			const playerNames = playerInfo.playerNames || [];
+			const currentUser = playerInfo.playerName || playerNames[0] || 'Player 1';
 			let opponent = 'Computer';
+			
 			// If multiplayer, set appropriate names
 			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
-				opponent = 'Player 2';
+				opponent = playerNames[1] || 'Player 2';
 			}
 			
-			// Set player names
+			// Set player names first
 			if (this.mainGameInstance.engine) {
 				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
+				
+				// Set player colors
+				const p1Color = playerInfo.playerColor || '#3498db';
+				const p2Color = mode === GameMode.SINGLE ? '#e74c3c' : '#2ecc71';
+				this.mainGameInstance.engine.updatePlayerColors(p1Color, p2Color);
+				
+				// Store player IDs last (this triggers match creation)
+				if (playerInfo.playerIds && playerInfo.playerIds.length > 0) {
+					// Make a copy to avoid referencing the original array
+					const playerIdsCopy = [...playerInfo.playerIds];
+					console.log('Setting player IDs in game manager:', playerIdsCopy);
+					this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
+				}
 			}
-			
-			// Set player color if provided
-			if (playerInfo.playerColor && this.mainGameInstance.engine) {
-				this.mainGameInstance.engine.updatePlayerColors(playerInfo.playerColor);
-			}
+		}
+		
+		// Start match timer
+		if (this.mainGameInstance.engine) {
+			this.mainGameInstance.engine.startMatchTimer();
 		}
 	}
 

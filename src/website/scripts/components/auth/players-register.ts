@@ -3,16 +3,16 @@
  * Handles registration of players for multiplayer and tournament games
  * Provides a split interface showing host and registering guests
  */
-import { Component, AuthManager, SimplifiedAuthManager } from '@website/scripts/components';
+import { Component, GuestAuthComponent } from '@website/scripts/components';
 import { html, render, ASCII_ART, DbService, appState } from '@website/scripts/utils';
-import { GameMode, PlayerData, PlayersRegisterState } from '@shared/types';
+import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@shared/types';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
-	private authManager: AuthManager | null = null;
+	private authManager: IAuthComponent | null = null;
 	private authContainer: HTMLElement | null = null;
-	private onAllPlayersRegistered: (playerIds: number[]) => void;
+	private onAllPlayersRegistered: (playerIds: number[], playerNames: string[]) => void;
+	private onBack: () => void;
 	private maxPlayers: number = 2;
-	private isGameStarting: boolean = false;
 	
 	// =========================================
 	// INITIALIZATION
@@ -21,7 +21,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
-		onAllPlayersRegistered: (playerIds: number[]) => void
+		onAllPlayersRegistered: (playerIds: number[], playerNames: string[]) => void,
+		onBack: () => void
 	) {
 		super(container, {
 			gameMode,
@@ -32,6 +33,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		});
 		
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
+		this.onBack = onBack;
 		
 		// Set max players based on game mode
 		if (gameMode === GameMode.TOURNAMENT) {
@@ -40,6 +42,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		// Initialize host data
 		this.initializeHost();
+		
+		// IMPORTANT: Use bind for both event handlers to ensure correct 'this' context
+		this.handleGuestAuthenticatedEvent = this.handleGuestAuthenticatedEvent.bind(this);
 		
 		// Listen for authentication events - use guest-authenticated instead of user-authenticated
 		document.addEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
@@ -97,8 +102,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		let template;
 		
 		if (state.gameMode === GameMode.MULTI) {
-			// Render 2-player layout with vertical split
 			template = html`
+				<button class="back-button nav-item" onclick=${() => this.handleBack()}>
+					← Back
+				</button>
+				
 				<div class="ascii-title-container">
 					<div class="ascii-title">${ASCII_ART.MULTI}</div>
 				</div>
@@ -127,8 +135,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				${state.error ? html`<div class="register-error">${state.error}</div>` : ''}
 			`;
 		} else {
-			// Tournament layout would go here with 4 players
 			template = html`
+				<button class="back-button nav-item" onclick=${() => this.handleBack()}>
+					← Back
+				</button>
+
 				<div class="multiplayer-title-container">
 					<div class="multiplayer-title">Tournament</div>
 				</div>
@@ -156,19 +167,44 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// For multiplayer mode, if the guest isn't yet connected
 		if (state.gameMode === GameMode.MULTI && 
 			(!state.guests[0] || !state.guests[0].isConnected)) {
-			
-			// Get the auth container
-			this.authContainer = this.container.querySelector('#guest-auth-container');
-			
-			if (this.authContainer) {
-				// Add simplified auth class
-				this.authContainer.className = 'player-auth-wrapper simplified-auth-container';
+			// Get the guest side element
+			const guestSide = this.container.querySelector('.guest-side');
+			if (guestSide) {
+				// Get the auth container or create it if it doesn't exist
+				this.authContainer = this.container.querySelector('#guest-auth-container') as HTMLElement;
 				
-				// Create simplified auth manager - only pass the container
-				this.authManager = new SimplifiedAuthManager(this.authContainer);
+				if (!this.authContainer) {
+					// Create the container if it doesn't exist
+					this.authContainer = document.createElement('div');
+					this.authContainer.id = 'guest-auth-container';
+					this.authContainer.className = 'player-auth-wrapper simplified-auth-container';
+					
+					// Get the player label
+					const playerLabel = guestSide.querySelector('.player-label');
+					
+					// Clear the content except for the player label
+					guestSide.innerHTML = '';
+					
+					// Add back the player label
+					if (playerLabel) {
+						guestSide.appendChild(playerLabel);
+					} else {
+						// Create a new player label if it doesn't exist
+						const newLabel = document.createElement('div');
+						newLabel.className = 'player-label';
+						newLabel.textContent = 'PLAYER 2';
+						guestSide.appendChild(newLabel);
+					}
+					
+					// Add the auth container
+					guestSide.appendChild(this.authContainer);
+				}
+				this.authManager = new GuestAuthComponent(this.authContainer);
 				
-				// Show the auth component immediately
+				// Show the component
 				this.authManager.show();
+			} else {
+				console.error('Guest side element not found');
 			}
 		}
 	}
@@ -235,8 +271,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders the play button if appropriate
 	 */
 	private renderPlayButton(state: PlayersRegisterState): any {
-		// For multiplayer we need host + 1 guest
-		const requiredPlayers = state.gameMode === GameMode.MULTI ? 2 : 4;
+		// Replace hardcoded values with maxPlayers
+		const requiredPlayers = this.maxPlayers;
 		
 		// Count connected players (host + guests)
 		const connectedCount = (state.host ? 1 : 0) + 
@@ -324,12 +360,30 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Create player data - we're already receiving a PlayerData object
 		const newPlayer = guestData;
 		
-		// For multiplayer, just set the first guest
+		// For multiplayer, we'll update only the guest side without a full rerender
 		if (state.gameMode === GameMode.MULTI) {
+			// Update internal state first
 			this.updateInternalState({
 				guests: [newPlayer],
 				error: null
 			});
+			
+			// Get the guest side element to update
+			const guestSide = this.container.querySelector('.guest-side');
+			if (guestSide) {
+				// Update only the guest side content
+				guestSide.innerHTML = `
+					<div class="player-label">PLAYER 2</div>
+					<div class="player-avatar">
+						<img src="${newPlayer.pfp}" alt="${newPlayer.username}" />
+					</div>
+					<div class="player-name">${newPlayer.username}</div>
+					<div class="player-status">Connected</div>
+				`;
+			}
+			
+			// Now check if ready to play (will update play button)
+			this.checkReadyToPlay();
 		} else {
 			// For tournament, handle multiple guests
 			const updatedGuests = [...state.guests];
@@ -391,8 +445,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Count connected players
 		const connectedGuests = state.guests.filter(g => g && g.isConnected).length;
 		
-		// Required guests (1 for multiplayer, 3 for tournament)
-		const requiredGuests = state.gameMode === GameMode.MULTI ? 1 : 3;
+		// Use maxPlayers instead of hardcoded values
+		const requiredGuests = this.maxPlayers - 1; // Subtract 1 to account for host
 		
 		const isReady = connectedGuests >= requiredGuests;
 		
@@ -400,92 +454,87 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			isReadyToPlay: isReady
 		});
 		
-		// Force re-render to update play button
-		this.renderComponent();
+		// Instead of rendering the whole component, update just what changed
+		this.updatePlayButton(isReady);
+	}
+	
+	/**
+	 * Update only the play button area without rerendering the entire component
+	 */
+	private updatePlayButton(isReady: boolean): void {
+		const buttonContainer = this.container.querySelector('.play-button-container');
+		if (!buttonContainer) return;
+		
+		if (isReady) {
+			// Create and add the play button
+			buttonContainer.innerHTML = `
+				<button class="menu-button play-button">
+					Play Now
+				</button>
+			`;
+			
+			// Add event listener to the new button
+			const playButton = buttonContainer.querySelector('.play-button');
+			if (playButton) {
+				playButton.addEventListener('click', () => this.startGame());
+			}
+		} else {
+			buttonContainer.innerHTML = ''; // Empty container if not ready
+		}
 	}
 	
 	/**
 	 * Start the game with registered players
 	 */
 	private startGame(): void {
-		const state = this.getInternalState();
-		
-		// Check if game is already starting to prevent multiple calls
-		if (this.isGameStarting) {
-			console.log('Game already starting, ignoring duplicate call');
-			return;
-		}
-		
-		if (!state.isReadyToPlay || !state.host) {
-			console.warn('Not ready to play or missing host');
-			return;
-		}
-		
-		// Set flag to prevent multiple starts
-		this.isGameStarting = true;
-		
-		// Prevent multiple submissions
+		// Disable the play button to prevent multiple submissions
 		const playButton = this.container.querySelector('.play-button') as HTMLButtonElement;
 		if (playButton) {
 			playButton.disabled = true;
 			playButton.textContent = 'Starting...';
 		}
 		
-		// Collect player IDs - host is always first
-		const playerIds = [state.host.id];
+		// Collect all player IDs and names
+		const state = this.getInternalState();
 		
-		// Add connected guests
+		// Add null check for host
+		if (!state.host) {
+			console.error('Host is missing, cannot start game');
+			if (playButton) {
+				playButton.disabled = false;
+				playButton.textContent = 'Play Now';
+			}
+			return;
+		}
+		
+		// Now TypeScript knows state.host is not null
+		if (!state.host.id) {
+			console.error('Host ID is missing, cannot start game');
+			if (playButton) {
+				playButton.disabled = false;
+				playButton.textContent = 'Play Now';
+			}
+			return;
+		}
+		
+		// Collect all player IDs and names including the host
+		const playerIds: number[] = [state.host.id];
+		const playerNames: string[] = [state.host.username];
+		
+		// Add guest players
 		state.guests.forEach(guest => {
 			if (guest && guest.isConnected) {
 				playerIds.push(guest.id);
+				playerNames.push(guest.username);
 			}
 		});
 		
 		console.log('Starting game with players:', playerIds);
+		console.log('Player names:', playerNames);
 		
-		// Record the match in the database - only create ONE match
-		if (state.gameMode === GameMode.MULTI) {
-			// Check that we have valid numeric IDs
-			if (isNaN(playerIds[0]) || isNaN(playerIds[1])) {
-				console.error('Invalid player IDs:', playerIds);
-				this.updateInternalState({
-					error: 'Invalid player IDs. Please try again.'
-				});
-				// Reset flag and re-enable button
-				this.isGameStarting = false;
-				if (playButton) {
-					playButton.disabled = false;
-					playButton.textContent = 'Play Now';
-				}
-				return;
-			}
-			
-			// Create a 1v1 match
-			DbService.createMatch(playerIds[0], playerIds[1])
-				.then(match => {
-					console.log('Created match:', match);
-					
-					// Notify parent component that all players are registered - only once
-					this.onAllPlayersRegistered(playerIds);
-					
-					// No need to reset flag as component will be destroyed
-				})
-				.catch(error => {
-					console.error('Error creating match:', error);
-					this.updateInternalState({
-						error: 'Failed to create match. Please try again.'
-					});
-					// Reset flag and re-enable button
-					this.isGameStarting = false;
-					if (playButton) {
-						playButton.disabled = false;
-						playButton.textContent = 'Play Now';
-					}
-				});
-		} else {
-			// Tournament logic would go here
-			this.onAllPlayersRegistered(playerIds);
-		}
+		// All match creation is now handled by the game engine
+		// Just notify parent component that all players are registered
+		this.onAllPlayersRegistered(playerIds, playerNames);
 	}
 	
 	// =========================================
@@ -531,7 +580,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					console.log('Created rematch:', match);
 					
 					// Notify parent component to start the game
-					this.onAllPlayersRegistered(playerIds);
+					this.onAllPlayersRegistered(playerIds, []);
 				})
 				.catch(error => {
 					console.error('Error creating rematch:', error);
@@ -541,7 +590,21 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				});
 		} else {
 			// Tournament rematch logic would go here
-			this.onAllPlayersRegistered(playerIds);
+			this.onAllPlayersRegistered(playerIds, []);
 		}
+	}
+	
+	/**
+	 * Handle back button click
+	 */
+	private handleBack(): void {
+		// Clean up before going back
+		if (this.authManager) {
+			this.authManager.destroy();
+			this.authManager = null;
+		}
+		
+		// Call the onBack callback
+		this.onBack();
 	}
 }

@@ -82,25 +82,28 @@ Code Organization & Architecture:
 UI & Styling:
 - Game menu buttons all the same size
 - Verify everything works fine on 4k screens
+// - Return to menu button in multiplayer and tournament lobbies
+- Add fav color to user profiles
+- Chose color directly in lobbies
 
 Features & Functionality:
 - Implement the real AI for the game, and keep the current one for the background demo mode
 - Implement different difficulty levels for AI
 
 - Create a structured tournament system with pool visualization (4 players per pool, best 2 out of 3 games go to finals and then best 2 out of 3 games to decide the winner)
-- Add the process of logging a second user, just to connect results to db, meaning the main logged in is current user and the second one is guest player (same for tournament).
+// - Separate Host and Guest connection methods
+// - Add the process of logging a second user, just to connect results to db, meaning the main logged in is current user and the second one is guest player (same for tournament).
 - Remove the setting tab when visiting someone else's profile.
 
 - Implement tournament history and stats
 - Implement friend requests/management system
 - Implement a poke feature to notify a friend (you send them a ping, they replys a pong)
 - Notifications for friend requests, pings, etc.
-- Add user preferences for UI themes, game settings
+- Add user preferences for UI themes, in db and query it with the rest of infos for customisation in lobby and in game
 - Create a dashboard view showing recent activity
 
-- Game should send mock API requests to POST matches, POST goals, and PUT matches when over
-
-- Refine connect/disconnect routing flow
+// - Game should send mock API requests to POST matches, POST goals, and PUT matches when over
+// - Refine connect/disconnect routing flow
 
 Performance & Security:
 - Implement code splitting for faster initial load

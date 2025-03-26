@@ -77,9 +77,9 @@ export interface RegisterData {
 
 // Auth API response
 export interface AuthResponse {
-	user: User;
-	token: string;
-	refreshToken?: string;
+	success: boolean;
+	user?: User;
+	error?: string;
 }
 
 // OAuth request parameters
@@ -117,3 +117,12 @@ export const OAUTH_CONFIG: Record<AuthMethod, OAuthConfig> = {
 		responseType: ''
 	}
 };
+
+/**
+ * Common interface for authentication components
+ */
+export interface IAuthComponent {
+	show(): void;
+	hide(): void;
+	destroy(): void;
+}

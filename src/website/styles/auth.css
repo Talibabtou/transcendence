@@ -453,3 +453,12 @@
 		height: 50%;
 	}
 }
+
+.players-register-container .back-button {
+	position: absolute;
+	top: 1%;
+	left: 1%;
+	cursor: pointer;
+	font-size: 1rem;
+	z-index: 2;
+}

@@ -28,6 +28,7 @@ interface GameComponentState {
 	currentState: GameState;
 	currentMode: GameMode;
 	playerIds?: number[];
+	playerNames?: string[];
 }
 
 // =========================================
@@ -236,6 +237,37 @@ export class GameComponent extends Component<GameComponentState> {
 	private startPlaying(): void {
 		const state = this.getInternalState();
 		
+		// Get current user info
+		const currentUser = appState.getCurrentUser();
+		const playerName = currentUser?.username || 'Player 1';
+		const playerColor = appState.getAccentColorHex() || '#3498db';
+		
+		// Ensure we have player IDs for single player mode
+		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
+			// For single player, we need to explicitly set the current user's ID
+			if (currentUser && currentUser.id) {
+				// Convert ID to number if it's a string
+				let playerId: number;
+				if (typeof currentUser.id === 'string') {
+					if (currentUser.id.includes('_')) {
+						// Extract numeric part if ID has prefix
+						const parts = currentUser.id.split('_');
+						playerId = parseInt(parts[parts.length - 1], 10);
+					} else {
+						playerId = parseInt(currentUser.id, 10);
+					}
+				} else {
+					playerId = Number(currentUser.id);
+				}
+				
+				// Ensure we have a valid numeric ID
+				if (!isNaN(playerId)) {
+					state.playerIds = [playerId];
+					console.log('Set player ID for single player mode:', playerId);
+				}
+			}
+		}
+		
 		if (this.menuComponent) {
 			this.menuComponent.hide();
 		}
@@ -261,16 +293,16 @@ export class GameComponent extends Component<GameComponentState> {
 			this.canvasComponent.render();
 		}
 		
-		// Get current user info
-		const currentUser = appState.getCurrentUser();
-		const playerName = currentUser?.username || 'Player 1';
-		const playerColor = appState.getAccentColorHex();
-		
 		// Start the game with selected mode and player info
 		if (this.canvasComponent) {
+			console.log('Starting game with player IDs:', state.playerIds);
+			console.log('Starting game with player names:', state.playerNames || [playerName]);
+			
 			this.canvasComponent.startGame(state.currentMode, {
 				playerName: playerName,
-				playerColor: playerColor
+				playerColor: playerColor,
+				playerIds: state.playerIds,
+				playerNames: state.playerNames
 			});
 		}
 		
@@ -335,7 +367,7 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param mode - The game mode to restart
 	 */
 	private handlePlayAgain(mode: GameMode): void {
-		// Prevent multiple transitions happening simultaneously
+		// Prevent multiple transitions
 		if (this.isTransitioning) {
 			console.warn('Ignoring play again request - transition already in progress');
 			return;
@@ -346,7 +378,32 @@ export class GameComponent extends Component<GameComponentState> {
 		// First stop the game state monitoring to prevent race conditions
 		this.stopGameStateMonitoring();
 		
-		// Perform the transition in sequence
+		const state = this.getInternalState();
+		
+		// For single player, make sure we have the current user's ID
+		if (mode === GameMode.SINGLE) {
+			const currentUser = appState.getCurrentUser();
+			if (currentUser && currentUser.id) {
+				// Convert ID to number
+				let playerId: number;
+				if (typeof currentUser.id === 'string') {
+					if (currentUser.id.includes('_')) {
+						const parts = currentUser.id.split('_');
+						playerId = parseInt(parts[parts.length - 1], 10);
+					} else {
+						playerId = parseInt(currentUser.id, 10);
+					}
+				} else {
+					playerId = Number(currentUser.id);
+				}
+				
+				if (!isNaN(playerId)) {
+					state.playerIds = [playerId];
+				}
+			}
+		}
+		
+		// Perform the transition to the new game
 		this.cleanupCurrentGame()
 			.then(() => this.startNewGame(mode))
 			.catch(error => {
@@ -597,7 +654,8 @@ export class GameComponent extends Component<GameComponentState> {
 			this.playerRegistrationComponent = new PlayersRegisterComponent(
 				this.gameContainer,
 				state.currentMode,
-				this.handlePlayersRegistered.bind(this)
+				this.handlePlayersRegistered.bind(this),
+				this.handleBackToMenu.bind(this)
 			);
 			
 			// Show the player registration component
