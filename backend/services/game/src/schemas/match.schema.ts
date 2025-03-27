@@ -150,6 +150,33 @@ export const matchTimelineSchema = {
   }
 }
 
+export const matchSummarySchema = {
+  params: {
+    type: 'object',
+    properties: {
+      player_id: { type: 'string', format: 'uuid' }
+    },
+    required: ['player_id']
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        total_matches: { type: 'integer', minimum: 0 },
+				elo: { type: 'integer', minimum: 0 },
+        completed_matches: { type: 'integer', minimum: 0 },
+        victories: { type: 'integer', minimum: 0 },
+        win_ratio: { type: 'number', minimum: 0, maximum: 1 }
+      },
+      required: ['total_matches', 'elo', 'completed_matches', 'victories', 'win_ratio']
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}
+
 export const matchStatsSchema = {
   params: {
     type: 'object',
@@ -163,16 +190,6 @@ export const matchStatsSchema = {
       type: 'object',
       properties: {
         player_id: { type: 'string', format: 'uuid' },
-        summary: { 
-          type: 'object', 
-          properties: {
-            total_matches: { type: 'integer', minimum: 0 },
-            completed_matches: { type: 'integer', minimum: 0 },
-            victories: { type: 'integer', minimum: 0 },
-            win_ratio: { type: 'number', minimum: 0, maximum: 1 }
-          },
-          required: ['total_matches', 'completed_matches', 'victories', 'win_ratio']
-        },
         goal_stats: {
           type: 'object',
           properties: {
@@ -200,7 +217,7 @@ export const matchStatsSchema = {
         match_durations: { type: 'array', items: { type: 'number', minimum: 0 } },
         elo_history: { type: 'array', items: { type: 'number', minimum: 0 } }
       },
-      required: ['player_id', 'summary', 'goal_stats', 'daily_performance', 'goal_durations', 'match_durations', 'elo_history']
+      required: ['player_id', 'goal_stats', 'daily_performance', 'goal_durations', 'match_durations', 'elo_history']
     },
     404: {
       ...errorResponseSchema,

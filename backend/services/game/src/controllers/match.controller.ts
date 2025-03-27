@@ -8,8 +8,7 @@ import {
   GetMatchesQuery,
 	PlayerStats,
 	PlayerMatchSummary,
-	DailyPerformance,
-	EloRating
+	DailyPerformance
 } from '@shared/types/match.type.js'
 import { MatchGoals } from '@shared/types/goal.type.js'
 
@@ -190,26 +189,47 @@ export async function matchTimeline(request: FastifyRequest<{
 		}
 	}
 
+// New function to get match summary for a player
+export async function matchSummary(request: FastifyRequest<{
+  Params: { player_id: string }
+}>, reply: FastifyReply): Promise<void> {
+  const { player_id } = request.params
+  try {
+    // Get player match summary
+    const matchSummaryResult = await request.server.db.get(
+      'SELECT total_matches, elo, completed_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
+      [player_id]
+    ) 
+    // Initialize default match summary if no data is returned
+    const matchSummary = matchSummaryResult || {
+      total_matches: 0,
+      completed_matches: 0,
+      victories: 0,
+      win_ratio: 0,
+      elo: 0
+    } as PlayerMatchSummary
+
+    return reply.code(200).send(matchSummary)
+  } catch (error) {
+    request.log.error({
+      msg: 'Error in matchSummary',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    return reply.code(500).send(errorResponse)
+  }
+}
+
 // Get match statistics for a player
 export async function matchStats(request: FastifyRequest<{
   Params: { player_id: string }
 }>, reply: FastifyReply): Promise<void> {
   const { player_id } = request.params
   try {
-    // Get player match summary without transaction
-    const matchSummaryResult = await request.server.db.get(
-      'SELECT total_matches, completed_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
-      [player_id]
-    ) 
-    
-    // Initialize default match summary if no data is returned
-    const matchSummary = matchSummaryResult || {
-      total_matches: 0,
-      completed_matches: 0,
-      victories: 0,
-      win_ratio: 0
-    } as PlayerMatchSummary
-
     // Get daily performance for line plot
     const dailyPerformance = await request.server.db.all(
       'SELECT match_date, matches_played, wins, losses, daily_win_ratio FROM player_daily_performance WHERE player_id = ? ORDER BY match_date',
@@ -255,7 +275,6 @@ export async function matchStats(request: FastifyRequest<{
     // Combine all statistics into a comprehensive response
     const playerStats: PlayerStats = {
       player_id,
-      summary: matchSummary,
       goal_stats: {
         fastest_goal_duration: fastestGoalDuration,
         average_goal_duration: averageGoalDuration,

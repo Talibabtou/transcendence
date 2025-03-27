@@ -5,7 +5,8 @@ import {
   createMatch, 
   updateMatch,
 	matchTimeline,
-	matchStats
+	matchStats,
+	matchSummary
 } from '../controllers/match.controller.js'
 import { 
   getMatchSchema, 
@@ -13,7 +14,8 @@ import {
   createMatchSchema, 
   updateMatchSchema,
 	matchTimelineSchema,
-	matchStatsSchema
+	matchStatsSchema,
+	matchSummarySchema
 } from '../schemas/match.schema.js'
 
 export default async function matchRoutes(fastify: FastifyInstance) {
@@ -62,4 +64,11 @@ export default async function matchRoutes(fastify: FastifyInstance) {
       tags: ['matches']
     }
   }, matchStats)
+
+	fastify.get('/summary/:player_id', { 
+    schema: {
+      ...matchSummarySchema,
+      tags: ['matches']
+    }
+  }, matchSummary)
 }

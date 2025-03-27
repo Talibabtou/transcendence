@@ -32,6 +32,7 @@ export interface GetMatchesQuery {
 
 export interface PlayerMatchSummary {
 	total_matches: number;
+	elo: number;
 	completed_matches: number;
 	victories: number;
 	win_ratio: number;
@@ -49,7 +50,6 @@ export interface EloRating {
 
 export interface PlayerStats {
 	player_id: string;
-	summary: PlayerMatchSummary;
 	goal_stats: {
 		fastest_goal_duration: number | null;
 		average_goal_duration: number | null;

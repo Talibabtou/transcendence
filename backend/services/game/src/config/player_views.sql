@@ -13,6 +13,7 @@ CREATE VIEW IF NOT EXISTS player_match_summary AS
 SELECT 
   player_id, -- The ID of the player
   COUNT(match_id) AS total_matches, -- Total number of matches played by the player
+  (SELECT elo FROM elo WHERE player = player_id ORDER BY created_at DESC LIMIT 1) AS elo,
   SUM(CASE WHEN completed = TRUE THEN 1 ELSE 0 END) AS completed_matches, -- Number of matches that are completed
   SUM(CASE WHEN completed = TRUE AND 
            ((player_id = player_1 AND score_1 > score_2) OR 
