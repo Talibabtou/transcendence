@@ -1,5 +1,4 @@
 import path from "path";
-// import cors from '@fastify/cors'
 import fastifyJwt from "@fastify/jwt";
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from "@fastify/static";
@@ -32,10 +31,6 @@ export class Server {
         try {
             process.on("SIGINT", () => Server.shutdown("SIGINT"));
             process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-            // await server.register(cors, {
-            //   origin: "*",
-            //   methods: ['GET', 'PATCH', 'POST', 'DELETE']
-            // })
             await server.register(rateLimit, {
                 max: 100,
                 timeWindow: '1 minute'
@@ -61,7 +56,7 @@ export class Server {
             await server.register(profilRoutes, { prefix: "/api/v1/" });
             server.addHook("preValidation", checkMicroservicesHook);
             server.addHook("preHandler", jwtPluginHook);
-            server.listen({ port: Number(process.env.API_PORT) || 8080, host: "localhost" }, (err, address) => {
+            server.listen({ port: Number(process.env.API_PORT) || 8090, host: "localhost" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
                     if (err.code === 'EADDRINUSE')

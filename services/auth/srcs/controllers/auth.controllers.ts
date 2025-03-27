@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { ICreateUser, ILogin, IModifyUser, IReply } from '../types/auth.types.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -11,7 +10,7 @@ declare module 'fastify' {
   }
 }
 
-export async function addUser(request: FastifyRequest<{ Body: ICreateUser }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function addUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
       const { username, password, email } = request.body;
       await request.server.db.run('INSERT INTO users (role, username, password, email, created_at) VALUES ("user", ?, ?, ?, CURRENT_TIMESTAMP);', [username, password, email]);
@@ -45,7 +44,7 @@ export async function addUser(request: FastifyRequest<{ Body: ICreateUser }>, re
     }
 }
 
-export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
       const users: any = await request.server.db.all('SELECT username, email FROM users');
       request.server.log.info("Users successfully obtained");
@@ -65,9 +64,10 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Re
     }
 }
 
-export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function getUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
-        const user: any = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [request.user.id]);
+      const id: string = request.params.id;
+        const user: any = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
         if (!user) {
           request.server.log.error("User not found");
           return reply.code(404).send({
@@ -99,7 +99,7 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Rep
     }
 }
 
-export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function deleteUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
       const result: any = await request.server.db.get('SELECT * FROM users WHERE id = ?', [request.user.id]);
       if (!result){
@@ -128,7 +128,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ 
     }
 }
 
-export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function modifyUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
         let dataName: string = '';
         const { username, password, email } = request.body;
@@ -184,7 +184,7 @@ export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser }>,
     }
 }
 
-export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function login(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     const { email, password } = request.body;
     const user: any = await request.server.db.get('SELECT id, role, username FROM users WHERE email = ? AND password = ?;', [email, password]);

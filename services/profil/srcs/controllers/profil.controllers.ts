@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import fs from 'node:fs';
-import { IReply } from '../types/profil.types.js';
 import path from 'path';
 
 declare module 'fastify' {
@@ -13,7 +12,7 @@ declare module 'fastify' {
   }
 }
 
-export async function deletePic(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function deletePic(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
         const uploadDir: string = process.env.UPLOAD ||  './uploads';
         if (!fs.existsSync(uploadDir))
@@ -42,7 +41,7 @@ export async function deletePic(request: FastifyRequest, reply: FastifyReply<{ R
       }
 }
 
-export async function upload(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function upload(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     const file: any = await request.file();
     if (!file) {

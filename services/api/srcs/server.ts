@@ -62,7 +62,7 @@ export class Server {
       server.addHook("preValidation", checkMicroservicesHook);
       server.addHook("preHandler", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.API_PORT) || 8080, host: "localhost" },
+        { port: Number(process.env.API_PORT) || 8090, host: "localhost" },
         (err: any, address: any) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);

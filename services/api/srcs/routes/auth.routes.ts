@@ -1,43 +1,44 @@
 import { FastifyInstance } from 'fastify';
 import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js'
-import { IReply } from '../types/types.js'
+import { getUserSchema } from '../schemas/auth.schemas.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
-	fastify.get<{ Reply: IReply }>('/auth/user', {
+	fastify.get('/auth/user/:id', {
+		schema: getUserSchema,
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']
 		}},
 		getUser);
 
-	fastify.get<{ Reply: IReply }>('/auth/users', {
+	fastify.get('/auth/users', {
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']
 		}},
 		getUsers);
 
-	fastify.post<{ Reply: IReply }>('/auth/user', {
+	fastify.post('/auth/user', {
 		config: { 
 		  auth: false
 		}},
 		postUser);
 
-	fastify.patch<{ Reply: IReply }>('/auth/user', {
+	fastify.patch('/auth/user', {
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']
 		}},
 		patchUser);
 
-	fastify.delete<{ Reply: IReply }>('/auth/user', {
+	fastify.delete('/auth/user', {
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']
 		}},
 		deleteUser);
 
-	fastify.post<{ Reply: IReply }>('/auth/login', {
+	fastify.post('/auth/login', {
 		config: { 
 		  auth: false
 		}},

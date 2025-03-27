@@ -16,13 +16,13 @@ rm csr.pem
 npm init -y // generate .json files
 
 // API
-npm install @types/node typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/cors
+npm install @types/node typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit 
 
 // AUTH
-npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt
+npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt 
 
 // PROFIL
-npm install @types/node typescript fastify @fastify/jwt @fastify/static @fastify/multipart
+npm install @types/node typescript fastify @fastify/jwt @fastify/static @fastify/multipart 
 
 npx tsc --init // generate tsconfig file
 ```

@@ -1,14 +1,15 @@
 import { getPic, getPics, getStatus } from "../controllers/api.controllers.js";
-import { getIdSchema } from "../schemas/schemas.js";
+import { getPicSchema, getPicsSchema } from "../schemas/api.schemas.js";
 export default async function apiRoutes(fastify) {
     fastify.get("/uploads", {
+        schema: getPicsSchema,
         config: {
             auth: true,
             roles: ['user', 'admin']
         }
     }, getPics);
     fastify.get("/uploads/:id", {
-        schema: getIdSchema,
+        schema: getPicSchema,
         config: {
             auth: true,
             roles: ['user', 'admin']

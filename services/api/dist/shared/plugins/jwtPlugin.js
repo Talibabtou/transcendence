@@ -5,6 +5,7 @@ export const jwtPluginRegister = {
     }
 };
 export async function jwtPluginHook(request, reply) {
+    console.log({ auth: request.routeOptions.config?.auth });
     if (request.routeOptions.config?.auth === false) {
         return;
     }

@@ -1,7 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { IReply } from '../types/types.js'
 
-export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function getUser(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -23,7 +22,7 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply<{ Rep
     }
  }
 
-export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -45,7 +44,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Re
     }
  }
 
- export async function postUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+ export async function postUser(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -69,7 +68,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply<{ Re
     }
  }
 
-export async function patchUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function patchUser(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -93,7 +92,7 @@ export async function patchUser(request: FastifyRequest, reply: FastifyReply<{ R
     }
  }
 
-export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -119,7 +118,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply<{ 
     }
  }
 
-export async function postLogin(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function postLogin(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;

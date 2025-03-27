@@ -1,16 +1,15 @@
 import { FastifyInstance } from 'fastify';
 import { deletePic, upload } from '../controllers/profil.controllers.js'
-import { IReply } from '../types/types.js'
 
 export default async function authRoutes(fastify: FastifyInstance) {
-	fastify.post<{ Reply: IReply }>('/profil/uploads', {
+	fastify.post('/profil/uploads', {
 		config: { 
 		  auth: true, 
-		  roles: ['user', 'admin']
+		  roles: []
 		}},
 		upload);
 
-	fastify.delete<{ Reply: IReply }>('/profil/uploads', {
+	fastify.delete('/profil/uploads', {
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']

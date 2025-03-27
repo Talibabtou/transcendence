@@ -15,7 +15,8 @@ export const jwtPluginRegister = {
 }
 
 export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
-    if (request.routeOptions.config?.auth === false) {
+  console.log({ auth: request.routeOptions.config?.auth })
+  if (request.routeOptions.config?.auth === false) {
       return;
     }
     const authHeader: string | undefined = request.headers['authorization'];

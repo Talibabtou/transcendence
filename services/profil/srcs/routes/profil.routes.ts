@@ -1,19 +1,18 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { IReply } from '../types/profil.types.js';
 import { upload, deletePic } from '../controllers/profil.controllers.js';
 
 export default async function profilRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post<{ Reply: IReply }>('/uploads',
+  fastify.post('/uploads',
     { config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     upload);
   
-  fastify.delete<{ Reply: IReply }>('/uploads',
+  fastify.delete('/uploads',
     { config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     deletePic);
 

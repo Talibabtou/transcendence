@@ -1,6 +1,8 @@
 import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js';
+import { getUserSchema } from '../schemas/auth.schemas.js';
 export default async function authRoutes(fastify) {
-    fastify.get('/auth/user', {
+    fastify.get('/auth/user/:id', {
+        schema: getUserSchema,
         config: {
             auth: true,
             roles: ['user', 'admin']

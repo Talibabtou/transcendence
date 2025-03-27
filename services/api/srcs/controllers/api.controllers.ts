@@ -1,54 +1,40 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import { IGetId, IReply } from "../types/types.js";
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
 import fs from "node:fs";
 import path from "path";
 import { Server } from '../server.js'
+import { IGetPicResponse, IGetPicsResponse } from "../types/api.types.js";
 
-export async function getPic(request: FastifyRequest<{ Params: IGetId }>, reply: FastifyReply<{ Reply: IReply }>) {
+export async function getPic(
+  request: FastifyRequest<{ Params: { id: string } }>,
+  reply: FastifyReply<{ Body: IGetPicResponse }>)
+  {
   const id: string = request.params.id;
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFile: string | undefined = fs
     .readdirSync(uploadDir)
     .find((file) => file.startsWith(id));
   if (existingFile) {
-    request.server.log.info(`Picture ${existingFile} found`);
-    return reply.code(200).send({
-      success: true,
-      message: `Picture ${existingFile} found`,
-      data: {
-        dir: '/uploads',
-        image: existingFile
-      },
-    });
+    return reply.code(200).send({ link: `/uploads/${existingFile}` });
   } else {
-    request.server.log.error("Picture not found");
-    return reply.code(404).send({
-      success: false,
-      message: "Picture not found",
-    });
+    const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
+    return reply.code(404).send(errorMessage);
   }
 }
 
-export async function getPics(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>) {
+export async function getPics(
+  request: FastifyRequest,
+  reply: FastifyReply<{ Body: IGetPicsResponse }>) 
+  {
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFiles: string[] | undefined = fs
     .readdirSync(uploadDir)
-  if (existingFiles) {
-    request.server.log.info(`Pictures found`);
-    return reply.code(200).send({
-      success: true,
-      message: 'Pictures found',
-      data: {
-        dir: '/uploads',
-        images: existingFiles
-      },
-    });
+  if (existingFiles.length > 0) {
+    const modifiedFiles = existingFiles.map(f => '/uploads/' + f);
+    return reply.code(200).send({ links: modifiedFiles });
   } else {
-    request.server.log.error("Pictures not found");
-    return reply.code(404).send({
-      success: false,
-      message: "Pictures not found",
-    });
+    const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
+    return reply.code(404).send(errorMessage);
   }
 }
 
@@ -68,8 +54,13 @@ export async function checkMicroservicesHook(request: FastifyRequest, reply: Fas
 
 export async function checkMicroservices() {
   try {
-    Server.microservices.set('auth', await checkService(process.env.AUTH_PORT || '8082'));
-    Server.microservices.set('profil', await checkService(process.env.PROFIL_PORT || '8081'));
+    const [authStatus, profilStatus] = await Promise.all([
+      checkService(process.env.AUTH_PORT || '8082'),
+      checkService(process.env.PROFIL_PORT || '8081')
+    ]);
+
+    Server.microservices.set('auth', authStatus);
+    Server.microservices.set('profil', profilStatus);
   } catch (err) {
     console.error('Error checking microservices:', err);
   }

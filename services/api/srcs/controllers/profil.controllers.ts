@@ -1,5 +1,4 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { IReply } from '../types/types.js'
 
 declare module 'fastify' {
   interface FastifyJWT {
@@ -21,7 +20,7 @@ function verifTypeFile(file: any) {
   return { valid: true };
 }
 
-export async function upload(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function upload(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
       const subpath: string = request.url.split('/profil')[1];
       const serviceUrl: string = `http://localhost:8081${subpath}`;
@@ -63,7 +62,7 @@ export async function upload(request: FastifyRequest, reply: FastifyReply<{ Repl
   }
 }
 
-export async function deletePic(request: FastifyRequest, reply: FastifyReply<{ Reply: IReply }>): Promise<void> {
+export async function deletePic(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     const subpath: string = request.url.split('/profil')[1];
     const serviceUrl: string = `http://localhost:8081${subpath}`;

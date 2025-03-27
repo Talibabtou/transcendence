@@ -3,7 +3,7 @@ export default async function authRoutes(fastify) {
     fastify.post('/profil/uploads', {
         config: {
             auth: true,
-            roles: ['user', 'admin']
+            roles: []
         }
     }, upload);
     fastify.delete('/profil/uploads', {

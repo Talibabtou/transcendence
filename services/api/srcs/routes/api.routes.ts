@@ -1,18 +1,19 @@
 import { FastifyInstance } from "fastify";
 import { getPic, getPics, getStatus } from "../controllers/api.controllers.js";
-import { IReply, IGetId } from "../types/types.js";
-import { getIdSchema } from "../schemas/schemas.js";
+import { getPicSchema, getPicsSchema } from "../schemas/api.schemas.js"
+import { IGetPicResponse, IGetPicsResponse } from "../types/api.types.js";
 
 export default async function apiRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Reply: IReply }>("/uploads", {
+  fastify.get<{ Body: IGetPicsResponse }>("/uploads", {
+    schema: getPicsSchema,
     config: { 
       auth: true, 
       roles: ['user', 'admin']
     }},
     getPics);
 
-  fastify.get<{ Params: IGetId, Reply: IReply }>("/uploads/:id", {
-    schema: getIdSchema,
+  fastify.get<{ Params: { id: string }, Body: IGetPicResponse }>("/uploads/:id", {
+    schema: getPicSchema,
     config: { 
       auth: true, 
       roles: ['user', 'admin']
