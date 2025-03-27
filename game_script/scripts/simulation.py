@@ -92,6 +92,7 @@ async def run_match(player_1, player_2):
             delay = random.randint(1, 5)
             start_time = datetime.now()
             last_goal_time = start_time
+            current_interval = 0
             
             max_match_duration = 60  # Maximum match duration in seconds
             
@@ -100,36 +101,22 @@ async def run_match(player_1, player_2):
                 current_duration = (current_time - start_time).total_seconds()
                 time_since_last_goal = (current_time - last_goal_time).total_seconds()
                 
-                # Check for match timeout (no activity for too long)
                 if current_duration > max_match_duration:
                     print(f"Match {match_id} exceeded maximum duration of {max_match_duration} seconds")
                     await update_match(match_session, match_id, int(current_duration), True, False)
                     break
                 
                 if time_since_last_goal > delay:
-                    print(f"Time since last goal: {time_since_last_goal:.2f} seconds")
-                    
-                    # Random timeout simulation
-                    if random.randint(0, 200) == 12:
-                        print(f"Match {match_id} will timeout for 10 seconds")
-                        await asyncio.sleep(10)  # This should not block other matches
-                        elo_1 = await get_elo(match_session, player_1)
-                        elo_2 = await get_elo(match_session, player_2)
-                        await create_elo(match_session, player_1, elo_1["elo"] - 20)
-                        await create_elo(match_session, player_2, elo_2["elo"] - 20)
-                        current_duration = (datetime.now() - start_time).total_seconds()
-                        await update_match(match_session, match_id, int(current_duration), True, False)
-                        print(f"Match {match_id} timeout")
-                        break
+                    current_interval = int(time_since_last_goal)  # Get interval since last goal
                     
                     # Score a goal
                     if (datetime.now().second % 2 == 0):
-                        await create_goal(match_session, match["id"], player_1, int(current_duration))
-                        print(f"Match {match['id']}: Goal for {player_1} at {int(current_duration)} seconds")
+                        await create_goal(match_session, match["id"], player_1, current_interval)
+                        print(f"Match {match['id']}: Goal for {player_1} after {current_interval} seconds")
                         goals_1 += 1
                     else:
-                        await create_goal(match_session, match["id"], player_2, int(current_duration))
-                        print(f"Match {match['id']}: Goal for {player_2} at {int(current_duration)} seconds")
+                        await create_goal(match_session, match["id"], player_2, current_interval)
+                        print(f"Match {match['id']}: Goal for {player_2} after {current_interval} seconds")
                         goals_2 += 1
                     
                     print(f"Match {match['id']} - Goals: {goals_1} - {goals_2}")
