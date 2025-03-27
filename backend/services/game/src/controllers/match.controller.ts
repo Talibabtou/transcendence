@@ -182,7 +182,7 @@ export async function matchTimeline(request: FastifyRequest<{
 	}>, reply: FastifyReply): Promise<void> {
 		const { id } = request.params
 		try {
-			const goals = await request.server.db.all('SELECT match_id, player, duration FROM goals WHERE match_id = ?', id) as MatchGoals[]
+			const goals = await request.server.db.all('SELECT match_id, player, duration FROM goal WHERE match_id = ?', id) as MatchGoals[]
 			return reply.code(200).send(goals)
 		} catch (error) {
 			const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -234,9 +234,9 @@ export async function matchStats(request: FastifyRequest<{
     // Transform result into array of numbers
     const matchDurations = matchDurationsResult ? matchDurationsResult.map(row => Number(row.match_duration)) : []
     
-    // Get player's daily Elo rating
+    // Get player's Elo rating history (all data points)
     const eloRatings = await request.server.db.all(
-      'SELECT match_date, elo FROM player_daily_elo_rating WHERE player_id = ? ORDER BY match_date',
+      'SELECT created_at as match_date, elo FROM elo WHERE player = ? ORDER BY created_at',
       [player_id]
     ) as EloRating[] || []
     

@@ -118,14 +118,23 @@ export const matchTimelineSchema = {
   params: {
     type: 'object',
     properties: {
-      match_id: { type: 'string', format: 'uuid' },
-			player_id: { type: 'string', format: 'uuid' },
-			duration: { type: 'integer', minimum: 0 }
+      id: { type: 'string', format: 'uuid' }
     },
-    required: ['match_id', 'player_id', 'duration']
+    required: ['id']
   },
   response: {
-    200: matchSchema,
+    200: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          match_id: { type: 'string', format: 'uuid' },
+          player: { type: 'string', format: 'uuid' },
+          duration: { type: 'integer', minimum: 0 }
+        },
+        required: ['match_id', 'player', 'duration']
+      }
+    },
     400: {
       ...errorResponseSchema,
       example: ErrorExamples.invalidFields

@@ -50,15 +50,6 @@ FROM (
 ) AS player_matches
 GROUP BY player_id; -- Group results by player ID
 
--- Daily elo rating for line plot
-CREATE VIEW IF NOT EXISTS player_daily_elo_rating AS
-SELECT
-  player AS player_id,
-  DATE(created_at) AS match_date,
-  MAX(elo) AS elo
-FROM elo
-GROUP BY player, DATE(created_at);
-
 -- Daily win/loss ratio for line plot
 CREATE VIEW IF NOT EXISTS player_daily_performance AS
 SELECT
