@@ -235,10 +235,13 @@ export async function matchStats(request: FastifyRequest<{
     const matchDurations = matchDurationsResult ? matchDurationsResult.map(row => Number(row.match_duration)) : []
     
     // Get player's Elo rating history (all data points)
-    const eloRatings = await request.server.db.all(
-      'SELECT created_at as match_date, elo FROM elo WHERE player = ? ORDER BY created_at',
+    const eloRatingsResult = await request.server.db.all(
+      'SELECT elo FROM elo WHERE player = ? ORDER BY created_at',
       [player_id]
-    ) as EloRating[] || []
+    )
+
+    // Transform result into array of numbers
+    const eloRatings = eloRatingsResult ? eloRatingsResult.map(row => Number(row.elo)) : []
     
     // Calculate goal stats with safe handling of empty arrays
     let fastestGoalDuration = null

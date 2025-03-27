@@ -198,17 +198,7 @@ export const matchStatsSchema = {
         },
         goal_durations: { type: 'array', items: { type: 'number', minimum: 0 } },
         match_durations: { type: 'array', items: { type: 'number', minimum: 0 } },
-        elo_history: { 
-          type: 'array', 
-          items: { 
-            type: 'object', 
-            properties: {
-              match_date: { type: 'string', format: 'date' },
-              elo: { type: 'number', minimum: 0 }
-            },
-            required: ['match_date', 'elo']
-          }
-        }
+        elo_history: { type: 'array', items: { type: 'number', minimum: 0 } }
       },
       required: ['player_id', 'summary', 'goal_stats', 'daily_performance', 'goal_durations', 'match_durations', 'elo_history']
     },

@@ -58,5 +58,5 @@ export interface PlayerStats {
 	daily_performance: DailyPerformance[];
 	goal_durations: number[];
 	match_durations: number[];
-	elo_history: EloRating[];
+	elo_history: number[];
 }
