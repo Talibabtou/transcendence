@@ -25,6 +25,8 @@ def get_first_player_stats():
         
         # Print the raw JSON response
         print(json.dumps(response.json(), indent=2))
+        with open('player_stats.json', 'w') as f:
+            json.dump(response.json(), f, indent=2)
         
     except FileNotFoundError:
         print("player_list.parquet file not found")
