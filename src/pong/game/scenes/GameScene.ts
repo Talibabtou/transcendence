@@ -4,6 +4,9 @@ import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 
+// Define the game mode type here since GameScene is the authority
+export type GameModeType = 'single' | 'multi' | 'tournament' | 'background_demo';
+
 /**
  * Main game scene that coordinates game objects, managers, and game flow.
  * Acts as the central coordinator between different game components.
@@ -29,7 +32,7 @@ export class GameScene {
 	// Game State
 	// =========================================
 	private readonly winningScore = GAME_CONFIG.WINNING_SCORE;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
+	private gameMode: GameModeType = 'single';
 	private lastTime: number = 0;
 	private isFrozen: boolean = false;
 	private lastDrawTime: number | null = null;
@@ -127,11 +130,58 @@ export class GameScene {
 	/**
 	 * Sets the game mode and updates all relevant components
 	 */
-	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
+	public setGameMode(mode: GameModeType): void {
 		this.gameMode = mode;
-		this.pauseManager?.setGameMode(mode);
-		this.resizeManager?.setGameMode(mode);
 		this.controlsManager.setupControls(mode);
+	}
+
+	/**
+	 * Gets the current game mode
+	 */
+	public getGameMode(): GameModeType {
+		return this.gameMode;
+	}
+
+	/**
+	 * Checks if current game mode is background demo
+	 */
+	public isBackgroundDemo(): boolean {
+		return this.gameMode === 'background_demo';
+	}
+
+	/**
+	 * Checks if current game mode is single player
+	 */
+	public isSinglePlayer(): boolean {
+		return this.gameMode === 'single';
+	}
+
+	/**
+	 * Checks if current game mode is multiplayer
+	 */
+	public isMultiPlayer(): boolean {
+		return this.gameMode === 'multi';
+	}
+
+	/**
+	 * Checks if current game mode is tournament
+	 */
+	public isTournament(): boolean {
+		return this.gameMode === 'tournament';
+	}
+
+	/**
+	 * Checks if current game mode is competitive (multi or tournament)
+	 */
+	public isCompetitive(): boolean {
+		return this.isMultiPlayer() || this.isTournament();
+	}
+
+	/**
+	 * Checks if current game mode requires database recording
+	 */
+	public requiresDbRecording(): boolean {
+		return !this.isBackgroundDemo();
 	}
 
 	/**
@@ -183,7 +233,6 @@ export class GameScene {
 	 */
 	private initializePauseManager(): void {
 		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
-		this.pauseManager.setGameMode(this.gameMode);
 		
 		// Set game engine reference if available
 		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function') {
@@ -387,10 +436,6 @@ export class GameScene {
 
 	private shouldSkipUpdate(): boolean {
 		return !this.isBackgroundDemo() && this.pauseManager.hasState(GameState.PAUSED);
-	}
-
-	private isBackgroundDemo(): boolean {
-		return this.gameMode === 'background_demo';
 	}
 
 	private cleanupManagers(): void {

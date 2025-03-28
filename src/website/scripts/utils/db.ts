@@ -1234,11 +1234,13 @@ export class DbService {
 	 * Marks a match as completed
 	 * @param matchId - The match ID
 	 * @param duration - Match duration in seconds
+	 * @param timeout - Whether the match ended due to timeout
 	 */
-	static completeMatch(matchId: number, duration: number): Promise<Match> {
+	static completeMatch(matchId: number, duration: number, timeout: boolean = false): Promise<Match> {
 		this.logRequest('PUT', `/api/matches/${matchId}`, {
 			completed: true,
-			duration
+			duration,
+			timeout
 		});
 		
 		return new Promise((resolve, reject) => {
@@ -1251,6 +1253,7 @@ export class DbService {
 						// Update match
 						db.matches[matchIndex].completed = true;
 						db.matches[matchIndex].duration = duration;
+						db.matches[matchIndex].timeout = timeout;
 						
 						// Persist changes
 						persistDb();
