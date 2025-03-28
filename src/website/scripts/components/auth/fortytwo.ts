@@ -135,9 +135,9 @@ export class FortyTwoAuthHandler {
 				id: parseInt(userId),
 				pseudo: username,
 				pfp: avatar,
-				human: true,
 				created_at: new Date(),
-				last_login: new Date()
+				last_login: new Date(),
+				theme: '#ffffff' // Default theme
 			});
 			
 			console.log('Auth: Created new 42 OAuth user', {

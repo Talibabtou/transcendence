@@ -7,7 +7,7 @@ import { AuthMethod, UserData } from '@shared/types';
 
 export class LoginHandler {
 	constructor(
-		private updateState: (state: any) => void,
+		private _updateState: (state: any) => void,
 		private setCurrentUser: (user: UserData | null) => void,
 		private switchToSuccessState: () => void
 	) {}
@@ -145,71 +145,61 @@ export class LoginHandler {
 		const rememberMe = form.querySelector('#remember-me') as HTMLInputElement;
 		const isPersistent = rememberMe ? rememberMe.checked : false;
 		
+		// Use updateState to notify parent component of loading state
+		this._updateState({ isLoading: true });
+		
 		// Use DbService to simulate API call
 		DbService.login({ email, password })
-			.then(() => {
-				// Simulate API call
-				setTimeout(() => {
-					// Check if user exists in localStorage (for simulation)
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					const user = users.find((u: any) => u.email === email);
+			.then((response) => {
+				// Check if login was successful and user exists
+				if (response.success && response.user) {
+					const user = response.user;
+					// Login successful
+					const userData: UserData = {
+						id: DbService.ensureStringId(user.id),
+						username: user.pseudo,
+						email: user.email || '', // Add fallback
+						authMethod: AuthMethod.EMAIL,
+						lastLogin: user.last_login ? new Date(user.last_login) : new Date(),
+						persistent: isPersistent
+					};
 					
-					if (user && user.password === password) {
-						// Login successful
-						const userData: UserData = {
-							id: user.id,
-							username: user.username,
-							email: user.email,
-							authMethod: AuthMethod.EMAIL,
-							lastLogin: new Date(),
-							persistent: isPersistent
-						};
-						
-						// Set current user with persistence flag from checkbox
-						this.setCurrentUser(userData);
-						
-						// Log successful login
-						console.log('Auth: Login successful', {
-							userId: user.id,
-							username: user.username,
-							email: user.email,
-							persistent: isPersistent
-						});
-						
-						// Update last login in the database
-						DbService.updateUser(parseInt(user.id), {
-							last_login: new Date()
-						});
-						
-						// Dispatch an event with the persistence information
-						document.dispatchEvent(new CustomEvent('user-authenticated', {
-							detail: {
-								user: userData,
-								persistent: isPersistent
-							}
-						}));
-						
-						// Just switch to success state directly
-						this.switchToSuccessState();
-						
-					} else {
-						// Login failed - display error inline instead of updating state
-						console.warn('Auth: Login failed', {
-							email,
-							reason: user ? 'Invalid password' : 'User not found'
-						});
-						
-						// Re-enable form buttons
-						buttons.forEach(button => button.disabled = false);
-						
-						// Hide loading indicator
-						if (loadingIndicator) loadingIndicator.style.display = 'none';
-						
-						// Show error message
-						errorElement.textContent = 'Invalid email or password';
-						errorElement.style.display = 'block';
-					}
-				}, 100);
+					// Set current user with persistence flag from checkbox
+					this.setCurrentUser(userData);
+					
+					// Log successful login
+					console.log('Auth: Login successful', {
+						userId: user.id,
+						username: user.pseudo,
+						email: user.email,
+						persistent: isPersistent
+					});
+					
+					// Update last login in the database - ensure numeric ID
+					const numericId = DbService.ensureNumericId(user.id);
+					DbService.updateUser(numericId, {
+						last_login: new Date()
+					});
+					
+					// Just switch to success state directly
+					this.switchToSuccessState();
+				} else {
+					// Login failed - display error inline instead of updating state
+					console.warn('Auth: Login failed', {
+						email,
+						reason: 'Authentication failed'
+					});
+					
+					// Re-enable form buttons
+					buttons.forEach(button => button.disabled = false);
+					
+					// Hide loading indicator
+					if (loadingIndicator) loadingIndicator.style.display = 'none';
+					
+					// Show error message
+					errorElement.textContent = 'Invalid email or password';
+					errorElement.style.display = 'block';
+				}
 			})
 			.catch(error => {
 				console.error('Auth: Login error', error);

@@ -251,7 +251,8 @@ export class GameManager {
 			playerName?: string,
 			playerColor?: string,
 			playerIds?: number[],
-			playerNames?: string[]
+			playerNames?: string[],
+			playerColors?: string[]
 		}
 	): void {
 		// Start the game
@@ -279,9 +280,29 @@ export class GameManager {
 			if (this.mainGameInstance.engine) {
 				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
 				
-				// Set player colors
-				const p1Color = playerInfo.playerColor || '#3498db';
-				const p2Color = mode === GameMode.SINGLE ? '#e74c3c' : '#2ecc71';
+				// Get player colors with proper fallbacks
+				const playerColors = playerInfo.playerColors || [];
+				console.log('Player colors array:', playerColors);
+				
+				const p1Color = playerColors[0] || playerInfo.playerColor || '#3498db';  // Default blue
+				
+				// For player 2, use their color from the array, or white for AI in single player
+				let p2Color;
+				if (mode === GameMode.SINGLE) {
+					p2Color = '#ffffff'; // AI is always white in single player
+				} else if (playerColors.length > 1 && playerColors[1]) {
+					p2Color = playerColors[1]; // Use the color chosen by player 2
+				} else {
+					p2Color = '#2ecc71'; // Default green if no color provided
+				}
+				
+				console.log('Setting player colors:', {
+					p1: p1Color,
+					p2: p2Color,
+					playerColors: playerColors
+				});
+				
+				// Now update the colors in the game engine
 				this.mainGameInstance.engine.updatePlayerColors(p1Color, p2Color);
 				
 				// Store player IDs last (this triggers match creation)

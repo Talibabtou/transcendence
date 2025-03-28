@@ -3,15 +3,8 @@
  * A standalone component for guest player authentication without affecting the main app state
  */
 import { Component } from '@website/scripts/components';
-import { ASCII_ART, html, render, DbService } from '@website/scripts/utils';
-import { IAuthComponent } from '@shared/types';
-
-// Define a simple state interface
-interface GuestAuthState {
-	isLoading: boolean;
-	error: string | null;
-	isRegisterMode: boolean;
-}
+import { html, render, DbService } from '@website/scripts/utils';
+import { IAuthComponent, GuestAuthState } from '@shared/types';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	constructor(container: HTMLElement) {
@@ -204,53 +197,44 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		});
 		
 		try {
-			// Verify user credentials directly using DbService
-			const response: any = await DbService.verifyUser(email, password);
+			// Verify user credentials using DbService
+			const response = await DbService.verifyUser(email, password);
 			
-			if (response && response.success && response.user) {
-				// Extract numeric ID
-				const rawId = response.user.id;
-				let numericId: number;
-				
-				if (typeof rawId === 'string' && rawId.includes('_')) {
-					const parts = rawId.split('_');
-					numericId = parseInt(parts[parts.length - 1], 10);
-				} else if (typeof rawId === 'string') {
-					numericId = parseInt(rawId, 10);
-				} else {
-					numericId = Number(rawId);
-				}
-				
-				if (isNaN(numericId)) {
-					console.error('Invalid guest ID format:', rawId);
-					numericId = Date.now();
-				}
-				
-				// Create user data - handle possible missing properties with fallbacks
+			if (response.success && response.user) {
 				const userData = {
-					id: numericId,
-					username: response.user.username || response.user.name || 'Guest',
-					email: response.user.email || '',
-					profilePicture: response.user.profilePicture || response.user.avatar || '/images/default-avatar.svg'
+					id: response.user.id,
+					username: response.user.username,
+					email: response.user.email || '',  // Add fallback
+					profilePicture: response.user.profilePicture,
+					theme: response.user.theme || '#ffffff'
 				};
 				
-				// Update last connection time
-				await DbService.updateUserLastConnection(String(rawId));
+				// Update last login - use the original ID format
+				await DbService.updateUserLastConnection(String(response.user.id));
 				
-				// Dispatch custom event with guest user data
+				console.log('Guest Auth: Authentication successful', {
+					userId: response.user.id,
+					username: response.user.username
+				});
+				
+				// Dispatch event with user data
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
 					detail: { user: userData }
 				});
-				document.dispatchEvent(authEvent);
+				this.container.dispatchEvent(authEvent);
+				
+				// Show success message
+				this.showMessage('Authentication successful!', 'success');
 				
 				// Hide component
 				this.hide();
 			} else {
 				this.updateInternalState({
 					isLoading: false,
-					error: (response && response.error) ? response.error : 'Invalid email or password'
+					error: 'Invalid email or password'
 				});
+				this.showMessage('Invalid email or password.', 'error');
 			}
 		} catch (error) {
 			console.error('Guest authentication error:', error);
@@ -258,6 +242,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				isLoading: false,
 				error: 'Authentication failed. Please try again.'
 			});
+			this.showMessage('Authentication failed. Please try again.', 'error');
 		}
 	}
 	
@@ -271,39 +256,79 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		});
 		
 		try {
-			// Register user
-			const response: any = await DbService.register({ username, email, password });
+			// Check if email already exists
+			const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
+			const existingUser = users.find((u: any) => u.email === email);
 			
-			if (response && response.success && response.user) {
-				// Format user data
-				const userData = {
-					id: response.user.id,
-					username: response.user.username || response.user.name || username,
-					email: response.user.email || email,
-					profilePicture: response.user.profilePicture || response.user.avatar || '/images/default-avatar.svg'
-				};
-				
-				// Dispatch event
-				const authEvent = new CustomEvent('guest-authenticated', {
-					bubbles: true,
-					detail: { user: userData }
-				});
-				document.dispatchEvent(authEvent);
-				
-				// Hide component
-				this.hide();
-			} else {
+			if (existingUser) {
+				console.warn('Auth: Registration failed - Email exists', { email });
 				this.updateInternalState({
 					isLoading: false,
-					error: (response && response.error) ? response.error : 'Registration failed'
+					error: 'Email already registered'
 				});
+				return;
 			}
+
+			// Create user with consistent ID format - always use "user_timestamp" format
+			// This will be consistent with the main auth process
+			const userId = `user_${Date.now()}`;
+			const newUser = {
+				id: userId,
+				username,
+				email,
+				password,
+				authMethod: 'email',
+				createdAt: new Date().toISOString(),
+				lastLogin: new Date(),
+				theme: '#ffffff' // Default theme
+			};
+			
+			// Save to localStorage auth_users array
+			users.push(newUser);
+			localStorage.setItem('auth_users', JSON.stringify(users));
+			
+			// Format user data for the guest-authenticated event - use the string ID
+			const userData = {
+				id: userId, // Keep the original string ID format
+				username: username,
+				email: email,
+				profilePicture: `/images/default-avatar.svg`,
+				theme: '#ffffff'
+			};
+			
+			console.log('Guest Auth: Registration successful', {
+				userId,
+				username,
+				email
+			});
+			
+			// Dispatch event with user data
+			const authEvent = new CustomEvent('guest-authenticated', {
+				bubbles: true,
+				detail: { user: userData }
+			});
+			this.container.dispatchEvent(authEvent);
+			
+			// Hide component
+			this.hide();
+			
+			// Create user in the mock database - extract numeric part for DB operations
+			const numericId = Number(userId.split('_')[1]);
+			await DbService.createUser({
+				id: numericId,
+				pseudo: username,
+				created_at: new Date(),
+				last_login: new Date(),
+				theme: '#ffffff'
+			});
+			
 		} catch (error) {
 			console.error('Guest registration error:', error);
 			this.updateInternalState({
 				isLoading: false,
 				error: 'Registration failed. Please try again.'
 			});
+			this.showMessage('Registration failed. Please try again.', 'error');
 		}
 	}
 	
@@ -330,7 +355,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			bubbles: true,
 			detail: { timestamp: Date.now() }
 		});
-		document.dispatchEvent(cancelEvent);
+		this.container.dispatchEvent(cancelEvent);
 		
 		// Clean up
 		this.destroy();
@@ -343,5 +368,33 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.container.innerHTML = '';
 		this.container.className = '';
 		super.destroy();
+	}
+	
+	/**
+	 * Show a message within the component
+	 * @param message - Message to display
+	 * @param type - Message type (success, error, info)
+	 */
+	private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
+		// Clear any existing messages
+		const existingMessage = this.container.querySelector('.auth-message');
+		if (existingMessage) {
+			existingMessage.remove();
+		}
+		
+		// Create and add the message element
+		const messageElement = document.createElement('div');
+		messageElement.className = `auth-message ${type}-message`;
+		messageElement.textContent = message;
+		
+		// Add to container
+		this.container.querySelector('.auth-form-container')?.appendChild(messageElement);
+		
+		// Auto-remove success messages after a timeout
+		if (type === 'success') {
+			setTimeout(() => {
+				messageElement.remove();
+			}, 3000);
+		}
 	}
 } 

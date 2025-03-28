@@ -275,26 +275,47 @@ export class GameEngine {
 	}
 
 	/**
-	 * Sets player colors
-	 * @param playerOneColor Color for player one (hex format)
-	 * @param playerTwoColor Optional color for player two (hex format)
+	 * Update player colors for paddles
+	 * @param p1Color Color for player 1's paddle (hex format)
+	 * @param p2Color Color for player 2's paddle (hex format)
 	 */
-	public updatePlayerColors(playerOneColor: string, playerTwoColor?: string): void {
-		this.playerColors = [playerOneColor, playerTwoColor || '#FF5722'];
-		console.log('Player colors set:', this.playerColors);
-		
-		if (this.scene) {
-			// Update Player 1's color
-			const player1 = this.scene.getPlayer1();
+	public updatePlayerColors(p1Color: string, p2Color?: string): void {
+		try {
+			const scene = this.scene;
+			if (!scene) return;
+			
+			const player1 = scene.getPlayer1();
+			const player2 = scene.getPlayer2();
+			
 			if (player1) {
-				player1.setColor(playerOneColor);
+				// Set player 1's color
+				player1.setColor(p1Color);
+				console.log(`Player 1 color set to: ${p1Color}`);
 			}
 			
-			// If player two color is provided, update it as well
-			const player2 = this.scene.getPlayer2();
-			if (player2 && playerTwoColor) {
-				player2.setColor(playerTwoColor);
+			if (player2) {
+				if (this.gameMode === 'single' && player2.isAIControlled()) {
+					// For AI in single player mode, always use white
+					player2.setColor('#ffffff');
+					console.log('AI player color set to: #ffffff');
+				} else if (p2Color) {
+					// For human player 2, always use their chosen color
+					player2.setColor(p2Color);
+					console.log(`Player 2 color set to: ${p2Color}`);
+				} else {
+					// Fallback only if p2Color is undefined/null
+					player2.setColor('#2ecc71');
+					console.log('Player 2 color defaulted to: #2ecc71');
+				}
 			}
+			
+			// Log the color update
+			console.log('Updated player colors:', { 
+				p1: p1Color, 
+				p2: player2 && player2.isAIControlled() ? '#ffffff' : (p2Color || '#2ecc71') 
+			});
+		} catch (error) {
+			console.error('Error updating player colors:', error);
 		}
 	}
 

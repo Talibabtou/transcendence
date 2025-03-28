@@ -79,89 +79,44 @@ export class GoogleAuthHandler {
 	 * Simulates a successful Google OAuth login (for development)
 	 */
 	simulateOAuthLogin(): void {
-		// Google user details
-		const username = 'GoogleUser';
-		const email = 'google.user@example.com';
-		const provider = 'Google';
-		const avatar = 'https://ui-avatars.com/api/?name=Google+User&background=random';
-		
-		// Generate a unique ID for this user
-		const userId = `${provider.toLowerCase()}_user_${Date.now()}`;
-		
-		// Create user object
-		const userData: UserData = {
-			id: userId,
-			username,
-			email,
-			avatar,
-			authMethod: AuthMethod.GOOGLE,
-			lastLogin: new Date()
-		};
-		
-		// Set current user
-		this.setCurrentUser(userData);
-		
-		// Log successful OAuth login
-		console.log('Auth: Google OAuth login successful', {
-			userId,
-			username,
-			email
+		// Simulate API call with the provider
+		DbService.oauthLogin({
+			provider: 'google',
+			code: 'simulated-google-code',
+			redirectUri: window.location.origin
+		})
+		.then(response => {
+			if (response.success && response.user) {
+				const user = response.user;
+				
+				// Create user data
+				const userData: UserData = {
+					id: DbService.ensureStringId(user.id),
+					username: user.pseudo || `GoogleUser_${user.id}`,
+					email: user.email || `google_user_${user.id}@example.com`,
+					avatar: user.pfp,
+					authMethod: AuthMethod.GOOGLE,
+					lastLogin: user.last_login ? new Date(user.last_login) : new Date()
+				};
+				
+				// Set the current user
+				this.setCurrentUser(userData);
+				
+				// Switch to success state
+				this.switchToSuccessState();
+			} else {
+				this.updateState({
+					isLoading: false,
+					error: 'Google authentication failed'
+				});
+			}
+		})
+		.catch(error => {
+			console.error('OAuth Error:', error);
+			this.updateState({
+				isLoading: false,
+				error: 'Google authentication failed'
+			});
 		});
-		
-		// Check if this OAuth user already exists
-		const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-		const existingUser = users.find((u: any) => 
-			u.email === email && u.authMethod === AuthMethod.GOOGLE
-		);
-		
-		if (!existingUser) {
-			// This is a new OAuth user, create them
-			const newUser = {
-				id: userId,
-				username,
-				email,
-				avatar,
-				authMethod: AuthMethod.GOOGLE,
-				createdAt: new Date().toISOString(),
-				lastLogin: new Date()
-			};
-			
-			// Save to localStorage (for simulation)
-			users.push(newUser);
-			localStorage.setItem('auth_users', JSON.stringify(users));
-			
-			// Create user in the database
-			DbService.createUser({
-				id: parseInt(userId),
-				pseudo: username,
-				pfp: avatar,
-				human: true,
-				created_at: new Date(),
-				last_login: new Date()
-			});
-			
-			console.log('Auth: Created new Google OAuth user', {
-				userId,
-				username
-			});
-		} else {
-			// Update existing user's last login
-			DbService.updateUser(parseInt(existingUser.id), {
-				last_login: new Date()
-			});
-			
-			console.log('Auth: Updated existing Google OAuth user', {
-				userId: existingUser.id,
-				username: existingUser.username
-			});
-		}
-		
-		// Update component state
-		this.updateState({
-			isLoading: false
-		});
-		
-		// Switch to success state
-		this.switchToSuccessState();
 	}
 }

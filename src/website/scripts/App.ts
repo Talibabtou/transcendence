@@ -88,7 +88,7 @@ UI & Styling:
 
 Features & Functionality:
 - Implement the real AI for the game, and keep the current one for the background demo mode
-- Implement different difficulty levels for AI
+- Implement different difficulty for AI depending on player's ELO
 
 - Create a structured tournament system with pool visualization (4 players per pool, best 2 out of 3 games go to finals and then best 2 out of 3 games to decide the winner)
 // - Separate Host and Guest connection methods
@@ -113,6 +113,7 @@ Performance & Security:
 - Implement better state management (consider Redux or Context API)
 - Optimize database queries
 - Refactor to the component pool pattern
+- Password enforcement for account creation (8 characters, one uppercase, one number, one special character)
 
 Documentation:
 - Add JSDoc comments to all main functions

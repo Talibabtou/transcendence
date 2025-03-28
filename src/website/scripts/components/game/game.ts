@@ -29,6 +29,7 @@ interface GameComponentState {
 	currentMode: GameMode;
 	playerIds?: number[];
 	playerNames?: string[];
+	playerColors?: string[];
 }
 
 // =========================================
@@ -666,9 +667,13 @@ export class GameComponent extends Component<GameComponentState> {
 	/**
 	 * Handles when players are registered
 	 * @param playerIds - The registered player IDs
+	 * @param playerNames - The player names
+	 * @param playerColors - The player colors
 	 */
-	private handlePlayersRegistered(playerIds: number[]): void {
+	private handlePlayersRegistered(playerIds: number[], playerNames: string[], playerColors: string[]): void {
 		console.log('Players registered for game with valid IDs:', playerIds);
+		console.log('Player names:', playerNames);
+		console.log('Player colors:', playerColors);
 		
 		// Prevent handling if already transitioning
 		if (this.isTransitioning) {
@@ -679,9 +684,11 @@ export class GameComponent extends Component<GameComponentState> {
 		// Set transitioning flag
 		this.isTransitioning = true;
 		
-		// Store player IDs for the game
+		// Store player information for the game
 		this.updateInternalState({
-			playerIds: playerIds
+			playerIds: playerIds,
+			playerNames: playerNames,
+			playerColors: playerColors
 		});
 		
 		// Clean up the player registration component

@@ -462,3 +462,41 @@
 	font-size: 1rem;
 	z-index: 2;
 }
+
+/* Add color picker styling for player registration */
+.player-color-selection {
+	margin-top: 15px;
+	text-align: center;
+}
+
+.color-label {
+	font-size: 0.9rem;
+	margin-bottom: 8px;
+	color: var(--text-color);
+}
+
+.player-side .color-picker {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	margin-bottom: 15px;
+}
+
+.player-side .color-option {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid transparent;
+	transition: all 0.2s ease;
+}
+
+.player-side .color-option:hover {
+	transform: scale(1.1);
+}
+
+.player-side .color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}

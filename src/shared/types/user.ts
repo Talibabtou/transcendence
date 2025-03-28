@@ -9,12 +9,13 @@ export interface User {
 	id: number;
 	theme?: string;
 	pfp?: string;
-	human: boolean;
 	pseudo: string;
 	last_login?: Date;
 	created_at: Date;
 	email?: string;
 	auth_method?: string;
+	password?: string; // Only for mock DB
+	elo?: number;
 }
 
 // Friendship relationship
@@ -29,8 +30,6 @@ export interface UserProfile {
 	id: string;
 	username: string;
 	avatarUrl: string;
-	level: number;
-	experience: number;
 	totalGames: number;
 	wins: number;
 	losses: number;
@@ -39,6 +38,7 @@ export interface UserProfile {
 	preferences: {
 		accentColor: string;
 	};
+	elo?: number;
 }
 
 // Friend display for UI

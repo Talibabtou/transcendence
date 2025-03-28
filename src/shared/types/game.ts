@@ -40,6 +40,7 @@ export interface GameHistoryEntry {
  * Leaderboard entry for a player's ranking
  */
 export interface LeaderboardEntry {
+	id: number;
 	rank: number;
 	username: string;
 	elo: number;
@@ -74,8 +75,10 @@ export interface GameMenuState {
 export interface PlayerData {
 	id: number;
 	username: string;
-	pfp?: string;
+	pfp: string;
 	isConnected: boolean;
+	theme?: string;
+	elo?: number;
 }
 
 /**

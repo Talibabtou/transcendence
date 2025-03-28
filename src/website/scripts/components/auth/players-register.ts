@@ -10,7 +10,7 @@ import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@sha
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManager: IAuthComponent | null = null;
 	private authContainer: HTMLElement | null = null;
-	private onAllPlayersRegistered: (playerIds: number[], playerNames: string[]) => void;
+	private onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void;
 	private onBack: () => void;
 	private maxPlayers: number = 2;
 	
@@ -21,7 +21,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
-		onAllPlayersRegistered: (playerIds: number[], playerNames: string[]) => void,
+		onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void,
 		onBack: () => void
 	) {
 		super(container, {
@@ -71,14 +71,33 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				hostId = Number(currentUser.id);
 			}
 			
-			const host: PlayerData = {
-				id: hostId,
-				username: currentUser.username,
-				pfp: currentUser.profilePicture || '/images/default-avatar.svg',
-				isConnected: true
-			};
+			// Fetch the user's ELO from the database if possible
+			DbService.getUser(hostId)
+				.then(user => {
+					const host: PlayerData = {
+						id: hostId,
+						username: currentUser.username,
+						pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+						isConnected: true,
+						theme: currentUser.theme || user.theme,
+						elo: user.elo
+					};
+					
+					this.updateInternalState({ host });
+				})
+				.catch(_ => {
+					// If we can't fetch from DB, use current user data
+					const host: PlayerData = {
+						id: hostId,
+						username: currentUser.username,
+						pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+						isConnected: true,
+						theme: currentUser.theme
+					};
+					
+					this.updateInternalState({ host });
+				});
 			
-			this.updateInternalState({ host });
 			console.log('Host initialized with ID:', hostId);
 		} else {
 			// This shouldn't happen as the host should be authenticated
@@ -218,11 +237,26 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		if (customEvent.detail && customEvent.detail.user) {
 			const userData = customEvent.detail.user;
 			
-			// Guest ID should already be numeric from simplified-auth-manager
-			const guestId = Number(userData.id);
+			// Get user ID in the correct format for the player data
+			let guestId: number;
+			
+			if (typeof userData.id === 'string' && userData.id.includes('_')) {
+				// Extract numeric part from string ID with prefix
+				const parts = userData.id.split('_');
+				guestId = parseInt(parts[parts.length - 1], 10);
+			} else if (typeof userData.id === 'string') {
+				// Convert string ID to number
+				guestId = parseInt(userData.id, 10);
+			} else {
+				// Already numeric
+				guestId = Number(userData.id);
+			}
 			
 			if (isNaN(guestId)) {
-				console.error('Invalid guest ID received:', userData.id);
+				console.error('Invalid guest ID format:', userData.id);
+				this.updateInternalState({
+					error: 'Invalid guest ID format'
+				});
 				return;
 			}
 			
@@ -231,7 +265,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				id: guestId,
 				username: userData.username,
 				pfp: userData.profilePicture || this.generateDefaultProfilePic(userData.username),
-				isConnected: true
+				isConnected: true,
+				theme: userData.theme,
+				elo: userData.elo
 			};
 			
 			console.log('Guest authenticated with ID:', guestId);
@@ -240,30 +276,76 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	};
 	
 	/**
-	 * Renders the host player
+	 * Renders the host player with color selection
 	 */
 	private renderHostPlayer(host: PlayerData | null): any {
 		if (!host) return '';
 		
+		// Get available colors from app state
+		const availableColors = appState.getAvailableColors();
+		
+		// Use host's theme directly if available, otherwise use app accent color
+		const currentColor = host.theme || appState.getAccentColorHex();
+		
 		return html`
-			<div class="player-avatar">
-				<img src="${host.pfp}" alt="${host.username}" />
-			</div>
-			<div class="player-name">${host.username}</div>
-			<div class="player-status">Connected</div>
+				<div class="player-avatar">
+					<img src="${host.pfp}" alt="${host.username}" />
+				</div>
+				<div class="player-name">${host.username}</div>
+				<div class="player-status">Connected</div>
+				
+				${host.elo ? html`
+					<div class="player-elo">ELO: ${host.elo}</div>
+				` : ''}
+				
+				<!-- Add color selection for host -->
+				<div class="player-color-selection">
+					<div class="color-label">Paddle Color:</div>
+					<div class="color-picker">
+						${Object.entries(availableColors).map(([colorName, colorHex]) => html`
+							<div 
+								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+								style="background-color: ${colorHex}"
+								onclick=${() => this.handleHostColorSelect(colorName, colorHex)}
+								title="${colorName}"
+							></div>
+						`)}
+					</div>
+				</div>
 		`;
 	}
 	
 	/**
-	 * Renders a connected guest
+	 * Renders a connected guest with color selection
 	 */
 	private renderConnectedGuest(guest: PlayerData): any {
+		const availableColors = appState.getAvailableColors();
+		
 		return html`
 			<div class="player-avatar">
 				<img src="${guest.pfp}" alt="${guest.username}" />
 			</div>
 			<div class="player-name">${guest.username}</div>
 			<div class="player-status">Connected</div>
+			
+			${guest.elo ? html`
+				<div class="player-elo">ELO: ${guest.elo}</div>
+			` : ''}
+			
+			<!-- Add color selection for guest -->
+			<div class="player-color-selection">
+				<div class="color-label">Paddle Color:</div>
+				<div class="color-picker">
+					${Object.entries(availableColors).map(([colorName, colorHex]) => html`
+						<div 
+							class="color-option ${colorHex === guest.theme ? 'selected' : ''}"
+							style="background-color: ${colorHex}"
+							onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
+							title="${colorName}"
+						></div>
+					`)}
+				</div>
+			</div>
 		`;
 	}
 	
@@ -326,12 +408,24 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	// =========================================
 	
 	/**
-	 * Handle guest authenticated - receives data directly from SimplifiedAuthManager
+	 * Handle guest authenticated - receives data directly from GuestAuthComponent
 	 */
 	private handleGuestAuthenticated(guestData: PlayerData): void {
 		if (!guestData) {
 			console.error('No guest data received');
 			return;
+		}
+		
+		// Set default theme for guest if not present
+		if (!guestData.theme) {
+			// Default white for guest
+			guestData.theme = '#ffffff';
+			
+			// Update this in the database - use the exact ID format (don't convert)
+			DbService.updateUserTheme(guestData.id, guestData.theme);
+			console.log(`Set default theme for guest ${guestData.id} to ${guestData.theme}`);
+		} else {
+			console.log(`Guest already has theme: ${guestData.theme}`);
 		}
 		
 		// Check if user is already registered (prevent duplicates)
@@ -487,54 +581,30 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Start the game with registered players
 	 */
 	private startGame(): void {
-		// Disable the play button to prevent multiple submissions
-		const playButton = this.container.querySelector('.play-button') as HTMLButtonElement;
-		if (playButton) {
-			playButton.disabled = true;
-			playButton.textContent = 'Starting...';
-		}
-		
-		// Collect all player IDs and names
 		const state = this.getInternalState();
 		
-		// Add null check for host
-		if (!state.host) {
-			console.error('Host is missing, cannot start game');
-			if (playButton) {
-				playButton.disabled = false;
-				playButton.textContent = 'Play Now';
-			}
+		if (!state.host || !state.guests[0]) {
+			console.error('Cannot start game: Missing players');
 			return;
 		}
 		
-		// Now TypeScript knows state.host is not null
-		if (!state.host.id) {
-			console.error('Host ID is missing, cannot start game');
-			if (playButton) {
-				playButton.disabled = false;
-				playButton.textContent = 'Play Now';
-			}
-			return;
-		}
+		// Ensure we have proper IDs and names
+		const hostId = DbService.ensureNumericId(state.host.id);
+		const guestId = DbService.ensureNumericId(state.guests[0].id);
 		
-		// Collect all player IDs and names including the host
-		const playerIds: number[] = [state.host.id];
-		const playerNames: string[] = [state.host.username];
+		const hostName = state.host.username || 'Player 1';
+		const guestName = state.guests[0].username || 'Player 2';
 		
-		// Add guest players
-		state.guests.forEach(guest => {
-			if (guest && guest.isConnected) {
-				playerIds.push(guest.id);
-				playerNames.push(guest.username);
-			}
-		});
-		
-		console.log('Starting game with players:', playerIds);
-		console.log('Player names:', playerNames);
-		
-		// All match creation is now handled by the game engine
-		// Just notify parent component that all players are registered
-		this.onAllPlayersRegistered(playerIds, playerNames);
+		// Use theme for colors, falling back to defaults
+		const hostColor = state.host.theme || '#ffffff';
+		const guestColor = state.guests[0].theme || '#ffffff';
+
+		// Pass player IDs, names, colors, and ELO to the callback
+		this.onAllPlayersRegistered(
+			[hostId, guestId], 
+			[hostName, guestName],
+			[hostColor, guestColor]
+		);
 	}
 	
 	// =========================================
@@ -580,7 +650,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					console.log('Created rematch:', match);
 					
 					// Notify parent component to start the game
-					this.onAllPlayersRegistered(playerIds, []);
+					this.onAllPlayersRegistered(playerIds, [], []);
 				})
 				.catch(error => {
 					console.error('Error creating rematch:', error);
@@ -590,7 +660,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				});
 		} else {
 			// Tournament rematch logic would go here
-			this.onAllPlayersRegistered(playerIds, []);
+			this.onAllPlayersRegistered(playerIds, [], []);
 		}
 	}
 	
@@ -606,5 +676,56 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		// Call the onBack callback
 		this.onBack();
+	}
+	
+	/**
+	 * Handle host color selection
+	 */
+	private handleHostColorSelect(_colorName: string, colorHex: string): void {
+		const state = this.getInternalState();
+		if (!state.host) return;
+		
+		// Update app accent color for the host (current user)
+		appState.setAccentColor(_colorName as any);
+		
+		// Update host's theme in the local state
+		const updatedHost = {
+			...state.host,
+			theme: colorHex
+		};
+		
+		this.updateInternalState({
+			host: updatedHost
+		});
+		
+		console.log(`Host color updated to ${colorHex}`);
+	}
+	
+	/**
+	 * Handle guest color selection
+	 */
+	private handleGuestColorSelect(colorHex: string, guestId: number): void {
+		const state = this.getInternalState();
+		if (!state.guests || !state.guests.length) return;
+		
+		// Update guest's theme in the database
+		DbService.updateUserTheme(guestId, colorHex);
+		
+		// Update guest's theme in the local state
+		const updatedGuests = state.guests.map(guest => {
+			if (guest && guest.id === guestId) {
+				return {
+					...guest,
+					theme: colorHex
+				};
+			}
+			return guest;
+		});
+		
+		this.updateInternalState({
+			guests: updatedGuests
+		});
+		
+		console.log(`Guest ${guestId} color updated to ${colorHex}`);
 	}
 }

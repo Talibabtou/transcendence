@@ -5,7 +5,7 @@
  */
 import { Component } from '@website/scripts/components';
 import { DbService, html, render, navigate, ASCII_ART, appState, AccentColor } from '@website/scripts/utils';
-import { UserProfile, FriendProfile, ProfileState } from '@shared/types';
+import { UserProfile, FriendProfile, ProfileState, GameHistoryEntry } from '@shared/types';
 
 /**
  * Component that displays and manages user profiles
@@ -103,127 +103,142 @@ export class ProfileComponent extends Component<ProfileState> {
 			const userId = url.searchParams.get('id') || 'current';
 			const numericId = userId === 'current' ? 1 : parseInt(userId, 10);
 			
-			// SIMULATION: API calls
-			DbService.getUser(numericId);
-			DbService.getUserMatches(numericId);
-			DbService.getUserFriends(numericId);
-			
-			/* 
-			FUTURE IMPLEMENTATION:
-			
-			// 1. Get basic user data
-			const userData = await api.getUser(numericId);
-			// 2. Get user's match history
-			const matches = await api.getUserMatches(numericId);
-			// 3. Get user's friend relationships
-			const friendRelationships = await api.getUserFriends(numericId);
-			// 4. For each friend relationship, get the friend's profile data
-			const friendProfiles: FriendProfile[] = await Promise.all(
-				friendRelationships.map(async (relationship) => {
-					const friendId = relationship.friend_id;
-					const friendData = await api.getUser(friendId);
-					
-					return {
-						id: friendId,
-						username: friendData.pseudo,
-						avatarUrl: friendData.pfp || '../../public/images/default-avatar.svg',
-						lastLogin: friendData.last_login
-					};
-				})
-			);
-			// 5. Build game history from matches
-			const gameHistory = matches.map(match => ({
-				id: match.id.toString(),
-				date: match.created_at,
-				opponent: match.player_1 === numericId ? 
-						  (await api.getUser(match.player_2)).pseudo : 
-						  (await api.getUser(match.player_1)).pseudo,
-				playerScore: (await api.getMatchGoals(match.id, numericId)).length,
-				opponentScore: (await api.getMatchGoals(match.id, 
-							   match.player_1 === numericId ? match.player_2 : match.player_1)).length,
-				result: playerScore > opponentScore ? 'win' : 'loss'
-			}));
-			// 6. Construct the complete profile
-			const profile: UserProfile = {
-				id: userId,
-				username: userData.pseudo,
-				avatarUrl: userData.pfp || '../../public/images/default-avatar.svg',
-				level: calculateLevel(matches), // Calculate level based on matches
-				experience: calculateExperience(matches), // Calculate XP based on matches
-				totalGames: matches.length,
-				wins: matches.filter(m => isWin(m, numericId)).length,
-				losses: matches.filter(m => !isWin(m, numericId)).length,
-				gameHistory: gameHistory,
-				friends: friendProfiles,
-				preferences: {
-					accentColor: userData.theme || '#7cf'
+			try {
+				// Fetch core user data
+				const user = await DbService.getUser(numericId);
+				if (!user) {
+					throw new Error(`User with ID ${numericId} not found`);
 				}
-			};
-			*/
-			
-			// SIMULATION: Use mock data for now
-			await new Promise(resolve => setTimeout(resolve, 750));
-			const profile = this.createMockProfile(userId);
-			
-			// Update state with profile data
-			this.updateInternalState({ profile });
+				
+				// Initialize UserProfile with user data
+				const userProfile: UserProfile = {
+					id: String(user.id),
+					username: user.pseudo,
+					avatarUrl: user.pfp || '/images/default-avatar.svg',
+					totalGames: 0,
+					wins: 0,
+					losses: 0,
+					gameHistory: [],
+					friends: [],
+					preferences: {
+						accentColor: user.theme || '#ffffff'
+					}
+				};
+				
+				// Fetch match history
+				try {
+					const matches = await DbService.getUserMatches(numericId);
+					
+					if (matches && Array.isArray(matches)) {
+						// Process matches to create game history
+						const gameHistory: GameHistoryEntry[] = [];
+						let wins = 0;
+						let losses = 0;
+						
+						for (const match of matches) {
+							// Check if user was player1 or player2
+							const isPlayer1 = match.player_1 === numericId;
+							const opponentId = isPlayer1 ? match.player_2 : match.player_1;
+							
+							// Fetch opponent details
+							let opponentName = `Player ${opponentId}`;
+							try {
+								const opponent = await DbService.getUser(opponentId);
+								if (opponent) {
+									opponentName = opponent.pseudo;
+								}
+							} catch (err) {
+								console.log(`Could not fetch opponent data for ID ${opponentId}`);
+							}
+							
+							// Get all goals for this match
+							let allMatchGoals = [];
+							try {
+								allMatchGoals = await DbService.getMatchGoals(match.id);
+							} catch (err) {
+								console.log(`Could not fetch goals for match ${match.id}`);
+							}
+							
+							// Calculate scores from goals
+							let playerScore = 0;
+							let opponentScore = 0;
+							
+							for (const goal of allMatchGoals) {
+								if (goal.player === numericId) {
+									playerScore++;
+								} else if (goal.player === opponentId) {
+									opponentScore++;
+								}
+							}
+							
+							// Determine match result
+							const result = playerScore > opponentScore ? 'win' : 'loss';
+							if (result === 'win') wins++;
+							else losses++;
+							
+							// Add to game history
+							gameHistory.push({
+								id: String(match.id),
+								date: new Date(match.created_at),
+								opponent: opponentName,
+								playerScore,
+								opponentScore,
+								result
+							});
+						}
+						
+						// Update the profile with match data
+						userProfile.gameHistory = gameHistory;
+						userProfile.wins = wins;
+						userProfile.losses = losses;
+						userProfile.totalGames = gameHistory.length;
+					}
+				} catch (err) {
+					console.error('Error fetching match history:', err);
+				}
+				
+				// Fetch friends
+				try {
+					const friends = await DbService.getUserFriends(numericId);
+					
+					if (friends && Array.isArray(friends)) {
+						const friendProfiles: FriendProfile[] = [];
+						
+						for (const friend of friends) {
+							try {
+								const friendData = await DbService.getUser(friend.friend_id);
+								if (friendData) {
+									friendProfiles.push({
+										id: friendData.id,
+										username: friendData.pseudo,
+										avatarUrl: friendData.pfp || '/images/default-avatar.svg',
+										lastLogin: friendData.last_login
+									});
+								}
+							} catch (friendErr) {
+								console.error(`Could not fetch data for friend ID ${friend.friend_id}:`, friendErr);
+							}
+						}
+						
+						userProfile.friends = friendProfiles;
+					}
+				} catch (err) {
+					console.error('Error fetching friends list:', err);
+				}
+				
+				// Set the profile in the component state
+				this.updateInternalState({ profile: userProfile });
+				
+			} catch (err) {
+				console.error('Error fetching user data from DB:', err);
+				this.updateInternalState({ 
+					errorMessage: `Error loading user profile: ${err instanceof Error ? err.message : 'Unknown error'}`
+				});
+			}
 		} catch (error) {
-			console.error('Error fetching profile data:', error);
+			console.error('Error in fetchProfileData:', error);
 			throw new Error('Failed to fetch profile data');
 		}
-	}
-
-	/**
-	 * Creates mock profile data for development
-	 * Will be replaced with real API data in production
-	 * @param userId - User ID to create mock data for
-	 */
-	private createMockProfile(userId: string): UserProfile {
-		const isCurrentUser = userId === 'current';
-		const id = isCurrentUser ? 'current' : userId;
-		
-		// Create mock friends - simulating fetching friend data from DB
-		const mockFriendIds = [101, 102, 103]; // Simulated friend IDs from DB
-		
-		// Simulate fetching friend profiles from the database
-		const mockFriends: FriendProfile[] = mockFriendIds.map((friendId, index) => {
-			// In a real implementation, you would fetch each friend's data using DbService
-			// DbService.getUser(friendId) would return username, avatar, last_login
-			
-			// For mock data, create some sample friends
-			const friendNames = ['PongMaster', 'RetroGamer', 'PixelPro'];
-			const lastLoginDays = [0, 2, 5]; // days ago
-			
-			return {
-				id: friendId,
-				username: friendNames[index],
-				avatarUrl: '../../public/images/default-avatar.svg',
-				lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 24 * lastLoginDays[index])
-			};
-		});
-
-		return {
-			id,
-			username: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
-			avatarUrl: '../../public/images/default-avatar.svg',
-			level: Math.floor(Math.random() * 50) + 1,
-			experience: Math.floor(Math.random() * 10000),
-			totalGames: Math.floor(Math.random() * 100),
-			wins: Math.floor(Math.random() * 50),
-			losses: Math.floor(Math.random() * 50),
-			gameHistory: Array.from({ length: 5 }, (_, i) => ({
-				id: `game-${i}`,
-				date: new Date(Date.now() - 1000 * 60 * 60 * 24 * i), // i days ago
-				opponent: `Opponent${i + 1}`,
-				playerScore: Math.floor(Math.random() * 10),
-				opponentScore: Math.floor(Math.random() * 10),
-				result: Math.random() > 0.5 ? 'win' : 'loss'
-			})),
-			friends: mockFriends,
-			preferences: {
-				accentColor: '#7cf'
-			}
-		};
 	}
 
 	/**
@@ -484,8 +499,8 @@ export class ProfileComponent extends Component<ProfileState> {
 						<h2 class="username-large">${state.profile.username}</h2>
 						<div class="profile-stats-large">
 							<div class="stat-large">
-								<span class="stat-value-large">${state.profile.level}</span>
-								<span class="stat-label-large">LEVEL</span>
+								<span class="stat-value-large elo-value">${state.profile.elo || 0}</span>
+								<span class="stat-label-large">ELO</span>
 							</div>
 							<div class="stat-large">
 								<span class="stat-value-large wins-value">${state.profile.wins}</span>

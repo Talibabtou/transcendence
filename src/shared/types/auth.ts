@@ -78,8 +78,9 @@ export interface RegisterData {
 // Auth API response
 export interface AuthResponse {
 	success: boolean;
-	user?: User;
-	error?: string;
+	user: User;
+	token: string;
+	refreshToken?: string;
 }
 
 // OAuth request parameters
@@ -125,4 +126,10 @@ export interface IAuthComponent {
 	show(): void;
 	hide(): void;
 	destroy(): void;
+}
+
+export interface GuestAuthState {
+	isLoading: boolean;
+	error: string | null;
+	isRegisterMode: boolean;
 }
