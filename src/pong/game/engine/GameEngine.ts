@@ -1,4 +1,5 @@
 import { GameContext, GameState, GameStateInfo } from '@pong/types';
+import { Goal, Match } from '@shared/types';
 import { GameScene } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
 import { DbService } from '@website/scripts/utils';
@@ -240,11 +241,39 @@ export class GameEngine {
 	 * Cleans up resources
 	 */
 	public cleanup(): void {
-		if (this.scene) {
-			this.scene.unload();
-			this.scene = null as any;
+		console.log('Starting GameEngine cleanup');
+		
+		// Remove keyboard event listener if it exists
+		if (this.keyboardEventListener) {
+			window.removeEventListener('keydown', this.keyboardEventListener);
+			this.keyboardEventListener = null;
 		}
+		
+		// Complete any active match if it hasn't been completed yet
+		if (!this.matchCompleted && this.matchId && this.gameMode !== 'background_demo') {
+			try {
+				const winnerIndex = this.scene?.getPlayer1().getScore() > this.scene?.getPlayer2().getScore() ? 0 : 1;
+				console.log('Completing match during cleanup');
+				this.completeMatch(winnerIndex);
+			} catch (error) {
+				console.error('Error completing match during cleanup:', error);
+			}
+		}
+		
+		// Clean up the scene
+		if (this.scene) {
+			try {
+				this.scene.unload();
+				this.scene = null as any;
+			} catch (error) {
+				console.error('Error unloading scene:', error);
+			}
+		}
+		
+		// Clear the context reference
 		this.context = null as any;
+		
+		console.log('GameEngine cleanup completed');
 	}
 
 	/**
@@ -284,6 +313,12 @@ export class GameEngine {
 			const scene = this.scene;
 			if (!scene) return;
 			
+			// Store colors in the playerColors array for reference
+			this.playerColors[0] = p1Color;
+			if (p2Color) {
+				this.playerColors[1] = p2Color;
+			}
+			
 			const player1 = scene.getPlayer1();
 			const player2 = scene.getPlayer2();
 			
@@ -297,6 +332,7 @@ export class GameEngine {
 				if (this.gameMode === 'single' && player2.isAIControlled()) {
 					// For AI in single player mode, always use white
 					player2.setColor('#ffffff');
+					this.playerColors[1] = '#ffffff';
 					console.log('AI player color set to: #ffffff');
 				} else if (p2Color) {
 					// For human player 2, always use their chosen color
@@ -305,6 +341,7 @@ export class GameEngine {
 				} else {
 					// Fallback only if p2Color is undefined/null
 					player2.setColor('#2ecc71');
+					this.playerColors[1] = '#2ecc71';
 					console.log('Player 2 color defaulted to: #2ecc71');
 				}
 			}
@@ -312,9 +349,9 @@ export class GameEngine {
 			// Log the color update
 			console.log('Updated player colors:', { 
 				p1: p1Color, 
-				p2: player2 && player2.isAIControlled() ? '#ffffff' : (p2Color || '#2ecc71') 
+				p2: this.playerColors[1] || 'not set' 
 			});
-		} catch (error) {
+		} catch (error: any) {
 			console.error('Error updating player colors:', error);
 		}
 	}
@@ -505,12 +542,12 @@ export class GameEngine {
 		
 		// Record the goal in the database
 		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
-			.then(goal => {
+			.then((goal: Goal) => {
 				console.log('Goal recorded successfully:', goal);
 				// Reset the goal timer for the next goal
 				this.goalStartTime = Date.now() - this.totalPausedTime;
 			})
-			.catch(error => {
+			.catch((error: any) => {
 				console.error('Failed to record goal:', error);
 			});
 	}
@@ -559,21 +596,16 @@ export class GameEngine {
 		// Mark match as completed to prevent duplicates
 		this.matchCompleted = true;
 		
-		// Get winner ID - for AI (player 2 in single player), use 0
-		const winnerId = winnerIndex === 1 && this.gameMode === 'single' ? 
-			0 : // AI ID 
-			(this.playerIds[winnerIndex] || 0);
-		
 		// Update the match as completed in the database
 		DbService.completeMatch(this.matchId, matchDuration)
-			.then(match => {
+			.then((match: Match) => {
 				console.log('Match completed successfully:', match);
 				
 				// Clear the current match ID from localStorage
 				localStorage.removeItem('current_match_id');
 				localStorage.removeItem('current_match_start_time');
 			})
-			.catch(error => {
+			.catch((error: any) => {
 				console.error('Failed to complete match:', error);
 				// Reset completed flag to allow retry
 				this.matchCompleted = false;

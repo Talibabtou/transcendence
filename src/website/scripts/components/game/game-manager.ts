@@ -31,6 +31,18 @@ interface GameInstance {
 	isActive: boolean;
 	isPaused: boolean;
 	type: GameMode;
+	eventListeners?: Array<{
+		type: string;
+		listener: EventListener;
+	}>;
+	gameResult?: {
+		winner: any;
+		player1Score: number;
+		player2Score: number;
+		player1Name: string;
+		player2Name: string;
+	};
+	cleanupScheduled?: boolean;
 }
 
 export class GameManager {
@@ -44,6 +56,9 @@ export class GameManager {
 	
 	private mainGameInstance: GameInstance;
 	private backgroundGameInstance: GameInstance;
+	
+	// Add a cleanup lock to prevent recursive cleanup calls
+	private isCleaningUp: boolean = false;
 	
 	private constructor() {
 		// Mark that we're in bootstrap phase
@@ -157,6 +172,9 @@ export class GameManager {
 		// Start the game loop
 		this.startGameLoop(instance);
 		this.dispatchEvent(GameEvent.GAME_STARTED, { type: instance.type, mode });
+		
+		// Set up event listeners for this game instance
+		this.setupGameEventListeners(instance);
 	}
 	
 	// Generic method to start game loop
@@ -201,41 +219,76 @@ export class GameManager {
 
 	// Generic method to clean up any game
 	private cleanupGame(instance: GameInstance): void {
+		// Prevent recursive cleanup
+		if (this.isCleaningUp) {
+			console.log('Cleanup already in progress, ignoring redundant cleanup request');
+			return;
+		}
+		
+		// Set cleanup lock
+		this.isCleaningUp = true;
+		
+		console.log(`Starting cleanup for game instance: ${instance.type}`);
+		
 		// Skip if we're in bootstrap phase
 		if (GameManager.isBootstrapping) {
+			this.isCleaningUp = false;
 			return;
 		}
+		
 		// Only clean if we have something to clean
-		if (!instance.isActive && !instance.engine && !instance.canvas) {
+		if (!instance.isActive || !instance.engine) {
+			console.log(`Game instance ${instance.type} is not active, skipping cleanup`);
+			this.isCleaningUp = false;
 			return;
 		}
+		
 		// First pause the game to avoid any race conditions
 		if (instance.engine && !instance.engine.isGamePaused()) {
 			this.pauseGame(instance);
 		}
+		
+		// Remove all event listeners FIRST before doing any other cleanup
+		if (instance.eventListeners && instance.eventListeners.length > 0) {
+			console.log(`Removing ${instance.eventListeners.length} event listeners for ${instance.type}`);
+			instance.eventListeners.forEach(listenerInfo => {
+				window.removeEventListener(listenerInfo.type, listenerInfo.listener);
+			});
+			instance.eventListeners = [];
+		}
+		
 		// Stop animation frame
 		if (instance.animationFrameId !== null) {
 			cancelAnimationFrame(instance.animationFrameId);
 			instance.animationFrameId = null;
 		}
+		
 		// Clear update interval
 		if (instance.updateIntervalId !== null) {
 			clearInterval(instance.updateIntervalId);
 			instance.updateIntervalId = null;
 		}
+		
 		// Cleanup game engine
 		if (instance.engine) {
 			instance.engine.cleanup();
 			instance.engine = null;
 		}
+		
 		// Remove canvas from DOM
 		if (instance.canvas && instance.canvas.parentNode) {
 			instance.canvas.parentNode.removeChild(instance.canvas);
 			instance.canvas = null;
 		}
+		
 		// Reset state
 		instance.isActive = false;
 		instance.isPaused = false;
+		
+		console.log(`Cleanup completed for game instance: ${instance.type}`);
+		
+		// Release cleanup lock
+		this.isCleaningUp = false;
 	}
 
 	/**
@@ -485,11 +538,13 @@ export class GameManager {
 	}
 	
 	public showBackgroundGame(): void {
+		// Start if not active, otherwise just show
 		if (!this.backgroundGameInstance.isActive) {
+			console.log('Starting new background game');
 			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
-		}
-		
-		if (this.backgroundGameInstance.canvas) {
+			this.setBackgroundKeyboardActive(false);
+		} else if (this.backgroundGameInstance.canvas) {
+			console.log('Showing existing background game');
 			this.backgroundGameInstance.canvas.style.display = 'block';
 			this.backgroundGameInstance.canvas.style.opacity = '0.4';
 		}
@@ -497,7 +552,9 @@ export class GameManager {
 
 	public hideBackgroundGame(): void {
 		if (this.backgroundGameInstance.canvas) {
+			// Just hide the canvas rather than cleaning up
 			this.backgroundGameInstance.canvas.style.display = 'none';
+			this.backgroundGameInstance.canvas.style.opacity = '0';
 		}
 	}
 
@@ -554,6 +611,76 @@ export class GameManager {
 			} catch (error) {
 				console.error('Error updating player color:', error);
 			}
+		}
+	}
+
+	private setupGameEventListeners(instance: GameInstance): void {
+		// Clean up any existing listeners first
+		if (instance.eventListeners) {
+			instance.eventListeners.forEach(listenerInfo => {
+				window.removeEventListener(listenerInfo.type, listenerInfo.listener);
+			});
+			instance.eventListeners = [];
+		} else {
+			instance.eventListeners = [];
+		}
+
+		// Create a named listener function that we can reference for cleanup
+		const gameOverListenerFunction = function(event: Event) {
+			const customEvent = event as CustomEvent;
+			if (instance.isActive && instance.engine) {
+				console.log(`Game over event received for ${instance.type}`, customEvent.detail);
+				
+				// Store the game result
+				instance.gameResult = customEvent.detail;
+				
+				// Dispatch the game ended event
+				const gameManager = GameManager.getInstance();
+				gameManager.dispatchEvent(GameEvent.GAME_ENDED, customEvent.detail);
+				
+				// Only schedule cleanup for the main game, not background
+				if (instance.type === GameMode.MAIN && !instance.cleanupScheduled) {
+					instance.cleanupScheduled = true;
+					console.log(`Scheduling cleanup for main game`);
+					
+					setTimeout(() => {
+						if (instance.isActive) {
+							// Only clean up the main game, never the background
+							gameManager.cleanupGame(gameManager.mainGameInstance);
+						}
+					}, 300);
+				}
+			}
+		};
+		
+		// Store the function reference for proper removal later
+		const boundListener = gameOverListenerFunction.bind(this) as EventListener;
+		
+		// Add the listener
+		window.addEventListener('gameOver', boundListener);
+		
+		instance.eventListeners.push({
+			type: 'gameOver',
+			listener: boundListener
+		});
+		
+		console.log(`Game event listeners set up for ${instance.type}`);
+	}
+
+	public getLastGameResult(): any {
+		return this.mainGameInstance.gameResult || null;
+	}
+
+	// Add a public method to cleanup a specific instance by type
+	public cleanupInstance(type: GameMode | string): void {
+		console.log(`Cleaning up instance type: ${type}`);
+		
+		// Handle both enum values and string types for backward compatibility
+		if (type === GameMode.MAIN || type === 'main') {
+			this.cleanupGame(this.mainGameInstance);
+		} else if (type === GameMode.BACKGROUND_DEMO || type === 'background_demo') {
+			// Never completely clean up the background game, just hide it
+			this.hideBackgroundGame();
 		}
 	}
 }

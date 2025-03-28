@@ -6,6 +6,7 @@
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
+import { GameManager } from '@website/scripts/components/game/game-manager';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -18,6 +19,10 @@ interface GameOverState {
 	visible: boolean;
 	winner: string;
 	gameMode: GameMode;
+	player1Name: string;
+	player2Name: string;
+	player1Score: number;
+	player2Score: number;
 	playerIds?: number[];
 }
 
@@ -32,6 +37,7 @@ export class GameOverComponent extends Component<GameOverState> {
 	
 	private onPlayAgain: (mode: GameMode) => void;
 	private onBackToMenu: () => void;
+	private inTransition: boolean = false;
 	
 	// =========================================
 	// INITIALIZATION
@@ -45,11 +51,18 @@ export class GameOverComponent extends Component<GameOverState> {
 		super(container, {
 			visible: false,
 			winner: '',
-			gameMode: GameMode.SINGLE
+			gameMode: GameMode.SINGLE,
+			player1Name: 'Player 1',
+			player2Name: 'Player 2',
+			player1Score: 0,
+			player2Score: 0
 		});
 		
 		this.onPlayAgain = onPlayAgain;
 		this.onBackToMenu = onBackToMenu;
+		
+		// Listen for game end events
+		window.addEventListener('gameOver', this.handleGameOver.bind(this) as EventListener);
 	}
 	
 	// =========================================
@@ -72,6 +85,17 @@ export class GameOverComponent extends Component<GameOverState> {
 					</div>
 					<div class="game-result">
 						<div class="winner">${state.winner} Wins!</div>
+						<div class="score-display">
+							<div class="player-score">
+								<span class="player-name">${state.player1Name}</span>
+								<span class="score">${String(state.player1Score)}</span>
+							</div>
+							<div class="score-separator">vs</div>
+							<div class="player-score">
+								<span class="player-name">${state.player2Name}</span>
+								<span class="score">${String(state.player2Score)}</span>
+							</div>
+						</div>
 					</div>
 					<div class="menu-buttons">
 						<button class="menu-button play-again-button">
@@ -90,8 +114,8 @@ export class GameOverComponent extends Component<GameOverState> {
 	}
 	
 	destroy(): void {
+		window.removeEventListener('gameOver', this.handleGameOver.bind(this) as EventListener);
 		super.destroy();
-		// Remove event listeners if needed
 	}
 	
 	// =========================================
@@ -105,14 +129,45 @@ export class GameOverComponent extends Component<GameOverState> {
 		const playAgainButton = this.container.querySelector('.play-again-button');
 		if (playAgainButton) {
 			playAgainButton.addEventListener('click', () => {
-				this.onPlayAgain(this.getInternalState().gameMode);
+				if (!this.inTransition) {
+					this.inTransition = true;
+					
+					// Show the background game if it was hidden
+					const gameManager = GameManager.getInstance();
+					gameManager.showBackgroundGame();
+					
+					// Call the play again callback with the current game mode
+					console.log('Play Again clicked, restarting game with mode:', this.getInternalState().gameMode);
+					this.onPlayAgain(this.getInternalState().gameMode);
+					
+					// Reset transition flag after a delay
+					setTimeout(() => {
+						this.inTransition = false;
+					}, 500);
+				} else {
+					console.log('Ignoring play again request - transition already in progress');
+				}
 			});
 		}
 		
 		const backMenuButton = this.container.querySelector('.back-menu-button');
 		if (backMenuButton) {
 			backMenuButton.addEventListener('click', () => {
-				this.onBackToMenu();
+				if (!this.inTransition) {
+					this.inTransition = true;
+					
+					// Ensure background game is shown when returning to menu
+					const gameManager = GameManager.getInstance();
+					gameManager.showBackgroundGame();
+					
+					this.onBackToMenu();
+					
+					setTimeout(() => {
+						this.inTransition = false;
+					}, 500);
+				} else {
+					console.log('Ignoring back to menu request - transition already in progress');
+				}
 			});
 		}
 	}
@@ -128,12 +183,37 @@ export class GameOverComponent extends Component<GameOverState> {
 	showGameResult(result: {
 		winner: string;
 		gameMode: GameMode;
+		player1Name?: string;
+		player2Name?: string;
+		player1Score?: number;
+		player2Score?: number;
 		playerIds?: number[];
 	}): void {
+		if (this.inTransition) {
+			console.log('Ignoring game result display - transition already in progress');
+			return;
+		}
+		
+		this.inTransition = true;
+		console.log('Showing game result:', result);
+		
 		this.updateInternalState({
 			...result,
+			player1Name: result.player1Name || 'Player 1',
+			player2Name: result.player2Name || 'Player 2',
+			player1Score: result.player1Score || 0,
+			player2Score: result.player2Score || 0,
 			visible: true
 		});
+		
+		// Show the background game again - it may have been hidden
+		const gameManager = GameManager.getInstance();
+		gameManager.showBackgroundGame();
+		
+		// Reset transition flag after a short delay
+		setTimeout(() => {
+			this.inTransition = false;
+		}, 500);
 	}
 	
 	/**
@@ -141,5 +221,26 @@ export class GameOverComponent extends Component<GameOverState> {
 	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
+	}
+	
+	// Add this method to handle game over events
+	private handleGameOver(event: Event): void {
+		const customEvent = event as CustomEvent;
+		if (customEvent.detail) {
+			const result = customEvent.detail;
+			
+			// Use the GameManager to get the current game mode
+			const gameManager = (window as any).gameManager || GameManager.getInstance();
+			const gameMode = gameManager.getGameMode ? gameManager.getGameMode() : GameMode.SINGLE;
+			
+			this.showGameResult({
+				winner: result.winner ? result.winner.name : 'Unknown',
+				gameMode: gameMode,
+				player1Name: result.player1Name,
+				player2Name: result.player2Name,
+				player1Score: result.player1Score,
+				player2Score: result.player2Score
+			});
+		}
 	}
 }

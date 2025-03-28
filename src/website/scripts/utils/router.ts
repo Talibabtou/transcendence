@@ -97,12 +97,14 @@ export class Router {
 			}
 		}
 		
-		// Only change background game visibility if needed
+		// Manage background game visibility correctly
 		if (route === Route.GAME) {
 			if (gameManager.isMainGameActive()) {
+				// Only hide the background game, don't clean it up
 				gameManager.hideBackgroundGame();
 			}
 		} else {
+			// Show background game for all non-game routes
 			gameManager.showBackgroundGame();
 		}
 

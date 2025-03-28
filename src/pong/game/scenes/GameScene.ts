@@ -40,6 +40,11 @@ export class GameScene {
 	// =========================================
 	private gameEngine: any;
 
+	// =========================================
+	// Game Over Event
+	// =========================================
+	private _gameOverEventDispatched: boolean = false;
+
 	/**
 	 * Creates a new GameScene instance
 	 * @param context The canvas rendering context
@@ -438,17 +443,35 @@ export class GameScene {
 
 	private checkWinCondition(): void {
 		if (this.isGameOver()) {
-			const gameResult = {
-				winner: this.getWinner(),
-				player1Score: this.player1.getScore(),
-				player2Score: this.player2.getScore(),
-				player1Name: this.player1.name,
-				player2Name: this.player2.name
-			};
-			const event = new CustomEvent('gameOver', { 
-				detail: gameResult
-			});
-			window.dispatchEvent(event);
+			// Only dispatch the gameOver event once by checking a flag
+			if (!this._gameOverEventDispatched) {
+				this._gameOverEventDispatched = true;
+				
+				const gameResult = {
+					winner: this.getWinner(),
+					player1Score: this.player1.getScore(),
+					player2Score: this.player2.getScore(),
+					player1Name: this.player1.name,
+					player2Name: this.player2.name
+				};
+				
+				// Complete the match in DB first
+				const winnerIndex = this.player1.getScore() > this.player2.getScore() ? 0 : 1;
+				if (this.gameEngine && typeof this.gameEngine.completeMatch === 'function') {
+					this.gameEngine.completeMatch(winnerIndex);
+				}
+				
+				// Dispatch event after a delay to allow database operations to complete
+				console.log('Game over detected, dispatching event after delay');
+				setTimeout(() => {
+					const event = new CustomEvent('gameOver', { 
+						detail: gameResult,
+						// Critical: prevent event bubbling
+						bubbles: false
+					});
+					window.dispatchEvent(event);
+				}, 300);
+			}
 		}
 	}
 

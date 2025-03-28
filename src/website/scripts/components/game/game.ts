@@ -365,9 +365,10 @@ export class GameComponent extends Component<GameComponentState> {
 
 	/**
 	 * Handles play again button from game over screen
-	 * @param mode - The game mode to restart
 	 */
 	private handlePlayAgain(mode: GameMode): void {
+		console.log(`Play again requested with mode: ${mode}`);
+		
 		// Prevent multiple transitions
 		if (this.isTransitioning) {
 			console.warn('Ignoring play again request - transition already in progress');
@@ -376,40 +377,27 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		this.isTransitioning = true;
 		
-		// First stop the game state monitoring to prevent race conditions
+		// Stop monitoring the game state
 		this.stopGameStateMonitoring();
 		
-		const state = this.getInternalState();
-		
-		// For single player, make sure we have the current user's ID
-		if (mode === GameMode.SINGLE) {
-			const currentUser = appState.getCurrentUser();
-			if (currentUser && currentUser.id) {
-				// Convert ID to number
-				let playerId: number;
-				if (typeof currentUser.id === 'string') {
-					if (currentUser.id.includes('_')) {
-						const parts = currentUser.id.split('_');
-						playerId = parseInt(parts[parts.length - 1], 10);
-					} else {
-						playerId = parseInt(currentUser.id, 10);
-					}
-				} else {
-					playerId = Number(currentUser.id);
-				}
-				
-				if (!isNaN(playerId)) {
-					state.playerIds = [playerId];
-				}
-			}
-		}
-		
-		// Perform the transition to the new game
+		// Clean up current game
 		this.cleanupCurrentGame()
-			.then(() => this.startNewGame(mode))
+			.then(() => {
+				// Update the game mode in state
+				this.updateInternalState({ currentMode: mode });
+				
+				// Make sure the main game mode is set correctly
+				const gameManager = GameManager.getInstance();
+				
+				// Hide background game before starting new game
+				gameManager.hideBackgroundGame();
+				
+				// Start the game with the selected mode
+				return this.startNewGame(mode);
+			})
 			.catch(error => {
-				console.error('Error during game transition:', error);
-				// Fallback to menu on error
+				console.error('Error restarting game:', error);
+				// On error, go back to menu
 				this.updateGameState(GameState.MENU);
 			})
 			.finally(() => {

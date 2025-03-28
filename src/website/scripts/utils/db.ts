@@ -1229,4 +1229,44 @@ export class DbService {
 			}
 		});
 	}
+
+	/**
+	 * Marks a match as completed
+	 * @param matchId - The match ID
+	 * @param duration - Match duration in seconds
+	 */
+	static completeMatch(matchId: number, duration: number): Promise<Match> {
+		this.logRequest('PUT', `/api/matches/${matchId}`, {
+			completed: true,
+			duration
+		});
+		
+		return new Promise((resolve, reject) => {
+			setTimeout(() => {
+				try {
+					// Find match by ID
+					const matchIndex = db.matches.findIndex(m => m.id === matchId);
+					
+					if (matchIndex !== -1) {
+						// Update match
+						db.matches[matchIndex].completed = true;
+						db.matches[matchIndex].duration = duration;
+						
+						// Persist changes
+						persistDb();
+						
+						// Return updated match
+						resolve({
+							...db.matches[matchIndex],
+							created_at: new Date(db.matches[matchIndex].created_at)
+						});
+					} else {
+						reject(new Error(`Match with ID ${matchId} not found`));
+					}
+				} catch (error: any) {
+					reject(error);
+				}
+			}, 200);
+		});
+	}
 }
