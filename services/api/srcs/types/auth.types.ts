@@ -1,4 +1,4 @@
-export interface ICreateUser {
+export interface IAddUser {
   username: string,
   email: string,
   password: string
@@ -15,8 +15,3 @@ export interface IModifyUser {
   password?: string
 }
 
-export interface IReply {
-  success: boolean,
-  message: string,
-  data?: unknown
-}

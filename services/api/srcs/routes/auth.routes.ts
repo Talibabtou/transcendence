@@ -1,9 +1,10 @@
 import { FastifyInstance } from 'fastify';
 import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js'
-import { getUserSchema } from '../schemas/auth.schemas.js';
+import { getUserSchema, createUserSchema, modifyUserSchema, loginSchema } from '../schemas/auth.schemas.js';
+import { IAddUser, ILogin, IModifyUser } from '../types/auth.types.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
-	fastify.get('/auth/user/:id', {
+	fastify.get<{ Params: {id: string }}>('/auth/user/:id', {
 		schema: getUserSchema,
 		config: { 
 		  auth: true, 
@@ -18,13 +19,15 @@ export default async function authRoutes(fastify: FastifyInstance) {
 		}},
 		getUsers);
 
-	fastify.post('/auth/user', {
+	fastify.post<{ Body: IAddUser }>('/auth/user', {
+		schema: createUserSchema,
 		config: { 
 		  auth: false
 		}},
 		postUser);
 
-	fastify.patch('/auth/user', {
+	fastify.patch<{ Body: IModifyUser }>('/auth/user', {
+		schema: modifyUserSchema,
 		config: { 
 		  auth: true, 
 		  roles: ['user', 'admin']
@@ -38,7 +41,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
 		}},
 		deleteUser);
 
-	fastify.post('/auth/login', {
+	fastify.post<{ Body: ILogin }>('/auth/login', {
+		schema: loginSchema,
 		config: { 
 		  auth: false
 		}},

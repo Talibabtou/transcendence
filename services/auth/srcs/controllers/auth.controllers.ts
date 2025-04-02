@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { IAddUser, ILogin, IModifyUser, IReply } from '../types/auth.types.js'
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -10,11 +11,10 @@ declare module 'fastify' {
   }
 }
 
-export async function addUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply): Promise<void> {
     try {
       const { username, password, email } = request.body;
       await request.server.db.run('INSERT INTO users (role, username, password, email, created_at) VALUES ("user", ?, ?, ?, CURRENT_TIMESTAMP);', [username, password, email]);
-      request.server.log.info("User created successfully");
       return reply.code(201).send({ 
         success: true,
         message: 'User created successfully'
@@ -30,13 +30,11 @@ export async function addUser(request: FastifyRequest, reply: FastifyReply): Pro
             message = message.concat('Username already exists');
         if (message == '')
           message = 'Unique constraint violation';
-        request.server.log.error("User not created", err);
         return reply.code(409).send({
           success: false,
           message: message
         });
       }
-      request.server.log.error("Internal server error", err);
       return reply.code(500).send({
         success: false,
         message: "Internal server error"
@@ -47,7 +45,6 @@ export async function addUser(request: FastifyRequest, reply: FastifyReply): Pro
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
       const users: any = await request.server.db.all('SELECT username, email FROM users');
-      request.server.log.info("Users successfully obtained");
       return reply.code(200).send({
         success: true,
         message: "Users successfully obtained",
@@ -56,7 +53,6 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
         }
       });
     } catch (err: any) {
-      request.server.log.error("Internal server error", err);
       return reply.code(500).send({
         success: false,
         message: err.message
@@ -64,18 +60,16 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
     }
 }
 
-export async function getUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
     try {
       const id: string = request.params.id;
         const user: any = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
         if (!user) {
-          request.server.log.error("User not found");
           return reply.code(404).send({
             success: false,
             message: "User not found"
           });
         }
-        request.server.log.info("User successfully obtained");
         return reply.code(200).send({
           success: true,
           message: "User successfully obtained",
@@ -85,13 +79,11 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply): Pro
         });
     } catch (err: any) {
         if (err.message.includes('SQLITE_MISMATCH')) {
-          request.server.log.error("Invalid ID format", err);
           return reply.code(400).send({
             success: false,
             message: err.message
           });
         }
-        request.server.log.error("Internal server error", err);
         return reply.code(500).send({
           success: false,
           message: err.message
@@ -103,24 +95,20 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply): 
     try {
       const result: any = await request.server.db.get('SELECT * FROM users WHERE id = ?', [request.user.id]);
       if (!result){
-        request.server.log.error("User not found");
         return reply.code(404).send({
           success: false,
           message: "User not found"
         });
       }
       await request.server.db.run('DELETE FROM users WHERE id = ?', [request.user.id]);
-      request.server.log.info("User successfully deleted");
       return reply.code(204).send();
     } catch (err: any) {
       if (err.message.includes('SQLITE_MISMATCH')) {
-        request.server.log.error("Invalid ID format", err);
         return reply.code(400).send({
           success: false,
           message: err.message
         });
       }
-      request.server.log.error("Internal server error", err);
       return reply.code(500).send({
         success: false,
         message: err.message
@@ -128,13 +116,12 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply): 
     }
 }
 
-export async function modifyUser(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply): Promise<void> {
     try {
         let dataName: string = '';
         const { username, password, email } = request.body;
         let result: any = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [request.user.id]);
         if (!result){
-          request.server.log.error("User not found");
           return reply.code(404).send({
             success: false,
             message: "User not found"
@@ -150,7 +137,6 @@ export async function modifyUser(request: FastifyRequest, reply: FastifyReply): 
           dataName = 'email';
           await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, request.user.id]);
         }
-        request.server.log.info(`${dataName} has been modified successfully`);
         return reply.code(200).send({
           success: true,
           message: `${dataName} has been modified successfully`
@@ -184,7 +170,7 @@ export async function modifyUser(request: FastifyRequest, reply: FastifyReply): 
     }
 }
 
-export async function login(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
   try {
     const { email, password } = request.body;
     const user: any = await request.server.db.get('SELECT id, role, username FROM users WHERE email = ? AND password = ?;', [email, password]);

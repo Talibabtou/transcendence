@@ -5,10 +5,7 @@ import path from "path";
 import { Server } from '../server.js'
 import { IGetPicResponse, IGetPicsResponse } from "../types/api.types.js";
 
-export async function getPic(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply<{ Body: IGetPicResponse }>)
-  {
+export async function getPic(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply<{ Body: IGetPicResponse }>) {
   const id: string = request.params.id;
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFile: string | undefined = fs
@@ -22,10 +19,7 @@ export async function getPic(
   }
 }
 
-export async function getPics(
-  request: FastifyRequest,
-  reply: FastifyReply<{ Body: IGetPicsResponse }>) 
-  {
+export async function getPics(request: FastifyRequest, reply: FastifyReply<{ Body: IGetPicsResponse }>) {
   const uploadDir = path.join(path.resolve(), "./srcs/shared/uploads");
   const existingFiles: string[] | undefined = fs
     .readdirSync(uploadDir)

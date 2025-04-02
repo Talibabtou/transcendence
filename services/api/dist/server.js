@@ -56,7 +56,7 @@ export class Server {
             await server.register(profilRoutes, { prefix: "/api/v1/" });
             server.addHook("preValidation", checkMicroservicesHook);
             server.addHook("preHandler", jwtPluginHook);
-            server.listen({ port: Number(process.env.API_PORT) || 8090, host: "localhost" }, (err, address) => {
+            server.listen({ port: Number(process.env.API_PORT) || 8080, host: "localhost" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
                     if (err.code === 'EADDRINUSE')

@@ -1,3 +1,6 @@
+import { errorResponseSchema } from './error.schema.js';
+import { ErrorExamples } from '../shared/constants/error.const.js';
+
 export const getUserSchema = {
   params: {
     type: 'object',
@@ -11,8 +14,27 @@ export const getUserSchema = {
     },
     required: ['id'],
     additionalProperties: false
+  },
+  response: {
+    200: {
+      body: {
+      type: 'object',
+      properties: {
+        link: { type: 'string' }
+      },
+      required: ['link'],
+      additionalProperties: false
+    }},
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
-};
+}
 
 export const createUserSchema = {
   body: {
@@ -41,6 +63,25 @@ export const createUserSchema = {
     required: ['username', 'password', 'email'],
     additionalProperties: false,
     description: 'Schema for creating a new user account'
+  },
+  response: {
+    200: {
+      body: {
+      type: 'object',
+      properties: {
+        link: { type: 'string' }
+      },
+      required: ['link'],
+      additionalProperties: false
+    }},
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 };
 
@@ -65,6 +106,25 @@ export const loginSchema = {
     required: ['password', 'email'],
     additionalProperties: false,
     description: 'Schema for user login authentication'
+  },
+  response: {
+    200: {
+      body: {
+      type: 'object',
+      properties: {
+        link: { type: 'string' }
+      },
+      required: ['link'],
+      additionalProperties: false
+    }},
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 };
 
@@ -111,5 +171,24 @@ export const modifyUserSchema  = {
       },
     ],
     description: 'Schema for modifying user profile information (username, password, or email)'
+  },
+  response: {
+    200: {
+      body: {
+      type: 'object',
+      properties: {
+        link: { type: 'string' }
+      },
+      required: ['link'],
+      additionalProperties: false
+    }},
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
   }
 };

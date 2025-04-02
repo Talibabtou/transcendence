@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
+import { IAddUser, ILogin, IModifyUser } from '../types/auth.types.js';
 
-export async function getUser(request: FastifyRequest, reply: FastifyReply) {
+export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -11,10 +12,8 @@ export async function getUser(request: FastifyRequest, reply: FastifyReply) {
           },
         });
         const responseData: any = await response.json();
-        request.server.log.info("Request GET successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-          request.server.log.error("Internal server error", err);
           return reply.code(500).send({
             success: false,
             message: err.message
@@ -33,10 +32,8 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
           },
         });
         const responseData: any = await response.json();
-        request.server.log.info("Request GET successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-          request.server.log.error("Internal server error", err);
           return reply.code(500).send({
             success: false,
             message: err.message
@@ -44,7 +41,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     }
  }
 
- export async function postUser(request: FastifyRequest, reply: FastifyReply) {
+ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -57,10 +54,8 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
           body: JSON.stringify(request.body)
         });
         const responseData: any = await response.json();
-        request.server.log.info("Request POST successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-          request.server.log.error("Internal server error", err);
           return reply.code(500).send({
             success: false,
             message: err.message
@@ -68,7 +63,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     }
  }
 
-export async function patchUser(request: FastifyRequest, reply: FastifyReply) {
+export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -81,10 +76,8 @@ export async function patchUser(request: FastifyRequest, reply: FastifyReply) {
           body: JSON.stringify(request.body)
         });
         const responseData: any = await response.json();
-        request.server.log.info("Request PATCH successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-          request.server.log.error("Internal server error", err);
           return reply.code(500).send({ 
             success: false,
             message: err.message
@@ -103,14 +96,11 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
           }
         });
         if (response.status == 204){
-          request.server.log.info("Request DELETE successfully treated");
           return reply.code(response.status).send();
         }
         const responseData: any = await response.json();
-        request.server.log.error("Request DELETE failled");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-        request.server.log.error("Internal server error", err);
         return reply.code(500).send({
           success: false,
           message: err.message
@@ -118,7 +108,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
     }
  }
 
-export async function postLogin(request: FastifyRequest, reply: FastifyReply) {
+export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://localhost:8082${subpath}`;
@@ -131,10 +121,8 @@ export async function postLogin(request: FastifyRequest, reply: FastifyReply) {
           body: JSON.stringify(request.body)
         });
         const responseData: any = await response.json();
-        request.server.log.info("Request POST successfully treated");
         return reply.code(response.status).send(responseData);
       } catch (err: any) {
-          request.server.log.error("Internal server error", err);
           return reply.code(500).send({ 
             success: false,
             message: err.message
