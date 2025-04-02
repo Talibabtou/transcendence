@@ -212,11 +212,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				// Update last login - use the original ID format
 				await DbService.updateUserLastConnection(String(response.user.id));
 				
-				console.log('Guest Auth: Authentication successful', {
-					userId: response.user.id,
-					username: response.user.username
-				});
-				
 				// Dispatch event with user data
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
@@ -247,7 +242,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	}
 	
 	/**
-	 * Register a new guest user
+	 * Register a new guest user directly to the database
 	 */
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
 		this.updateInternalState({
@@ -256,77 +251,38 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		});
 		
 		try {
-			// Check if email already exists
-			const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-			const existingUser = users.find((u: any) => u.email === email);
-			
-			if (existingUser) {
-				console.warn('Auth: Registration failed - Email exists', { email });
-				this.updateInternalState({
-					isLoading: false,
-					error: 'Email already registered'
-				});
-				return;
-			}
-
-			// Create user with consistent ID format - always use "user_timestamp" format
-			// This will be consistent with the main auth process
-			const userId = `user_${Date.now()}`;
-			const newUser = {
-				id: userId,
+			// Create user in the database
+			const newUser = await DbService.register({
 				username,
 				email,
-				password,
-				authMethod: 'email',
-				createdAt: new Date().toISOString(),
-				lastLogin: new Date(),
-				theme: '#ffffff' // Default theme
-			};
-			
-			// Save to localStorage auth_users array
-			users.push(newUser);
-			localStorage.setItem('auth_users', JSON.stringify(users));
-			
-			// Format user data for the guest-authenticated event - use the string ID
-			const userData = {
-				id: userId, // Keep the original string ID format
-				username: username,
-				email: email,
-				profilePicture: `/images/default-avatar.svg`,
-				theme: '#ffffff'
-			};
-			
-			console.log('Guest Auth: Registration successful', {
-				userId,
-				username,
-				email
+				password
 			});
 			
-			// Dispatch event with user data
-			const authEvent = new CustomEvent('guest-authenticated', {
-				bubbles: true,
-				detail: { user: userData }
-			});
-			this.container.dispatchEvent(authEvent);
-			
-			// Hide component
-			this.hide();
-			
-			// Create user in the mock database - extract numeric part for DB operations
-			const numericId = Number(userId.split('_')[1]);
-			await DbService.createUser({
-				id: numericId,
-				pseudo: username,
-				created_at: new Date(),
-				last_login: new Date(),
-				theme: '#ffffff'
-			});
-			
+			if (newUser.success && newUser.user) {
+				// Format user data for the guest-authenticated event
+				const userData = {
+					id: String(newUser.user.id),
+					username: newUser.user.pseudo,
+					email: newUser.user.email,
+					profilePicture: newUser.user.pfp || `/images/default-avatar.svg`,
+					theme: newUser.user.theme || '#ffffff'
+				};
+				
+				// Dispatch event with user data
+				const authEvent = new CustomEvent('guest-authenticated', {
+					bubbles: true,
+					detail: { user: userData }
+				});
+				this.container.dispatchEvent(authEvent);
+				
+				// Hide component
+				this.hide();
+			}
 		} catch (error) {
 			console.error('Guest registration error:', error);
 			this.updateInternalState({
 				isLoading: false,
-				error: 'Registration failed. Please try again.'
+				error: error instanceof Error ? error.message : 'Registration failed. Please try again.'
 			});
 			this.showMessage('Registration failed. Please try again.', 'error');
 		}

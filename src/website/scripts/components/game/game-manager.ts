@@ -1,5 +1,7 @@
 import { GameEngine } from '@pong/game/engine';
 import { GAME_CONFIG } from '@pong/constants';
+import { MatchCache } from '@website/scripts/utils';
+import { GameMode } from '@shared/types';
 
 declare global {
 	interface Window {
@@ -15,11 +17,9 @@ export enum GameEvent {
 	VISIBILITY_CHANGED = 'visibility_changed'
 }
 
-enum GameMode {
+// Create a new enum for game instance types
+enum GameInstanceType {
 	MAIN = 'main',
-	SINGLE = 'single',
-	MULTI = 'multi',
-	TOURNAMENT = 'tournament',
 	BACKGROUND_DEMO = 'background_demo'
 }
 
@@ -30,7 +30,8 @@ interface GameInstance {
 	updateIntervalId: number | null;
 	isActive: boolean;
 	isPaused: boolean;
-	type: GameMode;
+	// Change from GameMode to GameInstanceType
+	type: GameInstanceType;
 	eventListeners?: Array<{
 		type: string;
 		listener: EventListener;
@@ -41,6 +42,7 @@ interface GameInstance {
 		player2Score: number;
 		player1Name: string;
 		player2Name: string;
+		gameMode: GameMode;
 	};
 	cleanupScheduled?: boolean;
 }
@@ -65,8 +67,8 @@ export class GameManager {
 		GameManager.isBootstrapping = true;
 		
 		// Create empty game instances (but don't start them)
-		this.mainGameInstance = this.createEmptyGameInstance(GameMode.MAIN);
-		this.backgroundGameInstance = this.createEmptyGameInstance(GameMode.BACKGROUND_DEMO);
+		this.mainGameInstance = this.createEmptyGameInstance(GameInstanceType.MAIN);
+		this.backgroundGameInstance = this.createEmptyGameInstance(GameInstanceType.BACKGROUND_DEMO);
 		
 		// Set up event listeners
 		window.addEventListener('resize', this.handleResize.bind(this));
@@ -94,7 +96,7 @@ export class GameManager {
 		// but DON'T start games here - let components request them
 	}
 	
-	private createEmptyGameInstance(type: GameMode.MAIN | GameMode.BACKGROUND_DEMO): GameInstance {
+	private createEmptyGameInstance(type: GameInstanceType): GameInstance {
 		return {
 			engine: null,
 			canvas: null,
@@ -117,7 +119,7 @@ export class GameManager {
 		const canvas = document.createElement('canvas');
 		
 		// Set the appropriate ID based on game type
-		if (instance.type === 'main') {
+		if (instance.type === GameInstanceType.MAIN) {
 			canvas.id = 'game-canvas';
 			
 			// Append to provided container
@@ -155,11 +157,11 @@ export class GameManager {
 		// Create game engine
 		const gameEngine = new GameEngine(ctx);
 		// Initialize proper game mode
-		if (instance.type === 'main') {
+		if (instance.type === GameInstanceType.MAIN) {
 			switch (mode) {
-				case 'single': gameEngine.initializeSinglePlayer(); break;
-				case 'multi': gameEngine.initializeMultiPlayer(); break;
-				case 'tournament': gameEngine.initializeTournament(); break;
+				case GameMode.SINGLE: gameEngine.initializeSinglePlayer(); break;
+				case GameMode.MULTI: gameEngine.initializeMultiPlayer(); break;
+				case GameMode.TOURNAMENT: gameEngine.initializeTournament(); break;
 			}
 		} else {
 			gameEngine.initializeBackgroundDemo();
@@ -187,7 +189,7 @@ export class GameManager {
 				try {
 					instance.engine.update();
 				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameMode.MAIN ? 'main' : 'background');
+					this.handleGameEngineError(error as Error, instance.type === GameInstanceType.MAIN ? 'main' : 'background');
 				}
 			}
 		}, 1000 / GAME_CONFIG.FPS);
@@ -198,7 +200,7 @@ export class GameManager {
 				try {
 					instance.engine.draw();
 				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameMode.MAIN ? 'main' : 'background');
+					this.handleGameEngineError(error as Error, instance.type === GameInstanceType.MAIN ? 'main' : 'background');
 				}
 			}
 			instance.animationFrameId = requestAnimationFrame(render);
@@ -209,7 +211,7 @@ export class GameManager {
 
 	// Generic method to pause any game
 	private pauseGame(instance: GameInstance): void {
-		if (instance.engine && instance.type !== GameMode.BACKGROUND_DEMO) {
+		if (instance.engine && instance.type !== GameInstanceType.BACKGROUND_DEMO) {
 			if (!instance.engine.isGamePaused()) {
 				instance.engine.togglePause();
 				this.dispatchEvent(GameEvent.GAME_PAUSED);
@@ -221,14 +223,11 @@ export class GameManager {
 	private cleanupGame(instance: GameInstance): void {
 		// Prevent recursive cleanup
 		if (this.isCleaningUp) {
-			console.log('Cleanup already in progress, ignoring redundant cleanup request');
 			return;
 		}
 		
 		// Set cleanup lock
 		this.isCleaningUp = true;
-		
-		console.log(`Starting cleanup for game instance: ${instance.type}`);
 		
 		// Skip if we're in bootstrap phase
 		if (GameManager.isBootstrapping) {
@@ -238,7 +237,6 @@ export class GameManager {
 		
 		// Only clean if we have something to clean
 		if (!instance.isActive || !instance.engine) {
-			console.log(`Game instance ${instance.type} is not active, skipping cleanup`);
 			this.isCleaningUp = false;
 			return;
 		}
@@ -250,7 +248,6 @@ export class GameManager {
 		
 		// Remove all event listeners FIRST before doing any other cleanup
 		if (instance.eventListeners && instance.eventListeners.length > 0) {
-			console.log(`Removing ${instance.eventListeners.length} event listeners for ${instance.type}`);
 			instance.eventListeners.forEach(listenerInfo => {
 				window.removeEventListener(listenerInfo.type, listenerInfo.listener);
 			});
@@ -285,8 +282,6 @@ export class GameManager {
 		instance.isActive = false;
 		instance.isPaused = false;
 		
-		console.log(`Cleanup completed for game instance: ${instance.type}`);
-		
 		// Release cleanup lock
 		this.isCleaningUp = false;
 	}
@@ -313,33 +308,33 @@ export class GameManager {
 		
 		// Skip player info and timers for background demo
 		if (mode === GameMode.BACKGROUND_DEMO) {
-			console.log('Background demo mode - skipping player info and timers');
 			return;
 		}
 		
+		// Store game info in MatchCache
+		MatchCache.setCurrentGameInfo({
+			gameMode: mode,
+			playerIds: playerInfo?.playerIds,
+			playerNames: playerInfo?.playerNames,
+			playerColors: playerInfo?.playerColors
+		});
+		
 		// Set player information if provided
 		if (playerInfo) {
-			// Use provided player names array or fallback to single name
 			const playerNames = playerInfo.playerNames || [];
 			const currentUser = playerInfo.playerName || playerNames[0] || 'Player 1';
 			let opponent = 'Computer';
 			
-			// If multiplayer, set appropriate names
 			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
 				opponent = playerNames[1] || 'Player 2';
 			}
 			
-			// Set player names first
 			if (this.mainGameInstance.engine) {
 				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
 				
-				// Get player colors with proper fallbacks
 				const playerColors = playerInfo.playerColors || [];
-				console.log('Player colors array:', playerColors);
-				
 				const p1Color = playerColors[0] || playerInfo.playerColor || '#3498db';  // Default blue
 				
-				// For player 2, use their color from the array, or white for AI in single player
 				let p2Color;
 				if (mode === GameMode.SINGLE) {
 					p2Color = '#ffffff'; // AI is always white in single player
@@ -349,20 +344,12 @@ export class GameManager {
 					p2Color = '#2ecc71'; // Default green if no color provided
 				}
 				
-				console.log('Setting player colors:', {
-					p1: p1Color,
-					p2: p2Color,
-					playerColors: playerColors
-				});
-				
 				// Now update the colors in the game engine
 				this.mainGameInstance.engine.updatePlayerColors(p1Color, p2Color);
 				
 				// Store player IDs last (this triggers match creation)
 				if (playerInfo.playerIds && playerInfo.playerIds.length > 0) {
-					// Make a copy to avoid referencing the original array
 					const playerIdsCopy = [...playerInfo.playerIds];
-					console.log('Setting player IDs in game manager:', playerIdsCopy);
 					this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
 				}
 			}
@@ -537,24 +524,57 @@ export class GameManager {
 		}
 	}
 	
+	/**
+	 * Shows the background game
+	 */
 	public showBackgroundGame(): void {
-		// Start if not active, otherwise just show
-		if (!this.backgroundGameInstance.isActive) {
-			console.log('Starting new background game');
-			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
-			this.setBackgroundKeyboardActive(false);
-		} else if (this.backgroundGameInstance.canvas) {
-			console.log('Showing existing background game');
-			this.backgroundGameInstance.canvas.style.display = 'block';
-			this.backgroundGameInstance.canvas.style.opacity = '0.4';
+		try {
+			// Start if not active, otherwise just show
+			if (!this.backgroundGameInstance.isActive) {
+				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
+				
+				// Disable keyboard for background game to prevent input conflicts
+				if (this.backgroundGameInstance.engine) {
+					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
+				}
+			} else if (this.backgroundGameInstance.canvas) {
+				// Make sure the canvas is properly styled
+				this.backgroundGameInstance.canvas.style.display = 'block';
+				this.backgroundGameInstance.canvas.style.opacity = '0.4';
+				
+				// Force a redraw of the background game
+				if (this.backgroundGameInstance.engine) {
+					this.backgroundGameInstance.engine.draw();
+				}
+			}
+		} catch (error) {
+			console.error('Error showing background game:', error);
+			
+			// On error, try to create a new background game
+			try {
+				this.cleanupBackgroundGame();
+				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
+				if (this.backgroundGameInstance.engine) {
+					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
+				}
+			} catch (secondError) {
+				console.error('Failed to recover background game:', secondError);
+			}
 		}
 	}
 
+	/**
+	 * Hides the background game
+	 */
 	public hideBackgroundGame(): void {
-		if (this.backgroundGameInstance.canvas) {
-			// Just hide the canvas rather than cleaning up
-			this.backgroundGameInstance.canvas.style.display = 'none';
-			this.backgroundGameInstance.canvas.style.opacity = '0';
+		try {
+			if (this.backgroundGameInstance.canvas) {
+				// Just hide the canvas rather than cleaning up
+				this.backgroundGameInstance.canvas.style.display = 'none';
+				this.backgroundGameInstance.canvas.style.opacity = '0';
+			}
+		} catch (error) {
+			console.error('Error hiding background game:', error);
 		}
 	}
 
@@ -607,7 +627,6 @@ export class GameManager {
 			try {
 				// The GameEngine has an updatePlayerColors method we can use
 				this.mainGameInstance.engine.updatePlayerColors(playerColor);
-				console.log('Updated player color to:', playerColor);
 			} catch (error) {
 				console.error('Error updating player color:', error);
 			}
@@ -625,46 +644,56 @@ export class GameManager {
 			instance.eventListeners = [];
 		}
 
-		// Create a named listener function that we can reference for cleanup
-		const gameOverListenerFunction = function(event: Event) {
+		// Skip setting up event listeners for background game
+		if (instance.type === GameInstanceType.BACKGROUND_DEMO) {
+			return;
+		}
+
+		// Create a listener function that we store as a property for later removal
+		const boundGameOverListener = function(event: Event) {
 			const customEvent = event as CustomEvent;
 			if (instance.isActive && instance.engine) {
-				console.log(`Game over event received for ${instance.type}`, customEvent.detail);
+				// Store the result in the instance
+				instance.gameResult = {
+					...customEvent.detail,
+					gameMode: customEvent.detail.gameMode
+				};
 				
-				// Store the game result
-				instance.gameResult = customEvent.detail;
+				// IMPORTANT: Store the result in the cache immediately 
+				MatchCache.setLastMatchResult({
+					winner: customEvent.detail.winner,
+					player1Name: customEvent.detail.player1Name,
+					player2Name: customEvent.detail.player2Name,
+					player1Score: customEvent.detail.player1Score,
+					player2Score: customEvent.detail.player2Score,
+					matchId: customEvent.detail.matchId
+				});
 				
 				// Dispatch the game ended event
 				const gameManager = GameManager.getInstance();
 				gameManager.dispatchEvent(GameEvent.GAME_ENDED, customEvent.detail);
 				
-				// Only schedule cleanup for the main game, not background
-				if (instance.type === GameMode.MAIN && !instance.cleanupScheduled) {
+				// INCREASE THIS TIMEOUT to allow GameOverComponent to read the data
+				if (instance.type === GameInstanceType.MAIN && !instance.cleanupScheduled) {
 					instance.cleanupScheduled = true;
-					console.log(`Scheduling cleanup for main game`);
-					
+
 					setTimeout(() => {
 						if (instance.isActive) {
-							// Only clean up the main game, never the background
 							gameManager.cleanupGame(gameManager.mainGameInstance);
 						}
-					}, 300);
+					}, 500); // Increased from 300ms to 500ms
 				}
 			}
-		};
+		}.bind(this) as EventListener;
 		
-		// Store the function reference for proper removal later
-		const boundListener = gameOverListenerFunction.bind(this) as EventListener;
-		
-		// Add the listener
-		window.addEventListener('gameOver', boundListener);
-		
+		// Store the bound function reference
 		instance.eventListeners.push({
 			type: 'gameOver',
-			listener: boundListener
+			listener: boundGameOverListener
 		});
 		
-		console.log(`Game event listeners set up for ${instance.type}`);
+		// Add the listener
+		window.addEventListener('gameOver', boundGameOverListener);
 	}
 
 	public getLastGameResult(): any {
@@ -672,13 +701,10 @@ export class GameManager {
 	}
 
 	// Add a public method to cleanup a specific instance by type
-	public cleanupInstance(type: GameMode | string): void {
-		console.log(`Cleaning up instance type: ${type}`);
-		
-		// Handle both enum values and string types for backward compatibility
-		if (type === GameMode.MAIN || type === 'main') {
+	public cleanupInstance(type: GameInstanceType | string): void {
+		if (type === GameInstanceType.MAIN || type === 'main') {
 			this.cleanupGame(this.mainGameInstance);
-		} else if (type === GameMode.BACKGROUND_DEMO || type === 'background_demo') {
+		} else if (type === GameInstanceType.BACKGROUND_DEMO || type === 'background_demo') {
 			// Never completely clean up the background game, just hide it
 			this.hideBackgroundGame();
 		}

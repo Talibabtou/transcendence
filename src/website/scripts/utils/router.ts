@@ -40,6 +40,9 @@ export class Router {
 	private currentRoute: Route | null = null;
 	private previousRoute: Route | null = null;
 
+	// Add static reference to active instance
+	public static activeInstance: Router | null = null;
+
 	// =========================================
 	// INITIALIZATION
 	// =========================================
@@ -57,12 +60,14 @@ export class Router {
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
 			.on('/auth', () => this.handleAuthRoute())
 			.notFound(() => {
-				console.log("404: Route not found, defaulting to game");
 				this.handleRoute(Route.GAME);
 			});
 		this.setupNavClickHandlers();
 
 		Router.routerInstance.resolve();
+
+		// Store reference to this instance
+		Router.activeInstance = this;
 	}
 
 	// =========================================
@@ -123,6 +128,16 @@ export class Router {
 			const ComponentClass = this.getComponentClass(route);
 			this.components.set(route, new ComponentClass(section));
 			this.components.get(route).render();
+
+			if (route === Route.PROFILE) {
+				// Call onMount for ProfileComponent
+				setTimeout(() => {
+					const profileComponent = this.components.get(route) as ProfileComponent;
+					if (profileComponent && typeof profileComponent.onMount === 'function') {
+						profileComponent.onMount();
+					}
+				}, 0);
+			}
 		}
 
 		this.currentRoute = route;
@@ -215,6 +230,9 @@ export class Router {
 		// Add event listener for auth cancellation
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this), { once: true });
 		this.setupNavClickHandlers();
+
+		// Add event listener for successful authentication to refresh the current route
+		document.addEventListener('user-authenticated', this.handleSuccessfulAuth.bind(this), { once: true });
 	}
 	
 	/**
@@ -280,12 +298,21 @@ export class Router {
 	 */
 	private setupNavClickHandlers(): void {
 		document.querySelectorAll('.nav-item, .nav-logo').forEach(link => {
-			link.addEventListener('click', (e) => {
-				e.preventDefault();
-				const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-				if (href) Router.routerInstance.navigate(href);
-			});
+			// Remove any existing event listeners first to avoid duplicates
+			link.removeEventListener('click', this.navClickHandler);
+			
+			// Add new event listener
+			link.addEventListener('click', this.navClickHandler);
 		});
+	}
+
+	// Event handler as property to maintain 'this' context
+	private navClickHandler = (e: Event) => {
+		e.preventDefault();
+		const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
+		if (href) {
+			Router.routerInstance.navigate(href);
+		}
 	}
 
 	/**
@@ -297,6 +324,59 @@ export class Router {
 			item.classList.toggle('active', item.getAttribute('href') === `/${route}`);
 		});
 	}
+
+	// Add a new method to refresh components
+	public refreshCurrentComponent(): void {
+		if (!this.currentRoute) return;
+		
+		const component = this.components.get(this.currentRoute);
+		if (component) {
+			// Call refresh on the component if available
+			if (typeof component.refresh === 'function') {
+				component.refresh();
+			} 
+			// Otherwise re-render if refresh not available
+			else if (typeof component.render === 'function') {
+				component.render();
+				
+				// For ProfileComponent and LeaderboardComponent, also call setupEventListeners
+				// after render completes to ensure proper event binding
+				setTimeout(() => {
+					if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
+						component.setupEventListeners();
+					} else if (this.currentRoute === Route.LEADERBOARD && typeof component.setupEventListeners === 'function') {
+						component.setupEventListeners();
+					}
+				}, 0);
+			}
+		}
+	}
+
+	// Add handler for successful authentication
+	private handleSuccessfulAuth(): void {
+		// After successful auth, refresh all components
+		Array.from(this.components.entries()).forEach(([_route, component]) => {
+			if (typeof component.refresh === 'function') {
+				component.refresh();
+			} else if (typeof component.render === 'function') {
+				component.render();
+				
+				// Ensure event listeners are set up after render
+				setTimeout(() => {
+					if (typeof component.setupEventListeners === 'function') {
+						component.setupEventListeners();
+					}
+				}, 0);
+			}
+		});
+	}
+
+	// Add the static method inside the class definition
+	public static refreshAllComponents(): void {
+		if (Router.activeInstance) {
+			Router.activeInstance.refreshCurrentComponent();
+		}
+	}
 }
 
 // =========================================
@@ -304,24 +384,36 @@ export class Router {
 // =========================================
 
 /**
- * Helper function to programmatically navigate to a different route.
+ * Navigate to a new route without page reload
  * @param path - The path to navigate to
- * @param options - Optional state information to pass along with the navigation
+ * @param options - Navigation options or boolean for preventReload
  */
-export function navigate(path: string, options?: { state?: any }): void {
-	// Ensure path starts with a slash
-	if (!path.startsWith('/')) {
-		path = '/' + path;
+export function navigate(
+	path: string, 
+	options?: boolean | { state?: any, preventReload?: boolean }
+): void {
+	// Default options
+	let preventReload = true;
+	let state: any = { path };
+	
+	// Parse options
+	if (typeof options === 'boolean') {
+		preventReload = options;
+	} else if (typeof options === 'object') {
+		preventReload = options.preventReload !== false; // Default to true
+		if (options.state) {
+			state = { ...state, ...options.state };
+		}
 	}
 	
-	// If options with state are provided, use the History API directly
-	if (options && options.state) {
-		// Push the new state and URL to the history
-		window.history.pushState(options.state, '', path);
-		// Manually trigger Navigo routing
-		Router.routerInstance.resolve(path);
-	} else {
-		// Use standard Navigo navigation for backward compatibility
+	if (preventReload) {
+		// Push state to history without reloading
+		window.history.pushState(state, '', path);
+		
+		// Use the router's navigate method which will resolve the route
 		Router.routerInstance.navigate(path);
+	} else {
+		// Regular navigation with page reload
+		window.location.href = path;
 	}
 }

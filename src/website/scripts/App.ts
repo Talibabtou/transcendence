@@ -114,6 +114,7 @@ Performance & Security:
 - Optimize database queries
 - Refactor to the component pool pattern
 - Password enforcement for account creation (8 characters, one uppercase, one number, one special character)
+- Manage the backward history click in the navigator
 
 Documentation:
 - Add JSDoc comments to all main functions

@@ -11,7 +11,6 @@ export class UIManager {
 	// =========================================
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
-	private cachedTextMetrics: Map<string, TextMetrics> = new Map();
 
 	/**
 	 * Creates a new UIManager instance
@@ -85,8 +84,8 @@ export class UIManager {
 			'middle'
 		);
 
-		this.context.fillText(player1.getScore().toString(), width * 0.25, height * 0.5);
-		this.context.fillText(player2.getScore().toString(), width * 0.75, height * 0.5);
+		this.context.fillText(player1.getScore().toString(), width * 0.25, height * 0.52);
+		this.context.fillText(player2.getScore().toString(), width * 0.75, height * 0.52);
 	}
 
 	/**
@@ -243,19 +242,5 @@ export class UIManager {
 			x: width * 0.5,
 			y: startY + (lineIndex * spacing)
 		};
-	}
-
-	private getTextMetrics(text: string, font: string): TextMetrics {
-		const cacheKey = `${text}-${font}`;
-		if (!this.cachedTextMetrics.has(cacheKey)) {
-			this.context.font = font;
-			const metrics = this.context.measureText(text);
-			this.cachedTextMetrics.set(cacheKey, metrics);
-		}
-		return this.cachedTextMetrics.get(cacheKey)!;
-	}
-
-	public clearTextMetricsCache(): void {
-		this.cachedTextMetrics.clear();
 	}
 }

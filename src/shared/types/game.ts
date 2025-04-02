@@ -49,16 +49,13 @@ export interface LeaderboardEntry {
 }
 
 /**
- * Game menu state interface
- */
-
-/**
  * Define possible game modes
  */
 export enum GameMode {
 	SINGLE = 'single',
 	MULTI = 'multi',
-	TOURNAMENT = 'tournament'
+	TOURNAMENT = 'tournament',
+	BACKGROUND_DEMO = 'background_demo'
 }
 
 /**
@@ -90,4 +87,18 @@ export interface PlayersRegisterState {
 	guests: PlayerData[];
 	isReadyToPlay: boolean;
 	error: string | null;
+}
+
+/**
+ * Game over component state interface
+ */
+export interface GameOverState {
+	visible: boolean;
+	winner: string;
+	gameMode: GameMode;
+	matchId: number | null;
+	player1Name: string;
+	player2Name: string;
+	player1Score: number;
+	player2Score: number;
 }

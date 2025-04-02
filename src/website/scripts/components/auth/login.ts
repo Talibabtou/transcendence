@@ -27,7 +27,7 @@ export class LoginHandler {
 			
 			<form class="auth-form" onSubmit=${(e: Event) => {
 				e.preventDefault();
-				this.handleEmailLogin(e.target as HTMLFormElement);
+				this.handleEmailLogin(e);
 			}}>
 				<div class="form-group">
 					<label for="email">Email:</label>
@@ -79,7 +79,10 @@ export class LoginHandler {
 	/**
 	 * Handles login with email/password
 	 */
-	handleEmailLogin(form: HTMLFormElement): void {
+	handleEmailLogin = async (e: Event): Promise<void> => {
+		e.preventDefault();
+		
+		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
@@ -146,73 +149,55 @@ export class LoginHandler {
 		const isPersistent = rememberMe ? rememberMe.checked : false;
 		
 		// Use updateState to notify parent component of loading state
-		this._updateState({ isLoading: true });
+		this._updateState({ isLoading: true, error: null });
 		
-		// Use DbService to simulate API call
-		DbService.login({ email, password })
-			.then((response) => {
-				// Check if login was successful and user exists
-				if (response.success && response.user) {
-					const user = response.user;
-					// Login successful
-					const userData: UserData = {
-						id: DbService.ensureStringId(user.id),
-						username: user.pseudo,
-						email: user.email || '', // Add fallback
-						authMethod: AuthMethod.EMAIL,
-						lastLogin: user.last_login ? new Date(user.last_login) : new Date(),
-						persistent: isPersistent
-					};
-					
-					// Set current user with persistence flag from checkbox
-					this.setCurrentUser(userData);
-					
-					// Log successful login
-					console.log('Auth: Login successful', {
-						userId: user.id,
-						username: user.pseudo,
-						email: user.email,
-						persistent: isPersistent
-					});
-					
-					// Update last login in the database - ensure numeric ID
-					const numericId = DbService.ensureNumericId(user.id);
-					DbService.updateUser(numericId, {
-						last_login: new Date()
-					});
-					
-					// Just switch to success state directly
-					this.switchToSuccessState();
-				} else {
-					// Login failed - display error inline instead of updating state
-					console.warn('Auth: Login failed', {
-						email,
-						reason: 'Authentication failed'
-					});
-					
-					// Re-enable form buttons
-					buttons.forEach(button => button.disabled = false);
-					
-					// Hide loading indicator
-					if (loadingIndicator) loadingIndicator.style.display = 'none';
-					
-					// Show error message
-					errorElement.textContent = 'Invalid email or password';
-					errorElement.style.display = 'block';
-				}
-			})
-			.catch(error => {
-				console.error('Auth: Login error', error);
-				
-				// Re-enable form buttons
-				buttons.forEach(button => button.disabled = false);
-				
-				// Hide loading indicator
-				if (loadingIndicator) loadingIndicator.style.display = 'none';
-				
-				// Show error message inline
-				errorElement.textContent = 'Authentication failed. Please try again.';
-				errorElement.style.display = 'block';
+		try {
+			const response = await DbService.login({
+				email,
+				password
 			});
+			
+			if (response.success && response.user) {
+				const user = response.user;
+				// Login successful
+				const userData: UserData = {
+					id: String(user.id),
+					username: user.pseudo,
+					email: user.email || '', // Add fallback
+					authMethod: AuthMethod.EMAIL,
+					lastLogin: user.last_login ? new Date(user.last_login) : new Date(),
+					persistent: isPersistent
+				};
+				
+				// Set current user with persistence flag from checkbox
+				this.setCurrentUser(userData);
+				
+				// Update last login in the database - ensure numeric ID
+				DbService.updateUser(user.id, {
+					last_login: new Date()
+				});
+				
+				// Just switch to success state directly
+				this.switchToSuccessState();
+			} else {
+				this._updateState({ 
+					isLoading: false, 
+					error: 'Invalid username or password' 
+				});
+			}
+		} catch (error) {
+			// Properly handle the rejected promise
+			console.error('Auth: Login error', error);
+			this._updateState({ 
+				isLoading: false, 
+				error: error instanceof Error ? error.message : 'Authentication failed'
+			});
+		} finally {
+			// Re-enable form buttons
+			buttons.forEach(button => button.disabled = false);
+			
+			// Hide loading indicator
+			if (loadingIndicator) loadingIndicator.style.display = 'none';
+		}
 	}
 }

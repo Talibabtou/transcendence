@@ -85,12 +85,6 @@ export class RegistrationHandler {
 			return;
 		}
 		
-		// Log registration attempt
-		console.log('Auth: Registration attempt', {
-			username,
-			email
-		});
-		
 		this.updateState({ isLoading: true, error: null });
 		
 		// Use DbService to simulate API call
@@ -101,7 +95,7 @@ export class RegistrationHandler {
 					
 					// Set current user without password
 					const userData: UserData = {
-						id: DbService.ensureStringId(user.id),
+						id: String(user.id),
 						username: user.pseudo, 
 						email: user.email || email,
 						authMethod: AuthMethod.EMAIL,

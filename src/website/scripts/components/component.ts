@@ -224,4 +224,20 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 			</div>
 		`;
 	}
+
+	/**
+	 * Public method to refresh the component
+	 * Can be called by router to re-initialize after auth changes
+	 */
+	public refresh(): void {
+		this.render();
+		this.afterRender();
+		
+		// Call setupEventListeners if component implements it
+		if (typeof (this as any).setupEventListeners === 'function') {
+			setTimeout(() => {
+				(this as any).setupEventListeners();
+			}, 0);
+		}
+	}
 }

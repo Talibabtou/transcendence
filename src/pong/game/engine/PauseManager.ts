@@ -181,7 +181,10 @@ export class PauseManager {
 		const isBackground = this.gameScene?.isBackgroundDemo();
 		
 		if (isBackground) {
-			this.ball.launchBall();
+			// Use the same countdown logic as the startCountdown method
+			this.startCountdown(() => {
+				this.ball.launchBall();
+			});
 			return;
 		}
 		
@@ -220,7 +223,7 @@ export class PauseManager {
 					this.gameEngine.resumeMatchTimer();
 				}
 			});
-		}, 500);
+		}, 100);
 	}
 
 	/**
@@ -337,53 +340,35 @@ export class PauseManager {
 		// Cancel any existing countdown
 		this.cleanupCountdown();
 		
-		let count = 3; // Default countdown
-		const intervalTime = 1000; // Default interval (1 second)
+		// Check if we're in background mode
+		const isBackground = this.gameScene?.isBackgroundDemo();
 		
-		// Use shorter countdown for background demo
-		if (this.gameScene?.isBackgroundDemo()) {
-			count = 1;  // Shorter countdown for background
-		}
-		
-		this.isCountingDown = true;
-		
-		// Skip countdown entirely for background demo if needed
-		if (this.gameScene?.isBackgroundDemo() && count === 0) {
-			this.cleanupCountdown();
-			this.isCountingDown = false;
-			onComplete();
+		// For background mode, use a simple timeout of 0.5 seconds
+		if (isBackground) {
+			this.isCountingDown = true;
+			// No UI update needed for background
+			
+			// Just set a direct timeout instead of countdown
+			this.countInterval = setTimeout(() => {
+				this.cleanupCountdown();
+				this.isCountingDown = false;
+				setTimeout(onComplete, 50);
+			}, 500); // 0.5 seconds for background
 			return;
 		}
+		
+		// Regular gameplay with normal countdown
+		let count = 3;
+		const intervalTime = 1000;
+		
+		this.isCountingDown = true;
 		
 		// Send initial count to UI
 		if (this.countdownCallback) {
 			this.countdownCallback(count);
 		}
 		
-		// Save original completion callback
-		const originalOnComplete = onComplete;
-		
-		// Modified completion callback that handles pending pause requests
-		onComplete = () => {
-			// If game engine is available, start the match timer when actual gameplay begins
-			if (this.gameEngine && typeof this.gameEngine.startMatchTimer === 'function' && !this.gameScene?.isBackgroundDemo()) {
-				// Only start match timer if this is not a resume from pause
-				if (this.isFirstStart || !this.gameSnapshot) {
-					this.gameEngine.startMatchTimer();
-				}
-			}
-			
-			// Call the original completion function
-			originalOnComplete();
-			
-			// Handle pending pause if needed
-			if (this.pendingPauseRequest) {
-				this.pendingPauseRequest = false;
-				this.pause();
-			}
-		};
-		
-		// Set up countdown interval
+		// Set up countdown interval for regular gameplay
 		this.countInterval = setInterval(() => {
 			count--;
 			
@@ -398,7 +383,24 @@ export class PauseManager {
 				this.isCountingDown = false;
 				
 				// Process completion with slight delay
-				setTimeout(onComplete, 50);
+				setTimeout(() => {
+					// If game engine is available, start the match timer
+					if (this.gameEngine && typeof this.gameEngine.startMatchTimer === 'function') {
+						// Only start match timer if this is not a resume from pause
+						if (this.isFirstStart || !this.gameSnapshot) {
+							this.gameEngine.startMatchTimer();
+						}
+					}
+					
+					// Call the completion function
+					onComplete();
+					
+					// Handle pending pause if needed
+					if (this.pendingPauseRequest) {
+						this.pendingPauseRequest = false;
+						this.pause();
+					}
+				}, 50);
 			}
 		}, intervalTime);
 	}

@@ -281,8 +281,12 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Handles clicks on player names
 	 * Navigates to the clicked player's profile
 	 * @param username - Username of the clicked player
+	 * @param e - Optional event object
 	 */
-	private handlePlayerClick(username: string): void {
+	private handlePlayerClick(username: string, e?: Event): void {
+		// Prevent default link behavior if event is provided
+		if (e) e.preventDefault();
+		// Navigate to the profile page using our SPA router
 		navigate(`/profile?username=${username}`);
 	}
 
@@ -331,7 +335,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	/**
 	 * Sets up event listeners after rendering
 	 */
-	private setupEventListeners(): void {
+	public setupEventListeners(): void {
 		const state = this.getInternalState();
 		
 		// Set up tab switching
@@ -355,10 +359,11 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		// Game history player links
 		this.container.querySelectorAll('.opponent-cell').forEach(cell => {
-			cell.addEventListener('click', () => {
+			cell.addEventListener('click', (e) => {
+				e.preventDefault();
 				const opponentUsername = (cell as HTMLElement).textContent;
 				if (opponentUsername) {
-					this.handlePlayerClick(opponentUsername);
+					this.handlePlayerClick(opponentUsername, e);
 				}
 			});
 		});
@@ -693,5 +698,15 @@ export class ProfileComponent extends Component<ProfileState> {
 		appState.setAccentColor(color);
 		// Re-render settings to show the selection
 		this.renderSettings();
+	}
+
+	/**
+	 * Called after the component is mounted to ensure proper initialization
+	 */
+	public onMount(): void {
+		// Force initialization if not already done
+		if (!this.getInternalState().initialized) {
+			this.initialize();
+		}
 	}
 }

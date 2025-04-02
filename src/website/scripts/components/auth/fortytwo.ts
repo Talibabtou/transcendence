@@ -23,9 +23,6 @@ export class FortyTwoAuthHandler {
 	 * Generic OAuth flow for 42
 	 */
 	private initiateGenericOAuth(method: AuthMethod): void {
-		// Log OAuth initiation
-		console.log('Auth: Initiating 42 OAuth flow');
-		
 		// Get provider config
 		const config = OAUTH_CONFIG[method];
 		
@@ -44,11 +41,6 @@ export class FortyTwoAuthHandler {
 		authUrl.searchParams.append('response_type', config.responseType);
 		authUrl.searchParams.append('scope', config.scope);
 		authUrl.searchParams.append('state', state);
-		
-		// Log the OAuth URL (for debugging)
-		console.log('Auth: 42 OAuth URL', {
-			url: authUrl.toString()
-		});
 		
 		// Use DbService to simulate API call
 		DbService.oauthLogin({
@@ -101,13 +93,6 @@ export class FortyTwoAuthHandler {
 		// Set current user
 		this.setCurrentUser(userData);
 		
-		// Log successful OAuth login
-		console.log('Auth: 42 OAuth login successful', {
-			userId,
-			username,
-			email
-		});
-		
 		// Check if this OAuth user already exists
 		const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
 		const existingUser = users.find((u: any) => 
@@ -139,20 +124,10 @@ export class FortyTwoAuthHandler {
 				last_login: new Date(),
 				theme: '#ffffff' // Default theme
 			});
-			
-			console.log('Auth: Created new 42 OAuth user', {
-				userId,
-				username
-			});
 		} else {
 			// Update existing user's last login
 			DbService.updateUser(parseInt(existingUser.id), {
 				last_login: new Date()
-			});
-			
-			console.log('Auth: Updated existing 42 OAuth user', {
-				userId: existingUser.id,
-				username: existingUser.username
 			});
 		}
 		

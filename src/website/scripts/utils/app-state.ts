@@ -3,6 +3,8 @@
  * Centralized state management for the application
  */
 
+import { Router } from './router';
+
 // Define available accent colors
 export type AccentColor = 'white' | 'blue' | 'green' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cyan' | 'teal' | 'lime' | 'red';
 
@@ -74,7 +76,7 @@ export class AppStateManager {
 	}
 	
 	/**
-	 * Initialize state from localStorage/sessionStorage
+	 * Initialize state from database and localStorage/sessionStorage
 	 */
 	private initializeFromStorage(): void {
 		// Check for auth data in storage
@@ -88,22 +90,41 @@ export class AppStateManager {
 				this.state.auth.isAuthenticated = true;
 				this.state.auth.user = user;
 				
-				// You might also have a token stored
+				// Set token if available
 				const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 				if (token)
 					this.state.auth.token = token;
 				
-				// If user has a theme, use it directly as accent color
-				if (user.theme) {
-					// Find corresponding accent color by hex value
-					const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
-						([_, hexValue]) => hexValue.toLowerCase() === user.theme.toLowerCase()
-					);
-					
-					if (colorEntry) {
-						this.state.accentColor = colorEntry[0] as AccentColor;
-						console.log(`Using user theme ${user.theme} as accent color`);
-					}
+				// Get user's theme from the database if possible
+				if (user.id) {
+					// Import DbService and get fresh user data
+					import('./db').then(({ DbService }) => {
+						// Try to get the latest user data from the database
+						DbService.getUser(parseInt(user.id))
+							.then(dbUser => {
+								// If user has a theme in the database, use it
+								if (dbUser.theme) {
+									// Find corresponding accent color by hex value
+									const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+										([_, hexValue]) => hexValue.toLowerCase() === dbUser.theme?.toLowerCase()
+									);
+									
+									if (colorEntry) {
+										this.state.accentColor = colorEntry[0] as AccentColor;
+										// Apply immediately
+										this.applyAccentColorToCSS();
+									}
+								}
+							})
+							.catch(err => {
+								console.warn('Could not fetch user theme from database, using stored value', err);
+								// Fallback to stored theme
+								this.applyStoredTheme(user);
+							});
+					});
+				} else {
+					// Fallback to stored theme
+					this.applyStoredTheme(user);
 				}
 				
 				console.log('AppState: Restored auth state from storage', {
@@ -119,10 +140,27 @@ export class AppStateManager {
 		} else {
 			// For non-authenticated users, use default white
 			this.state.accentColor = 'white';
+			// Apply immediately
+			this.applyAccentColorToCSS();
 		}
-		
-		// Apply the accent color to CSS variables
-		this.applyAccentColorToCSS();
+	}
+	
+	/**
+	 * Apply theme from stored user data (fallback)
+	 */
+	private applyStoredTheme(user: any): void {
+		if (user.theme) {
+			// Find corresponding accent color by hex value
+			const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+				([_, hexValue]) => hexValue.toLowerCase() === user.theme.toLowerCase()
+			);
+			
+			if (colorEntry) {
+				this.state.accentColor = colorEntry[0] as AccentColor;
+				// Apply immediately
+				this.applyAccentColorToCSS();
+			}
+		}
 	}
 	
 	/**
@@ -315,6 +353,11 @@ export class AppStateManager {
 			}
 		});
 		document.dispatchEvent(authEvent);
+		
+		// Refresh components after login
+		setTimeout(() => {
+			Router.refreshAllComponents();
+		}, 100);
 	}
 	
 	/**
@@ -336,6 +379,11 @@ export class AppStateManager {
 		localStorage.removeItem('auth_token');
 		sessionStorage.removeItem('auth_token');
 		localStorage.removeItem('auth_persistent');
+		
+		// Refresh components after logout
+		setTimeout(() => {
+			Router.refreshAllComponents();
+		}, 100);
 	}
 	
 	/**
@@ -370,8 +418,6 @@ export class AppStateManager {
 					// Update user's theme in the database
 					DbService.updateUserTheme(userId, colorHex)
 						.then(() => {
-							console.log(`Updated user ${userId} theme to ${colorHex}`);
-							
 							// Also update the user object in memory
 							this.state.auth.user.theme = colorHex;
 						})

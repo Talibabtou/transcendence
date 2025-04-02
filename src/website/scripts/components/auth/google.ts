@@ -23,9 +23,6 @@ export class GoogleAuthHandler {
 	 * Generic OAuth flow for Google
 	 */
 	private initiateGenericOAuth(method: AuthMethod): void {
-		// Log OAuth initiation
-		console.log('Auth: Initiating Google OAuth flow');
-		
 		// Get provider config
 		const config = OAUTH_CONFIG[method];
 		
@@ -44,11 +41,6 @@ export class GoogleAuthHandler {
 		authUrl.searchParams.append('response_type', config.responseType);
 		authUrl.searchParams.append('scope', config.scope);
 		authUrl.searchParams.append('state', state);
-		
-		// Log the OAuth URL (for debugging)
-		console.log('Auth: Google OAuth URL', {
-			url: authUrl.toString()
-		});
 		
 		// Use DbService to simulate API call
 		DbService.oauthLogin({
@@ -91,7 +83,7 @@ export class GoogleAuthHandler {
 				
 				// Create user data
 				const userData: UserData = {
-					id: DbService.ensureStringId(user.id),
+					id: String(user.id),
 					username: user.pseudo || `GoogleUser_${user.id}`,
 					email: user.email || `google_user_${user.id}@example.com`,
 					avatar: user.pfp,

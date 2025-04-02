@@ -234,22 +234,23 @@ export class GameScene {
 	private initializePauseManager(): void {
 		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
 		
+		// Set the GameScene reference to enable background mode detection
+		if (typeof this.pauseManager.setGameScene === 'function')
+			this.pauseManager.setGameScene(this);
+		
 		// Set game engine reference if available
-		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function') {
+		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function')
 			this.pauseManager.setGameEngine(this.gameEngine);
-		}
 		
 		this.pauseManager.setCountdownCallback((text) => {
-			if (!this.isBackgroundDemo()) {
+			if (!this.isBackgroundDemo())
 				this.uiManager.setCountdownText(text);
-			}
 		});
 		
 		// Set point started callback
 		this.pauseManager.setPointStartedCallback(() => {
-			if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function') {
+			if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function')
 				this.gameEngine.resetGoalTimer();
-			}
 		});
 	}
 
@@ -391,16 +392,6 @@ export class GameScene {
 				gameEngine.recordGoal(scoringPlayerIndex);
 			}
 
-			// Check if game is over
-			if (this.isGameOver()) {
-				const winnerIndex = this.player1.getScore() > this.player2.getScore() ? 0 : 1;
-				
-				// Complete the match if we have access to the game engine
-				if (gameEngine && typeof gameEngine.completeMatch === 'function') {
-					gameEngine.completeMatch(winnerIndex);
-				}
-			}
-
 			// Reset goal timer for the next point
 			if (gameEngine && typeof gameEngine.resetGoalTimer === 'function') {
 				gameEngine.resetGoalTimer();
@@ -478,7 +469,7 @@ export class GameScene {
 
 	public isGameOver(): boolean {
 		return this.player1.getScore() >= this.winningScore || 
-			   this.player2.getScore() >= this.winningScore;
+				 this.player2.getScore() >= this.winningScore;
 	}
 
 	public getWinner(): Player | null {
@@ -492,30 +483,55 @@ export class GameScene {
 			if (!this._gameOverEventDispatched) {
 				this._gameOverEventDispatched = true;
 				
-				const gameResult = {
-					winner: this.getWinner(),
-					player1Score: this.player1.getScore(),
-					player2Score: this.player2.getScore(),
-					player1Name: this.player1.name,
-					player2Name: this.player2.name
-				};
-				
-				// Complete the match in DB first
-				const winnerIndex = this.player1.getScore() > this.player2.getScore() ? 0 : 1;
-				if (this.gameEngine && typeof this.gameEngine.completeMatch === 'function') {
-					this.gameEngine.completeMatch(winnerIndex);
+				// Skip game over events for background demo games
+				if (this.isBackgroundDemo()) {
+					return;
 				}
 				
-				// Dispatch event after a delay to allow database operations to complete
-				console.log('Game over detected, dispatching event after delay');
-				setTimeout(() => {
-					const event = new CustomEvent('gameOver', { 
-						detail: gameResult,
-						// Critical: prevent event bubbling
-						bubbles: false
-					});
-					window.dispatchEvent(event);
-				}, 300);
+				// Complete the match in DB first
+				const player1Score = this.player1.getScore();
+				const player2Score = this.player2.getScore();
+				const winnerIndex = player1Score > player2Score ? 0 : 1;
+				
+				if (this.gameEngine && typeof this.gameEngine.completeMatch === 'function') {
+					try {
+						// Get the current match ID
+						const matchId = this.gameEngine.getMatchId ? this.gameEngine.getMatchId() : null;
+						
+						// Complete the match first
+						this.gameEngine.completeMatch(winnerIndex);
+						
+						// Determine winner name correctly - especially for single player
+						let winnerName;
+						if (this.isSinglePlayer()) {
+							winnerName = winnerIndex === 0 ? this.player1.name : "Computer";
+						} else {
+							winnerName = winnerIndex === 0 ? this.player1.name : this.player2.name;
+						}
+						
+						const gameResult = {
+							matchId,
+							player1Score,
+							player2Score,
+							player1Name: this.player1.name,
+							player2Name: this.isSinglePlayer() ? "Computer" : this.player2.name,
+							winner: winnerName
+						};
+						
+						const event = new CustomEvent('gameOver', { 
+							detail: gameResult,
+							bubbles: false
+						});
+						window.dispatchEvent(event);
+						
+						// Stop game timers
+						if (this.gameEngine.stopAllTimers) {
+							this.gameEngine.stopAllTimers();
+						}
+					} catch (error) {
+						console.error('Error during game completion:', error);
+					}
+				}
 			}
 		}
 	}

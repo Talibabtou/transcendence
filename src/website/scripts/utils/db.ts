@@ -11,6 +11,9 @@ import dbTemplate from '@shared/db.json';
 // DATABASE INITIALIZATION
 // =========================================
 
+// Database storage key in localStorage
+const DB_STORAGE_KEY = 'pong_db';
+
 // Set up the initial database structure
 let db: {
 	users: Array<any>;
@@ -24,63 +27,45 @@ let db: {
 	};
 };
 
-// Function to persist DB to localStorage
-const persistDb = () => {
-	try {
-		localStorage.setItem('pong_db', JSON.stringify(db));
-		console.log('Database persisted to localStorage');
-	} catch (error) {
-		console.error('Error persisting database:', error);
-	}
-};
-
-// Function to load the database
+// Function to load the database from localStorage or initialize from template
 const loadDb = () => {
-	try {
-		const storedDb = localStorage.getItem('pong_db');
+	// Try to load from localStorage first
+	const storedDb = localStorage.getItem(DB_STORAGE_KEY);
+	
 		if (storedDb) {
-			db = JSON.parse(storedDb);
-			console.log('Database loaded from localStorage');
-		} else {
-			// First time, initialize with template
-			db = JSON.parse(JSON.stringify(dbTemplate));
-			// If there's no template data, create a default structure
-			if (!db || !db.users) {
-				db = {
-					users: [],
-					matches: [],
-					goals: [],
-					friends: [],
-					meta: {
-						user_id_sequence: 1,
-						match_id_sequence: 1,
-						goal_id_sequence: 1
-					}
-				};
-			}
-			persistDb();
-			console.log('Initialized database with default data');
-		}
+		try {
+			// Parse stored data
+			const parsedDb = JSON.parse(storedDb);
+			
+			// Validate that it has the expected structure
+			if (parsedDb && parsedDb.users && parsedDb.matches && parsedDb.goals && parsedDb.meta)
+				return parsedDb;
 	} catch (error) {
-		console.error('Error loading database:', error);
-		// Fallback to default structure
-		db = {
-			users: [],
-			matches: [],
-			goals: [],
-			friends: [],
-			meta: {
-				user_id_sequence: 1,
-				match_id_sequence: 1,
-				goal_id_sequence: 1
-			}
-		};
-		persistDb();
+			console.error('Failed to parse stored database, reverting to template', error);
+		}
 	}
+
+	return JSON.parse(JSON.stringify(dbTemplate));
 };
 
 // Initialize the database
-loadDb();
+db = loadDb();
+
+// Function to persist the database to localStorage
+const persistDb = () => {
+	try {
+		// Store the current database state to localStorage
+		localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(db));
+		
+		// Dispatch event with current DB state
+		const event = new CustomEvent('db:updated', {
+			detail: { db: JSON.parse(JSON.stringify(db)) }
+		});
+		window.dispatchEvent(event);
+	} catch (error) {
+		console.error('Failed to persist database to localStorage', error);
+	}
+};
 
 // =========================================
 // DATABASE SERVICE
@@ -88,7 +73,7 @@ loadDb();
 
 /**
  * Service class for handling database operations
- * Currently mocks API calls for development purposes
+ * Currently uses localStorage for persistence
  */
 export class DbService {
 	// =========================================
@@ -134,18 +119,14 @@ export class DbService {
 							token: 'mock-jwt-token'
 						};
 						
-						// Also update auth_user in localStorage for backward compatibility
-						this.syncLegacyStorage();
-						
 						resolve(userResponse);
 					} else {
-						// Important: Reject with error instead of creating user
 						reject(new Error('Invalid credentials'));
 					}
 				} catch (error) {
 					reject(error);
 				}
-			}, 300); // Simulate network delay
+			}, 100);
 		});
 	}
 
@@ -163,7 +144,7 @@ export class DbService {
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
 				try {
-					// Check if email already exists - SQL-like behavior
+					// Check if email already exists
 					const existingUser = db.users.find(u => u.email === userData.email);
 					
 					if (existingUser) {
@@ -193,10 +174,10 @@ export class DbService {
 					// Persist changes
 					persistDb();
 					
-					// Also update auth_users in localStorage for backward compatibility
+					// Sync to legacy storage
 					this.syncLegacyStorage();
 					
-					// Return response with success property
+					// Return response
 					resolve({
 						success: true,
 						user: {
@@ -215,30 +196,6 @@ export class DbService {
 				}
 			}, 300);
 		});
-	}
-	
-	/**
-	 * Helper method to sync data between JSON DB and localStorage for legacy code
-	 */
-	private static syncLegacyStorage(): void {
-		try {
-			// Sync auth_users for backward compatibility
-			const authUsers = db.users.map(user => ({
-				id: user.id,
-				username: user.pseudo,
-				email: user.email,
-				password: user.password,
-				authMethod: user.auth_method,
-				createdAt: user.created_at,
-				lastLogin: user.last_login,
-				theme: user.theme
-			}));
-			
-			localStorage.setItem('auth_users', JSON.stringify(authUsers));
-			console.log('Synced DB to legacy storage');
-		} catch (error) {
-			console.error('Error syncing with legacy storage:', error);
-		}
 	}
 
 	/**
@@ -266,6 +223,9 @@ export class DbService {
 					// Update existing user's last login
 					existingUser.last_login = now.toISOString();
 					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
 					
 					resolve({
 						success: true,
@@ -296,6 +256,9 @@ export class DbService {
 					db.users.push(newUser);
 					persistDb();
 					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
 					resolve({
 						success: true,
 						user: {
@@ -310,9 +273,6 @@ export class DbService {
 						token: 'mock-jwt-token'
 					});
 				}
-				
-				// Update legacy storage
-				this.syncLegacyStorage();
 			}, 300);
 		});
 	}
@@ -394,11 +354,6 @@ export class DbService {
 	static updateUser(userId: number, userData: Partial<User>): Promise<User> {
 		this.logRequest('PUT', `/api/users/${userId}`, userData);
 		
-		// Log this update for debugging
-		if (userData.theme) {
-			console.log(`Updating user ${userId} theme to:`, userData.theme);
-		}
-		
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
 				try {
@@ -414,6 +369,9 @@ export class DbService {
 						
 						// Persist changes
 						persistDb();
+						
+						// Sync to legacy storage
+						this.syncLegacyStorage();
 						
 						// Return updated user
 						resolve({
@@ -481,6 +439,9 @@ export class DbService {
 					// Persist changes
 					persistDb();
 					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
 					// Return response
 					resolve({
 						id: userId,
@@ -520,8 +481,6 @@ export class DbService {
 					...friend,
 					created_at: new Date(friend.created_at)
 				}));
-				
-				console.log(`Retrieved ${friends.length} friends for user ${userId}`);
 				resolve(friends);
 			} catch (error) {
 				console.error('Error fetching user friends:', error);
@@ -553,8 +512,6 @@ export class DbService {
 					...match,
 					created_at: new Date(match.created_at)
 				}));
-				
-				console.log(`Retrieved ${matches.length} matches for user ${userId}`);
 				resolve(matches);
 			} catch (error) {
 				console.error('Error fetching user matches:', error);
@@ -569,54 +526,34 @@ export class DbService {
 	 * @param player2Id - Second player's ID
 	 * @param tournamentId - Optional tournament ID
 	 */
-	static createMatch(player1Id: number, player2Id: number, tournamentId?: number): Promise<Match> {
-		const matchData = {
-			player_1: player1Id,
-			player_2: player2Id,
-			tournament_id: tournamentId
+	static createMatch(player1Id: number, player2Id: number, _tournamentId?: number): Promise<Match> {
+		this.logRequest('POST', '/api/matches');
+		
+		// Generate match ID
+		const matchId = db.meta.match_id_sequence || 1;
+		
+		// Create match object
+		const match = {
+						id: matchId,
+						player_1: player1Id,
+						player_2: player2Id,
+						completed: false,
+			duration: 0,
+						timeout: false,
+			created_at: new Date().toISOString()
 		};
 		
-		this.logRequest('POST', '/api/matches', matchData);
+		// Add to database
+		db.matches.push(match);
 		
-		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Get next match ID from sequence
-					const matchId = db.meta.match_id_sequence++;
-					const now = new Date();
-					
-					// Create new match
-					const newMatch = {
-						id: matchId,
-						player_1: player1Id,
-						player_2: player2Id,
-						completed: false,
-						timeout: false,
-						tournament_id: tournamentId,
-						created_at: now.toISOString()
-					};
-					
-					// Add to matches array
-					db.matches.push(newMatch);
-					
-					// Persist changes
-					persistDb();
-					
-					// Return response
-					resolve({
-						id: matchId,
-						player_1: player1Id,
-						player_2: player2Id,
-						completed: false,
-						timeout: false,
-						tournament_id: tournamentId,
-						created_at: now
-					});
-				} catch (error) {
-					reject(error);
-				}
-			}, 200);
-		});
+		// Update sequence
+		db.meta.match_id_sequence = matchId + 1;
+		persistDb();
+		// Return a properly formatted match object for the API
+		return Promise.resolve({
+			...match,
+			created_at: new Date(match.created_at)
+		} as Match);
 	}
 
 	/**
@@ -626,51 +563,60 @@ export class DbService {
 	 * @param duration - Time of goal in seconds from match start
 	 */
 	static recordGoal(matchId: number, playerId: number, duration: number): Promise<Goal> {
-		this.logRequest('POST', '/api/goals', {
-			match_id: matchId,
-			player: playerId,
-			duration
-		});
+		this.logRequest('POST', '/api/goals');
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Get next goal ID from sequence
-					const goalId = db.meta.goal_id_sequence++;
-					const now = new Date();
-					
-					// Create goal hash for consistency with db format
-					const hash = `goal_${matchId}_${playerId}_${duration.toFixed(1)}`;
-					
-					// Create new goal
-					const newGoal = {
-						id: goalId,
-						match_id: matchId,
-						player: playerId,
-						duration,
-						created_at: now.toISOString(),
-						hash: hash
-					};
-					
-					// Add to goals array
-					db.goals.push(newGoal);
-					
-					// Persist changes
-					persistDb();
-					
-					// Return response
-					resolve({
-						id: goalId,
-						match_id: matchId,
-						player: playerId,
-						duration,
-						created_at: now,
-						hash
-					});
+			try {
+				// Verify the match exists and is not completed
+				const match = db.matches.find((m: any) => m.id === matchId);
+				if (!match) {
+					throw new Error(`Match ${matchId} not found`);
+				}
+				
+				if (match.completed) {
+					console.warn(`Attempt to record goal for completed match ${matchId}`);
+					throw new Error(`Match ${matchId} is already completed`);
+				}
+				
+				// Create a unique hash to prevent duplicate goals
+				const hash = `goal_${matchId}_${playerId}_${Date.now()}`;
+				
+				// Check if this goal already exists to prevent duplicates
+				if (db.goals.some((g: any) => g.hash === hash)) {
+					console.warn(`Duplicate goal detected, hash: ${hash}`);
+					throw new Error('Duplicate goal');
+				}
+				
+				// Generate goal ID
+				const goalId = db.meta.goal_id_sequence || 1;
+				
+				// Create the goal object
+				const goal = {
+					id: goalId,
+			match_id: matchId,
+			player: playerId,
+					duration: parseFloat(duration.toFixed(3)),
+					created_at: new Date().toISOString(),
+					hash
+				};
+				
+				// Add to database
+				db.goals.push(goal);
+				
+				// Update sequence
+				db.meta.goal_id_sequence = goalId + 1;
+						
+						// Persist changes
+						persistDb();
+				
+				// Return a properly formatted goal object for the API
+						resolve({
+					...goal,
+					created_at: new Date(goal.created_at)
+				} as Goal);
 				} catch (error) {
 					reject(error);
 				}
-			}, 200);
 		});
 	}
 
@@ -700,14 +646,6 @@ export class DbService {
 	 */
 	static getLeaderboard(): Promise<LeaderboardEntry[]> {
 		this.logRequest('GET', '/api/leaderboard');
-		
-		console.log('DB content when getLeaderboard is called:', {
-			users: db.users.length,
-			matches: db.matches.length,
-			goals: db.goals.length,
-			friends: db.friends.length,
-			meta: db.meta
-		});
 		
 		return new Promise((resolve, reject) => {
 			try {
@@ -768,8 +706,6 @@ export class DbService {
 						losses: stat.losses
 					}));
 				
-				console.log(`Retrieved leaderboard with ${leaderboardData.length} entries`);
-				
 				// Simulate network delay
 				setTimeout(() => {
 					resolve(leaderboardData);
@@ -829,18 +765,7 @@ export class DbService {
 						// Persist changes
 						persistDb();
 						
-						// Update localStorage auth_user if this is the current user
-						const currentUserStr = localStorage.getItem('auth_user');
-						if (currentUserStr) {
-							const currentUser = JSON.parse(currentUserStr);
-							
-							if (parseInt(String(currentUser.id).replace(/\D/g, '')) === numericId) {
-								currentUser.theme = theme;
-								localStorage.setItem('auth_user', JSON.stringify(currentUser));
-							}
-						}
-						
-						// Also update auth_users in localStorage for backward compatibility
+						// Sync to legacy storage
 						this.syncLegacyStorage();
 						
 						resolve();
@@ -855,133 +780,258 @@ export class DbService {
 	}
 
 	/**
-	 * Helper method to sync user data between auth_user and auth_users
-	 * Ensures we maintain a single source of truth for users
-	 * @param userData - The user data to sync
+	 * Initialize auth_users if it doesn't exist in localStorage
 	 */
-	static syncUserData(userData: any): void {
-		if (!userData || !userData.id) {
-			console.error('Cannot sync user data: Missing user ID');
-			return;
+	private static initializeAuthUsers(): void {
+		if (!localStorage.getItem('auth_users')) {
+			localStorage.setItem('auth_users', '[]');
+		}
+	}
+
+	/**
+	 * Sync the database state to legacy localStorage for backward compatibility
+	 */
+	private static syncLegacyStorage(): void {
+		// Ensure legacy structure exists
+		this.initializeAuthUsers();
+		
+		// Store users in auth_users for legacy support
+		try {
+			const authUsers = db.users.map(user => ({
+				id: user.id,
+				username: user.pseudo,
+				email: user.email,
+				theme: user.theme || '#ffffff'
+			}));
+			localStorage.setItem('auth_users', JSON.stringify(authUsers));
+		} catch (error) {
+			console.error('Failed to sync to legacy storage:', error);
+		}
+	}
+
+	// Call this in the constructor or as a static initialization
+	static {
+		DbService.initializeAuthUsers();
+		// Ensure initial sync
+		DbService.syncLegacyStorage();
+	}
+
+	/**
+	 * Reset the database to its initial template state
+	 */
+	static resetDatabase(): void {
+		// Reset to initial template
+		db = JSON.parse(JSON.stringify(dbTemplate));
+		if (!db || !db.users) {
+			db = {
+				users: [],
+				matches: [],
+				goals: [],
+				friends: [],
+				meta: {
+					user_id_sequence: 1,
+					match_id_sequence: 1,
+					goal_id_sequence: 1
+				}
+			};
 		}
 		
-		try {
-			// Get existing users array
-			const usersStr = localStorage.getItem('auth_users') || '[]';
-			let users = JSON.parse(usersStr);
-			
-			// Extract the numeric part if ID is in format "user_12345"
-			let numericId: number | null = null;
-			
-			if (typeof userData.id === 'string' && userData.id.includes('_')) {
-				const parts = userData.id.split('_');
-				numericId = parseInt(parts[parts.length - 1], 10);
-			} else if (typeof userData.id === 'string') {
-				numericId = parseInt(userData.id, 10);
-			} else {
-				numericId = Number(userData.id);
-			}
-			
-			// Find if user already exists in array - check ALL possible ID formats
-			const userIndex = users.findIndex((u: any) => {
-				// Compare direct IDs
-				if (u.id === userData.id) return true;
+		// Persist changes
+		persistDb();
+		
+		// Sync to legacy storage
+		this.syncLegacyStorage();
+		
+		// Also clear the specific auth items
+		localStorage.removeItem('auth_user');
+		sessionStorage.removeItem('auth_user');
+		localStorage.removeItem('auth_token');
+		sessionStorage.removeItem('auth_token');
+	}
+	
+	// =========================================
+	// DATABASE EXPORT UTILITIES
+	// =========================================
+	
+	/**
+	 * Exports current database state as a formatted JSON string
+	 * This can be copied and saved as db.json
+	 */
+	static exportDatabaseAsJson(): string {
+		return JSON.stringify(db, null, 2);
+	}
+
+	/**
+	 * Creates a downloadable file with the current database state
+	 */
+	static downloadDatabaseAsJson(filename = 'db.json'): void {
+		const jsonString = this.exportDatabaseAsJson();
+		const blob = new Blob([jsonString], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = filename;
+		document.body.appendChild(a);
+		a.click();
+		
+		// Cleanup
+		setTimeout(() => {
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		}, 100);
+	}
+
+	/**
+	 * Provides instructions for setting up a server endpoint to save the DB
+	 */
+	static getSaveInstructions(): string {
+		return `
+To save the database to db.json, create a server endpoint:
+
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const app = express();
+
+app.post('/api/save-db', (req, res) => {
+	const dbPath = path.resolve(__dirname, '../src/shared/db.json');
+	fs.writeFileSync(dbPath, JSON.stringify(req.body, null, 2));
+	res.json({ success: true });
+});
+
+Then send the database with:
+fetch('/api/save-db', {
+	method: 'POST',
+	headers: { 'Content-Type': 'application/json' },
+	body: JSON.stringify(DbService.getDatabaseSnapshot())
+});
+`;
+	}
+
+	/**
+	 * Completes a match and updates the database
+	 * @param matchId The match ID to complete
+	 * @param duration Match duration in seconds
+	 * @param timeout Whether the match ended due to timeout
+	 * @returns Promise with the updated match
+	 */
+	static completeMatch(matchId: number, duration: number, timeout: boolean = false): Promise<Match> {
+		// Log the request
+		this.logRequest('PUT', `/api/matches/${matchId}/complete`);
+		
+		// Find the match by ID
+		const matchIndex = db.matches.findIndex((m: any) => m.id === matchId);
+		
+		if (matchIndex === -1) {
+			console.error(`Match ${matchId} not found`);
+			return Promise.reject(new Error(`Match ${matchId} not found`));
+		}
+		// Update match properties
+		db.matches[matchIndex].completed = true;
+		db.matches[matchIndex].duration = Math.round(duration);
+		db.matches[matchIndex].timeout = timeout;
+		// Persist changes
+		persistDb();
+		// Sync to legacy storage
+		this.syncLegacyStorage();
+		// Return a properly formatted match object for the API
+		return Promise.resolve({
+			...db.matches[matchIndex],
+			created_at: new Date(db.matches[matchIndex].created_at)
+		} as Match);
+	}
+
+	/**
+	 * Gets a match by ID with detailed information
+	 * @param matchId The match ID to retrieve
+	 * @returns Promise with the match details
+	 */
+	static getMatchDetails(matchId: number): Promise<any> {
+		this.logRequest('GET', `/api/matches/${matchId}`);
+		
+		return new Promise((resolve, reject) => {
+			try {
+				const match = db.matches.find((m: any) => m.id === matchId);
 				
-				// Extract and compare numeric parts of IDs
-				let uNumericId: number | null = null;
-				
-				if (typeof u.id === 'string' && u.id.includes('_')) {
-					const parts = u.id.split('_');
-					uNumericId = parseInt(parts[parts.length - 1], 10);
-				} else if (typeof u.id === 'string') {
-					uNumericId = parseInt(u.id, 10);
-				} else {
-					uNumericId = Number(u.id);
+				if (!match) {
+					return reject(new Error(`Match ${matchId} not found`));
 				}
 				
-				return numericId === uNumericId;
-			});
-			
-			// Prepare normalized user data with consistent property names
-			const normalizedUser = {
-				...userData,
-				// Ensure consistent property names
-				id: userData.id, // Keep original ID format
-				username: userData.username || userData.pseudo || userData.name,
-				pseudo: userData.pseudo || userData.username || userData.name,
-				// Make sure we preserve the theme
-				theme: userData.theme || (userIndex !== -1 ? users[userIndex].theme : '#ffffff')
-			};
-			
-			if (userIndex !== -1) {
-				// Update existing user while preserving existing fields
-				users[userIndex] = {
-					...users[userIndex],
-					...normalizedUser,
-					// Important: preserve the existing ID format to avoid duplicates
-					id: users[userIndex].id
+				// For player 1
+				let player1 = db.users.find((u: any) => u.id === match.player_1);
+				if (!player1) {
+					player1 = { id: match.player_1, pseudo: 'Player 1' };
+				}
+				
+				// For player 2 - ensure we handle the AI player (ID 0)
+				let player2;
+				if (match.player_2 === 0) {
+					player2 = db.users.find((u: any) => u.id === 0) || { 
+						id: 0, 
+						pseudo: 'Computer',
+						theme: '#ffffff',
+						isAI: true
+					};
+				} else {
+					player2 = db.users.find((u: any) => u.id === match.player_2);
+					if (!player2) {
+						player2 = { id: match.player_2, pseudo: 'Player 2' };
+					}
+				}
+				
+				// Get goals for this match
+				const goals = db.goals.filter((g: any) => g.match_id === matchId);
+				
+				// Calculate scores
+				const player1Score = goals.filter((g: any) => g.player === match.player_1).length;
+				const player2Score = goals.filter((g: any) => g.player === match.player_2).length;
+				
+				// Create result object directly with all needed properties
+				const result = {
+					id: match.id,
+					player_1: match.player_1,
+					player_2: match.player_2,
+					completed: match.completed,
+					duration: match.duration,
+					timeout: match.timeout,
+					created_at: match.created_at,
+					
+					// Important: Add explicitly constructed objects
+					player1: {
+						id: player1.id,
+						pseudo: player1.pseudo,
+						// Other properties as needed
+					},
+					player2: {
+						id: player2.id,
+						pseudo: player2.pseudo,
+						// Other properties as needed
+					},
+					player1Score: player1Score,
+					player2Score: player2Score,
+					goals: goals
 				};
-				console.log(`Updated existing user ${userData.id} in auth_users array`);
-			} else {
-				// Add new user to array
-				users.push(normalizedUser);
-				console.log(`Added new user ${userData.id} to auth_users array`);
+				resolve(result);
+			} catch (error) {
+				console.error('Error in getMatchDetails:', error);
+				reject(error);
 			}
-			
-			// Save back to localStorage
-			localStorage.setItem('auth_users', JSON.stringify(users));
-		} catch (error) {
-			console.error('Error syncing user data:', error);
-		}
+		});
 	}
 
 	/**
-	 * API-Ready Helper: Prepares service for future API integration
-	 * This structure will make it easy to switch from mock to real implementation
+	 * Gets all database data - could be used by your API endpoints
 	 */
-	static createApiClient() {
-		// This is a scaffold for future API client implementation
-		// When transitioning to real API, replace the implementation while keeping
-		// the same method signatures and return types
-		
-		// const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-		// 	// In future implementation, this would handle auth tokens
-		// 	// For now, it's just a placeholder
-		// 	return fetch(url, options);
-		// };
-		
-		return {
-			// Example of how real API methods would be structured
-			async get<T>(endpoint: string): Promise<T> {
-				// In mock mode, we use localStorage
-				// In real mode, this would use the fetch API
-				console.log(`[API-READY] GET ${endpoint}`);
-				// Implementation would change, but interface stays the same
-				return Promise.resolve({} as T);
-			},
-			
-			async post<T>(endpoint: string, data: any): Promise<T> {
-				console.log(`[API-READY] POST ${endpoint}`, data);
-				return Promise.resolve({} as T);
-			},
-			
-			async put<T>(endpoint: string, data: any): Promise<T> {
-				console.log(`[API-READY] PUT ${endpoint}`, data);
-				return Promise.resolve({} as T);
-			},
-			
-			async delete<T>(endpoint: string): Promise<T> {
-				console.log(`[API-READY] DELETE ${endpoint}`);
-				return Promise.resolve({} as T);
-			}
-		};
+	static getDatabaseSnapshot(): any {
+		return JSON.parse(JSON.stringify(db)); // Return deep copy
 	}
 
 	/**
-	 * Mock implementation of user verification that doesn't create new users
-	 * Finds existing users by ID or email
+	 * Mock implementation of user verification that uses the JSON database
+	 * Finds existing users by email and password
 	 */
-	public static verifyUser(email: string, password: string): Promise<{
+	static verifyUser(email: string, password: string): Promise<{
 		success: boolean;
 		user?: {
 			id: string;
@@ -1000,7 +1050,7 @@ export class DbService {
 		return new Promise((resolve) => {
 			setTimeout(() => {
 				try {
-					// Find user by email and password
+					// Find user by email and password - uses the JSON database
 					const user = db.users.find(u => 
 						u.email === email && u.password === password);
 
@@ -1030,17 +1080,17 @@ export class DbService {
 	}
 
 	/**
-	 * Updates user's last connection timestamp
+	 * Updates user's last connection timestamp in the JSON database
 	 * @param userId - The user's ID
 	 */
-	public static updateUserLastConnection(userId: string): Promise<void> {
+	static updateUserLastConnection(userId: string): Promise<void> {
 		const numericId = parseInt(userId.replace(/\D/g, ''));
 		this.logRequest('PUT', `/api/users/${numericId}/last-connection`);
 		
 		return new Promise((resolve, reject) => {
 			setTimeout(() => {
 				try {
-					// Find user by ID
+					// Find user by ID in the JSON database
 					const userIndex = db.users.findIndex(u => u.id === numericId);
 					
 					if (userIndex !== -1) {
@@ -1049,6 +1099,9 @@ export class DbService {
 						
 						// Persist changes
 						persistDb();
+						
+						// Sync to legacy storage
+						this.syncLegacyStorage();
 						
 						resolve();
 					} else {
@@ -1062,88 +1115,7 @@ export class DbService {
 	}
 
 	/**
-	 * Helper method to ensure auth_users exists in localStorage
-	 */
-	private static initializeAuthUsers(): void {
-		if (!localStorage.getItem('auth_users')) {
-			localStorage.setItem('auth_users', '[]');
-		}
-	}
-
-	// Call this in the constructor or as a static initialization
-	static {
-		DbService.initializeAuthUsers();
-	}
-
-	// Add a method to reset the database (useful for testing)
-	static resetDatabase(): void {
-		// Reset to initial template
-		db = JSON.parse(JSON.stringify(dbTemplate));
-		if (!db || !db.users) {
-			db = {
-				users: [],
-				matches: [],
-				goals: [],
-				friends: [],
-				meta: {
-					user_id_sequence: 1,
-					match_id_sequence: 1,
-					goal_id_sequence: 1
-				}
-			};
-		}
-		persistDb();
-		console.log('Database reset to initial state');
-		
-		// Also clear legacy storage
-		localStorage.removeItem('auth_users');
-		localStorage.removeItem('auth_user');
-	}
-	
-	// Add a method to export the current database state (useful for debugging)
-	static exportDatabase(): any {
-		return JSON.parse(JSON.stringify(db));
-	}
-
-	/**
-	 * Helper to ensure ID is always a string for UI operations
-	 */
-	public static ensureStringId(id: number | string): string {
-		return typeof id === 'number' ? String(id) : id;
-	}
-
-	/**
-	 * Helper to ensure ID is always a number for database operations
-	 */
-	public static ensureNumericId(id: number | string): number {
-		if (typeof id === 'number') return id;
-		
-		// Handle 'user_12345' or string numeric formats
-		if (id.includes('_')) {
-			const parts = id.split('_');
-			return parseInt(parts[parts.length - 1], 10);
-		}
-		return parseInt(id, 10);
-	}
-
-	/**
-	 * Helper to check if a user is logged in
-	 * Returns undefined if no user is logged in
-	 */
-	public static getCurrentUser(): any | undefined {
-		try {
-			const userStr = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
-			if (!userStr) return undefined;
-			
-			return JSON.parse(userStr);
-		} catch (error) {
-			console.error('Error getting current user:', error);
-			return undefined;
-		}
-	}
-
-	/**
-	 * Gets all goals for a specific match
+	 * Gets all goals for a specific match from the JSON database
 	 * @param matchId - ID of the match to get goals for
 	 */
 	static getMatchGoals(matchId: number): Promise<any[]> {
@@ -1151,125 +1123,14 @@ export class DbService {
 		
 		return new Promise((resolve, reject) => {
 			try {
-				// We need to access the db variable directly, not through this.loadDb()
-				// since loadDb is a module function, not a class method
+				// Filter goals from the JSON database
 				const goals = db.goals.filter((goal: any) => goal.match_id === matchId);
 				
-				console.log(`Retrieved ${goals.length} goals for match ${matchId}`);
 				resolve(goals);
 			} catch (error) {
 				console.error('Error fetching match goals:', error);
 				reject(error);
 			}
-		});
-	}
-
-	/**
-	 * Gets goals scored by a specific player in a specific match
-	 * @param matchId - ID of the match
-	 * @param playerId - ID of the player
-	 */
-	static getPlayerMatchGoals(matchId: number, playerId: number): Promise<any[]> {
-		this.logRequest('GET', `/api/matches/${matchId}/players/${playerId}/goals`);
-		
-		return new Promise((resolve, reject) => {
-			try {
-				// Access the db variable directly
-				// Note: We need to use player property, not player_id
-				const playerGoals = db.goals.filter((goal: any) => 
-					goal.match_id === matchId && goal.player === playerId
-				);
-				
-				console.log(`Retrieved ${playerGoals.length} goals for player ${playerId} in match ${matchId}`);
-				resolve(playerGoals);
-			} catch (error) {
-				console.error('Error fetching player match goals:', error);
-				reject(error);
-			}
-		});
-	}
-
-	/**
-	 * Reinitializes the database from the JSON template
-	 * This is useful when you've updated the source JSON file and want to reload it
-	 */
-	static reinitializeFromJson(): Promise<void> {
-		this.logRequest('POST', '/api/admin/reinitialize-from-json');
-		
-		return new Promise((resolve) => {
-			try {
-				console.log('Reinitializing database from JSON template...');
-				
-				// Clear existing data in localStorage
-				localStorage.removeItem('pong_db');
-				
-				// Reload from JSON template
-				db = JSON.parse(JSON.stringify(dbTemplate));
-				
-				// Ensure meta data is present
-				if (!db.meta) {
-					db.meta = {
-						user_id_sequence: 5, // Assuming we have 4 users
-						match_id_sequence: 8, // Assuming we have 7 matches
-						goal_id_sequence: 27 // Assuming we have 26 goals
-					};
-				}
-				
-				// Persist to localStorage
-				persistDb();
-				
-				// Also update legacy storage
-				this.syncLegacyStorage();
-				
-				console.log('Database reinitialized successfully from JSON template');
-				resolve();
-			} catch (error) {
-				console.error('Error reinitializing database:', error);
-				resolve(); // Resolve anyway to prevent hanging
-			}
-		});
-	}
-
-	/**
-	 * Marks a match as completed
-	 * @param matchId - The match ID
-	 * @param duration - Match duration in seconds
-	 * @param timeout - Whether the match ended due to timeout
-	 */
-	static completeMatch(matchId: number, duration: number, timeout: boolean = false): Promise<Match> {
-		this.logRequest('PUT', `/api/matches/${matchId}`, {
-			completed: true,
-			duration,
-			timeout
-		});
-		
-		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Find match by ID
-					const matchIndex = db.matches.findIndex(m => m.id === matchId);
-					
-					if (matchIndex !== -1) {
-						// Update match
-						db.matches[matchIndex].completed = true;
-						db.matches[matchIndex].duration = duration;
-						db.matches[matchIndex].timeout = timeout;
-						
-						// Persist changes
-						persistDb();
-						
-						// Return updated match
-						resolve({
-							...db.matches[matchIndex],
-							created_at: new Date(db.matches[matchIndex].created_at)
-						});
-					} else {
-						reject(new Error(`Match with ID ${matchId} not found`));
-					}
-				} catch (error: any) {
-					reject(error);
-				}
-			}, 200);
 		});
 	}
 }

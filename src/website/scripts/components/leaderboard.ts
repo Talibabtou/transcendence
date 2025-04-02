@@ -39,9 +39,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 				errorMessage: undefined
 			});
 			
-			// Force database reinitialization from JSON
-			await DbService.reinitializeFromJson();
-			
 			// Now fetch the leaderboard data
 			await this.fetchLeaderboardData();
 			
@@ -68,6 +65,11 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	render(): void {
 		const state = this.getInternalState();
 		this.renderView(state.errorMessage);
+		
+		// Always set up event listeners after rendering
+		setTimeout(() => {
+			this.setupEventListeners();
+		}, 0);
 	}
 	
 	/**
@@ -89,7 +91,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		try {
 			const leaderboardData = await DbService.getLeaderboard();
 			this.updateInternalState({ leaderboardData });
-			console.log('Leaderboard data loaded:', leaderboardData);
 		} catch (error) {
 			console.error('Error fetching leaderboard data:', error);
 			throw new Error('Failed to fetch leaderboard data.');
@@ -180,5 +181,20 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			</div>
 		`;
 		render(template, this.container);
+	}
+
+	/**
+	 * Sets up event listeners after rendering
+	 */
+	public setupEventListeners(): void {
+		// Set up player name click handlers
+		this.container.querySelectorAll('.player-cell').forEach(cell => {
+			cell.addEventListener('click', () => {
+				const playerId = parseInt((cell as HTMLElement).getAttribute('data-player-id') || '0', 10);
+				if (playerId) {
+					this.handlePlayerClick(playerId);
+				}
+			});
+		});
 	}
 }

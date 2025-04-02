@@ -97,8 +97,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					
 					this.updateInternalState({ host });
 				});
-			
-			console.log('Host initialized with ID:', hostId);
 		} else {
 			// This shouldn't happen as the host should be authenticated
 			console.error('No authenticated host found');
@@ -269,8 +267,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				theme: userData.theme,
 				elo: userData.elo
 			};
-			
-			console.log('Guest authenticated with ID:', guestId);
 			this.handleGuestAuthenticated(guestData);
 		}
 	};
@@ -423,9 +419,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			
 			// Update this in the database - use the exact ID format (don't convert)
 			DbService.updateUserTheme(guestData.id, guestData.theme);
-			console.log(`Set default theme for guest ${guestData.id} to ${guestData.theme}`);
-		} else {
-			console.log(`Guest already has theme: ${guestData.theme}`);
 		}
 		
 		// Check if user is already registered (prevent duplicates)
@@ -589,8 +582,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 		
 		// Ensure we have proper IDs and names
-		const hostId = DbService.ensureNumericId(state.host.id);
-		const guestId = DbService.ensureNumericId(state.guests[0].id);
+		const hostId = state.host.id;
+		const guestId = state.guests[0].id;
 		
 		const hostName = state.host.username || 'Player 1';
 		const guestName = state.guests[0].username || 'Player 2';
@@ -646,9 +639,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Create a new match with the same players
 		if (state.gameMode === GameMode.MULTI) {
 			DbService.createMatch(playerIds[0], playerIds[1])
-				.then(match => {
-					console.log('Created rematch:', match);
-					
+				.then(_ => {
+
 					// Notify parent component to start the game
 					this.onAllPlayersRegistered(playerIds, [], []);
 				})
@@ -697,8 +689,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		this.updateInternalState({
 			host: updatedHost
 		});
-		
-		console.log(`Host color updated to ${colorHex}`);
 	}
 	
 	/**
@@ -725,7 +715,5 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		this.updateInternalState({
 			guests: updatedGuests
 		});
-		
-		console.log(`Guest ${guestId} color updated to ${colorHex}`);
 	}
 }
