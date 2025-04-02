@@ -1,5 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
+import { recordDatabaseMetrics } from '../telemetry/index.js'
+import { matchCreationCounter, matchCompletionCounter, matchDurationHistogram, matchQueriesCounter } from '../telemetry/index.js'
 
 import { 
   Match, 
@@ -76,13 +78,20 @@ export async function createMatch(request: FastifyRequest<{
   });
   
   try {
-    // Try a more direct approach without explicit transaction management
-    request.log.info('Inserting match directly');
+    const startTime = performance.now();
     
     const newMatch = await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
       [player_1, player_2, tournament_id || null]
     ) as Match
+    
+    // Record database operation metrics
+    recordDatabaseMetrics('INSERT', 'matches', (performance.now() - startTime) / 1000);
+    
+    // Increment match creation counter
+    matchCreationCounter.add(1, {
+      has_tournament: tournament_id ? 'true' : 'false'
+    });
     
     request.log.info({
       msg: 'Match inserted successfully',

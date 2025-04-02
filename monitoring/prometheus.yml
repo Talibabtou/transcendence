@@ -1,13 +1,17 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
+
 scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['cadvisor:8080']
-  - job_name: 'backend'
+    
+  - job_name: 'game-service'
     static_configs:
-      - targets: ['backend:8000']
+      - targets: ['host.docker.internal:9464']
     metrics_path: '/metrics'
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['postgres_exporter:9187']

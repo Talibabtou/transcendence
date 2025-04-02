@@ -1,14 +1,5 @@
 services:
 
-  randomizer:
-    container_name: randomizer
-    build: 
-      context: ./game_script
-    command: python /app/scripts/simulation.py
-    restart: unless-stopped
-    networks:
-      - backend
-
   prometheus:
     image: prom/prometheus:v3.1.0
     container_name: prometheus
@@ -27,6 +18,8 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       # Specify the path for console templates used in the web UI
       - '--web.console.templates=/usr/share/prometheus/consoles'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     networks:
       - backend
@@ -48,20 +41,44 @@ services:
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
-
-  postgres_exporter:
-    container_name: postgres_exporter
-    image: prometheuscommunity/postgres-exporter:v0.16.0
-    environment:
-      DATA_SOURCE_NAME: "postgresql://postgres_exporter:test@db:5432/postgres?sslmode=disable"
+      
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./monitoring/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/tmp/tempo
     ports:
-      - "9187:9187"
+      - "3200:3200"   # Tempo UI & API port
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
     networks:
       - backend
 
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    depends_on:
+      - prometheus
+      - tempo
+    restart: unless-stopped
+    networks:
+      - backend
 
 volumes:
   prometheus_data:
+  grafana_data:
+  tempo_data:
 
 networks:
   backend:
