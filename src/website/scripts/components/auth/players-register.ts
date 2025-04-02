@@ -262,7 +262,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const guestData: PlayerData = {
 				id: guestId,
 				username: userData.username,
-				pfp: userData.profilePicture || this.generateDefaultProfilePic(userData.username),
+				pfp: userData.profilePicture,
 				isConnected: true,
 				theme: userData.theme,
 				elo: userData.elo
@@ -278,27 +278,37 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		if (!host) return '';
 		
 		// Get available colors from app state
-		const availableColors = appState.getAvailableColors();
+		const availableColors = Object.entries(appState.getAvailableColors());
 		
 		// Use host's theme directly if available, otherwise use app accent color
 		const currentColor = host.theme || appState.getAccentColorHex();
 		
+		// Split colors into two rows (6 in first row, 5 in second row)
+		const firstRowColors = availableColors.slice(0, 6);
+		const secondRowColors = availableColors.slice(6);
+		
 		return html`
-				<div class="player-avatar">
-					<img src="${host.pfp}" alt="${host.username}" />
-				</div>
-				<div class="player-name">${host.username}</div>
-				<div class="player-status">Connected</div>
-				
-				${host.elo ? html`
-					<div class="player-elo">ELO: ${host.elo}</div>
-				` : ''}
-				
-				<!-- Add color selection for host -->
-				<div class="player-color-selection">
-					<div class="color-label">Paddle Color:</div>
-					<div class="color-picker">
-						${Object.entries(availableColors).map(([colorName, colorHex]) => html`
+			<div class="player-avatar">
+				<img src="${host.pfp}" alt="${host.username}" />
+			</div>
+			<div class="player-name">${host.username}</div>
+			<div class="player-elo">${host.elo !== undefined ? String(host.elo) : '0'}</div>
+			<div class="player-status">Connected</div>
+			
+			<div class="player-color-selection">
+				<div class="color-picker">
+					<div class="color-row">
+						${firstRowColors.map(([colorName, colorHex]) => html`
+							<div 
+								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+								style="background-color: ${colorHex}"
+								onclick=${() => this.handleHostColorSelect(colorName, colorHex)}
+								title="${colorName}"
+							></div>
+						`)}
+					</div>
+					<div class="color-row">
+						${secondRowColors.map(([colorName, colorHex]) => html`
 							<div 
 								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
@@ -308,6 +318,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 						`)}
 					</div>
 				</div>
+			</div>
 		`;
 	}
 	
@@ -315,31 +326,43 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders a connected guest with color selection
 	 */
 	private renderConnectedGuest(guest: PlayerData): any {
-		const availableColors = appState.getAvailableColors();
+		// Get available colors from app state
+		const availableColors = Object.entries(appState.getAvailableColors());
+		
+		// Split colors into two rows (6 in first row, 5 in second row)
+		const firstRowColors = availableColors.slice(0, 6);
+		const secondRowColors = availableColors.slice(6);
 		
 		return html`
 			<div class="player-avatar">
 				<img src="${guest.pfp}" alt="${guest.username}" />
 			</div>
 			<div class="player-name">${guest.username}</div>
+			<div class="player-elo">${guest.elo !== undefined ? String(guest.elo) : '0'}</div>
 			<div class="player-status">Connected</div>
 			
-			${guest.elo ? html`
-				<div class="player-elo">ELO: ${guest.elo}</div>
-			` : ''}
-			
-			<!-- Add color selection for guest -->
 			<div class="player-color-selection">
-				<div class="color-label">Paddle Color:</div>
 				<div class="color-picker">
-					${Object.entries(availableColors).map(([colorName, colorHex]) => html`
-						<div 
-							class="color-option ${colorHex === guest.theme ? 'selected' : ''}"
-							style="background-color: ${colorHex}"
-							onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
-							title="${colorName}"
-						></div>
-					`)}
+					<div class="color-row">
+						${firstRowColors.map(([colorName, colorHex]) => html`
+							<div 
+								class="color-option ${colorHex === guest.theme ? 'selected' : ''}"
+								style="background-color: ${colorHex}"
+								onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
+								title="${colorName}"
+							></div>
+						`)}
+					</div>
+					<div class="color-row">
+						${secondRowColors.map(([colorName, colorHex]) => html`
+							<div 
+								class="color-option ${colorHex === guest.theme ? 'selected' : ''}"
+								style="background-color: ${colorHex}"
+								onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
+								title="${colorName}"
+							></div>
+						`)}
+					</div>
 				</div>
 			</div>
 		`;
@@ -421,6 +444,35 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			DbService.updateUserTheme(guestData.id, guestData.theme);
 		}
 		
+		// Ensure the theme color is explicitly set
+		const guestColor = guestData.theme;
+		
+		// Force update accent2 color with direct DOM manipulation for immediate effect
+		document.documentElement.style.setProperty('--accent2-color', guestColor);
+		
+		// Also update through app state
+		appState.setPlayerAccentColor(2, guestColor);
+		
+		// Check if we need to fetch ELO from DB if not already provided
+		if (guestData.elo === undefined) {
+			DbService.getUser(guestData.id)
+				.then(user => {
+					if (user.elo !== undefined) {
+						guestData.elo = user.elo;
+					}
+					this.continueGuestAuthentication(guestData);
+				})
+				.catch(_ => {
+					// If we can't fetch from DB, continue with current data
+					this.continueGuestAuthentication(guestData);
+				});
+		} else {
+			this.continueGuestAuthentication(guestData);
+		}
+	}
+	
+	// New method to continue guest authentication after potentially fetching ELO
+	private continueGuestAuthentication(guestData: PlayerData): void {
 		// Check if user is already registered (prevent duplicates)
 		const state = this.getInternalState();
 		
@@ -444,29 +496,58 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 		
-		// Create player data - we're already receiving a PlayerData object
-		const newPlayer = guestData;
-		
 		// For multiplayer, we'll update only the guest side without a full rerender
 		if (state.gameMode === GameMode.MULTI) {
 			// Update internal state first
 			this.updateInternalState({
-				guests: [newPlayer],
+				guests: [guestData],
 				error: null
 			});
+			
+			// Make sure the theme is set properly
+			appState.setPlayerAccentColor(2, guestData.theme || '#ffffff');
 			
 			// Get the guest side element to update
 			const guestSide = this.container.querySelector('.guest-side');
 			if (guestSide) {
 				// Update only the guest side content
+				const eloDisplay = `<div class="player-elo">ELO: ${guestData.elo !== undefined ? String(guestData.elo) : '0'}</div>`;
+				
+				// Get available colors from app state
+				const availableColors = appState.getAvailableColors();
+				
+				// Render player with complete information
 				guestSide.innerHTML = `
 					<div class="player-label">PLAYER 2</div>
 					<div class="player-avatar">
-						<img src="${newPlayer.pfp}" alt="${newPlayer.username}" />
+						<img src="${guestData.pfp}" alt="${guestData.username}" />
 					</div>
-					<div class="player-name">${newPlayer.username}</div>
+					<div class="player-name">${guestData.username}</div>
+					${eloDisplay}
 					<div class="player-status">Connected</div>
+					
+					<div class="player-color-selection">
+						<div class="color-label">Paddle Color:</div>
+						<div class="color-picker">
+							${Object.entries(availableColors).map(([colorName, colorHex]) => `
+								<div 
+									class="color-option ${colorHex === guestData.theme ? 'selected' : ''}"
+									style="background-color: ${colorHex}"
+									onclick="document.dispatchEvent(new CustomEvent('guest-color-select', {detail: {colorHex: '${colorHex}', guestId: ${guestData.id}}}))"
+									title="${colorName}"
+								></div>
+							`).join('')}
+						</div>
+					</div>
 				`;
+				
+				// Add event listener for the custom event
+				document.addEventListener('guest-color-select', (event: Event) => {
+					const customEvent = event as CustomEvent<{colorHex: string, guestId: number}>;
+					if (customEvent.detail) {
+						this.handleGuestColorSelect(customEvent.detail.colorHex, customEvent.detail.guestId);
+					}
+				});
 			}
 			
 			// Now check if ready to play (will update play button)
@@ -479,14 +560,18 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			let added = false;
 			for (let i = 0; i < 3; i++) {
 				if (!updatedGuests[i] || !updatedGuests[i].isConnected) {
-					updatedGuests[i] = newPlayer;
+					updatedGuests[i] = guestData;
+					
+					// Update the corresponding accent color (accent2, accent3, or accent4)
+					appState.setPlayerAccentColor(i + 2, guestData.theme || '#ffffff');
+					
 					added = true;
 					break;
 				}
 			}
 			
 			if (!added) {
-				updatedGuests.push(newPlayer);
+				updatedGuests.push(guestData);
 			}
 			
 			this.updateInternalState({
@@ -566,7 +651,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				playButton.addEventListener('click', () => this.startGame());
 			}
 		} else {
-			buttonContainer.innerHTML = ''; // Empty container if not ready
+			buttonContainer.innerHTML = '';
 		}
 	}
 	
@@ -598,17 +683,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			[hostName, guestName],
 			[hostColor, guestColor]
 		);
-	}
-	
-	// =========================================
-	// UTILITY METHODS
-	// =========================================
-	
-	/**
-	 * Generate a default profile picture URL based on username
-	 */
-	private generateDefaultProfilePic(username: string): string {
-		return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
 	}
 	
 	// =========================================
@@ -701,19 +775,43 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Update guest's theme in the database
 		DbService.updateUserTheme(guestId, colorHex);
 		
-		// Update guest's theme in the local state
-		const updatedGuests = state.guests.map(guest => {
-			if (guest && guest.id === guestId) {
-				return {
-					...guest,
-					theme: colorHex
-				};
-			}
-			return guest;
-		});
+		// Force immediate update of accent2 color
+		document.documentElement.style.setProperty('--accent2-color', colorHex);
 		
-		this.updateInternalState({
-			guests: updatedGuests
-		});
+		// Find guest index
+		const guestIndex = state.guests.findIndex(g => g && g.id === guestId);
+		
+		if (guestIndex >= 0) {
+			// Update accent color in the app state (accent2, accent3, or accent4)
+			appState.setPlayerAccentColor(guestIndex + 2, colorHex);
+			
+			// Update guest's theme in the local state
+			const updatedGuests = state.guests.map((guest, index) => {
+				if (index === guestIndex) {
+					return {
+						...guest,
+						theme: colorHex
+					};
+				}
+				return guest;
+			});
+			
+			this.updateInternalState({
+				guests: updatedGuests
+			});
+			
+			// Update the selected color in the UI
+			const guestSide = this.container.querySelector(`.guest-side:nth-child(${guestIndex + 1})`);
+			if (guestSide) {
+				const colorOptions = guestSide.querySelectorAll('.color-option');
+				colorOptions.forEach(option => {
+					if ((option as HTMLElement).style.backgroundColor === colorHex) {
+						option.classList.add('selected');
+					} else {
+						option.classList.remove('selected');
+					}
+				});
+			}
+		}
 	}
 }

@@ -16,6 +16,12 @@ export interface AppState {
 			token: string | null;
 	};
 	accentColor: AccentColor;
+	accentColors: {
+		accent1: string; // Host accent (same as accentColor but in hex)
+		accent2: string; // Guest 1 accent
+		accent3: string; // Guest 2 accent - for tournament
+		accent4: string; // Guest 3 accent - for tournament
+	};
 }
 
 // Define state change listener type
@@ -47,7 +53,13 @@ export class AppStateManager {
 			user: null,
 			token: null
 		},
-		accentColor: 'white'
+		accentColor: 'white',
+		accentColors: {
+			accent1: '#ffffff', // Host accent (default white)
+			accent2: '#ffffff', // Guest 1 accent (default white)
+			accent3: '#ffffff', // Guest 2 accent (default white)
+			accent4: '#ffffff'  // Guest 3 accent (default white)
+		}
 	};
 	
 	// Listeners for state changes
@@ -111,6 +123,8 @@ export class AppStateManager {
 									
 									if (colorEntry) {
 										this.state.accentColor = colorEntry[0] as AccentColor;
+										// Also set as accent1 (host accent)
+										this.state.accentColors.accent1 = dbUser.theme;
 										// Apply immediately
 										this.applyAccentColorToCSS();
 									}
@@ -140,6 +154,7 @@ export class AppStateManager {
 		} else {
 			// For non-authenticated users, use default white
 			this.state.accentColor = 'white';
+			this.state.accentColors.accent1 = '#ffffff';
 			// Apply immediately
 			this.applyAccentColorToCSS();
 		}
@@ -157,6 +172,8 @@ export class AppStateManager {
 			
 			if (colorEntry) {
 				this.state.accentColor = colorEntry[0] as AccentColor;
+				// Also set as accent1 (host accent)
+				this.state.accentColors.accent1 = user.theme;
 				// Apply immediately
 				this.applyAccentColorToCSS();
 			}
@@ -171,7 +188,8 @@ export class AppStateManager {
 			this.initializeFromStorage();
 			this.notifyListeners({
 				auth: { ...this.state.auth },
-				accentColor: this.state.accentColor
+				accentColor: this.state.accentColor,
+				accentColors: { ...this.state.accentColors }
 			}, {});
 		}
 	}
@@ -194,7 +212,8 @@ export class AppStateManager {
 			...this.state,
 			...newState,
 			// Handle nested objects
-			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth
+			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
+			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors
 		};
 		
 		// Notify listeners
@@ -260,12 +279,17 @@ export class AppStateManager {
 	 */
 	private applyAccentColorToCSS(): void {
 		const colorHex = AppStateManager.ACCENT_COLORS[this.state.accentColor];
-		document.documentElement.style.setProperty('--accent-color', colorHex);
 		
-		// You might want to derive other colors from the accent color
-		// For example, a darker version for hover states
+		// Main accent color (host)
+		document.documentElement.style.setProperty('--accent-color', colorHex);
 		document.documentElement.style.setProperty('--accent-color-dark', this.darkenColor(colorHex, 20));
 		document.documentElement.style.setProperty('--accent-color-light', this.lightenColor(colorHex, 20));
+		
+		// Apply multiple accent colors for players
+		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
+		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
+		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
+		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
 	}
 	
 	/**
@@ -335,6 +359,11 @@ export class AppStateManager {
 	public login(user: any, token?: string, persistent: boolean = false): void {
 		// Store persistence preference
 		localStorage.setItem('auth_persistent', persistent.toString());
+		
+		// Set this user's theme as accent1 (host accent)
+		if (user.theme) {
+			this.state.accentColors.accent1 = user.theme;
+		}
 		
 		// Update state
 		this.setState({
@@ -406,11 +435,19 @@ export class AppStateManager {
 	public setAccentColor(color: AccentColor): void {
 		if (AppStateManager.ACCENT_COLORS[color]) {
 			// Only update state if color is valid
-			this.setState({ accentColor: color });
+			const colorHex = AppStateManager.ACCENT_COLORS[color];
+			
+			// Update both accentColor and accent1
+			this.setState({ 
+				accentColor: color,
+				accentColors: {
+					...this.state.accentColors,
+					accent1: colorHex
+				}
+			});
 			
 			// If user is authenticated, update their theme in the database
 			if (this.state.auth.isAuthenticated && this.state.auth.user) {
-				const colorHex = AppStateManager.ACCENT_COLORS[color];
 				const userId = this.state.auth.user.id;
 				
 				// Import DbService dynamically to avoid circular dependencies
@@ -430,6 +467,38 @@ export class AppStateManager {
 	}
 	
 	/**
+	 * Set accent color for a specific player (1-4)
+	 */
+	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined): void {
+		if (playerIndex < 1 || playerIndex > 4) {
+			console.error('Invalid player index, must be 1-4');
+			return;
+		}
+		
+		// Update the specific accent color
+		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
+		
+		this.setState({
+			accentColors: {
+				...this.state.accentColors,
+				[accentKey]: colorHex
+			}
+		});
+		
+		// If this is player 1 (host), also update the main accent color
+		if (playerIndex === 1) {
+			// Find color name from hex
+			const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+				([_, hexValue]) => hexValue.toLowerCase() === colorHex?.toLowerCase() || ''
+			);
+			
+			if (colorEntry) {
+				this.setState({ accentColor: colorEntry[0] as AccentColor });
+			}
+		}
+	}
+	
+	/**
 	 * Get current accent color
 	 */
 	public getAccentColor(): AccentColor {
@@ -441,6 +510,19 @@ export class AppStateManager {
 	 */
 	public getAccentColorHex(): string {
 		return AppStateManager.ACCENT_COLORS[this.state.accentColor];
+	}
+	
+	/**
+	 * Get player accent color
+	 */
+	public getPlayerAccentColor(playerIndex: number): string {
+		if (playerIndex < 1 || playerIndex > 4) {
+			console.error('Invalid player index, must be 1-4');
+			return '#ffffff'; // Default white
+		}
+		
+		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
+		return this.state.accentColors[accentKey];
 	}
 	
 	/**

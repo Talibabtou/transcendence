@@ -47,6 +47,12 @@
 	/* Shadows */
 	--shadow-normal: 0 4px 20px rgba(0, 0, 0, 0.3);
 	--shadow-hover: 0 6px 25px rgba(0, 0, 0, 0.4);
+
+	/* Player accent colors */
+	--accent1-color: #ffffff;
+	--accent2-color: #ffffff;
+	--accent3-color: #ffffff;
+	--accent4-color: #ffffff;
 }
 
 /* Body layout */

@@ -4,9 +4,8 @@
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
 import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent } from '@website/scripts/components';
-import { appState } from '@website/scripts/utils';
+import { appState, MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
-import { MatchCache } from '@website/scripts/utils';
 
 // =========================================
 // TYPES & CONSTANTS

@@ -13,13 +13,13 @@ export function calculateUIPositions(width: number, height: number) {
 		playerNames: {
 			player1: {
 				left: (width * 0.06) + "px",
-				top: (height * 0.02) + "px",
+				top: (height * 0.017) + "px",
 				fontSize: sizes.SUBTITLE_SIZE,
 				textAlign: 'left'
 			},
 			player2: {
 				right: (width * 0.06) + "px", 
-				top: (height * 0.02) + "px",
+				top: (height * 0.017) + "px",
 				fontSize: sizes.SUBTITLE_SIZE,
 				textAlign: 'right'
 			}
