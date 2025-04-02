@@ -14,7 +14,7 @@ export function recordHttpMetrics(route: string, method: string, statusCode: num
     method,
     status_code: statusCode.toString()
   });
-  
+  console.log('Recorded HTTP metrics:', { route, method, statusCode, duration });
   httpRequestDurationHistogram.record(duration, {
     route,
     method,

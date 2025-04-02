@@ -1,7 +1,7 @@
-import { metrics } from '@opentelemetry/api';
+import { getMeter } from './telemetry.js';
 
 // Get the meter instance once and export it
-export const meter = metrics.getMeter('game-service-meter');
+export const meter = getMeter();
 
 // Create base metrics used across all controllers
 export const httpRequestDurationHistogram = meter.createHistogram('http_request_duration_seconds', {

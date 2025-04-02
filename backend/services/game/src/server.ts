@@ -13,8 +13,9 @@ import dotenv from 'dotenv'
 import { API_PREFIX, HEALTH_CHECK_PATH } from '../../../shared/constants/path.const.js'
 import { createErrorResponse, ErrorCodes, ErrorExamples } from '../../../shared/constants/error.const.js'
 import { errorResponseSchema } from '../../../shared/schemas/error.schema.js'
-import { metrics, trace, SpanStatusCode } from '@opentelemetry/api' // Import the metrics API and trace API
+import { trace, SpanStatusCode } from '@opentelemetry/api' // Import the metrics API and trace API
 import { telemetryMiddleware } from './middleware/telemetry.middleware.js'
+import { getMeter } from './telemetry/telemetry.js'
 
 dotenv.config()
 
@@ -76,7 +77,7 @@ await server.register(databaseConnector)
 await server.register(routes, { prefix: API_PREFIX })
 
 // Get a meter instance (adjust 'game-service-meter' as needed)
-const meter = metrics.getMeter('game-service-meter')
+const meter = getMeter('game-service')
 
 // Create a counter metric for health checks
 const healthCheckCounter = meter.createCounter('health_checks_total', {
@@ -129,23 +130,6 @@ server.get(HEALTH_CHECK_PATH, {
   } finally {
     span.end()
   }
-})
-
-// Add Prometheus metrics endpoint
-// The Prometheus exporter typically exposes metrics on /metrics by default
-// You might need to explicitly create the route depending on the exporter version and Fastify
-// Check the exporter documentation if /metrics doesn't work automatically
-server.get('/metrics', async (request, reply) => {
-  // This route might be automatically handled by the PrometheusExporter depending on version.
-  // If not automatically handled, you would need to manually retrieve metrics
-  // from the meterProvider's metricReader and format them.
-  // For now, assume the exporter handles it. Add a placeholder if needed.
-  // Example placeholder if manual retrieval is needed:
-  // const metrics = await prometheusExporter.getMetricsRequestHandler(request.raw, reply.raw);
-  // reply.type('text/plain').send(metrics);
-  // For simplicity, let's assume the exporter handles this route implicitly for now.
-  // If you get 404 on /metrics, you'll need to implement manual retrieval.
-  return reply.code(200).send('Metrics endpoint - Check Prometheus Exporter configuration if no metrics show.')
 })
 
 // Add global middleware for metrics
