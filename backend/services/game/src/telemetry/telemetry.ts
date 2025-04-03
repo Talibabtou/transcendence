@@ -6,6 +6,10 @@ import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { metrics } from '@opentelemetry/api'
+import { initializeMetrics } from './metrics.js' // Import the initializer
+// Import the Fastify instrumentation using default import for CommonJS compatibility
+import fastifyOtel from '@fastify/otel'
+const { FastifyOtelInstrumentation } = fastifyOtel
 
 // Configure the Prometheus Exporter
 // Default port is 9464
@@ -31,11 +35,13 @@ const sdk = new NodeSDK({
   metricReader: prometheusExporter,
   spanProcessor: new BatchSpanProcessor(traceExporter),
   instrumentations: [
+    // getNodeAutoInstrumentations will include http by default
     getNodeAutoInstrumentations({
-      '@opentelemetry/instrumentation-fs': { enabled: false },
-      '@opentelemetry/instrumentation-fastify': { enabled: true },
-      '@opentelemetry/instrumentation-http': { enabled: true }
-    })
+      // '@opentelemetry/instrumentation-http': { enabled: true } // Let FastifyInstrumentation handle specific HTTP parts
+    }),
+    // Add Fastify instrumentation
+    // The 'registerOnInitialization' option avoids needing to manually register the plugin in Fastify
+    new FastifyOtelInstrumentation({ registerOnInitialization: true })
   ]
   // The SDK will implicitly create and manage the MeterProvider
   // traceExporter and spanProcessor could be added here for tracing if needed
@@ -45,6 +51,9 @@ export async function startTelemetry() {
   try {
     await sdk.start()
     console.log('OpenTelemetry SDK started successfully.')
+
+    // Initialize custom metrics AFTER the SDK has started
+    initializeMetrics()
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
@@ -65,6 +74,3 @@ export async function startTelemetry() {
 
 // No need to export meterProvider explicitly, use `metrics.getMeter()` from API
 
-export function getMeter(name = 'game-service') {
-  return metrics.getMeter(name);
-}

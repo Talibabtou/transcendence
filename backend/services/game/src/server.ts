@@ -1,23 +1,20 @@
 import { startTelemetry } from './telemetry/telemetry.js'
-await startTelemetry() // Start telemetry collection
-
 import fastify from 'fastify'
 import databaseConnector from './database/database.js'
-import routes from './routes/index.js'
+import apiRoutes from './routes/index.js'
+import systemRoutes from './routes/system.routes.js'
 import fastifyHelmet from '@fastify/helmet'
 import fastifyCors from '@fastify/cors'
 import fastifyRateLimit from '@fastify/rate-limit'
 import fastifySwagger from '@fastify/swagger'
 import fastifySwaggerUi from '@fastify/swagger-ui'
 import dotenv from 'dotenv'
-import { API_PREFIX, HEALTH_CHECK_PATH } from '../../../shared/constants/path.const.js'
-import { createErrorResponse, ErrorCodes, ErrorExamples } from '../../../shared/constants/error.const.js'
-import { errorResponseSchema } from '../../../shared/schemas/error.schema.js'
-import { trace, SpanStatusCode } from '@opentelemetry/api' // Import the metrics API and trace API
-import { telemetryMiddleware } from './middleware/telemetry.middleware.js'
-import { getMeter } from './telemetry/telemetry.js'
+import { API_PREFIX } from '../../../shared/constants/path.const.js'
 
 dotenv.config()
+
+// Start the telemetry before any server operations
+await startTelemetry() // Ensure telemetry is initialized
 
 // Create the server instance
 const server = fastify({
@@ -74,66 +71,9 @@ await server.register(databaseConnector)
 // When you call server.register(routes, { prefix: '/api' }), 
 // you're telling Fastify to use the routes defined in your 
 // routes/index.js file and prefix all those routes with /api.
-await server.register(routes, { prefix: API_PREFIX })
+await server.register(apiRoutes, { prefix: API_PREFIX })
 
-// Get a meter instance (adjust 'game-service-meter' as needed)
-const meter = getMeter('game-service')
-
-// Create a counter metric for health checks
-const healthCheckCounter = meter.createCounter('health_checks_total', {
-  description: 'Total number of health checks performed'
-})
-
-// Health check route
-server.get(HEALTH_CHECK_PATH, {
-  schema: {
-    tags: ['system'],
-    description: 'Health check endpoint',
-    response: {
-      200: {
-        type: 'object',
-        properties: {
-          status: { type: 'string' },
-          timestamp: { type: 'string' },
-          service: { type: 'string' },
-          version: { type: 'string' }
-        }
-      },
-			503: {
-				...errorResponseSchema,
-				example: ErrorExamples.serviceUnavailable
-			}
-    }
-  }
-}, async (request, reply) => {
-  const span = trace.getTracer('game-service').startSpan('health-check')
-  
-  try {
-    healthCheckCounter.add(1, { 'service.status': 'attempt' })
-    span.addEvent('Starting health check')
-    
-    await request.server.db.get('SELECT 1')
-    span.setStatus({ code: SpanStatusCode.OK })
-    
-    return {
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      service: 'game',
-      version: process.env.SERVICE_VERSION || '1.0.0'
-    }
-  } catch (error) {
-    span.setStatus({
-      code: SpanStatusCode.ERROR,
-      message: error instanceof Error ? error.message : 'Unknown error'
-    })
-    throw error
-  } finally {
-    span.end()
-  }
-})
-
-// Add global middleware for metrics
-server.addHook('onRequest', telemetryMiddleware)
+await server.register(systemRoutes)
 
 // Start the server
 const start = async () => {
