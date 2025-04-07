@@ -23,8 +23,11 @@ export function initializeMetrics() {
   healthCheckCounter = meter.createCounter('health_checks_total', {
     description: 'Total number of health checks performed'
   })
-	databaseQueryDurationHistogram = meter.createHistogram('database_query_duration_seconds', {
+	databaseQueryDurationHistogram = meter.createHistogram('database_query_duration', {
 		description: 'Duration of database queries in seconds',
+		advice: {
+			explicitBucketBoundaries: [0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.006, 0.007, 0.008, 0.009, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+		}
 	});
 
 	// Match-specific metrics

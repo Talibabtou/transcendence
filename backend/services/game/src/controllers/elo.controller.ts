@@ -18,8 +18,8 @@ export async function getElo(request: FastifyRequest<{
   const { id: player_id } = request.params
 	try {
     const startTime = performance.now(); // Start timer
-		const elo = await request.server.db.get('SELECT * FROM elo WHERE player = ? ORDER BY created_at DESC LIMIT 1', [player_id]) as Elo | null
-    recordDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime) / 1000); // Record metric
+		const elo = await request.server.db.get('SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1', [player_id]) as Elo | null
+    recordDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime)); // Record metric
 		if (!elo) {
 			const errorResponse = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
 			return reply.code(404).send(errorResponse)
@@ -50,7 +50,7 @@ export async function getElos(request: FastifyRequest<{
 
     const startTime = performance.now(); // Start timer
 		const elos = await request.server.db.all(query, ...params) as Elo[]
-    recordDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime)); // Record metric
 		return reply.code(200).send(elos)
 		
 	} catch (error) {
@@ -76,7 +76,7 @@ export async function createElo(request: FastifyRequest<{
       'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
       player, elo
     ) as Elo
-    recordDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime)); // Record metric
     eloCreationCounter.add(1, { 'elo.id': newElo?.id });
     request.log.info({
       msg: 'Elo entry created successfully',
@@ -108,7 +108,7 @@ export async function dailyElo(request: FastifyRequest<{
 			'SELECT player, match_date, elo FROM player_daily_elo WHERE player = ?',
 			[player]
 		) as DailyElo[]
-    recordDatabaseMetrics('SELECT', 'player_daily_elo', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('SELECT', 'player_daily_elo', (performance.now() - startTime)); // Record metric
 		return reply.code(200).send(dailyElo)
 	} catch (error) {
 		const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)

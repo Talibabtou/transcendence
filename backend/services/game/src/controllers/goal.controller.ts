@@ -19,7 +19,7 @@ export async function getGoal(request: FastifyRequest<{
   try {
     const startTime = performance.now(); // Start timer
     const goal = await request.server.db.get('SELECT * FROM goal WHERE id = ?', [id]) as Goal | null
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     if (!goal) {
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
       return reply.code(404).send(errorResponse)
@@ -55,7 +55,7 @@ export async function getGoals(request: FastifyRequest<{
     
     const startTime = performance.now(); // Start timer
     const goals = await request.server.db.all(query, ...params) as Goal[]
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     return reply.code(200).send(goals)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -133,7 +133,7 @@ export async function fastestGoal(request: FastifyRequest<{
   try {
     const startTime = performance.now(); // Start timer
     const goal = await request.server.db.get('SELECT duration FROM goal WHERE player = ? ORDER BY duration ASC LIMIT 1', [player_id]) as FastestGoal | null
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime) / 1000); // Record metric
+    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     if (!goal) {
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
       return reply.code(404).send(errorResponse)
