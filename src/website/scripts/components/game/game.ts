@@ -764,7 +764,7 @@ export class GameComponent extends Component<GameComponentState> {
 			setTimeout(() => {
 				this.updateGameState(GameState.PLAYING);
 				this.isTransitioning = false;
-			}, 200);
+			}, 10);
 		}
 	}
 

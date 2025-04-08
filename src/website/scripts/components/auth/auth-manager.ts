@@ -333,17 +333,4 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		// Clean up event listeners and call parent's destroy
 		super.destroy();
 	}
-	
-	private showError(message: string): void {
-		this.updateInternalState({ error: message });
-		
-		requestAnimationFrame(() => {
-			const errorElement = this.container.querySelector('.register-error') as HTMLElement;
-			if (errorElement) {
-				errorElement.classList.remove('shake');
-				void errorElement.offsetWidth;
-				errorElement.classList.add('shake');
-			}
-		});
-	}
 }

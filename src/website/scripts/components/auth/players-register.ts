@@ -717,28 +717,34 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 		
 		if (state.gameMode === GameMode.MULTI) {
-			// Existing multiplayer code
+			// Hide the menu and immediately clean up
+			document.getElementById('game-menu')?.remove();
+			
 			if (!state.guests[0]) {
 				console.error('Cannot start game: Missing guest');
 				return;
 			}
 			
+			// Prepare all data before calling callback
 			const hostId = state.host.id;
 			const guestId = state.guests[0].id;
-			
 			const hostName = state.host.username || 'Player 1';
 			const guestName = state.guests[0].username || 'Player 2';
-			
 			const hostColor = state.host.theme || '#ffffff';
 			const guestColor = state.guests[0].theme || '#ffffff';
 
+			// Clean up auth managers before transitioning
+			this.authManagers.forEach(manager => manager.destroy());
+			this.authManagers.clear();
+
+			// Call callback with all data
 			this.onAllPlayersRegistered(
 				[hostId, guestId], 
 				[hostName, guestName],
 				[hostColor, guestColor]
 			);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
-			// Tournament mode - collect all 4 players
+			// For tournament mode
 			const connectedGuests = state.guests.filter(g => g && g.isConnected);
 			if (connectedGuests.length < 3) {
 				console.error('Cannot start tournament: Not enough players');
@@ -755,8 +761,10 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				...connectedGuests.map(g => g.theme || '#ffffff')
 			];
 			
-			// Setup tournament data in the TournamentCache first
-			// This will create the schedule that the transition component will display
+			// Hide any existing menu
+			document.getElementById('game-menu')?.remove();
+			
+			// Only dispatch the tournament initialization once
 			const eventDetail = {
 				action: 'initializeTournament',
 				playerIds,
@@ -764,13 +772,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				playerColors
 			};
 			
-			// Dispatch event to initialize tournament before starting
+			// Dispatch event to initialize tournament
 			document.dispatchEvent(new CustomEvent('tournament-action', { detail: eventDetail }));
 			
 			// Show tournament schedule screen
 			document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
 			
-			// Then pass player data to start the tournament
+			// Pass player data to start the tournament
 			this.onAllPlayersRegistered(playerIds, playerNames, playerColors);
 		}
 	}
