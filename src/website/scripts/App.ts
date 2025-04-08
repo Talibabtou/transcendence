@@ -83,8 +83,8 @@ UI & Styling:
 - Game menu buttons all the same size
 - Verify everything works fine on 4k screens
 // - Return to menu button in multiplayer and tournament lobbies
-- Add fav color to user profiles
-- Chose color directly in lobbies
+//- Add fav color to user profiles
+// - Chose color directly in lobbies
 
 Features & Functionality:
 - Implement the real AI for the game, and keep the current one for the background demo mode
@@ -114,7 +114,10 @@ Performance & Security:
 - Optimize database queries
 - Refactor to the component pool pattern
 - Password enforcement for account creation (8 characters, one uppercase, one number, one special character)
-- Manage the backward history click in the navigator
+- Manage the backward history click in the navigator (save only if changing / )
+- Check routing flow
+- Check if the user is logged in when visiting a page
+- Set a timeout on games, and duration for match is the total time, play + pauses
 
 Documentation:
 - Add JSDoc comments to all main functions

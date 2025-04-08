@@ -33,6 +33,7 @@
 	--navbar-height: 5rem;
 	--footer-height: 3rem;
 	--container-width: 100%;
+	--main-canvas-height: calc(100vh - var(--navbar-height) - var(--footer-height));
 	
 	/* Spacing */
 	--spacing-xs: 0.5rem;
@@ -136,8 +137,8 @@ body {
 	color: var(--text-color);
 	cursor: pointer;
 	z-index: 1;
-	text-shadow: 0 0 0 transparent;  /* Initial state with no shadow */
-  transition: text-shadow 0.3s ease;
+	text-shadow: 0 0 0 transparent;
+	transition: text-shadow 0.3s ease;
 }
 
 .nav-logo:hover {
@@ -215,7 +216,7 @@ body {
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	z-index: -1;
 	opacity: 0.3;
 	pointer-events: none;
@@ -228,7 +229,7 @@ body {
 /* Section styling */
 .section {
 	width: 100%;
-	max-width: 75rem;
+	max-width: 100%;
 	margin: 0 auto;
 }
 
@@ -265,4 +266,271 @@ body::before {
 	overflow-y: auto;
 	scrollbar-width: thin;
 	scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* Common Container Layouts
+	 ========================================================================== */
+.content-wrapper {
+	flex: 1;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--spacing-md);
+	overflow-y: auto;
+	position: relative;
+}
+
+/* ASCII Containers - Standardized */
+.ascii-container {
+	width: 80%;
+	margin: 0 auto;
+	padding: var(--spacing-md);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow-normal);
+	height: auto;
+	min-height: 60vh;
+	display: flex;
+	flex-direction: column;
+}
+
+/* Standard Form Styles */
+.form-container {
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	width: 90%;
+	max-width: 31.25rem;
+	box-shadow: var(--shadow-normal);
+	animation: fadeIn 0.3s ease;
+	margin: 0 auto;
+}
+
+/* Standard Button Styles */
+.primary-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-color);
+	text-decoration: none;
+	padding: 0.8rem 1.5rem;
+	transition: all var(--transition-normal);
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: relative;
+	overflow: hidden;
+	cursor: pointer;
+}
+
+.primary-button:hover {
+	text-shadow: 0 0 10px var(--glow-color);
+	border-color: var(--text-color);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Status Messages */
+.status-message {
+	padding: var(--spacing-sm);
+	margin: var(--spacing-sm) 0;
+	text-align: center;
+	border-radius: 4px;
+}
+
+.error-message {
+	background-color: rgba(255, 100, 100, 0.2);
+	border: 1px solid var(--error-color);
+	color: var(--error-color);
+}
+
+.success-message {
+	background-color: rgba(152, 251, 152, 0.1);
+	border: 1px solid var(--win-color);
+	color: var(--win-color);
+}
+
+.loading-text {
+	text-align: center;
+	padding: var(--spacing-md);
+	color: var(--text-color);
+	font-size: var(--font-size-small);
+}
+
+/* Tables - Common Design */
+.data-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1rem;
+	font-size: var(--font-size-medium);
+	table-layout: fixed;
+}
+
+.data-table th {
+	text-align: center;
+	padding: var(--spacing-sm) 0;
+	background-color: var(--menu-bg);
+	border-bottom: 2px solid var(--border-color);
+	font-weight: bold;
+	color: var(--text-color);
+}
+
+.data-table td {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid rgba(51, 51, 51, 0.5);
+}
+
+.data-table tr:nth-child(odd) {
+	background-color: rgba(51, 51, 51, 0.4);
+}
+
+.data-table tr:nth-child(even) {
+	background-color: rgba(34, 34, 34, 0.4);
+}
+
+/* Form Elements */
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: var(--spacing-sm);
+}
+
+.form-group label {
+	font-size: var(--font-size-small);
+	color: var(--text-color);
+}
+
+.form-group input {
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	padding: 0.8rem;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	transition: all var(--transition-normal);
+}
+
+.form-group input:focus {
+	outline: none;
+	border-color: var(--text-color);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Avatar Styles */
+.avatar {
+	border-radius: 50%;
+	overflow: hidden;
+	border: 0.125rem solid var(--border-color);
+}
+
+.avatar-sm {
+	width: 48px;
+	height: 48px;
+}
+
+.avatar-md {
+	width: 100px;
+	height: 100px;
+}
+
+.avatar-lg {
+	width: 150px;
+	height: 150px;
+}
+
+.avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* Tabs System */
+.tabs-container {
+	display: flex;
+	gap: 1px;
+	background-color: rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+	margin-bottom: var(--spacing-md);
+}
+
+.tab-button {
+	flex: 1;
+	padding: 0.75rem;
+	background: none;
+	border: none;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+}
+
+.tab-button:hover {
+	color: var(--text-color);
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+	color: var(--text-color);
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tab-pane {
+	display: none;
+}
+
+.tab-pane.active {
+	display: block;
+}
+
+/* Color Picker Component */
+.color-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-bottom: var(--spacing-sm);
+}
+
+.color-row {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+.color-option {
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 0.125rem solid transparent;
+	transition: all var(--transition-fast);
+}
+
+.color-option:hover {
+	transform: scale(1.1);
+}
+
+.color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+/* Responsive layouts */
+@media (max-width: 768px) {
+	.ascii-container {
+		width: 95%;
+		padding: var(--spacing-sm);
+	}
+	
+	.form-container {
+		width: 95%;
+		padding: var(--spacing-sm);
+	}
+	
+	.data-table th,
+	.data-table td {
+		padding: 0.5rem 0.25rem;
+		font-size: 0.9rem;
+	}
 }

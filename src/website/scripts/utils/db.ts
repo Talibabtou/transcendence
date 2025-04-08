@@ -87,46 +87,39 @@ export class DbService {
 	static login(credentials: AuthCredentials): Promise<AuthResponse> {
 		this.logRequest('POST', '/api/auth/login', {
 			email: credentials.email,
-			password: '********' // Don't log actual password
+			password: '********'
 		});
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Find user by email - real SQL-like behavior
-					const user = db.users.find(u => u.email === credentials.email);
+			try {
+				const user = db.users.find(u => u.email === credentials.email);
+				
+				if (user && user.password === credentials.password) {
+					const now = new Date();
+					user.last_login = now.toISOString();
+					persistDb();
 					
-					if (user && user.password === credentials.password) {
-						// Successful login
-						const now = new Date();
-						
-						// Update last login
-						user.last_login = now.toISOString();
-						persistDb();
-						
-						// Return user without password
-						const userResponse: AuthResponse = {
-							success: true,
-							user: {
-								id: user.id,
-								pseudo: user.pseudo,
-								email: user.email,
-								created_at: new Date(user.created_at),
-								last_login: now,
-								auth_method: user.auth_method,
-								theme: user.theme || '#ffffff'
-							},
-							token: 'mock-jwt-token'
-						};
-						
-						resolve(userResponse);
-					} else {
-						reject(new Error('Invalid credentials'));
-					}
-				} catch (error) {
-					reject(error);
+					const userResponse: AuthResponse = {
+						success: true,
+						user: {
+							id: user.id,
+							pseudo: user.pseudo,
+							email: user.email,
+							created_at: new Date(user.created_at),
+							last_login: now,
+							auth_method: user.auth_method,
+							theme: user.theme || '#ffffff'
+						},
+						token: 'mock-jwt-token'
+					};
+					
+					resolve(userResponse);
+				} else {
+					reject(new Error('Wrong email or password'));
 				}
-			}, 100);
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -142,59 +135,57 @@ export class DbService {
 		});
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Check if email already exists
-					const existingUser = db.users.find(u => u.email === userData.email);
-					
-					if (existingUser) {
-						reject(new Error('Email already registered'));
-						return;
-					}
-					
-					// Get next user ID from sequence
-					const userId = db.meta.user_id_sequence++;
-					
-					// Create new user
-					const now = new Date();
-					const newUser = {
+			try {
+				// Check if email already exists
+				const existingUser = db.users.find(u => u.email === userData.email);
+				
+				if (existingUser) {
+					reject(new Error('Email already registered'));
+					return;
+				}
+				
+				// Get next user ID from sequence
+				const userId = db.meta.user_id_sequence++;
+				
+				// Create new user
+				const now = new Date();
+				const newUser = {
+					id: userId,
+					pseudo: userData.username,
+					email: userData.email,
+					password: userData.password,
+					auth_method: 'email',
+					created_at: now.toISOString(),
+					last_login: now.toISOString(),
+					theme: '#ffffff'
+				};
+				
+				// Add to users array
+				db.users.push(newUser);
+				
+				// Persist changes
+				persistDb();
+				
+				// Sync to legacy storage
+				this.syncLegacyStorage();
+				
+				// Return response
+				resolve({
+					success: true,
+					user: {
 						id: userId,
 						pseudo: userData.username,
 						email: userData.email,
-						password: userData.password,
+						created_at: now,
+						last_login: now,
 						auth_method: 'email',
-						created_at: now.toISOString(),
-						last_login: now.toISOString(),
 						theme: '#ffffff'
-					};
-					
-					// Add to users array
-					db.users.push(newUser);
-					
-					// Persist changes
-					persistDb();
-					
-					// Sync to legacy storage
-					this.syncLegacyStorage();
-					
-					// Return response
-					resolve({
-						success: true,
-						user: {
-							id: userId,
-							pseudo: userData.username,
-							email: userData.email,
-							created_at: now,
-							last_login: now,
-							auth_method: 'email',
-							theme: '#ffffff'
-						},
-						token: 'mock-jwt-token'
-					});
-				} catch (error) {
-					reject(error);
-				}
-			}, 300);
+					},
+					token: 'mock-jwt-token'
+				});
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -210,7 +201,7 @@ export class DbService {
 		});
 		
 		return new Promise((resolve) => {
-			setTimeout(() => {
+			try {
 				// Mock successful OAuth login
 				const userId = db.meta.user_id_sequence++;
 				const now = new Date();
@@ -273,7 +264,9 @@ export class DbService {
 						token: 'mock-jwt-token'
 					});
 				}
-			}, 300);
+			} catch (error) {
+				console.error('Error in oauthLogin:', error);
+			}
 		});
 	}
 	
@@ -355,37 +348,35 @@ export class DbService {
 		this.logRequest('PUT', `/api/users/${userId}`, userData);
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Find user by ID
-					const userIndex = db.users.findIndex(u => u.id === userId);
+			try {
+				// Find user by ID
+				const userIndex = db.users.findIndex(u => u.id === userId);
+				
+				if (userIndex !== -1) {
+					// Update user
+					db.users[userIndex] = {
+						...db.users[userIndex],
+						...userData
+					};
 					
-					if (userIndex !== -1) {
-						// Update user
-						db.users[userIndex] = {
-							...db.users[userIndex],
-							...userData
-						};
-						
-						// Persist changes
-						persistDb();
-						
-						// Sync to legacy storage
-						this.syncLegacyStorage();
-						
-						// Return updated user
-						resolve({
-							...db.users[userIndex],
-							created_at: new Date(db.users[userIndex].created_at),
-							last_login: db.users[userIndex].last_login ? new Date(db.users[userIndex].last_login) : undefined
-						});
-					} else {
-						reject(new Error(`User with ID ${userId} not found`));
-					}
-				} catch (error) {
-					reject(error);
+					// Persist changes
+					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
+					// Return updated user
+					resolve({
+						...db.users[userIndex],
+						created_at: new Date(db.users[userIndex].created_at),
+						last_login: db.users[userIndex].last_login ? new Date(db.users[userIndex].last_login) : undefined
+					});
+				} else {
+					reject(new Error(`User with ID ${userId} not found`));
 				}
-			}, 200);
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -407,54 +398,52 @@ export class DbService {
 		this.logRequest('POST', '/api/users', userData);
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Get next user ID from sequence
-					const userId = userData.id || db.meta.user_id_sequence++;
-					const now = new Date();
-					
-					// Create new user
-					const newUser = {
-						id: userId,
-						pseudo: userData.pseudo || 'NewUser',
-						created_at: (userData.created_at || now).toISOString(),
-						last_login: (userData.last_login || now).toISOString(),
-						theme: userData.theme || '#ffffff',
-						...userData
+			try {
+				// Get next user ID from sequence
+				const userId = userData.id || db.meta.user_id_sequence++;
+				const now = new Date();
+				
+				// Create new user
+				const newUser = {
+					id: userId,
+					pseudo: userData.pseudo || 'NewUser',
+					created_at: (userData.created_at || now).toISOString(),
+					last_login: (userData.last_login || now).toISOString(),
+					theme: userData.theme || '#ffffff',
+					...userData
+				};
+				
+				// Add to users array - but don't add duplicates
+				const existingUserIndex = db.users.findIndex(u => u.id === userId);
+				if (existingUserIndex !== -1) {
+					// Update existing user
+					db.users[existingUserIndex] = {
+						...db.users[existingUserIndex],
+						...newUser
 					};
-					
-					// Add to users array - but don't add duplicates
-					const existingUserIndex = db.users.findIndex(u => u.id === userId);
-					if (existingUserIndex !== -1) {
-						// Update existing user
-						db.users[existingUserIndex] = {
-							...db.users[existingUserIndex],
-							...newUser
-						};
-					} else {
-						// Add new user
-						db.users.push(newUser);
-					}
-					
-					// Persist changes
-					persistDb();
-					
-					// Sync to legacy storage
-					this.syncLegacyStorage();
-					
-					// Return response
-					resolve({
-						id: userId,
-						pseudo: userData.pseudo || 'NewUser',
-						created_at: userData.created_at || now,
-						last_login: userData.last_login || now,
-						theme: userData.theme || '#ffffff',
-						...userData
-					});
-				} catch (error) {
-					reject(error);
+				} else {
+					// Add new user
+					db.users.push(newUser);
 				}
-			}, 200);
+				
+				// Persist changes
+				persistDb();
+				
+				// Sync to legacy storage
+				this.syncLegacyStorage();
+				
+				// Return response
+				resolve({
+					id: userId,
+					pseudo: userData.pseudo || 'NewUser',
+					created_at: userData.created_at || now,
+					last_login: userData.last_login || now,
+					theme: userData.theme || '#ffffff',
+					...userData
+				});
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -753,29 +742,27 @@ export class DbService {
 		this.logRequest('PUT', `/api/users/${numericId}/theme`, { theme });
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Find user by ID
-					const userIndex = db.users.findIndex(u => u.id === numericId);
+			try {
+				// Find user by ID
+				const userIndex = db.users.findIndex(u => u.id === numericId);
+				
+				if (userIndex !== -1) {
+					// Update theme
+					db.users[userIndex].theme = theme;
 					
-					if (userIndex !== -1) {
-						// Update theme
-						db.users[userIndex].theme = theme;
-						
-						// Persist changes
-						persistDb();
-						
-						// Sync to legacy storage
-						this.syncLegacyStorage();
-						
-						resolve();
-					} else {
-						reject(new Error(`User with ID ${numericId} not found`));
-					}
-				} catch (error) {
-					reject(error);
+					// Persist changes
+					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
+					resolve();
+				} else {
+					reject(new Error(`User with ID ${numericId} not found`));
 				}
-			}, 200);
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -1048,34 +1035,32 @@ fetch('/api/save-db', {
 		});
 
 		return new Promise((resolve) => {
-			setTimeout(() => {
-				try {
-					// Find user by email and password - uses the JSON database
-					const user = db.users.find(u => 
-						u.email === email && u.password === password);
+			try {
+				// Find user by email and password - uses the JSON database
+				const user = db.users.find(u => 
+					u.email === email && u.password === password);
 
-					if (user) {
-						// Return success with user data
-						resolve({
-							success: true,
-							user: {
-								id: String(user.id),
-								username: user.pseudo,
-								email: user.email,
-								profilePicture: user.pfp || '/images/default-avatar.svg',
-								theme: user.theme
-							},
-							token: 'mock-jwt-token'
-						});
-					} else {
-						// Return failure
-						resolve({ success: false });
-					}
-				} catch (error) {
-					console.error('Auth: Verification error', error);
+				if (user) {
+					// Return success with user data
+					resolve({
+						success: true,
+						user: {
+							id: String(user.id),
+							username: user.pseudo,
+							email: user.email,
+							profilePicture: user.pfp || '/images/default-avatar.svg',
+							theme: user.theme
+						},
+						token: 'mock-jwt-token'
+					});
+				} else {
+					// Return failure
 					resolve({ success: false });
 				}
-			}, 300);
+			} catch (error) {
+				console.error('Auth: Verification error', error);
+				resolve({ success: false });
+			}
 		});
 	}
 
@@ -1088,29 +1073,27 @@ fetch('/api/save-db', {
 		this.logRequest('PUT', `/api/users/${numericId}/last-connection`);
 		
 		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Find user by ID in the JSON database
-					const userIndex = db.users.findIndex(u => u.id === numericId);
+			try {
+				// Find user by ID in the JSON database
+				const userIndex = db.users.findIndex(u => u.id === numericId);
+				
+				if (userIndex !== -1) {
+					// Update last login
+					db.users[userIndex].last_login = new Date().toISOString();
 					
-					if (userIndex !== -1) {
-						// Update last login
-						db.users[userIndex].last_login = new Date().toISOString();
-						
-						// Persist changes
-						persistDb();
-						
-						// Sync to legacy storage
-						this.syncLegacyStorage();
-						
-						resolve();
-					} else {
-						reject(new Error(`User with ID ${numericId} not found`));
-					}
-				} catch (error) {
-					reject(error);
+					// Persist changes
+					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
+					resolve();
+				} else {
+					reject(new Error(`User with ID ${numericId} not found`));
 				}
-			}, 200);
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 
@@ -1131,6 +1114,103 @@ fetch('/api/save-db', {
 				console.error('Error fetching match goals:', error);
 				reject(error);
 			}
+		});
+	}
+
+	/**
+	 * Creates a new tournament
+	 * @param playerIds - Array of player IDs participating in tournament
+	 * @param tournamentId - UUID for the tournament
+	 */
+	static createTournament(playerIds: number[], tournamentId: string): Promise<any> {
+		this.logRequest('POST', '/api/tournaments', { playerIds, tournamentId });
+		
+		return new Promise((resolve) => {
+			// In our mock implementation, we just return success
+			// In a real implementation, this would create a tournament record
+			resolve({
+				id: tournamentId,
+				playerIds,
+				created_at: new Date().toISOString(),
+				completed: false
+			});
+		});
+	}
+
+	/**
+	 * Creates a match within a tournament
+	 * @param player1Id - First player's ID
+	 * @param player2Id - Second player's ID
+	 * @param tournamentId - The tournament ID this match belongs to
+	 */
+	static createTournamentMatch(player1Id: number, player2Id: number, tournamentId: string): Promise<Match> {
+		this.logRequest('POST', '/api/tournaments/matches', {
+			player1Id,
+			player2Id,
+			tournamentId
+		});
+		
+		// Generate match ID
+		const matchId = db.meta.match_id_sequence || 1;
+		
+		// Create match object with tournament reference
+		const match = {
+			id: matchId,
+			player_1: player1Id,
+			player_2: player2Id,
+			tournament_id: tournamentId, // Add tournament reference
+			completed: false,
+			duration: 0,
+			timeout: false,
+			created_at: new Date().toISOString()
+		};
+		
+		// Add to database
+		db.matches.push(match);
+		
+		// Update sequence
+		db.meta.match_id_sequence = matchId + 1;
+		persistDb();
+		
+		// Return a properly formatted match object for the API
+		return Promise.resolve({
+			...match,
+			created_at: new Date(match.created_at)
+		} as Match);
+	}
+
+	/**
+	 * Completes a tournament and records final standings
+	 * @param tournamentId - The tournament ID
+	 * @param rankings - Final player rankings
+	 */
+	static completeTournament(tournamentId: string, rankings: { 
+		playerId: number, 
+		position: number 
+	}[]): Promise<void> {
+		this.logRequest('PUT', `/api/tournaments/${tournamentId}/complete`, { rankings });
+		
+		// In a real implementation, this would update tournament records
+		return Promise.resolve();
+	}
+
+	/**
+	 * Gets all matches for a tournament
+	 * @param tournamentId - The tournament ID
+	 */
+	static getTournamentMatches(tournamentId: string): Promise<Match[]> {
+		this.logRequest('GET', `/api/tournaments/${tournamentId}/matches`);
+		
+		return new Promise((resolve) => {
+			// Filter matches by tournament ID
+			const matches = db.matches.filter((match: any) => 
+				match.tournament_id === tournamentId
+			).map((match: any) => ({
+				...match,
+				created_at: new Date(match.created_at)
+			}));
+			
+			resolve(matches);
 		});
 	}
 }

@@ -9,7 +9,6 @@ import { IAuthComponent, GuestAuthState } from '@shared/types';
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	constructor(container: HTMLElement) {
 		super(container, {
-			isLoading: false,
 			error: null,
 			isRegisterMode: false
 		});
@@ -22,10 +21,12 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the component
 	 */
 	render(): void {
-		// Create basic container structure
 		const template = html`
 			<div class="auth-form-container simplified-auth-form-container">
 				${this.renderContent()}
+				${this.getInternalState().error ? html`
+					<div class="register-error shake">${this.getInternalState().error}</div>
+				` : ''}
 			</div>
 		`;
 		
@@ -37,10 +38,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderContent(): any {
 		const state = this.getInternalState();
-		
-		if (state.isLoading) {
-			return html`<div class="auth-processing">Verifying...</div>`;
-		}
+
 		
 		if (state.isRegisterMode) {
 			return this.renderRegisterForm();
@@ -53,8 +51,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the login form for guest authentication
 	 */
 	private renderLoginForm(): any {
-		const state = this.getInternalState();
-		
 		return html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleLoginSubmit}>
 				<div class="form-group">
@@ -72,19 +68,17 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			
 			<div class="auth-social-options">
 				<button class="menu-button auth-social-button google-auth" onclick=${this.handleSocialLoginClick}>
-					Login with Google
+					G
 				</button>
 				
 				<button class="menu-button auth-social-button forty-two-auth" onclick=${this.handleSocialLoginClick}>
-					Login with 42
+					42
 				</button>
 			</div>
 			
 			<div class="auth-links">
 				<a href="#" onclick=${this.switchToRegister}>Create account</a>
 			</div>
-			
-			${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
 		`;
 	}
 	
@@ -92,8 +86,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the register form for guest creation
 	 */
 	private renderRegisterForm(): any {
-		const state = this.getInternalState();
-		
 		return html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
@@ -117,8 +109,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			<div class="auth-links">
 				<a href="#" onclick=${this.switchToLogin}>Back to login</a>
 			</div>
-			
-			${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
 		`;
 	}
 	
@@ -182,62 +172,44 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private handleSocialLoginClick = (e: Event): void => {
 		e.preventDefault();
-		this.updateInternalState({
-			error: 'Social login is not available for guest players.'
-		});
+		this.showError('Social login is not available for guest players.');
 	}
 	
 	/**
 	 * Authenticate a guest using email/password
 	 */
 	private async authenticateGuest(email: string, password: string): Promise<void> {
-		this.updateInternalState({ 
-			isLoading: true,
-			error: null
-		});
+		this.updateInternalState({ error: null });
 		
 		try {
-			// Verify user credentials using DbService
 			const response = await DbService.verifyUser(email, password);
 			
 			if (response.success && response.user) {
 				const userData = {
 					id: response.user.id,
 					username: response.user.username,
-					email: response.user.email || '',  // Add fallback
+					email: response.user.email || '',
 					profilePicture: response.user.profilePicture,
 					theme: response.user.theme || '#ffffff'
 				};
 				
-				// Update last login - use the original ID format
 				await DbService.updateUserLastConnection(String(response.user.id));
 				
-				// Dispatch event with user data
+				const position = this.getPositionFromContainerId();
+				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
-					detail: { user: userData }
+					detail: { user: userData, position }
 				});
 				this.container.dispatchEvent(authEvent);
 				
-				// Show success message
-				this.showMessage('Authentication successful!', 'success');
-				
-				// Hide component
 				this.hide();
 			} else {
-				this.updateInternalState({
-					isLoading: false,
-					error: 'Invalid email or password'
-				});
-				this.showMessage('Invalid email or password.', 'error');
+				this.showError('Invalid email or password');
 			}
 		} catch (error) {
 			console.error('Guest authentication error:', error);
-			this.updateInternalState({
-				isLoading: false,
-				error: 'Authentication failed. Please try again.'
-			});
-			this.showMessage('Authentication failed. Please try again.', 'error');
+			this.showError('Authentication failed. Please try again.');
 		}
 	}
 	
@@ -245,13 +217,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Register a new guest user directly to the database
 	 */
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
-		this.updateInternalState({
-			isLoading: true,
-			error: null
-		});
+		this.updateInternalState({ error: null });
 		
 		try {
-			// Create user in the database
 			const newUser = await DbService.register({
 				username,
 				email,
@@ -259,7 +227,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			});
 			
 			if (newUser.success && newUser.user) {
-				// Format user data for the guest-authenticated event
 				const userData = {
 					id: String(newUser.user.id),
 					username: newUser.user.pseudo,
@@ -268,24 +235,34 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					theme: newUser.user.theme || '#ffffff'
 				};
 				
-				// Dispatch event with user data
+				const position = this.getPositionFromContainerId();
+				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
-					detail: { user: userData }
+					detail: { user: userData, position }
 				});
 				this.container.dispatchEvent(authEvent);
 				
-				// Hide component
 				this.hide();
 			}
 		} catch (error) {
 			console.error('Guest registration error:', error);
-			this.updateInternalState({
-				isLoading: false,
-				error: error instanceof Error ? error.message : 'Registration failed. Please try again.'
-			});
-			this.showMessage('Registration failed. Please try again.', 'error');
+			this.showError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
 		}
+	}
+	
+	/**
+	 * Get position from container ID
+	 */
+	private getPositionFromContainerId(): number | undefined {
+		const containerId = this.container.id;
+		if (containerId && containerId.includes('-')) {
+			const parts = containerId.split('-');
+			const positionStr = parts[parts.length - 1];
+			const position = parseInt(positionStr, 10);
+			return isNaN(position) ? undefined : position + 1; // Convert to 1-based index
+		}
+		return undefined;
 	}
 	
 	/**
@@ -327,30 +304,18 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	}
 	
 	/**
-	 * Show a message within the component
-	 * @param message - Message to display
-	 * @param type - Message type (success, error, info)
+	 * Add a method to handle error display with animation
 	 */
-	private showMessage(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
-		// Clear any existing messages
-		const existingMessage = this.container.querySelector('.auth-message');
-		if (existingMessage) {
-			existingMessage.remove();
-		}
+	private showError(message: string): void {
+		this.updateInternalState({ error: message });
 		
-		// Create and add the message element
-		const messageElement = document.createElement('div');
-		messageElement.className = `auth-message ${type}-message`;
-		messageElement.textContent = message;
-		
-		// Add to container
-		this.container.querySelector('.auth-form-container')?.appendChild(messageElement);
-		
-		// Auto-remove success messages after a timeout
-		if (type === 'success') {
-			setTimeout(() => {
-				messageElement.remove();
-			}, 3000);
-		}
+		requestAnimationFrame(() => {
+			const errorElement = this.container.querySelector('.register-error') as HTMLElement;
+			if (errorElement) {
+				errorElement.classList.remove('shake');
+				void errorElement.offsetWidth;
+				errorElement.classList.add('shake');
+			}
+		});
 	}
-} 
+}

@@ -10,8 +10,6 @@
 							 0 0 10px var(--text-color), 
 							 0 0 15px var(--text-color), 
 							 0 0 20px rgba(255, 255, 255, 0.5);
-	width: 100%;
-	display: block;
 	margin: 0 auto 8vh auto;
 	font-weight: bold;
 	position: relative;
@@ -20,12 +18,11 @@
 
 /* Game Menu */
 .game-menu {
-	text-align: center;
 	position: fixed;
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -93,7 +90,7 @@
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	z-index: 1;
 	image-rendering: pixelated;
 	image-rendering: crisp-edges;
@@ -106,7 +103,7 @@
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	z-index: 1;
 }
 

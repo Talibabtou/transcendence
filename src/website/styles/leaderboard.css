@@ -9,7 +9,7 @@
 }
 
 .leaderboard-container {
-	width: 80%;
+	width: 55%;
 	margin: 0 auto;
 	padding: var(--spacing-md) 0;
 	background-color: var(--menu-bg);
@@ -133,7 +133,6 @@
 	position: static;
 	margin-left: 5px;
 }
-
 /* State Indicators
 	========================================================================== */
 .loading-text {
@@ -199,3 +198,4 @@
 			font-size: 5px;
 	}
 }
+

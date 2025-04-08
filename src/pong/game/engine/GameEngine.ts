@@ -738,4 +738,28 @@ export class GameEngine {
 			window.dispatchEvent(gameOverEvent);
 		});
 	}
+
+	/**
+	 * Sets player IDs and tournament ID for the match
+	 * @param playerIds - Array of player IDs
+	 * @param tournamentId - Tournament ID
+	 */
+	public setPlayerIdsWithTournament(playerIds: number[], tournamentId: string): void {
+		// Store player IDs
+		this.playerIds = [...playerIds];
+		
+		// Create match with tournament ID reference
+		if (this.playerIds.length === 2) {
+			// Import needed to avoid circular dependencies
+			import('@website/scripts/utils').then(({ DbService }) => {
+				DbService.createTournamentMatch(this.playerIds[0], this.playerIds[1], tournamentId)
+					.then(match => {
+						this.matchId = match.id;
+					})
+					.catch(error => {
+						console.error('Failed to create tournament match:', error);
+					});
+			});
+		}
+	}
 }

@@ -204,7 +204,6 @@ export class GameOverComponent extends Component<GameOverState> {
 	
 	/**
 	 * Shows the game over screen with results
-	 * @param result - Object containing game result information
 	 */
 	showGameResult(result: {
 		winner: string;
@@ -225,13 +224,51 @@ export class GameOverComponent extends Component<GameOverState> {
 			visible: true
 		});
 		
-		this.renderComponent();
+		// In tournament mode, modify the rendered content
+		if (result.gameMode === GameMode.TOURNAMENT) {
+			this.renderTournamentGameOver();
+		} else {
+			this.renderComponent();
+		}
 
-		// Show background game immediately after updating state
-		const gameManager = GameManager.getInstance();
-		gameManager.showBackgroundGame();
+		// Show background game except in tournament mode
+		if (result.gameMode !== GameMode.TOURNAMENT) {
+			const gameManager = GameManager.getInstance();
+			gameManager.showBackgroundGame();
+		}
 		
 		this.inTransition = false;
+	}
+	
+	/**
+	 * Renders special game over screen for tournament mode
+	 */
+	private renderTournamentGameOver(): void {
+		const state = this.getInternalState();
+		
+		// Game over screen with player names and scores but modified for tournament
+		const content = html`
+			<div class="game-container">
+				<div class="game-over-screen tournament-game-over">
+					<div class="go-content">
+						<div class="go-ascii-container">
+							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
+						</div>
+						<div class="go-winner">${state.winner} Wins!</div>
+						<div class="go-scores-display">
+							<div>${state.player1Name}: ${state.player1Score}</div>
+							<div>${state.player2Name}: ${state.player2Score}</div>
+						</div>
+						<div class="go-buttons">
+							<button class="menu-button play-again-button">Next Match</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+		
+		render(content, this.container);
+		this.setupEventListeners();
 	}
 	
 	/**

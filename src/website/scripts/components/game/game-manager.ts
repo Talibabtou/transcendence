@@ -287,11 +287,37 @@ export class GameManager {
 	}
 
 	/**
-	 * Starts the main game with player information
-	 * @param mode Game mode to start
+	 * Starts a tournament match with specific player information
 	 * @param container HTML element to render the game in
-	 * @param playerInfo Optional player information
+	 * @param matchInfo Tournament match information
 	 */
+	public startTournamentMatch(
+		container: HTMLElement,
+		matchInfo: {
+			player1Id: number;
+			player2Id: number;
+			player1Name: string;
+			player2Name: string;
+			player1Color: string;
+			player2Color: string;
+			tournamentId: string;
+		}
+	): void {
+		// Create player info object from tournament match info
+		const playerInfo = {
+			playerIds: [matchInfo.player1Id, matchInfo.player2Id],
+			playerNames: [matchInfo.player1Name, matchInfo.player2Name],
+			playerColors: [matchInfo.player1Color, matchInfo.player2Color],
+			tournamentId: matchInfo.tournamentId
+		};
+		
+		// Start the game in tournament mode
+		this.startMainGame(GameMode.TOURNAMENT, container, playerInfo);
+		
+		// Additional tournament-specific setup can be done here
+	}
+
+	// Extend startMainGame to handle tournamentId
 	public startMainGame(
 		mode: GameMode, 
 		container: HTMLElement, 
@@ -300,7 +326,8 @@ export class GameManager {
 			playerColor?: string,
 			playerIds?: number[],
 			playerNames?: string[],
-			playerColors?: string[]
+			playerColors?: string[],
+			tournamentId?: string // Add this parameter
 		}
 	): void {
 		// Start the game
@@ -350,7 +377,16 @@ export class GameManager {
 				// Store player IDs last (this triggers match creation)
 				if (playerInfo.playerIds && playerInfo.playerIds.length > 0) {
 					const playerIdsCopy = [...playerInfo.playerIds];
-					this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
+					
+					// If we have a tournament ID, use it when setting player IDs
+					if (playerInfo.tournamentId) {
+						this.mainGameInstance.engine.setPlayerIdsWithTournament(
+							playerIdsCopy, 
+							playerInfo.tournamentId
+						);
+					} else {
+						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
+					}
 				}
 			}
 		}

@@ -3,8 +3,8 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent } from '@website/scripts/components';
-import { appState, MatchCache } from '@website/scripts/utils';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentTransitionsComponent } from '@website/scripts/components';
+import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
 
 // =========================================
@@ -17,6 +17,7 @@ import { GameMode } from '@shared/types';
 enum GameState {
 	MENU = 'menu',
 	PLAYER_REGISTRATION = 'player_registration',
+	TOURNAMENT_TRANSITION = 'tournament_transition',
 	PLAYING = 'playing',
 	GAME_OVER = 'game_over'
 }
@@ -60,6 +61,9 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	// Add a reference to the player registration component
 	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
+	
+	// Add a reference to the TournamentTransitionsComponent
+	private tournamentTransitionsComponent: TournamentTransitionsComponent | null = null;
 	
 	// =========================================
 	// INITIALIZATION
@@ -193,6 +197,10 @@ export class GameComponent extends Component<GameComponentState> {
 				
 			case GameState.PLAYER_REGISTRATION:
 				this.showPlayerRegistration();
+				break;
+				
+			case GameState.TOURNAMENT_TRANSITION:
+				this.showTournamentTransition();
 				break;
 				
 			case GameState.PLAYING:
@@ -743,10 +751,82 @@ export class GameComponent extends Component<GameComponentState> {
 			this.playerRegistrationComponent = null;
 		}
 		
-		// Proceed to the game after a short delay to allow cleanup
-		setTimeout(() => {
-			this.updateGameState(GameState.PLAYING);
-			this.isTransitioning = false;
-		}, 200);
+		// For tournament mode, show tournament transitions first
+		const state = this.getInternalState();
+		if (state.currentMode === GameMode.TOURNAMENT) {
+			// Initialize tournament data
+			TournamentCache.initializeTournament(playerIds, playerNames, playerColors);
+			
+			// Show tournament schedule
+			this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+		} else {
+			// For other modes, proceed directly to game
+			setTimeout(() => {
+				this.updateGameState(GameState.PLAYING);
+				this.isTransitioning = false;
+			}, 200);
+		}
+	}
+
+	// Add a method to handle the tournament transition screen
+	private showTournamentTransition(): void {
+		if (!this.tournamentTransitionsComponent && this.gameContainer) {
+			this.tournamentTransitionsComponent = new TournamentTransitionsComponent(
+				this.gameContainer,
+				this.handleTournamentContinue.bind(this),
+				this.handleBackToMenu.bind(this)
+			);
+		}
+		
+		// Show the tournament schedule
+		if (this.tournamentTransitionsComponent) {
+			this.tournamentTransitionsComponent.showTournamentSchedule();
+		}
+		
+		// Reset transition flag
+		this.isTransitioning = false;
+	}
+
+	/**
+	 * Handle continue button from tournament screens
+	 */
+	private handleTournamentContinue(): void {
+		const nextMatch = TournamentCache.getNextGameInfo();
+		
+		if (!nextMatch) {
+			// No more matches, go back to menu
+			this.handleBackToMenu();
+			return;
+		}
+		
+		if (this.tournamentTransitionsComponent) {
+			this.tournamentTransitionsComponent.hide();
+		}
+		
+		// Get player info for the next match
+		const playerInfo = {
+			playerIds: [
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].id,
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].id
+			],
+			playerNames: [
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].name,
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].name
+			],
+			playerColors: [
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].color,
+				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].color
+			]
+		};
+		
+		// Update state with player info for the current match
+		this.updateInternalState({
+			playerIds: playerInfo.playerIds,
+			playerNames: playerInfo.playerNames,
+			playerColors: playerInfo.playerColors
+		});
+		
+		// Start the actual game
+		this.updateGameState(GameState.PLAYING);
 	}
 }

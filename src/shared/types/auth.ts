@@ -129,7 +129,6 @@ export interface IAuthComponent {
 }
 
 export interface GuestAuthState {
-	isLoading: boolean;
 	error: string | null;
 	isRegisterMode: boolean;
 }

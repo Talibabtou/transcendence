@@ -52,25 +52,25 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		this.loginHandler = new LoginHandler(
 			this.updateInternalState.bind(this),
 			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.registrationHandler = new RegistrationHandler(
 			this.updateInternalState.bind(this),
 			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.googleAuthHandler = new GoogleAuthHandler(
 			this.updateInternalState.bind(this),
 			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.fortyTwoAuthHandler = new FortyTwoAuthHandler(
 			this.updateInternalState.bind(this),
 			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		// Check if user is already logged in
@@ -133,23 +133,17 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		}
 		
 		if (code && state) {
-			// We have an OAuth callback
 			this.updateInternalState({ isLoading: true });
 			
-			// Parse the state to determine the provider
 			try {
 				const stateData = JSON.parse(atob(state));
 				const provider = stateData.provider;
 				
-				// In a real app, we would exchange the code for a token
-				// For simulation, we'll create a fake user based on the provider
-				setTimeout(() => {
-					if (provider === AuthMethod.GOOGLE) {
-						this.googleAuthHandler.simulateOAuthLogin();
-					} else if (provider === AuthMethod.FORTY_TWO) {
-						this.fortyTwoAuthHandler.simulateOAuthLogin();
-					}
-				}, 500);
+				if (provider === AuthMethod.GOOGLE) {
+					this.googleAuthHandler.simulateOAuthLogin();
+				} else if (provider === AuthMethod.FORTY_TWO) {
+					this.fortyTwoAuthHandler.simulateOAuthLogin();
+				}
 			} catch (e) {
 				console.error('Failed to parse OAuth state', e);
 				this.updateInternalState({
@@ -170,22 +164,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	private setCurrentUser(user: UserData | null): void {
 		this.currentUser = user;
 	}
-	
-	/**
-	 * Switches to the success state
-	 */
-	private switchToSuccessState(): void {
-		this.updateInternalState({
-			currentState: AuthState.SUCCESS,
-			isLoading: false,
-			error: null
-		});
 
-		// Set a timeout to handle redirection after displaying success message
-		setTimeout(() => {
-			this.handleSuccessfulAuth();
-		}, 500);
-	}
 	
 	/**
 	 * Switches to a different auth state with debouncing
@@ -226,27 +205,19 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// =========================================
 	
 	render(): void {
-		// Add auth-container class to the container
 		this.container.className = 'auth-container';
 		
-		const state = this.getInternalState();
-		
-		// Create the template based on the current state
-		let template;
-		
-		// Create auth form container wrapper with close button
-		template = html`
+		const template = html`
 			<div class="auth-form-container">
 				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
-				${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
+				${this.getInternalState().error ? html`
+					<div class="register-error shake">${this.getInternalState().error}</div>
+				` : ''}
 			</div>
 		`;
 		
-		// Render the template
 		render(template, this.container);
-		
-		// Set up close button reference
 		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
 	
@@ -298,11 +269,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Renders a success message after authentication
 	 */
 	protected renderSuccessMessage(): any {
-		// Set a timeout to trigger redirection
-		setTimeout(() => {
-			this.handleSuccessfulAuth();
-		}, 500);
-		
 		return html`
 			<div class="auth-success">
 				<h2>Authentication Successful</h2>
@@ -321,17 +287,15 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		// Use AppState to login
 		appState.login(this.currentUser, undefined, this.persistSession);
 		
-		// Clean up the auth component
-		setTimeout(() => {
-			this.destroy();
-			
-			// Redirect based on origin using router navigation
-			if (this.redirectAfterAuth === 'game') {
-				navigate('/game');
-			} else {
-				navigate('/profile');
-			}
-		}, 500);
+		// Clean up and redirect immediately
+		this.destroy();
+		
+		// Redirect based on origin using router navigation
+		if (this.redirectAfterAuth === 'game') {
+			navigate('/game');
+		} else {
+			navigate('/profile');
+		}
 	}
 	
 	// =========================================
@@ -369,5 +333,17 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		// Clean up event listeners and call parent's destroy
 		super.destroy();
 	}
+	
+	private showError(message: string): void {
+		this.updateInternalState({ error: message });
+		
+		requestAnimationFrame(() => {
+			const errorElement = this.container.querySelector('.register-error') as HTMLElement;
+			if (errorElement) {
+				errorElement.classList.remove('shake');
+				void errorElement.offsetWidth;
+				errorElement.classList.add('shake');
+			}
+		});
+	}
 }
-

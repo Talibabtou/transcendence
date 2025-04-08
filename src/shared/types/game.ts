@@ -10,7 +10,8 @@ export interface Match {
 	completed?: boolean;
 	duration?: number;
 	timeout?: boolean;
-	tournament_id?: number;
+	tournament_id?: string;
+	final?: boolean;
 	created_at: Date;
 }
 
@@ -76,6 +77,7 @@ export interface PlayerData {
 	isConnected: boolean;
 	theme?: string;
 	elo?: number;
+	position?: number;
 }
 
 /**

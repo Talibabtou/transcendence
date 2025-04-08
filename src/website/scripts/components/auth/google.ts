@@ -50,19 +50,14 @@ export class GoogleAuthHandler {
 			state
 		})
 		.then(() => {
-			// For simulation, we'll skip the actual redirect and simulate the callback
 			this.updateState({ isLoading: true });
-			
-			// Simulate OAuth flow completion after a delay
-			setTimeout(() => {
-				this.simulateOAuthLogin();
-			}, 2000);
+			this.simulateOAuthLogin();
 		})
 		.catch(error => {
-			console.error('Auth: Google OAuth initiation error', error);
+			console.error('Auth: OAuth initiation error', error);
 			this.updateState({
 				isLoading: false,
-				error: 'Failed to connect with Google. Please try again.'
+				error: `Failed to connect with ${method}. Please try again.`
 			});
 		});
 	}

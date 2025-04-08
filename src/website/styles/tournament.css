@@ -1,0 +1,166 @@
+/* ===== TOURNAMENT SCREEN LAYOUT ===== */
+.tournament-screen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	color: #fff;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: space-between;
+	padding: 3rem;
+	box-sizing: border-box;
+	z-index: 100;
+}
+
+/* ===== TOURNAMENT HEADERS ===== */
+.tournament-header, .match-header, .finals-header, .winner-header {
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.tournament-header h1, .match-header h1, .finals-header h1, .winner-header h1 {
+	font-size: 3rem;
+	margin-bottom: 0.5rem;
+}
+
+.phase-name {
+	font-size: 1.5rem;
+	color: var(--accent-color);
+}
+
+/* ===== TOURNAMENT MATCHES LIST ===== */
+.tournament-matches-list {
+	width: 100%;
+	overflow-y: auto;
+	max-height: 60vh;
+}
+
+.tournament-match {
+	margin-bottom: 1rem;
+	padding: 1rem;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.tournament-match.match-current {
+	border: 2px solid var(--accent-color);
+}
+
+.tournament-match.finals-match {
+	border: 2px solid gold;
+}
+
+.match-number {
+	font-weight: bold;
+	width: 6rem;
+}
+
+.match-players {
+	flex-grow: 1;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0 1rem;
+}
+
+.match-player {
+	font-size: 1.2rem;
+}
+
+.match-vs {
+	color: #888;
+	margin: 0 1rem;
+}
+
+.match-status {
+	font-weight: bold;
+	min-width: 4rem;
+	text-align: center;
+}
+
+.tournament-controls {
+	margin-top: 2rem;
+	display: flex;
+	gap: 1rem;
+}
+
+/* ===== MATCH RESULTS STYLES ===== */
+.match-title {
+	font-size: 2rem;
+	margin-bottom: 1rem;
+}
+
+.match-summary {
+	text-align: center;
+	margin-bottom: 2rem;
+}
+
+.match-score {
+	font-size: 3rem;
+	font-weight: bold;
+	margin-bottom: 1rem;
+}
+
+.score-separator {
+	margin: 0 1rem;
+}
+
+.winner {
+	color: var(--accent-color);
+}
+
+.match-winner {
+	font-size: 1.5rem;
+	color: gold;
+}
+
+.games-list {
+	width: 100%;
+}
+
+.game-result {
+	margin-bottom: 0.5rem;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* ===== FINALS STYLES ===== */
+.finalists {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2rem;
+	margin-bottom: 2rem;
+}
+
+.finalist {
+	font-size: 2.5rem;
+	font-weight: bold;
+}
+
+.vs {
+	font-size: 1.5rem;
+	color: #888;
+}
+
+.finals-description, .winner-description {
+	text-align: center;
+	font-size: 1.2rem;
+	margin-bottom: 2rem;
+}
+
+/* ===== WINNER STYLES ===== */
+.winner-name {
+	font-size: 4rem;
+	font-weight: bold;
+	margin: 2rem 0;
+	text-shadow: 0 0 10px currentColor;
+}
