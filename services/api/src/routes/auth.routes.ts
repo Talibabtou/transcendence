@@ -7,16 +7,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
 	fastify.get<{ Params: {id: string } }>('/auth/user/:id', {
 		schema: getUserSchema,
 		config: { 
-		  auth: true, 
-		  roles: ['user', 'admin']
+		  auth: false, 
+		//   roles: ['user', 'admin']
 		}},
 		getUser);
 
 	fastify.get('/auth/users', {
 		schema: getUsersSchema,
 		config: { 
-		  auth: true, 
-		  roles: ['user', 'admin']
+		  auth: false, 
+		//   roles: ['user', 'admin']
 		}},
 		getUsers);
 
@@ -30,16 +30,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
 	fastify.patch<{ Body: IModifyUser }>('/auth/user', {
 		schema: modifyUserSchema,
 		config: { 
-		  auth: true, 
-		  roles: ['user', 'admin']
+		  auth: false, 
+		//   roles: ['user', 'admin']
 		}},
 		patchUser);
 
 	fastify.delete('/auth/user', {
 		schema: deleteUserSchema,
 		config: { 
-		  auth: true, 
-		  roles: ['user', 'admin']
+		  auth: false, 
+		//   roles: ['user', 'admin']
 		}},
 		deleteUser);
 

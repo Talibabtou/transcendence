@@ -4,15 +4,15 @@ import { addUser, getUsers, getUser, deleteUser, modifyUser, login } from '../co
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/users', {
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     getUsers);
 
   fastify.get('/user/:id', {
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     getUser);
 
@@ -24,15 +24,15 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.patch('/user', {
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     modifyUser)
   
   fastify.delete('/user', {
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     deleteUser);
 

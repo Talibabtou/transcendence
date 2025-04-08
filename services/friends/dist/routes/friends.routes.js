@@ -1,4 +1,4 @@
-import { getFriends, postFriend, patchFriend, deleteFriend } from '../controllers/friends.controllers.js';
+import { getFriends, postFriend, patchFriend, deleteFriend, deleteFriends } from '../controllers/friends.controllers.js';
 export default async function authRoutes(fastify) {
     fastify.get('/', {
         config: {
@@ -19,6 +19,12 @@ export default async function authRoutes(fastify) {
         }
     }, patchFriend);
     fastify.delete('/', {
+        config: {
+            auth: true,
+            roles: ['user', 'admin']
+        }
+    }, deleteFriends);
+    fastify.delete('/:id', {
         config: {
             auth: true,
             roles: ['user', 'admin']

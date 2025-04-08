@@ -7,16 +7,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
 	fastify.post<{ Body: IUpload }>('/profil/uploads', {
 		schema: uploadSchema,
 		config: { 
-		  auth: true, 
-		  roles: []
+			auth: false, 
+			// roles: ['user', 'admin']
 		}},
 		upload);
 
 	fastify.delete('/profil/uploads', {
 		schema: deleteSchema,
 		config: { 
-		  auth: true, 
-		  roles: ['user', 'admin']
+		  auth: false, 
+		//   roles: ['user', 'admin']
 		}},
 		deletePic);
 }

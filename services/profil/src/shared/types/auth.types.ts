@@ -16,6 +16,7 @@ export interface IModifyUser {
 }
 
 export interface IReplyGetUser {
+  id: string;
   username: string;
   email: string;
 }

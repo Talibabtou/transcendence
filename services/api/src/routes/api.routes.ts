@@ -6,16 +6,16 @@ export default async function apiRoutes(fastify: FastifyInstance) {
   fastify.get("/uploads", {
     schema: getPicsSchema,
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     getPics);
 
   fastify.get<{ Params: { id: string } }>("/uploads/:id", {
     schema: getPicSchema,
     config: { 
-      auth: true, 
-      roles: ['user', 'admin']
+      auth: false, 
+      // roles: ['user', 'admin']
     }},
     getPic);
 

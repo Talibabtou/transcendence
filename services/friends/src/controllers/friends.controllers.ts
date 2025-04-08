@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IReplyGetFriends } from '../shared/types/friends.types.js'
+import { IReplyGetFriends, IId } from '../shared/types/friends.types.js'
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
 declare module 'fastify' {
@@ -22,7 +22,8 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply): 
           END AS id, 
           accepted, 
           created_at 
-        FROM friends`, [request.user.id]);
+        FROM friends
+        WHERE id_1 = ? OR id_2 = ?`, [request.user.id, request.user.id, request.user.id]);
       console.log({ friends });
       if (!friends) {
         const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
@@ -35,16 +36,22 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply): 
     }
 }
 
-export async function postFriend(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const id = request.body;
-    // const result = 'SELECT \
-    // CASE WHEN EXISTS (SELECT 1 FROM amis WHERE (id_1 = 1 AND id_2 = 2) OR (id_1 = 2 AND id_2 = 1)) \
-    //   THEN true \
-    //   ELSE false \
-    // END';
-    // console.log({ exist: result });
-    await request.server.db.run('INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);', [request.user.id, id]);
+    if (id.id === request.user.id) {
+      const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST)
+      return reply.code(400).send(errorMessage);
+    }
+    const result = await request.server.db.get(`
+      SELECT
+          EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`, [request.user.id, id.id, request.user.id, id.id]);
+    console.log(result.FriendExists);
+    if (result.FriendExists) {
+      const errorMessage = createErrorResponse(409, ErrorCodes.FRIENDSHIP_EXISTS)
+      return reply.code(409).send(errorMessage);
+    }
+    await request.server.db.run('INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);', [request.user.id, id.id]);
     return reply.code(201).send();
   } catch (err) {
     if (err instanceof Error) {
@@ -57,33 +64,49 @@ export async function postFriend(request: FastifyRequest, reply: FastifyReply): 
         return reply.code(409).send(errorMessage);
       }
     }
+    console.log(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
 }
 
-export async function patchFriend(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function patchFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply): Promise<void> {
   try {
-    const friends: IReplyGetFriends = await request.server.db.all('SELECT * FROM friends');
-    if (!friends) {
-      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
+    const id = request.body;
+    const result = await request.server.db.run('UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?', [request.user.id, id.id]);
+    if (result.changes === 0) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send({ friends });
+    return reply.code(204).send();
   } catch (err) {
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
 }
 
-export async function deleteFriend(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function deleteFriends(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
-    const friends: IReplyGetFriends = await request.server.db.all('SELECT * FROM friends');
-    if (!friends) {
-      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
+    const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? AND id_2 = ?', [request.user.id, request.user.id]);
+    if (result.changes === 0) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send({ friends });
+    return reply.code(204).send();
+  } catch (err) {
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function deleteFriend(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
+  try {
+    const result = await request.server.db.run('DELETE FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?)', [request.params.id, request.user.id, request.user.id, request.params.id]);
+    if (result.changes === 0) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
+      return reply.code(404).send(errorMessage);
+    }
+    return reply.code(204).send();
   } catch (err) {
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);

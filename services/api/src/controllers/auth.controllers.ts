@@ -53,11 +53,8 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
           body: JSON.stringify(request.body)
 
         });
-        if (response.status >= 400) {
-          const responseData = await response.json();
-          return reply.code(response.status).send(responseData);
-        }
-        return reply.code(response.status).send();
+        const user = await response.json() as IReplyGetUsers | ErrorResponse;
+        return reply.code(response.status).send(user);
       } catch (err) {
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);

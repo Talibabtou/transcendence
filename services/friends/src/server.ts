@@ -18,16 +18,11 @@ class Server {
   public static async start(): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
     try {
-      console.log({ test: '1' });
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-      console.log({ test: '2' });
       server.decorate("db", await initDb());
-      console.log({ test: '3' });
       await server.register(fastifyJwt, jwtPluginRegister);
-      console.log({ test: '4' });
       await server.register(friendsRoutes);
-      console.log({ test: '5' });
       server.addHook("preHandler", jwtPluginHook);
       server.listen(
         { port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADD || "localhost" },

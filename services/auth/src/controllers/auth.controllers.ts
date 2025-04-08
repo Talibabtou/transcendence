@@ -16,8 +16,9 @@ export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply
     try {
       const { username, password, email } = request.body;
       const ip = request.headers['from'];
+      const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
       await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username, password, email, ip]);
-      return reply.code(201).send();
+      return reply.code(201).send(user);
     } catch (err) {
       if (err instanceof Error) {
         if (err.message.includes('SQLITE_MISMATCH')) {
@@ -36,7 +37,7 @@ export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
-      const users: IReplyGetUsers = await request.server.db.all('SELECT username, email FROM users');
+      const users: IReplyGetUsers = await request.server.db.all('SELECT username, email, id FROM users');
       if (!users) {
         const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
         return reply.code(404).send(errorMessage);
@@ -51,7 +52,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
 export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
     try {
       const id = request.params.id;
-      const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email FROM users WHERE id = ?', [id]);
+      const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE id = ?', [id]);
       if (!user) {
         const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
         return reply.code(404).send(errorMessage);
