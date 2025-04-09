@@ -48,11 +48,8 @@ export async function postUser(request, reply) {
             },
             body: JSON.stringify(request.body)
         });
-        if (response.status >= 400) {
-            const responseData = await response.json();
-            return reply.code(response.status).send(responseData);
-        }
-        return reply.code(response.status).send();
+        const user = await response.json();
+        return reply.code(response.status).send(user);
     }
     catch (err) {
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

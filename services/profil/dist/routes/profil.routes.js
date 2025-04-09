@@ -12,7 +12,7 @@ export default async function profilRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, deletePic);
-    fastify.get('/check', {
+    fastify.get('/health', {
         config: {
             auth: false
         }

@@ -1,4 +1,34 @@
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
+export async function getFriend(request, reply) {
+    try {
+        const id = request.body;
+        console.log({ id: id });
+        if (!id || id.id === request.user.id) {
+            const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
+            return reply.code(400).send(errorMessage);
+        }
+        const friend = await request.server.db.get(`
+      SELECT
+        EXISTS (
+          SELECT 1
+          FROM friends
+          WHERE
+            ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
+            AND accepted = true)
+        AS FriendExists`, [request.user.id, id.id, id.id, request.user.id]);
+        console.log({ exist: friend });
+        if (!friend.FriendExists) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
+            return reply.code(404).send(errorMessage);
+        }
+        return reply.code(200).send(friend.FriendExists);
+    }
+    catch (err) {
+        console.log({ test: 'test' });
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function getFriends(request, reply) {
     try {
         const friends = await request.server.db.all(`
@@ -11,9 +41,8 @@ export async function getFriends(request, reply) {
           created_at 
         FROM friends
         WHERE id_1 = ? OR id_2 = ?`, [request.user.id, request.user.id, request.user.id]);
-        console.log({ friends });
         if (!friends) {
-            const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+            const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);
         }
         return reply.code(200).send({ friends });
@@ -33,7 +62,6 @@ export async function postFriend(request, reply) {
         const result = await request.server.db.get(`
       SELECT
           EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`, [request.user.id, id.id, request.user.id, id.id]);
-        console.log(result.FriendExists);
         if (result.FriendExists) {
             const errorMessage = createErrorResponse(409, ErrorCodes.FRIENDSHIP_EXISTS);
             return reply.code(409).send(errorMessage);
@@ -52,7 +80,6 @@ export async function postFriend(request, reply) {
                 return reply.code(409).send(errorMessage);
             }
         }
-        console.log(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }

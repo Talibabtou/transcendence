@@ -15,7 +15,7 @@ export default async function authRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, getUsers);
-    fastify.post('/auth/user', {
+    fastify.post('/auth/register', {
         schema: createUserSchema,
         config: {
             auth: false

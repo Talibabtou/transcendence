@@ -25,7 +25,11 @@ npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt
 
 // PROFIL
 npm i --save-dev @types/node
-npm install @types/node typescript fastify @fastify/jwt @fastify/static @fastify/multipart 
+npm install @types/node typescript fastify @fastify/jwt @fastify/static @fastify/multipart
+
+// FRIENDS
+npm i --save-dev @types/node
+npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt 
 
 npx tsc --init // generate tsconfig file
 ```

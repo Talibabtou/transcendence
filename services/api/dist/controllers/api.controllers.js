@@ -77,7 +77,7 @@ export async function checkMicroservices() {
 }
 async function checkService(servicePort) {
     try {
-        const serviceUrl = `http://localhost:${servicePort}/check`;
+        const serviceUrl = `http://localhost:${servicePort}/health`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
         });
@@ -87,7 +87,7 @@ async function checkService(servicePort) {
         return false;
     }
 }
-export async function getStatus(request, reply) {
+export async function getHealth(request, reply) {
     const microservices = Object.fromEntries(Server.microservices);
     reply.code(200).send(microservices);
 }

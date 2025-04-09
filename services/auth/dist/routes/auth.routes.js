@@ -12,7 +12,7 @@ export default async function authRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, getUser);
-    fastify.post('/user', {
+    fastify.post('/register', {
         config: {
             auth: false
         }
@@ -34,7 +34,7 @@ export default async function authRoutes(fastify) {
             auth: false
         }
     }, login);
-    fastify.get('/check', {
+    fastify.get('/health', {
         config: {
             auth: false
         }

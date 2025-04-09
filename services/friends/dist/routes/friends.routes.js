@@ -1,4 +1,4 @@
-import { getFriends, postFriend, patchFriend, deleteFriend, deleteFriends } from '../controllers/friends.controllers.js';
+import { getFriends, getFriend, postFriend, patchFriend, deleteFriend, deleteFriends } from '../controllers/friends.controllers.js';
 export default async function authRoutes(fastify) {
     fastify.get('/', {
         config: {
@@ -6,31 +6,37 @@ export default async function authRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, getFriends);
-    fastify.post('/', {
+    fastify.get('/check', {
+        config: {
+            auth: true,
+            roles: ['user', 'admin']
+        }
+    }, getFriend);
+    fastify.post('/create', {
         config: {
             auth: true,
             roles: ['user', 'admin']
         }
     }, postFriend);
-    fastify.patch('/', {
+    fastify.patch('/modify', {
         config: {
             auth: true,
             roles: ['user', 'admin']
         }
     }, patchFriend);
-    fastify.delete('/', {
+    fastify.delete('/delete', {
         config: {
             auth: true,
             roles: ['user', 'admin']
         }
     }, deleteFriends);
-    fastify.delete('/:id', {
+    fastify.delete('/delete/:id', {
         config: {
             auth: true,
             roles: ['user', 'admin']
         }
     }, deleteFriend);
-    fastify.get('/check', {
+    fastify.get('/health', {
         config: {
             auth: false
         }

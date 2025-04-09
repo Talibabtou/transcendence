@@ -17,6 +17,26 @@ export async function getFriends(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
+export async function getFriend(request, reply) {
+    try {
+        const subpath = request.url.split('/friends')[1];
+        const serviceUrl = `http://localhost:8084${subpath}`;
+        const response = await fetch(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Content-Type': request.headers['content-type'] || 'application/json',
+                'Authorization': request.headers.authorization || 'no token'
+            },
+            body: JSON.stringify(request.body)
+        });
+        const friend = await response.json();
+        return reply.code(response.status).send(friend);
+    }
+    catch (err) {
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function postFriend(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];

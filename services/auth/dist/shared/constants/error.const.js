@@ -9,6 +9,7 @@ export var ErrorCodes;
     ErrorCodes["SERVICE_UNAVAILABLE"] = "SERVICE_UNAVAILABLE";
     ErrorCodes["SQLITE_MISMATCH"] = "SQLITE_MISMATCH";
     ErrorCodes["SQLITE_CONSTRAINT"] = "SQLITE_CONSTRAINT";
+    ErrorCodes["BAD_REQUEST"] = "BAD REQUEST";
     // Match related errors
     ErrorCodes["MATCH_NOT_FOUND"] = "MATCH_NOT_FOUND";
     ErrorCodes["INVALID_FIELDS"] = "INVALID_FIELDS";
@@ -24,6 +25,9 @@ export var ErrorCodes;
     //profil
     ErrorCodes["NO_FILE_PROVIDED"] = "NO_FILE_PROVIDED";
     ErrorCodes["INVALID_TYPE"] = "INVALID_TYPE";
+    //friends
+    ErrorCodes["FRIENDSHIP_EXISTS"] = "FRIENDSHIP EXISTS";
+    ErrorCodes["FRIENDS_NOTFOUND"] = "FRIENDS NOT FOUNDS";
 })(ErrorCodes || (ErrorCodes = {}));
 // Create a map of error codes to their messages
 export const ErrorTypes = new Map([
@@ -31,7 +35,7 @@ export const ErrorTypes = new Map([
     [401, 'Unauthorized'],
     [403, 'InsufficientPermissions'],
     [404, 'Not Found'],
-    [409, 'Data already exists'],
+    [409, 'Conflict'],
     [500, 'Internal Server Error'],
     [503, 'Service Unavailable'],
 ]);
@@ -41,6 +45,7 @@ export const ErrorMessages = new Map([
     [ErrorCodes.SERVICE_UNAVAILABLE, 'Service unavailable'],
     [ErrorCodes.SQLITE_MISMATCH, 'Sqlite mismatch'],
     [ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
+    [ErrorCodes.BAD_REQUEST, 'Bad request'],
     // Match related errors
     [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
     [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
@@ -56,6 +61,9 @@ export const ErrorMessages = new Map([
     //profil related errors
     [ErrorCodes.NO_FILE_PROVIDED, 'No File Provided'],
     [ErrorCodes.INVALID_TYPE, 'Invalid Type'],
+    //friends
+    [ErrorCodes.FRIENDSHIP_EXISTS, 'Friendship exists'],
+    [ErrorCodes.FRIENDS_NOTFOUND, 'Friends not found'],
 ]);
 // Helper function to create error response objects
 export function createErrorResponse(statusCode, code) {
@@ -93,6 +101,12 @@ export const ErrorExamples = {
         code: ErrorCodes.SQLITE_CONSTRAINT,
         error: ErrorTypes.get(409),
         message: ErrorMessages.get(ErrorCodes.SQLITE_CONSTRAINT)
+    },
+    badRequest: {
+        statusCode: 400,
+        code: ErrorCodes.BAD_REQUEST,
+        error: ErrorTypes.get(400),
+        message: ErrorMessages.get(ErrorCodes.BAD_REQUEST)
     },
     // Match related errors
     matchNotFound: {
@@ -153,5 +167,18 @@ export const ErrorExamples = {
         code: ErrorCodes.INVALID_TYPE,
         error: ErrorTypes.get(403),
         message: ErrorMessages.get(ErrorCodes.INVALID_TYPE)
+    },
+    //friends
+    friendshipExist: {
+        statusCode: 409,
+        code: ErrorCodes.FRIENDSHIP_EXISTS,
+        error: ErrorTypes.get(409),
+        message: ErrorMessages.get(ErrorCodes.FRIENDSHIP_EXISTS)
+    },
+    friendshipNotFound: {
+        statusCode: 404,
+        code: ErrorCodes.FRIENDS_NOTFOUND,
+        error: ErrorTypes.get(404),
+        message: ErrorMessages.get(ErrorCodes.FRIENDS_NOTFOUND)
     },
 };

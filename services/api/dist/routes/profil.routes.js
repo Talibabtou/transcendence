@@ -5,7 +5,7 @@ export default async function authRoutes(fastify) {
         schema: uploadSchema,
         config: {
             auth: true,
-            roles: []
+            roles: ['user', 'admin']
         }
     }, upload);
     fastify.delete('/profil/uploads', {
