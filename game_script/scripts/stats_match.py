@@ -5,7 +5,8 @@ import json
 
 # Configuration
 API_BASE_URL = "http://localhost:8082/api/v1"
-PLAYER_STATS_ENDPOINT = f"{API_BASE_URL}/matches/stats"
+MATCH_ID = "386dd12b-d1f7-95f6-f0a3-32144d36febf"
+MATCH_STATS_ENDPOINT = f"{API_BASE_URL}/matches/{MATCH_ID}/stats"
 
 def get_first_player_stats():
     try:
@@ -20,7 +21,7 @@ def get_first_player_stats():
         first_player_id = df.iloc[0].player_id  # Assuming player_id is the index
         
         # Make the API request
-        response = requests.get(f"{PLAYER_STATS_ENDPOINT}/{first_player_id}")
+        response = requests.get(f"{MATCH_STATS_ENDPOINT}")
         response.raise_for_status()
         
         # Print the raw JSON response

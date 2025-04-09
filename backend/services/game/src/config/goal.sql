@@ -12,3 +12,7 @@ CREATE TABLE IF NOT EXISTS goal (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (match_id) REFERENCES matches(id)
 );
+
+CREATE INDEX IF NOT EXISTS idx_goal_match_player ON goal(match_id, player);
+CREATE INDEX IF NOT EXISTS idx_goal_player ON goal(player);
+CREATE INDEX IF NOT EXISTS idx_goal_match_id ON goal(match_id);

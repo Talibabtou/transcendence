@@ -3,7 +3,6 @@ import { trace, SpanStatusCode } from '@opentelemetry/api'
 import { HEALTH_CHECK_PATH } from '../../../../shared/constants/path.const.js'
 import { ErrorExamples } from '../../../../shared/constants/error.const.js'
 import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js'
-import { healthCheckCounter } from '../telemetry/metrics.js' // Import from the dedicated metrics file
 
 export default async function systemRoutes(server: FastifyInstance) {
   server.get(HEALTH_CHECK_PATH, {
@@ -30,15 +29,6 @@ export default async function systemRoutes(server: FastifyInstance) {
     const span = trace.getTracer('game-service').startSpan('health-check')
 
     try {
-      // Ensure the counter is initialized before using it
-      if (!healthCheckCounter) {
-        server.log.error('Health check counter not initialized!');
-        // Optionally handle this case, maybe by throwing an error
-        // or just logging, depending on desired behavior.
-      } else {
-        healthCheckCounter.add(1, { 'service.status': 'attempt' })
-      }
-      span.addEvent('Starting health check')
 
       // Ensure db is available on the request.server decorator
       // This assumes the databaseConnector plugin adds `db` to the server instance

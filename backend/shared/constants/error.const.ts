@@ -11,6 +11,7 @@ export enum ErrorCodes {
   // Match related errors
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
   INVALID_FIELDS = 'INVALID_FIELDS',
+	MATCH_ALREADY_UPDATED = 'MATCH_ALREADY_UPDATED',
   
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
@@ -37,6 +38,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
 	// Match related errors
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
+	[ErrorCodes.MATCH_ALREADY_UPDATED, 'Match already updated'],
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],

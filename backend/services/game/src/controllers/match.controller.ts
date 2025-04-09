@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
-import { matchCreationCounter, recordDatabaseMetrics, matchUpdatesCounter, matchCompletionCounter, matchTournamentCounter, matchDurationHistogram	 } from '../telemetry/metrics.js'
+import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter, matchDurationHistogram	 } from '../telemetry/metrics.js'
 import { 
   Match, 
   CreateMatchRequest, 
@@ -20,7 +20,7 @@ export async function getMatch(request: FastifyRequest<{
   try {
     const startTime = performance.now();
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', id) as Match | null
-    recordDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime));
+    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime));
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
@@ -53,7 +53,7 @@ export async function getMatches(request: FastifyRequest<{
 		//parameterized queries
     const startTime = performance.now();
     const matches = await request.server.db.all(query, params) as Match[]
-    recordDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime));
+    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime));
     return reply.code(200).send(matches)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -82,7 +82,7 @@ export async function createMatch(request: FastifyRequest<{
     ) as Match
     
     // Record database operation metrics
-    recordDatabaseMetrics('INSERT', 'matches', (performance.now() - startTime));
+    recordSlowDatabaseMetrics('INSERT', 'matches', (performance.now() - startTime));
     
     // Increment the match creation counter
     matchCreationCounter.add(1, { 'match.status': 'created' })
@@ -123,11 +123,15 @@ export async function updateMatch(request: FastifyRequest<{
     // Check if match exists
     const selectStartTime = performance.now();
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
-    recordDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime) / 1000);
+    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime));
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse) 
     }
+		if (match.duration) {
+			const errorResponse = createErrorResponse(400, ErrorCodes.MATCH_ALREADY_UPDATED)
+			return reply.code(400).send(errorResponse)
+		}
     
     // Build update query
     let updates = []
@@ -135,9 +139,6 @@ export async function updateMatch(request: FastifyRequest<{
     if (completed !== undefined) {
       updates.push('completed = ?')
       params.push(completed)
-			if (completed) {
-				matchCompletionCounter.add(1, { 'match.id': id });
-			}
     }
     if (duration !== undefined) {
       updates.push('duration = ?')
@@ -163,15 +164,12 @@ export async function updateMatch(request: FastifyRequest<{
       `UPDATE matches SET ${updates.join(', ')} WHERE id = ?`,
       ...params
     )
-    recordDatabaseMetrics('UPDATE', 'matches', (performance.now() - updateStartTime) / 1000);
-    
-    // Increment the update counter for this specific match ID
-    matchUpdatesCounter.add(1, { 'match.id': id }); 
+    recordMediumDatabaseMetrics('UPDATE', 'matches', (performance.now() - updateStartTime));
     
     // Retrieve updated match (consider if this SELECT needs separate timing or if update RETURNING * is possible/better)
     const finalSelectStartTime = performance.now();
     const updatedMatch = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
-    recordDatabaseMetrics('SELECT', 'matches', (performance.now() - finalSelectStartTime) / 1000);
+    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - finalSelectStartTime));
     if (!updatedMatch) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
@@ -199,7 +197,7 @@ export async function matchTimeline(request: FastifyRequest<{
 		try {
       const startTime = performance.now();
 			const goals = await request.server.db.all('SELECT match_id, player, duration FROM goal WHERE match_id = ?', id) as MatchGoals[]
-      recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime));
+      recordSlowDatabaseMetrics('SELECT', 'match_timeline', (performance.now() - startTime));
 			return reply.code(200).send(goals)
 		} catch (error) {
 			const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -219,7 +217,7 @@ export async function matchSummary(request: FastifyRequest<{
       'SELECT total_matches, elo, completed_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
       [player_id]
     ) 
-    recordDatabaseMetrics('SELECT', 'player_match_summary', (performance.now() - startTime));
+    recordFastDatabaseMetrics('SELECT', 'player_match_summary', (performance.now() - startTime));
     // Initialize default match summary if no data is returned
     const matchSummary = matchSummaryResult || {
       total_matches: 0,
@@ -256,7 +254,7 @@ export async function matchStats(request: FastifyRequest<{
       'SELECT match_date, matches_played, wins, losses, daily_win_ratio FROM player_daily_performance WHERE player_id = ? ORDER BY match_date',
       [player_id]
     ) as DailyPerformance[] || []
-    recordDatabaseMetrics('SELECT', 'player_daily_performance', (performance.now() - dailyPerfStartTime) / 1000);
+    recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', (performance.now() - dailyPerfStartTime));
     
     // Get goal durations for heatmap
     const goalDurStartTime = performance.now();
@@ -264,7 +262,7 @@ export async function matchStats(request: FastifyRequest<{
       'SELECT duration FROM player_goal_durations WHERE player = ?',
       [player_id]
     ) 
-    recordDatabaseMetrics('SELECT', 'player_goal_durations', (performance.now() - goalDurStartTime) / 1000);
+    recordFastDatabaseMetrics('SELECT', 'player_goal_durations', (performance.now() - goalDurStartTime));
     // Transform result into array of numbers
     const goalDurations = goalDurationsResult ? goalDurationsResult.map(row => Number(row.duration)) : []
     
@@ -274,7 +272,7 @@ export async function matchStats(request: FastifyRequest<{
       'SELECT match_duration FROM player_match_durations WHERE player_id = ?',
       [player_id]
     ) 
-    recordDatabaseMetrics('SELECT', 'player_match_durations', (performance.now() - matchDurStartTime) / 1000);
+    recordFastDatabaseMetrics('SELECT', 'player_match_durations', (performance.now() - matchDurStartTime));
     // Transform result into array of numbers
     const matchDurations = matchDurationsResult ? matchDurationsResult.map(row => Number(row.match_duration)) : []
     
@@ -284,7 +282,7 @@ export async function matchStats(request: FastifyRequest<{
       'SELECT elo FROM elo WHERE player = ? ORDER BY created_at',
       [player_id]
     )
-    recordDatabaseMetrics('SELECT', 'elo', (performance.now() - eloStartTime) / 1000);
+    recordMediumDatabaseMetrics('SELECT', 'elo', (performance.now() - eloStartTime));
     // Transform result into array of numbers
     const eloRatings = eloRatingsResult ? eloRatingsResult.map(row => Number(row.elo)) : []
     

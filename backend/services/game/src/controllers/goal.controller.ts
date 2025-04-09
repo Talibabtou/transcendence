@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
 import { Match } from '@shared/types/match.type.js'
-import { recordDatabaseMetrics, goalCreationCounter, goalDurationHistogram } from '../telemetry/metrics.js'
+import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, recordSlowDatabaseMetrics, goalDurationHistogram } from '../telemetry/metrics.js'
 
 import { 
   Goal, 
@@ -19,7 +19,7 @@ export async function getGoal(request: FastifyRequest<{
   try {
     const startTime = performance.now(); // Start timer
     const goal = await request.server.db.get('SELECT * FROM goal WHERE id = ?', [id]) as Goal | null
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
+    recordMediumDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     if (!goal) {
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
       return reply.code(404).send(errorResponse)
@@ -55,7 +55,7 @@ export async function getGoals(request: FastifyRequest<{
     
     const startTime = performance.now(); // Start timer
     const goals = await request.server.db.all(query, ...params) as Goal[]
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
+    recordMediumDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     return reply.code(200).send(goals)
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -78,9 +78,8 @@ export async function createGoal(request: FastifyRequest<{
     // Verify the match exists
     const selectStartTime = performance.now(); // Timer for SELECT
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', match_id) as Match | null
-    recordDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime) / 1000); // Record SELECT
-		goalCreationCounter.add(1, { 'match.id': match_id });
-    goalDurationHistogram.record(duration, { 'match.id': match_id });
+    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime)); // Record SELECT
+    goalDurationHistogram.record(duration);
 		if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
@@ -103,7 +102,7 @@ export async function createGoal(request: FastifyRequest<{
       'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?) RETURNING *',
       match_id, player, duration || null
     ) as Goal
-    recordDatabaseMetrics('INSERT', 'goal', (performance.now() - insertStartTime) / 1000); // Record INSERT
+    recordMediumDatabaseMetrics('INSERT', 'goal', (performance.now() - insertStartTime)); // Record INSERT
     
     request.log.info({
       msg: 'Goal created successfully',
@@ -133,7 +132,7 @@ export async function fastestGoal(request: FastifyRequest<{
   try {
     const startTime = performance.now(); // Start timer
     const goal = await request.server.db.get('SELECT duration FROM goal WHERE player = ? ORDER BY duration ASC LIMIT 1', [player_id]) as FastestGoal | null
-    recordDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
+    recordMediumDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
     if (!goal) {
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND)
       return reply.code(404).send(errorResponse)

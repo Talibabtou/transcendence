@@ -40,6 +40,7 @@ async def create_match(session,player_1, player_2):
         "player_1": player_1,
         "player_2": player_2
     }
+    
     async with session.post(f"{base_url}/matches", json=match_data) as response:
         return await response.json()
 
@@ -169,10 +170,11 @@ async def main():
     while True:
         # Create matches concurrently
         matches = []
-        for i in range(10):  # Running 3 concurrent matches
+        for i in range(4):  # Running 10 concurrent matches
             player_1, player_2 = create_users(player_list)
             print(f"Creating match {i+1}: {player_1} vs {player_2}")
             # Each match gets its own task
+            await asyncio.sleep(random.randint(1, 5))
             matches.append(run_match(player_1, player_2))  # Pass None for session since each match creates its own
         
         # Wait for all matches to complete with a timeout

@@ -1,0 +1,12 @@
+    # monitoring/dashboard-provisioning.yaml
+    apiVersion: 1
+
+    providers:
+      - name: 'default' # A name for the provider
+        orgId: 1        # Default organization ID
+        folder: ''      # Optional: Assign dashboards to a specific folder in Grafana UI
+        type: file
+        disableDeletion: false # Set to true to prevent Grafana from deleting dashboards if the file is removed
+        editable: true         # Set to false to prevent UI edits
+        options:
+          path: /var/lib/grafana/dashboards # Path inside the container where dashboard JSON files are located
