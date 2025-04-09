@@ -81,6 +81,11 @@ export class GameComponent extends Component<GameComponentState> {
 		this.unsubscribe = appState.subscribe((newState) => {
 			this.handleStateChange(newState);
 		});
+		
+		// Add listener for show-tournament-schedule
+		document.addEventListener('show-tournament-schedule', () => {
+			this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+		});
 	}
 	
 	// =========================================
@@ -751,14 +756,14 @@ export class GameComponent extends Component<GameComponentState> {
 			this.playerRegistrationComponent = null;
 		}
 		
-		// For tournament mode, show tournament transitions first
+		// For tournament mode, initialize tournament data
 		const state = this.getInternalState();
 		if (state.currentMode === GameMode.TOURNAMENT) {
 			// Initialize tournament data
 			TournamentCache.initializeTournament(playerIds, playerNames, playerColors);
 			
-			// Show tournament schedule
-			this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+			// Don't show tournament schedule here - wait for the event
+			this.isTransitioning = false;
 		} else {
 			// For other modes, proceed directly to game
 			setTimeout(() => {
@@ -770,21 +775,24 @@ export class GameComponent extends Component<GameComponentState> {
 
 	// Add a method to handle the tournament transition screen
 	private showTournamentTransition(): void {
-		if (!this.tournamentTransitionsComponent && this.gameContainer) {
-			this.tournamentTransitionsComponent = new TournamentTransitionsComponent(
-				this.gameContainer,
-				this.handleTournamentContinue.bind(this),
-				this.handleBackToMenu.bind(this)
-			);
-		}
-		
-		// Show the tournament schedule
-		if (this.tournamentTransitionsComponent) {
-			this.tournamentTransitionsComponent.showTournamentSchedule();
-		}
-		
-		// Reset transition flag
-		this.isTransitioning = false;
+		// Add a small delay to ensure tournament data is initialized
+		setTimeout(() => {
+			if (!this.tournamentTransitionsComponent && this.gameContainer) {
+				this.tournamentTransitionsComponent = new TournamentTransitionsComponent(
+					this.gameContainer,
+					this.handleTournamentContinue.bind(this),
+					this.handleBackToMenu.bind(this)
+				);
+			}
+			
+			// Show the tournament schedule
+			if (this.tournamentTransitionsComponent) {
+				this.tournamentTransitionsComponent.showTournamentSchedule();
+			}
+			
+			// Reset transition flag
+			this.isTransitioning = false;
+		}, 50);
 	}
 
 	/**

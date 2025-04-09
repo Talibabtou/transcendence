@@ -203,6 +203,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				});
 				this.container.dispatchEvent(authEvent);
 				
+				// Clear the form fields
+				this.clearFormFields();
+				
 				this.hide();
 			} else {
 				this.showError('Invalid email or password');
@@ -317,5 +320,13 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				errorElement.classList.add('shake');
 			}
 		});
+	}
+	
+	// Add a new method to clear form fields
+	private clearFormFields(): void {
+		const form = this.container.querySelector('form') as HTMLFormElement;
+		if (form) {
+			form.reset();
+		}
 	}
 }

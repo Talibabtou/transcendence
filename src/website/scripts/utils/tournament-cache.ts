@@ -47,7 +47,7 @@ class TournamentCacheSingleton {
 	private tournamentMatches: TournamentMatch[] = [];
 	private currentMatchIndex: number = 0;
 	private tournamentPhase: TournamentPhase = 'not_started';
-	private currentGameInMatch: number = 0; // Track which game in a best-of-3 we're on
+	private currentGameInMatch: number = 0;
 	
 	private constructor() {}
 	

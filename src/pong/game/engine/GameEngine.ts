@@ -78,8 +78,6 @@ export class GameEngine {
 	 */
 	public initializeTournament(): void {
 		this.gameMode = 'tournament';
-		// For now, just start a multiplayer game
-		// We'll implement tournament specifics later
 		this.loadMainScene();
 	}
 
@@ -342,20 +340,22 @@ export class GameEngine {
 	}
 
 	/**
-	 * Sets player IDs for match tracking
+	 * Sets player IDs for match tracking, with optional tournament ID
 	 * @param ids - Array of player IDs
+	 * @param tournamentId - Optional tournament ID
 	 */
-	public setPlayerIds(ids: number[]): void {
-		this.playerIds = ids.map(id => Number(id)); // Ensure all IDs are numbers
+	public setPlayerIds(ids: number[], tournamentId?: string): void {
+		this.playerIds = ids.map(id => Number(id));
 		
-		// Create match if we have valid IDs
-		this.createMatch();
+		// Create match with the optional tournament ID
+		this.createMatch(tournamentId);
 	}
 
 	/**
 	 * Creates a match in the database for any game mode
+	 * @param tournamentId - Optional tournament ID
 	 */
-	private createMatch(): void {
+	private createMatch(tournamentId?: string): void {
 		// Skip if already created or in background demo
 		if (this.matchCreated || this.scene.isBackgroundDemo()) {
 			return;
@@ -388,9 +388,6 @@ export class GameEngine {
 
 		// Set flag to prevent duplicate creation during async operation
 		this.matchCreated = true;
-		
-		// Create match based on game mode
-		const tournamentId = this.gameMode === 'tournament' ? 1 : undefined;
 		
 		DbService.createMatch(player1Id, player2Id, tournamentId)
 			.then(match => {
@@ -737,29 +734,5 @@ export class GameEngine {
 			});
 			window.dispatchEvent(gameOverEvent);
 		});
-	}
-
-	/**
-	 * Sets player IDs and tournament ID for the match
-	 * @param playerIds - Array of player IDs
-	 * @param tournamentId - Tournament ID
-	 */
-	public setPlayerIdsWithTournament(playerIds: number[], tournamentId: string): void {
-		// Store player IDs
-		this.playerIds = [...playerIds];
-		
-		// Create match with tournament ID reference
-		if (this.playerIds.length === 2) {
-			// Import needed to avoid circular dependencies
-			import('@website/scripts/utils').then(({ DbService }) => {
-				DbService.createTournamentMatch(this.playerIds[0], this.playerIds[1], tournamentId)
-					.then(match => {
-						this.matchId = match.id;
-					})
-					.catch(error => {
-						console.error('Failed to create tournament match:', error);
-					});
-			});
-		}
 	}
 }

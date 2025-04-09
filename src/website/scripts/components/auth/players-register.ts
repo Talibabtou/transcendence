@@ -744,7 +744,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				[hostColor, guestColor]
 			);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
-			// For tournament mode
 			const connectedGuests = state.guests.filter(g => g && g.isConnected);
 			if (connectedGuests.length < 3) {
 				console.error('Cannot start tournament: Not enough players');
@@ -764,22 +763,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			// Hide any existing menu
 			document.getElementById('game-menu')?.remove();
 			
-			// Only dispatch the tournament initialization once
-			const eventDetail = {
-				action: 'initializeTournament',
-				playerIds,
-				playerNames, 
-				playerColors
-			};
-			
-			// Dispatch event to initialize tournament
-			document.dispatchEvent(new CustomEvent('tournament-action', { detail: eventDetail }));
-			
-			// Show tournament schedule screen
-			document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
-			
-			// Pass player data to start the tournament
+			// First pass player data to initialize tournament
 			this.onAllPlayersRegistered(playerIds, playerNames, playerColors);
+			
+			// Then show tournament schedule after a small delay to ensure initialization is complete
+			setTimeout(() => {
+				document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
+			}, 100);
 		}
 	}
 	

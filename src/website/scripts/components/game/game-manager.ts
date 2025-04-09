@@ -380,10 +380,7 @@ export class GameManager {
 					
 					// If we have a tournament ID, use it when setting player IDs
 					if (playerInfo.tournamentId) {
-						this.mainGameInstance.engine.setPlayerIdsWithTournament(
-							playerIdsCopy, 
-							playerInfo.tournamentId
-						);
+						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy, playerInfo.tournamentId);
 					} else {
 						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
 					}

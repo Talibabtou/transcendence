@@ -515,7 +515,7 @@ export class DbService {
 	 * @param player2Id - Second player's ID
 	 * @param tournamentId - Optional tournament ID
 	 */
-	static createMatch(player1Id: number, player2Id: number, _tournamentId?: number): Promise<Match> {
+	static createMatch(player1Id: number, player2Id: number, tournamentId?: string): Promise<Match> {
 		this.logRequest('POST', '/api/matches');
 		
 		// Generate match ID
@@ -527,7 +527,8 @@ export class DbService {
 						player_1: player1Id,
 						player_2: player2Id,
 						completed: false,
-			duration: 0,
+						duration: 0,
+						tournament_id: tournamentId,
 						timeout: false,
 			created_at: new Date().toISOString()
 		};
@@ -1115,83 +1116,6 @@ fetch('/api/save-db', {
 				reject(error);
 			}
 		});
-	}
-
-	/**
-	 * Creates a new tournament
-	 * @param playerIds - Array of player IDs participating in tournament
-	 * @param tournamentId - UUID for the tournament
-	 */
-	static createTournament(playerIds: number[], tournamentId: string): Promise<any> {
-		this.logRequest('POST', '/api/tournaments', { playerIds, tournamentId });
-		
-		return new Promise((resolve) => {
-			// In our mock implementation, we just return success
-			// In a real implementation, this would create a tournament record
-			resolve({
-				id: tournamentId,
-				playerIds,
-				created_at: new Date().toISOString(),
-				completed: false
-			});
-		});
-	}
-
-	/**
-	 * Creates a match within a tournament
-	 * @param player1Id - First player's ID
-	 * @param player2Id - Second player's ID
-	 * @param tournamentId - The tournament ID this match belongs to
-	 */
-	static createTournamentMatch(player1Id: number, player2Id: number, tournamentId: string): Promise<Match> {
-		this.logRequest('POST', '/api/tournaments/matches', {
-			player1Id,
-			player2Id,
-			tournamentId
-		});
-		
-		// Generate match ID
-		const matchId = db.meta.match_id_sequence || 1;
-		
-		// Create match object with tournament reference
-		const match = {
-			id: matchId,
-			player_1: player1Id,
-			player_2: player2Id,
-			tournament_id: tournamentId, // Add tournament reference
-			completed: false,
-			duration: 0,
-			timeout: false,
-			created_at: new Date().toISOString()
-		};
-		
-		// Add to database
-		db.matches.push(match);
-		
-		// Update sequence
-		db.meta.match_id_sequence = matchId + 1;
-		persistDb();
-		
-		// Return a properly formatted match object for the API
-		return Promise.resolve({
-			...match,
-			created_at: new Date(match.created_at)
-		} as Match);
-	}
-
-	/**
-	 * Completes a tournament and records final standings
-	 * @param tournamentId - The tournament ID
-	 * @param rankings - Final player rankings
-	 */
-	static completeTournament(tournamentId: string, rankings: { 
-		playerId: number, 
-		position: number 
-	}[]): Promise<void> {
-		this.logRequest('PUT', `/api/tournaments/${tournamentId}/complete`, { rankings });
-		
-		// In a real implementation, this would update tournament records
-		return Promise.resolve();
 	}
 
 	/**
