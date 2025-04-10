@@ -4,19 +4,23 @@ import { Server } from '../server.js'
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
-export async function getPic(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-  try {  const id: string = request.params.id;
-    const uploadDir = path.join(path.resolve(), process.env.UPLOAD_DIR || "../../uploads");
-    const existingFile: string | undefined = fs
-      .readdirSync(uploadDir)
-      .find((file) => file.startsWith(id));
-    if (existingFile) {
-      return reply.code(200).send({ link: `/uploads/${existingFile}` });
-    } else {
-      const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
-      return reply.code(404).send(errorMessage);
-    }
+export async function getPic(request: FastifyRequest, reply: FastifyReply) {
+  try { 
+    const id = request.user;
+    console.log({ id: id  })
+    const uploadDir = path.join(path.resolve(), process.env.UPLOAD_DIR || "./uploads");
+    // const existingFile: string | undefined = fs
+    //   .readdirSync(uploadDir)
+    //   .find((file) => file.startsWith(id));
+    // if (existingFile) {
+      // return reply.code(200).send({ link: `/uploads/${existingFile}` });
+    // } else {
+    //   const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
+    //   return reply.code(404).send(errorMessage);
+    // }
+    return reply.code(200).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
@@ -24,7 +28,7 @@ export async function getPic(request: FastifyRequest<{ Params: { id: string } }>
 
 export async function getPics(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const uploadDir = path.join(path.resolve(), process.env.UPLOAD_DIR || "../../uploads");
+    const uploadDir = path.join(path.resolve(), process.env.UPLOAD_DIR || "./uploads");
     const existingFiles: string[] | undefined = fs
       .readdirSync(uploadDir)
     if (existingFiles.length > 0) {
@@ -35,6 +39,7 @@ export async function getPics(request: FastifyRequest, reply: FastifyReply) {
       return reply.code(404).send(errorMessage);
     }
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
@@ -60,9 +65,9 @@ export async function checkMicroservicesHook(request: FastifyRequest, reply: Fas
 export async function checkMicroservices() {
   try {
     const [authStatus, profilStatus, friendsStatus] = await Promise.all([
-      checkService(process.env.AUTH_PORT || '8082'),
-      checkService(process.env.PROFIL_PORT || '8081'),
-      checkService(process.env.FRIENDS_PORT || '8084')
+      checkService('auth', process.env.AUTH_PORT || '8082'),
+      checkService('profil', process.env.PROFIL_PORT || '8081'),
+      checkService('friends', process.env.FRIENDS_PORT || '8084')
     ]);
 
     Server.microservices.set('auth', authStatus);
@@ -73,9 +78,9 @@ export async function checkMicroservices() {
   }
 }
 
-async function checkService(servicePort: string): Promise<boolean> {
+async function checkService(serviceName: string, servicePort: string): Promise<boolean> {
   try {
-    const serviceUrl = `http://localhost:${servicePort}/health`;
+    const serviceUrl = `http://${serviceName}:${servicePort}/health`;
     const response = await fetch(serviceUrl, {
       method: 'GET',
     });

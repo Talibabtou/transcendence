@@ -37,7 +37,7 @@ function verifTypeFile(file: MultipartFile) {
 export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: FastifyReply): Promise<void> {
   try {
       const subpath: string = request.url.split('/profil')[1];
-      const serviceUrl: string = `http://localhost:8081${subpath}`;
+      const serviceUrl: string = `http://profil:8081${subpath}`;
       const file: MultipartFile | undefined = await request.file();
       if (!file) {
         const errorMessage = createErrorResponse(404, ErrorCodes.NO_FILE_PROVIDED);
@@ -58,9 +58,13 @@ export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: 
         },
         body: formData
       });
-      const responseData = await response.json() as ErrorResponse | null;
-      return reply.code(response.status).send(responseData);
+      if (response.status >= 400) {
+        const responseData = await response.json();
+        return reply.code(response.status).send(responseData);
+      }
+      return reply.code(response.status).send();
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
       return reply.code(500).send(errorMessage);
   }
@@ -69,18 +73,20 @@ export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: 
 export async function deletePic(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     const subpath: string = request.url.split('/profil')[1];
-    const serviceUrl: string = `http://localhost:8081${subpath}`;
+    const serviceUrl: string = `http://profil:8081${subpath}`;
     const response: Response = await fetch(serviceUrl, {
       method: 'DELETE',
       headers: {
         'Authorization': request.headers.authorization || 'no token'
       },
     });
-    if (response.status == 204)
-      return reply.code(response.status).send();
-    const responseData = await response.json() as ErrorResponse | null;
-    return reply.code(response.status).send(responseData);
+    if (response.status >= 400) {
+      const responseData = await response.json();
+      return reply.code(response.status).send(responseData);
+    }
+    return reply.code(response.status).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorMessage);
   }

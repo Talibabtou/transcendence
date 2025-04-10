@@ -64,7 +64,7 @@ export class Server {
       server.addHook("preValidation", checkMicroservicesHook);
       server.addHook("preHandler", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.API_PORT) || 8080, host: "localhost" },
+        { port: Number(process.env.API_PORT) || 8080, host: '0.0.0.0' },
         (err, address) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);
@@ -75,7 +75,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error("Fatal error", err);
       process.exit(1);

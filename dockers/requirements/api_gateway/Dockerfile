@@ -1,15 +1,16 @@
-FROM node:16
+FROM node:23-bookworm
 
-EXPOSE 8080
+WORKDIR /app
 
-WORKDIR /
+COPY ./src/ ./src/
 
-COPY ./app .
+COPY ./certs/ ./certs/
 
-WORKDIR /app/
+COPY ./conf/ .
 
-COPY ./conf/* .
+RUN npm install && \
+	mkdir dist/ && \
+    mkdir uploads/ && \
+    npm run build
 
-ENTRYPOINT ["bash", "/usr/bin/script.sh"]
-
-CMD ["npm", "run", "start"]
+ENTRYPOINT ["npm", "start"]

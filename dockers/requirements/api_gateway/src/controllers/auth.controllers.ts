@@ -6,7 +6,7 @@ import { IAddUser, ILogin, IModifyUser, IReplyGetUser, IReplyGetUsers, IReplyLog
 export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'GET',
           headers: {
@@ -16,6 +16,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string }}>
         const user = await response.json() as IReplyGetUser | ErrorResponse;
         return reply.code(response.status).send(user);
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -24,7 +25,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string }}>
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'GET',
           headers: {
@@ -34,6 +35,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
         const users = await response.json() as IReplyGetUsers | ErrorResponse;
         return reply.code(response.status).send(users);
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -42,7 +44,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
  export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'POST',
           headers: { 
@@ -56,6 +58,8 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
         const user = await response.json() as IReplyGetUsers | ErrorResponse;
         return reply.code(response.status).send(user);
       } catch (err) {
+        request.server.log.error(err);
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -64,7 +68,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
 export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'PATCH',
           headers: {
@@ -79,6 +83,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
         }
         return reply.code(response.status).send();
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -87,7 +92,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
 export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'DELETE',
           headers: {
@@ -100,6 +105,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
         }
         return reply.code(response.status).send();
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -108,7 +114,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://auth:8082${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'POST',
           headers: {
@@ -121,6 +127,7 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
         const data = await response.json() as IReplyLogin | ErrorResponse;
         return reply.code(response.status).send(data);
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }

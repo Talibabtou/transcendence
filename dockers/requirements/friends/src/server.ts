@@ -25,7 +25,7 @@ class Server {
       await server.register(friendsRoutes);
       server.addHook("preHandler", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADD || "localhost" },
+        { port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADD || "0.0.0.0" },
         (err, address) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);

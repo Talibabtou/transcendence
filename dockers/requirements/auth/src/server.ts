@@ -25,7 +25,7 @@ class Server {
       await server.register(authRoutes);
       server.addHook("preHandler", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" },
+        { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "0.0.0.0" },
         (err, address) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);

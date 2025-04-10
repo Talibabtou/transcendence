@@ -1,24 +1,16 @@
-FROM debian:bookworm
+FROM node:23-bookworm
 
-RUN apt update -y && apt upgrade -y && apt install -y \
-    npm \
-    openssl && \
-    mkdir /usr/bin/api_gateway \
-    /usr/bin/api_gateway/https /usr/bin/api_gateway/dist && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+EXPOSE 8081
 
-    
-COPY ./conf/package.json /usr/bin/api_gateway/package.json
-COPY ./conf/tsconfig.json /usr/bin/api_gateway/tsconfig.json
-COPY ./srcs /usr/bin/api_gateway/srcs
-COPY ./script/script.sh /usr/bin/script.sh
+WORKDIR /app
 
-WORKDIR /usr/bin/api_gateway
+COPY ./src/ ./src/
 
-RUN chmod +x /usr/bin/script.sh
+COPY ./conf/ .
 
+RUN npm install && \
+	mkdir dist/ && \
+    mkdir uploads/ && \
+    npm run build
 
-ENTRYPOINT ["bash", "/usr/bin/script.sh"]
-
-CMD ["npm", "run", "start"]
+ENTRYPOINT ["npm", "start"]

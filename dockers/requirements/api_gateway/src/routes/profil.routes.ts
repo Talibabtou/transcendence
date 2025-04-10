@@ -5,7 +5,7 @@ import { IUpload } from '../shared/types/profil.type.js'
 
 export default async function authRoutes(fastify: FastifyInstance) {
 	fastify.post<{ Body: IUpload }>('/profil/uploads', {
-		schema: uploadSchema,
+		// schema: uploadSchema,
 		config: { 
 			auth: true, 
 			roles: ['user', 'admin']

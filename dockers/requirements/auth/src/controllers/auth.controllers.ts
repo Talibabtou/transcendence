@@ -16,8 +16,9 @@ export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply
     try {
       const { username, password, email } = request.body;
       const ip = request.headers['from'];
-      const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
       await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username, password, email, ip]);
+      const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
+      console.log({ user: user })
       return reply.code(201).send(user);
     } catch (err) {
       if (err instanceof Error) {
@@ -30,6 +31,7 @@ export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply
           return reply.code(409).send(errorMessage);
         }
       }
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -44,6 +46,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
       }
       return reply.code(200).send({ users });
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -63,6 +66,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string }}>
         const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
         return reply.code(400).send(errorMessage);
       }
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -82,6 +86,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply): 
         const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
         return reply.code(400).send(errorMessage);
       }
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -113,6 +118,7 @@ export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser }>,
           return reply.code(400).send(errorMessage);
         }
       }
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -139,6 +145,7 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     };
     return reply.code(200).send(user);
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }

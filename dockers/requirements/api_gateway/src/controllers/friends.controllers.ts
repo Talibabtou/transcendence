@@ -5,7 +5,7 @@ import {  } from '../shared/types/auth.types.js';
 export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://friends:8084${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'GET',
           headers: {
@@ -15,6 +15,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
         const friends = await response.json();
         return reply.code(response.status).send(friends);
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -23,7 +24,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
  export async function getFriend(request: FastifyRequest, reply: FastifyReply) {
   try {
       const subpath = request.url.split('/friends')[1];
-      const serviceUrl = `http://localhost:8084${subpath}`;
+      const serviceUrl = `http://friends:8084${subpath}`;
       const response = await fetch(serviceUrl, {
         method: 'GET',
         headers: {
@@ -35,6 +36,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
       const friend = await response.json();
       return reply.code(response.status).send(friend);
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
       return reply.code(500).send(errorMessage);
   }
@@ -43,7 +45,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
  export async function postFriend(request: FastifyRequest, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://friends:8084${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'POST',
           headers: { 
@@ -58,6 +60,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
         }
         return reply.code(response.status).send();
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -66,7 +69,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
  export async function patchFriend(request: FastifyRequest, reply: FastifyReply) {
   try {
       const subpath = request.url.split('/friends')[1];
-      const serviceUrl = `http://localhost:8084${subpath}`;
+      const serviceUrl = `http://friends:8084${subpath}`;
       const response = await fetch(serviceUrl, {
         method: 'PATCH',
         headers: { 
@@ -81,6 +84,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
       }
       return reply.code(response.status).send();
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
       return reply.code(500).send(errorMessage);
   }
@@ -89,7 +93,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply) {
 export async function deleteFriend(request: FastifyRequest, reply: FastifyReply) {
   try {
       const subpath = request.url.split('/friends')[1];
-      const serviceUrl = `http://localhost:8084${subpath}`;
+      const serviceUrl = `http://friends:8084${subpath}`;
       const response = await fetch(serviceUrl, {
         method: 'DELETE',
         headers: { 
@@ -102,6 +106,7 @@ export async function deleteFriend(request: FastifyRequest, reply: FastifyReply)
       }
       return reply.code(response.status).send();
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
       return reply.code(500).send(errorMessage);
   }
@@ -110,7 +115,7 @@ export async function deleteFriend(request: FastifyRequest, reply: FastifyReply)
 export async function deleteFriends(request: FastifyRequest, reply: FastifyReply) {
   try {
       const subpath = request.url.split('/friends')[1];
-      const serviceUrl = `http://localhost:8084${subpath}`;
+      const serviceUrl = `http://friends:8084${subpath}`;
       const response = await fetch(serviceUrl, {
         method: 'DELETE',
         headers: { 
@@ -123,6 +128,7 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
       }
       return reply.code(response.status).send();
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
       return reply.code(500).send(errorMessage);
   }

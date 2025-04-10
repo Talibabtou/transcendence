@@ -32,6 +32,7 @@ export async function deletePic(request: FastifyRequest, reply: FastifyReply): P
         }
         return reply.code(204).send();
       } catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
         return reply.code(500).send(errorMessage);
       }
@@ -44,7 +45,7 @@ export async function upload(request: FastifyRequest, reply: FastifyReply): Prom
       const errorMessage = createErrorResponse(404, ErrorCodes.NO_FILE_PROVIDED)
       return reply.code(404).send(errorMessage);
     }
-    const uploadDir: string = process.env.UPLOAD ||  process.env.UPLOAD_DIR || '../../uploads';
+    const uploadDir: string = process.env.UPLOAD ||  process.env.UPLOAD_DIR || './uploads';
     if (!fs.existsSync(uploadDir))
       fs.mkdirSync(uploadDir);
     const existingFiles: string[] = fs.readdirSync(uploadDir).filter(f => f.startsWith(request.user.id));
@@ -60,6 +61,7 @@ export async function upload(request: FastifyRequest, reply: FastifyReply): Prom
     fs.promises.writeFile(filePath, buffer);
     return reply.code(201).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }

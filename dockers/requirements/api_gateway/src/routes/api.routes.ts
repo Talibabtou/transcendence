@@ -1,9 +1,9 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPicSchema, getPicsSchema } from "../schemas/api.schemas.js"
 import { getPic, getPics, getHealth } from "../controllers/api.controllers.js";
 
 export default async function apiRoutes(fastify: FastifyInstance) {
-  fastify.get("/uploads", {
+  fastify.get("/pics", {
     schema: getPicsSchema,
     config: { 
       auth: true, 
@@ -11,7 +11,7 @@ export default async function apiRoutes(fastify: FastifyInstance) {
     }},
     getPics);
 
-  fastify.get<{ Params: { id: string } }>("/uploads/:id", {
+  fastify.get("/pic", {
     schema: getPicSchema,
     config: { 
       auth: true, 
@@ -24,4 +24,10 @@ export default async function apiRoutes(fastify: FastifyInstance) {
       auth: false
     }},
     getHealth);
+
+  fastify.get("/check", {
+    config: { 
+      auth: false
+    }},
+    (request: FastifyRequest, reply: FastifyReply ) => { reply.code(200).send({ check: 'ok' }) });
 }

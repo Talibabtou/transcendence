@@ -15,7 +15,6 @@ declare module 'fastify' {
 export async function getFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const id = request.body;
-    console.log({ id: id });
     if (!id || id.id === request.user.id) {
       const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST)
       return reply.code(400).send(errorMessage);
@@ -29,14 +28,13 @@ export async function getFriend(request: FastifyRequest<{ Body: IId }>, reply: F
             ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
             AND accepted = true)
         AS FriendExists`, [request.user.id, id.id, id.id, request.user.id]);
-    console.log({ exist: friend })
     if (!friend.FriendExists) {
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
       return reply.code(404).send(errorMessage);
     }
     return reply.code(200).send(friend.FriendExists);
   } catch (err) {
-    console.log({ test: 'test' })
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
@@ -60,6 +58,7 @@ export async function getFriends(request: FastifyRequest, reply: FastifyReply): 
       }
       return reply.code(200).send({ friends });
     } catch (err) {
+      request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
       return reply.code(500).send(errorMessage);
     }
@@ -92,6 +91,7 @@ export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: 
         return reply.code(409).send(errorMessage);
       }
     }
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
@@ -107,6 +107,7 @@ export async function patchFriend(request: FastifyRequest<{ Body: IId }>, reply:
     }
     return reply.code(204).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
@@ -121,6 +122,7 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
     }
     return reply.code(204).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorMessage);
   }
@@ -135,6 +137,7 @@ export async function deleteFriend(request: FastifyRequest<{ Params: { id: strin
     }
     return reply.code(204).send();
   } catch (err) {
+    request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorMessage);
   }
