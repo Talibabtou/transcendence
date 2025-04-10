@@ -3,9 +3,8 @@ export interface Match {
   id: string;
   player_1: string;
   player_2: string;
-  completed: boolean;
+  active: boolean;
   duration: number | null;
-  timeout: boolean;
   tournament_id: string | null;
   created_at: string;
 }
@@ -17,14 +16,13 @@ export interface CreateMatchRequest {
 }
 
 export interface UpdateMatchRequest {
-  completed: boolean;
+  active: boolean;
   duration: number | null;
-  timeout: boolean;
 }
 
 export interface GetMatchesQuery {
   player_id?: string;
-  completed?: boolean;
+  active?: boolean;
   tournament_id?: string;
   limit?: number;
   offset?: number;
@@ -33,7 +31,7 @@ export interface GetMatchesQuery {
 export interface PlayerMatchSummary {
 	total_matches: number;
 	elo: number;
-	completed_matches: number;
+	active_matches: number;
 	victories: number;
 	win_ratio: number;
 }
