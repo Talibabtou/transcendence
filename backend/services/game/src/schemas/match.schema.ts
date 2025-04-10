@@ -7,13 +7,12 @@ export const matchSchema = {
     id: { type: 'string', format: 'uuid' },
     player_1: { type: 'string', format: 'uuid' },
     player_2: { type: 'string', format: 'uuid' },
-    completed: { type: 'boolean', default: false },
+    active: { type: 'boolean', default: false },
     duration: { type: ['integer', 'null'], minimum: 0, default: null }, // duration in seconds
-    timeout: { type: 'boolean', default: false },
     tournament_id: { type: ['string', 'null'], default: null, format: 'uuid' },
     created_at: { type: 'string', format: 'date-time' }
   },
-  required: ['id', 'player_1', 'player_2', 'completed', 'duration', 'timeout', 'tournament_id', 'created_at']
+  required: ['id', 'player_1', 'player_2', 'active', 'duration', 'tournament_id', 'created_at']
 }
 
 export const getMatchSchema = {
@@ -42,7 +41,7 @@ export const getMatchesSchema = {
     type: 'object',
     properties: {
       player_id: { type: 'string', format: 'uuid' },
-      completed: { type: 'boolean' },
+      active: { type: 'boolean' },
       limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
       offset: { type: 'integer', minimum: 0, default: 0 }
     }
@@ -90,11 +89,10 @@ export const updateMatchSchema = {
   body: {
     type: 'object',
     properties: {
-      completed: { type: 'boolean' },
+      active: { type: 'boolean' },
       duration: { type: ['integer', 'null'], minimum: 0 }, // duration in seconds
-      timeout: { type: 'boolean' }
     },
-    required: ['completed', 'duration', 'timeout'],
+    required: ['active', 'duration'],
     additionalProperties: false
   },
   response: {
@@ -164,11 +162,11 @@ export const matchSummarySchema = {
       properties: {
         total_matches: { type: 'integer', minimum: 0 },
 				elo: { type: 'integer', minimum: 0 },
-        completed_matches: { type: 'integer', minimum: 0 },
+        active_matches: { type: 'integer', minimum: 0 },
         victories: { type: 'integer', minimum: 0 },
         win_ratio: { type: 'number', minimum: 0, maximum: 1 }
       },
-      required: ['total_matches', 'elo', 'completed_matches', 'victories', 'win_ratio']
+      required: ['total_matches', 'elo', 'active_matches', 'victories', 'win_ratio']
     },
     500: {
       ...errorResponseSchema,

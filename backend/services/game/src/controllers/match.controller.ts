@@ -36,7 +36,7 @@ export async function getMatch(request: FastifyRequest<{
 export async function getMatches(request: FastifyRequest<{
   Querystring: GetMatchesQuery
 }>, reply: FastifyReply): Promise<void> {
-  const { player_id, completed, limit = 10, offset = 0 } = request.query
+  const { player_id, active, limit = 10, offset = 0 } = request.query
   try {
     let query = 'SELECT * FROM matches WHERE 1=1'
     const params = []
@@ -44,9 +44,9 @@ export async function getMatches(request: FastifyRequest<{
       query += ' AND (player_1 = ? OR player_2 = ?)'
       params.push(player_id, player_id)
     }
-    if (completed !== undefined) {
-      query += ' AND completed = ?'
-      params.push(completed)
+    if (active !== undefined) {
+      query += ' AND active = ?'
+      params.push(active)
     }
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?'
     params.push(limit, offset)
@@ -75,7 +75,17 @@ export async function createMatch(request: FastifyRequest<{
   
   try {
     const startTime = performance.now();
-    
+    const prevMatch = await request.server.db.get('SELECT * FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE', [player_1, player_2]) as Match[] | null
+		if (prevMatch) {
+			for (const match of prevMatch) {
+				if (new Date(match.created_at) < new Date(Date.now() - 1000 * 60 * 10)) {
+				await request.server.db.run(
+					`UPDATE matches SET active = FALSE, duration = NULL WHERE id = ?`,
+					match.id
+				)
+			}
+		}
+	}
     const newMatch = await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
       [player_1, player_2, tournament_id || null]
@@ -111,12 +121,12 @@ export async function updateMatch(request: FastifyRequest<{
   Body: UpdateMatchRequest
 }>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
-  const { completed, duration, timeout } = request.body
+  const { active, duration} = request.body
   
   request.log.info({
     msg: 'Updating match',
     match_id: id,
-    updates: { completed, duration, timeout }
+    updates: { active, duration}
   });
   
   try {
@@ -136,9 +146,9 @@ export async function updateMatch(request: FastifyRequest<{
     // Build update query
     let updates = []
     let params = []
-    if (completed !== undefined) {
-      updates.push('completed = ?')
-      params.push(completed)
+    if (active !== undefined) {
+      updates.push('active = ?')
+      params.push(active)
     }
     if (duration !== undefined) {
       updates.push('duration = ?')
@@ -146,10 +156,6 @@ export async function updateMatch(request: FastifyRequest<{
 			if (duration) {
 				matchDurationHistogram.record(duration, { 'match.id': id });
 			}
-    }
-    if (timeout !== undefined) {
-      updates.push('timeout = ?')
-      params.push(timeout)
     }
     if (updates.length === 0) {
       const errorResponse = createErrorResponse(400, ErrorCodes.INVALID_FIELDS)
@@ -214,14 +220,14 @@ export async function matchSummary(request: FastifyRequest<{
     // Get player match summary
     const startTime = performance.now();
     const matchSummaryResult = await request.server.db.get(
-      'SELECT total_matches, elo, completed_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
+      'SELECT total_matches, elo, active_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
       [player_id]
     ) 
     recordFastDatabaseMetrics('SELECT', 'player_match_summary', (performance.now() - startTime));
     // Initialize default match summary if no data is returned
     const matchSummary = matchSummaryResult || {
       total_matches: 0,
-      completed_matches: 0,
+      active_matches: 0,
       victories: 0,
       win_ratio: 0,
       elo: 0

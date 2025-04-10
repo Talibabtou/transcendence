@@ -18,7 +18,7 @@ import {
 	matchSummarySchema
 } from '../schemas/match.schema.js'
 
-export default async function matchRoutes(fastify: FastifyInstance) {
+export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   // Get all matches with optional filters
   fastify.get('/', { 
     schema: {
@@ -36,10 +36,16 @@ export default async function matchRoutes(fastify: FastifyInstance) {
   }, getMatch)
   
   // Create a new match
-  fastify.post('/', { 
+  fastify.post('/', {
     schema: {
       ...createMatchSchema,
       tags: ['matches']
+    },
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: '1 minute'
+      }
     }
   }, createMatch)
   
