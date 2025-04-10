@@ -2,8 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { 
   getMatch, 
   getMatches, 
-  createMatch, 
-  updateMatch,
+  createMatch,
 	matchTimeline,
 	matchStats,
 	matchSummary
@@ -48,14 +47,6 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
       }
     }
   }, createMatch)
-  
-  // Update an existing match
-  fastify.put('/:id', { 
-    schema: {
-      ...updateMatchSchema,
-      tags: ['matches']
-    }
-  }, updateMatch)
 
 	fastify.get('/:id/stats', { 
     schema: {

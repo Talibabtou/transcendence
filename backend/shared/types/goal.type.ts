@@ -7,7 +7,7 @@ export interface Goal {
   created_at: string;
 }
 
-export interface FastestGoal {
+export interface LongestGoal {
   player: string;
   duration: number;
 }

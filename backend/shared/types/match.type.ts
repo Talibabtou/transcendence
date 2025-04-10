@@ -15,10 +15,6 @@ export interface CreateMatchRequest {
   tournament_id?: string | null;
 }
 
-export interface UpdateMatchRequest {
-  active: boolean;
-  duration: number | null;
-}
 
 export interface GetMatchesQuery {
   player_id?: string;

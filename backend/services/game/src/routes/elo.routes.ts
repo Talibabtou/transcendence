@@ -1,14 +1,12 @@
 import { FastifyInstance } from 'fastify'
 import { 
   getElo, 
-  getElos, 
-  createElo
+  getElos
 } from '../controllers/elo.controller.js'
 
 import { 
   getEloSchema, 
-  getElosSchema, 
-  createEloSchema 
+  getElosSchema
 } from '../schemas/elo.schema.js'
 
 export default async function goalRoutes(fastify: FastifyInstance) {
@@ -27,12 +25,4 @@ export default async function goalRoutes(fastify: FastifyInstance) {
       tags: ['elos']
     }
   }, getElo)
-  
-  // Create a new goal
-  fastify.post('/', { 
-    schema: {
-      ...createEloSchema,
-      tags: ['elos']
-    }
-  }, createElo)
 }

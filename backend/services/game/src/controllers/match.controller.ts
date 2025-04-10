@@ -1,10 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
-import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter, matchDurationHistogram	 } from '../telemetry/metrics.js'
+import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter} from '../telemetry/metrics.js'
 import { 
   Match, 
   CreateMatchRequest, 
-  UpdateMatchRequest, 
   GetMatchesQuery,
 	PlayerStats,
 	PlayerMatchSummary,
@@ -115,87 +114,6 @@ export async function createMatch(request: FastifyRequest<{
   }
 }
 
-// Update a match
-export async function updateMatch(request: FastifyRequest<{
-  Params: { id: string },
-  Body: UpdateMatchRequest
-}>, reply: FastifyReply): Promise<void> {
-  const { id } = request.params
-  const { active, duration} = request.body
-  
-  request.log.info({
-    msg: 'Updating match',
-    match_id: id,
-    updates: { active, duration}
-  });
-  
-  try {
-    // Check if match exists
-    const selectStartTime = performance.now();
-    const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
-    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime));
-    if (!match) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
-      return reply.code(404).send(errorResponse) 
-    }
-		if (match.duration) {
-			const errorResponse = createErrorResponse(400, ErrorCodes.MATCH_ALREADY_UPDATED)
-			return reply.code(400).send(errorResponse)
-		}
-    
-    // Build update query
-    let updates = []
-    let params = []
-    if (active !== undefined) {
-      updates.push('active = ?')
-      params.push(active)
-    }
-    if (duration !== undefined) {
-      updates.push('duration = ?')
-      params.push(duration)
-			if (duration) {
-				matchDurationHistogram.record(duration, { 'match.id': id });
-			}
-    }
-    if (updates.length === 0) {
-      const errorResponse = createErrorResponse(400, ErrorCodes.INVALID_FIELDS)
-      return reply.code(400).send(errorResponse)
-    }
-    
-    // Add id to params
-    params.push(id)
-    
-    const updateStartTime = performance.now();
-    await request.server.db.run(
-      `UPDATE matches SET ${updates.join(', ')} WHERE id = ?`,
-      ...params
-    )
-    recordMediumDatabaseMetrics('UPDATE', 'matches', (performance.now() - updateStartTime));
-    
-    // Retrieve updated match (consider if this SELECT needs separate timing or if update RETURNING * is possible/better)
-    const finalSelectStartTime = performance.now();
-    const updatedMatch = await request.server.db.get('SELECT * FROM matches WHERE id = ?', [id]) as Match | null
-    recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - finalSelectStartTime));
-    if (!updatedMatch) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
-      return reply.code(404).send(errorResponse)
-    }
-    
-    return reply.code(200).send(updatedMatch)
-  } catch (error) {
-    request.log.error({
-      msg: 'Error in updateMatch',
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack
-      } : error
-    });
-    
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    return reply.code(500).send(errorResponse)
-  }
-}
-
 export async function matchTimeline(request: FastifyRequest<{
 		Params: { id: string }
 	}>, reply: FastifyReply): Promise<void> {
@@ -293,11 +211,11 @@ export async function matchStats(request: FastifyRequest<{
     const eloRatings = eloRatingsResult ? eloRatingsResult.map(row => Number(row.elo)) : []
     
     // Calculate goal stats with safe handling of empty arrays
-    let fastestGoalDuration = null
+    let longestGoalDuration = null
     let averageGoalDuration = null
     
     if (goalDurations.length > 0) {
-      fastestGoalDuration = Math.min(...goalDurations)
+      longestGoalDuration = Math.max(...goalDurations)
       averageGoalDuration = goalDurations.reduce((sum, duration) => sum + duration, 0) / goalDurations.length
     }
     
@@ -305,7 +223,7 @@ export async function matchStats(request: FastifyRequest<{
     const playerStats: PlayerStats = {
       player_id,
       goal_stats: {
-        fastest_goal_duration: fastestGoalDuration,
+        fastest_goal_duration: longestGoalDuration,
         average_goal_duration: averageGoalDuration,
         total_goals: goalDurations.length
       },

@@ -1,11 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
-import { Match } from '@shared/types/match.type.js'
 import { recordMediumDatabaseMetrics, eloHistogram } from '../telemetry/metrics.js'
 
 import { 
   Elo,
-  CreateEloRequest, 
   GetElosQuery,
 	DailyElo
 } from '@shared/types/elo.type.js'
@@ -59,40 +57,6 @@ export async function getElos(request: FastifyRequest<{
 	}
 }
 
-// Create a new elo
-export async function createElo(request: FastifyRequest<{
-  Body: CreateEloRequest
-}>, reply: FastifyReply): Promise<void> {
-  const { player, elo } = request.body
-  
-  request.log.info({
-    msg: 'Creating elo entry',
-    data: { player, elo }
-  });
-  
-  try {
-    const startTime = performance.now(); // Start timer
-    const newElo = await request.server.db.get(
-      'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
-      player, elo
-    ) as Elo
-    recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime)); // Record metric
-    eloHistogram.record(elo);
-    
-    return reply.code(201).send(newElo)
-  } catch (error) {
-    request.log.error({
-      msg: 'Error in createElo',
-      error: error instanceof Error ? {
-        message: error.message,
-        stack: error.stack
-      } : error
-    });
-    
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    return reply.code(500).send(errorResponse)
-  }
-}
 
 export async function dailyElo(request: FastifyRequest<{
   Params: { player: string }

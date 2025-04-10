@@ -6,11 +6,6 @@ export interface Elo {
   created_at: string;
 }
 
-export interface CreateEloRequest {
-  player: string;
-  elo: number;
-}
-
 export interface GetElosQuery {
   player?: string;
   limit?: number;
