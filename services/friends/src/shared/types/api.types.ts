@@ -5,3 +5,7 @@ export interface IGetPicResponse {
 export interface IGetPicsResponse {
     link: string[]
 }
+
+export interface IId {
+    id: string
+  }

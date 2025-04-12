@@ -1,8 +1,9 @@
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
-export async function getUser(request, reply) {
+export async function getUserMe(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -13,6 +14,26 @@ export async function getUser(request, reply) {
         return reply.code(response.status).send(user);
     }
     catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function getUser(request, reply) {
+    try {
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+        const response = await fetch(serviceUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': request.headers.authorization || 'no token'
+            },
+        });
+        const user = await response.json();
+        return reply.code(response.status).send(user);
+    }
+    catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -20,7 +41,7 @@ export async function getUser(request, reply) {
 export async function getUsers(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -31,6 +52,7 @@ export async function getUsers(request, reply) {
         return reply.code(response.status).send(users);
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -38,7 +60,7 @@ export async function getUsers(request, reply) {
 export async function postUser(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
             headers: {
@@ -52,14 +74,17 @@ export async function postUser(request, reply) {
         return reply.code(response.status).send(user);
     }
     catch (err) {
+        request.server.log.error(err);
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
 }
 export async function patchUser(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'PATCH',
             headers: {
@@ -75,14 +100,16 @@ export async function patchUser(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
 }
 export async function deleteUser(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'DELETE',
             headers: {
@@ -96,6 +123,7 @@ export async function deleteUser(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -103,7 +131,7 @@ export async function deleteUser(request, reply) {
 export async function postLogin(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://localhost:8082${subpath}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
             headers: {
@@ -117,6 +145,7 @@ export async function postLogin(request, reply) {
         return reply.code(response.status).send(data);
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }

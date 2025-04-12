@@ -2,7 +2,6 @@ import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const
 export async function getFriend(request, reply) {
     try {
         const id = request.body;
-        console.log({ id: id });
         if (!id || id.id === request.user.id) {
             const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
             return reply.code(400).send(errorMessage);
@@ -16,7 +15,6 @@ export async function getFriend(request, reply) {
             ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
             AND accepted = true)
         AS FriendExists`, [request.user.id, id.id, id.id, request.user.id]);
-        console.log({ exist: friend });
         if (!friend.FriendExists) {
             const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);
@@ -24,7 +22,7 @@ export async function getFriend(request, reply) {
         return reply.code(200).send(friend.FriendExists);
     }
     catch (err) {
-        console.log({ test: 'test' });
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -48,6 +46,7 @@ export async function getFriends(request, reply) {
         return reply.code(200).send({ friends });
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -80,6 +79,7 @@ export async function postFriend(request, reply) {
                 return reply.code(409).send(errorMessage);
             }
         }
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -95,6 +95,7 @@ export async function patchFriend(request, reply) {
         return reply.code(204).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -109,6 +110,7 @@ export async function deleteFriends(request, reply) {
         return reply.code(204).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -123,6 +125,7 @@ export async function deleteFriend(request, reply) {
         return reply.code(204).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }

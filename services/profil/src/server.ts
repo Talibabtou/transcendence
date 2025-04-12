@@ -1,8 +1,6 @@
 import { fastify, FastifyInstance } from 'fastify';
 import fastifyMultipart from '@fastify/multipart';
 import profilRoutes from './routes/profil.routes.js';
-import { jwtPluginRegister, jwtPluginHook } from './shared/plugins/jwtPlugin.js'
-import fastifyJwt from '@fastify/jwt';
 
 
 class Server {
@@ -32,10 +30,8 @@ class Server {
 					parts: 1000         // For multipart forms, the max number of parts (fields + files)
 				}
 			});
-			await server.register(fastifyJwt, jwtPluginRegister);
 			await server.register(profilRoutes);
-			server.addHook('preHandler', jwtPluginHook)
-			server.listen({ port: Number(process.env.PROFIL_PORT) || 8081, host: process.env.PROFIL_ADD || 'localhost' }, (err, address) => {
+			server.listen({ port: Number(process.env.PROFIL_PORT) || 8081, host: process.env.PROFIL_ADDR || '0.0.0.0' }, (err, address) => {
 				if (err) {
 					server.log.error(`Failed to start server: ${err.message}`);
 					if (err.message.includes('EADDRINUSE'))

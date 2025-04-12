@@ -2,7 +2,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 export async function getFriends(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -13,6 +13,7 @@ export async function getFriends(request, reply) {
         return reply.code(response.status).send(friends);
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -20,7 +21,7 @@ export async function getFriends(request, reply) {
 export async function getFriend(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
@@ -33,6 +34,7 @@ export async function getFriend(request, reply) {
         return reply.code(response.status).send(friend);
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -40,7 +42,7 @@ export async function getFriend(request, reply) {
 export async function postFriend(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
             headers: {
@@ -56,6 +58,7 @@ export async function postFriend(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -63,7 +66,7 @@ export async function postFriend(request, reply) {
 export async function patchFriend(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'PATCH',
             headers: {
@@ -79,6 +82,7 @@ export async function patchFriend(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -86,7 +90,7 @@ export async function patchFriend(request, reply) {
 export async function deleteFriend(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'DELETE',
             headers: {
@@ -100,6 +104,7 @@ export async function deleteFriend(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }
@@ -107,7 +112,7 @@ export async function deleteFriend(request, reply) {
 export async function deleteFriends(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://localhost:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'DELETE',
             headers: {
@@ -121,6 +126,7 @@ export async function deleteFriends(request, reply) {
         return reply.code(response.status).send();
     }
     catch (err) {
+        request.server.log.error(err);
         const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
         return reply.code(500).send(errorMessage);
     }

@@ -1,50 +1,53 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { addUser, getUsers, getUser, deleteUser, modifyUser, login } from '../controllers/auth.controllers.js';
+import { FastifyInstance } from 'fastify';
+import { IAddUser, ILogin, IModifyUser } from '../shared/types/auth.types.js';
+import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js'
+import { getUserSchema, getUsersSchema, deleteUserSchema, createUserSchema, modifyUserSchema, loginSchema } from '../schemas/auth.schemas.js';
 
-export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get('/users', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getUsers);
+export default async function authRoutes(fastify: FastifyInstance) {
+	fastify.get<{ Params: {id: string } }>('/auth/user/:id', {
+		schema: getUserSchema,
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
+		getUser);
 
-  fastify.get('/user/:id', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getUser);
+	fastify.get('/auth/users', {
+		schema: getUsersSchema,
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
+		getUsers);
 
-  fastify.post('/register', {
-    config: { 
-      auth: false
-    }},
-    addUser);
+	fastify.post<{ Body: IAddUser }>('/auth/register', {
+		schema: createUserSchema,
+		config: { 
+		  auth: false
+		}},
+		postUser);
 
-  fastify.patch('/user', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    modifyUser)
-  
-  fastify.delete('/user', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    deleteUser);
+	fastify.patch<{ Body: IModifyUser }>('/auth/user', {
+		schema: modifyUserSchema,
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
+		patchUser);
 
-  fastify.post('/login', {
-    config: { 
-      auth: false
-    }},
-    login);
+	fastify.delete('/auth/user', {
+		schema: deleteUserSchema,
+		config: { 
+		  auth: true, 
+		  roles: ['user', 'admin']
+		}},
+		deleteUser);
 
-  fastify.get('/health', {
-    config: { 
-      auth: false
-    }},
-    (request: FastifyRequest, reply: FastifyReply) => { reply.code(200).send(); });
+	fastify.post<{ Body: ILogin }>('/auth/login', {
+		schema: loginSchema,
+		config: { 
+		  auth: false
+		}},
+		postLogin);
+
 }

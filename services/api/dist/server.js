@@ -9,7 +9,7 @@ import { fastify } from "fastify";
 import profilRoutes from "./routes/profil.routes.js";
 import friendsRoutes from "./routes/friends.routes.js";
 import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
-import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js';
+import { checkMicroservicesHook } from './controllers/api.controllers.js';
 // const server = fastify({
 // 	logger: true,
 // 	http2: true,
@@ -48,7 +48,7 @@ export class Server {
                 },
             });
             await server.register(fastifyStatic, {
-                root: path.join(path.resolve(), process.env.UPLOADS_DIR || "./srcs/shared/uploads"),
+                root: path.join(path.resolve(), process.env.UPLOADS_DIR || "/uploads"),
                 prefix: "/uploads",
             });
             await server.register(fastifyJwt, jwtPluginRegister);
@@ -56,9 +56,16 @@ export class Server {
             await server.register(authRoutes, { prefix: "/api/v1/" });
             await server.register(profilRoutes, { prefix: "/api/v1/" });
             await server.register(friendsRoutes, { prefix: "/api/v1/" });
+            server.addHook("onRequest", jwtPluginHook);
             server.addHook("preValidation", checkMicroservicesHook);
-            server.addHook("preHandler", jwtPluginHook);
-            server.listen({ port: Number(process.env.API_PORT) || 8080, host: "localhost" }, (err, address) => {
+            server.addHook("preHandler", (request, reply, done) => {
+                console.log("User Info:", request.user); // Log user info
+                done();
+            });
+            server.listen({
+                port: Number(process.env.API_PORT) || 8080,
+                host: process.env.API_ADDR || '0.0.0.0'
+            }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
                     if (err.message.includes('EADDRINUSE'))
@@ -67,7 +74,7 @@ export class Server {
                 }
                 server.log.info(`Server listening at ${address}`);
             });
-            setInterval(checkMicroservices, 2000);
+            // setInterval(checkMicroservices, 2000);
         }
         catch (err) {
             server.log.error("Fatal error", err);

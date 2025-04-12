@@ -62,9 +62,9 @@ export class Server {
       await server.register(profilRoutes, { prefix: "/api/v1/" });
       await server.register(friendsRoutes, { prefix: "/api/v1/" });
       server.addHook("preValidation", checkMicroservicesHook);
-      server.addHook("preHandler", jwtPluginHook);
+      server.addHook("onRequest", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.API_PORT) || 8080, host: '0.0.0.0' },
+        { port: Number(process.env.API_PORT) || 8080, host: process.env.API_ADDR || '0.0.0.0' },
         (err, address) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);

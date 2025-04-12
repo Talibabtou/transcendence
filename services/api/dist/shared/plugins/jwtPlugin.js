@@ -1,3 +1,4 @@
+import { createErrorResponse, ErrorCodes } from '../constants/error.const.js';
 export const jwtPluginRegister = {
     secret: process.env.JWT_SECRET || "super_secret",
     sign: {
@@ -5,57 +6,46 @@ export const jwtPluginRegister = {
     }
 };
 export async function jwtPluginHook(request, reply) {
-    if (request.routeOptions.config?.auth === false) {
+    if (!request.routeOptions.config?.auth)
         return;
-    }
     const authHeader = request.headers['authorization'];
-    if (!authHeader?.startsWith('Bearer')) {
+    if (!authHeader?.startsWith('Bearer ')) {
         request.server.log.warn("Missing or invalid Authorization header", {
             ip: request.ip,
             method: request.method,
             url: request.url
         });
-        return reply.status(401).send({
-            success: false,
-            message: 'Missing or invalid Authorization header'
-        });
+        const errorMessage = createErrorResponse(401, ErrorCodes.JWT_BAD_HEADER);
+        return reply.code(401).send(errorMessage);
     }
     try {
         await request.jwtVerify();
-        const requiredRoles = request.routeOptions.config?.roles;
-        const userRole = request.user.role;
-        if (requiredRoles && !requiredRoles.includes(userRole)) {
-            request.server.log.warn("Insufficient permissions", {
-                ip: request.ip,
-                method: request.method,
-                url: request.url,
-                requiredRoles,
-                userRole: userRole
-            });
-            return reply.status(403).send({
-                success: false,
-                message: 'Insufficient permissions',
-                code: 'INSUFFICIENT_PERMISSIONS'
-            });
-        }
+        // const requiredRoles = request.routeOptions.config?.roles;
+        // const userRole = (request.user as { role: string }).role;
+        // if (requiredRoles && !requiredRoles.includes(userRole)) {
+        //   request.server.log.warn("Insufficient permissions", {
+        //     ip: request.ip,
+        //     method: request.method,
+        //     url: request.url,
+        //     requiredRoles,
+        //     userRole: userRole
+        //   });
+        //   const errorMessage = createErrorResponse(403, ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS)
+        //   return reply.code(403).send(errorMessage);
+        // }
     }
     catch (err) {
-        if (err instanceof Error) {
-            const errorCode = err.message || 'JWT_VERIFICATION_ERROR';
-            const message = err.message.includes('FST_JWT_AUTHORIZATION_TOKEN_EXPIRED')
-                ? 'Token expired'
-                : 'Unauthorized';
+        if (err instanceof Error && err.message.includes('FST_JWT_AUTHORIZATION_TOKEN_EXPIRED')) {
             request.server.log.error("JWT verification failed", {
                 error: err.message,
-                code: errorCode,
                 ip: request.ip,
                 method: request.method,
                 url: request.url
             });
-            return reply.status(401).send({
-                success: false,
-                message: message
-            });
+            const errorMessage = createErrorResponse(401, ErrorCodes.JWT_EXP_TOKEN);
+            return reply.code(401).send(errorMessage);
         }
+        const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+        return reply.code(401).send(errorMessage);
     }
 }

@@ -1,8 +1,8 @@
-import { fastify } from "fastify";
 import { initDb } from "./db.js";
-import authRoutes from "./routes/auth.routes.js";
-import { jwtPluginRegister, jwtPluginHook } from "./shared/plugins/jwtPlugin.js";
 import fastifyJwt from "@fastify/jwt";
+import authRoutes from "./routes/auth.routes.js";
+import { fastify } from "fastify";
+import { jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
 class Server {
     static instance;
     constructor() { }
@@ -17,10 +17,9 @@ class Server {
             process.on("SIGINT", () => Server.shutdown("SIGINT"));
             process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
             server.decorate("db", await initDb());
-            await server.register(fastifyJwt, jwtPluginRegister);
             await server.register(authRoutes);
-            server.addHook("preHandler", jwtPluginHook);
-            server.listen({ port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "localhost" }, (err, address) => {
+            await server.register(fastifyJwt, jwtPluginRegister);
+            server.listen({ port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADDR || "0.0.0.0" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
                     if (err instanceof Error && err.message.includes('EADDRINUSE'))

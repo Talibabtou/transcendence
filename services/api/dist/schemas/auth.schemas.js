@@ -45,6 +45,38 @@ export const getUserSchema = {
         }
     }
 };
+export const getUserMeSchema = {
+    response: {
+        200: {
+            body: {
+                type: 'object',
+                properties: {
+                    user: {
+                        type: 'object',
+                        properties: {
+                            username: 'string',
+                            email: 'string'
+                        }
+                    }
+                },
+                required: ['username', 'email'],
+                additionalProperties: false
+            }
+        },
+        404: {
+            ...errorResponseSchema,
+            example: ErrorExamples.playerNotFound
+        },
+        400: {
+            ...errorResponseSchema,
+            example: ErrorExamples.sqliteMismatch
+        },
+        500: {
+            ...errorResponseSchema,
+            example: ErrorExamples.internalError
+        }
+    }
+};
 export const getUsersSchema = {
     response: {
         200: {

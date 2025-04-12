@@ -1,50 +1,22 @@
+import { IId } from '../shared/types/api.types.js';
+import { IModifyUser, IAddUser, ILogin } from '../shared/types/auth.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { addUser, getUsers, getUser, deleteUser, modifyUser, login } from '../controllers/auth.controllers.js';
+import { addUser, getUsers, getUser, getUserMe, deleteUser, modifyUser, login } from '../controllers/auth.controllers.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get('/users', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getUsers);
+  fastify.get('/users', getUsers);
 
-  fastify.get('/user/:id', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getUser);
+  fastify.get<{ Params: IId }>('/user/:id', getUser);
 
-  fastify.post('/register', {
-    config: { 
-      auth: false
-    }},
-    addUser);
+  fastify.get<{ Params: IId }>('/user/me/:id', getUserMe);
 
-  fastify.patch('/user', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    modifyUser)
+  fastify.post<{ Body: IAddUser }>('/register', addUser);
+
+  fastify.patch<{ Body: IModifyUser, Params: IId }>('/user/:id', modifyUser)
   
-  fastify.delete('/user', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    deleteUser);
+  fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
 
-  fastify.post('/login', {
-    config: { 
-      auth: false
-    }},
-    login);
+  fastify.post<{ Body: ILogin }>('/login', login);
 
-  fastify.get('/health', {
-    config: { 
-      auth: false
-    }},
-    (request: FastifyRequest, reply: FastifyReply) => { reply.code(200).send(); });
+  fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => { reply.code(200).send(); });
 }

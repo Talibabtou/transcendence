@@ -1,5 +1,5 @@
-import { getUsers, getUser, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js';
-import { getUserSchema, getUsersSchema, deleteUserSchema, createUserSchema, modifyUserSchema, loginSchema } from '../schemas/auth.schemas.js';
+import { getUsers, getUser, getUserMe, postUser, patchUser, deleteUser, postLogin } from '../controllers/auth.controllers.js';
+import { getUserSchema, getUserMeSchema, getUsersSchema, deleteUserSchema, createUserSchema, modifyUserSchema, loginSchema } from '../schemas/auth.schemas.js';
 export default async function authRoutes(fastify) {
     fastify.get('/auth/user/:id', {
         schema: getUserSchema,
@@ -8,6 +8,13 @@ export default async function authRoutes(fastify) {
             roles: ['user', 'admin']
         }
     }, getUser);
+    fastify.get('/auth/user/me', {
+        schema: getUserMeSchema,
+        config: {
+            auth: true,
+            roles: ['user', 'admin']
+        }
+    }, getUserMe);
     fastify.get('/auth/users', {
         schema: getUsersSchema,
         config: {

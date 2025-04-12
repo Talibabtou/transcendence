@@ -11,7 +11,7 @@ up:
 	${DOCKER} up --build -d
 
 down:
-	${DOCKER} down
+	${DOCKER} down --remove-orphans
 
 clean:
 	${DOCKER} down -v

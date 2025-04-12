@@ -4,21 +4,19 @@ import { Server } from '../server.js'
 import { FastifyRequest, FastifyReply } from "fastify";
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
-export async function getPic(request: FastifyRequest, reply: FastifyReply) {
+export async function getPic(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) {
   try { 
-    const id = request.user;
-    console.log({ id: id  })
+    const id = request.params.id;
     const uploadDir = path.join(path.resolve(), process.env.UPLOAD_DIR || "./uploads");
-    // const existingFile: string | undefined = fs
-    //   .readdirSync(uploadDir)
-    //   .find((file) => file.startsWith(id));
-    // if (existingFile) {
-      // return reply.code(200).send({ link: `/uploads/${existingFile}` });
-    // } else {
-    //   const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
-    //   return reply.code(404).send(errorMessage);
-    // }
-    return reply.code(200).send();
+    const existingFile: string | undefined = fs
+      .readdirSync(uploadDir)
+      .find((file) => file.startsWith(id));
+    if (existingFile) {
+      return reply.code(200).send({ link: `/uploads/${existingFile}` });
+    } else {
+      const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)
+      return reply.code(404).send(errorMessage);
+    }
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -47,13 +45,13 @@ export async function getPics(request: FastifyRequest, reply: FastifyReply) {
 
 export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
   try { 
-    if (request.url.includes('auth') && Server.microservices.get('auth') === false) {
+    if (request.url.includes(process.env.AUTH_ADDR || 'auth') && Server.microservices.get('auth') === false) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE)
       return reply.code(503).send(errorMessage);
-    } else if (request.url.includes('profil') && Server.microservices.get('profil') === false) {
+    } else if (request.url.includes(process.env.PROFIL_ADDR || 'profil') && Server.microservices.get(process.env.PROFIL_ADDR || 'profil') === false) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE)
       return reply.code(503).send(errorMessage);
-    } else if (request.url.includes('friends') && Server.microservices.get('friends') === false) {
+    } else if (request.url.includes(process.env.FRIENDS_ADDR ||'friends') && Server.microservices.get(process.env.FRIENDS_ADDR ||'friends') === false) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE)
       return reply.code(503).send(errorMessage);
     }
@@ -65,14 +63,14 @@ export async function checkMicroservicesHook(request: FastifyRequest, reply: Fas
 export async function checkMicroservices() {
   try {
     const [authStatus, profilStatus, friendsStatus] = await Promise.all([
-      checkService('auth', process.env.AUTH_PORT || '8082'),
-      checkService('profil', process.env.PROFIL_PORT || '8081'),
-      checkService('friends', process.env.FRIENDS_PORT || '8084')
+      checkService(process.env.AUTH_ADDR || 'auth', process.env.AUTH_PORT || '8082'),
+      checkService(process.env.PROFIL_ADDR || 'profil', process.env.PROFIL_PORT || '8081'),
+      checkService(process.env.FRIENDS_ADDR ||'friends', process.env.FRIENDS_PORT || '8084')
     ]);
 
-    Server.microservices.set('auth', authStatus);
-    Server.microservices.set('profil', profilStatus);
-    Server.microservices.set('friends', friendsStatus);
+    Server.microservices.set(process.env.AUTH_ADDR || 'auth', authStatus);
+    Server.microservices.set(process.env.PROFIL_ADDR || 'profil', profilStatus);
+    Server.microservices.set(process.env.FRIENDS_ADDR ||'friends', friendsStatus);
   } catch (err) {
     console.error('Error checking microservices:', err);
   }

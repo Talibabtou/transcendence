@@ -1,27 +1,25 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPicSchema, getPicsSchema } from "../schemas/api.schemas.js"
 import { getPic, getPics, getHealth } from "../controllers/api.controllers.js";
 
+const auth = { auth: true, roles: ['user', 'admin'] }
+
 export default async function apiRoutes(fastify: FastifyInstance) {
-  fastify.get("/uploads", {
+  fastify.get("/pics", {
     schema: getPicsSchema,
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
+    config: auth
+    },
     getPics);
 
-  fastify.get<{ Params: { id: string } }>("/uploads/:id", {
+  fastify.get("/pics/:id", {
     schema: getPicSchema,
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
+    config: auth
+    },
     getPic);
 
-  fastify.get("/health", {
-    config: { 
-      auth: false
-    }},
+  fastify.get("/health",
     getHealth);
+
+  fastify.get("/check",
+    (request: FastifyRequest, reply: FastifyReply ) => { reply.code(200).send({ check: 'ok' }) });
 }

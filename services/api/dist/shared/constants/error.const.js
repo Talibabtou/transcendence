@@ -26,8 +26,12 @@ export var ErrorCodes;
     ErrorCodes["NO_FILE_PROVIDED"] = "NO_FILE_PROVIDED";
     ErrorCodes["INVALID_TYPE"] = "INVALID_TYPE";
     //friends
-    ErrorCodes["FRIENDSHIP_EXISTS"] = "FRIENDSHIP EXISTS";
-    ErrorCodes["FRIENDS_NOTFOUND"] = "FRIENDS NOT FOUNDS";
+    ErrorCodes["FRIENDSHIP_EXISTS"] = "FRIENDSHIP_EXISTS";
+    ErrorCodes["FRIENDS_NOTFOUND"] = "FRIENDS_NOT_FOUNDS";
+    //jwt
+    ErrorCodes["JWT_BAD_HEADER"] = "JWT_BAD_HEADER";
+    ErrorCodes["JWT_INSUFFICIENT_PERMISSIIONS"] = "JWT_INSUFFICIENT_PERMISSIIONS";
+    ErrorCodes["JWT_EXP_TOKEN"] = "FST_JWT_AUTHORIZATION_TOKEN_EXPIRED";
 })(ErrorCodes || (ErrorCodes = {}));
 // Create a map of error codes to their messages
 export const ErrorTypes = new Map([
@@ -64,6 +68,10 @@ export const ErrorMessages = new Map([
     //friends
     [ErrorCodes.FRIENDSHIP_EXISTS, 'Friendship exists'],
     [ErrorCodes.FRIENDS_NOTFOUND, 'Friends not found'],
+    //jwt
+    [ErrorCodes.JWT_BAD_HEADER, 'JWT bad header'],
+    [ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS, 'JWT insufficient permissions'],
+    [ErrorCodes.JWT_EXP_TOKEN, 'Token expired'],
 ]);
 // Helper function to create error response objects
 export function createErrorResponse(statusCode, code) {
@@ -180,5 +188,23 @@ export const ErrorExamples = {
         code: ErrorCodes.FRIENDS_NOTFOUND,
         error: ErrorTypes.get(404),
         message: ErrorMessages.get(ErrorCodes.FRIENDS_NOTFOUND)
+    },
+    jwtBadHeader: {
+        statusCode: 401,
+        code: ErrorCodes.JWT_BAD_HEADER,
+        error: ErrorTypes.get(401),
+        message: ErrorMessages.get(ErrorCodes.JWT_BAD_HEADER)
+    },
+    jwtInsufficientPerm: {
+        statusCode: 403,
+        code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
+        error: ErrorTypes.get(403),
+        message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS)
+    },
+    jwtTokenExpired: {
+        statusCode: 401,
+        code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
+        error: ErrorTypes.get(401),
+        message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS)
     },
 };

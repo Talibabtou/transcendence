@@ -2,6 +2,19 @@ import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
 export const getPicSchema = {
+  params: {
+    type: 'object',
+    properties: {
+      id: { 
+        type: 'string', 
+        minLength: 36, 
+        maxLength: 36,
+        description: 'Unique identifier (UUID format)' 
+      }
+    },
+    required: ['id'],
+    additionalProperties: false
+  },
   response: {
     200: {
       body: {

@@ -19,8 +19,8 @@ class Server {
             server.decorate("db", await initDb());
             await server.register(fastifyJwt, jwtPluginRegister);
             await server.register(friendsRoutes);
-            server.addHook("preHandler", jwtPluginHook);
-            server.listen({ port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADD || "localhost" }, (err, address) => {
+            server.addHook("onRequest", jwtPluginHook);
+            server.listen({ port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADDR || "0.0.0.0" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);
                     if (err instanceof Error && err.message.includes('EADDRINUSE'))

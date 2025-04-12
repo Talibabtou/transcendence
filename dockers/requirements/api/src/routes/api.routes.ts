@@ -11,7 +11,7 @@ export default async function apiRoutes(fastify: FastifyInstance) {
     }},
     getPics);
 
-  fastify.get("/pic", {
+  fastify.get("/pics/:id", {
     schema: getPicSchema,
     config: { 
       auth: true, 

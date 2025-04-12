@@ -1,11 +1,28 @@
-import { fastify, FastifyInstance } from "fastify";
-import { initDb } from "./db.js";
-import authRoutes from "./routes/auth.routes.js";
-import { jwtPluginRegister, jwtPluginHook } from "./shared/plugins/jwtPlugin.js";
+import path from "path";
 import fastifyJwt from "@fastify/jwt";
+import rateLimit from '@fastify/rate-limit'
+import fastifyStatic from "@fastify/static";
+import apiRoutes from "./routes/api.routes.js";
+import authRoutes from "./routes/auth.routes.js";
+import fastifyMultipart from "@fastify/multipart";
+import { fastify, FastifyInstance } from "fastify";
+import profilRoutes from "./routes/profil.routes.js";
+import friendsRoutes from "./routes/friends.routes.js";
+import { jwtPluginHook, jwtPluginRegister } from "./shared/plugins/jwtPlugin.js";
+import { checkMicroservices, checkMicroservicesHook } from './controllers/api.controllers.js'
 
-class Server {
+// const server = fastify({
+// 	logger: true,
+// 	http2: true,
+// 	https: {
+// 		key: readFileSync(path.join(path.resolve(), '/certs/key.pem')),
+// 		cert: readFileSync(path.join(path.resolve(), '/certs/cert.pem'))
+// 	}
+// });
+
+export class Server {
   private static instance: FastifyInstance;
+  public static microservices: Map<string, boolean> = new Map();
 
   private constructor() {}
 
@@ -20,29 +37,52 @@ class Server {
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-      server.decorate("db", await initDb());
+      await server.register(rateLimit, {
+        max: 100,
+        timeWindow: '1 minute'
+      })
+      await server.register(fastifyMultipart, {
+        limits: {
+          fieldNameSize: 100, // Max field name size in bytes
+          fieldSize: 100, // Max field value size in bytes
+          fields: 10, // Max number of non-file fields
+          fileSize: 1000000, // For multipart forms, the max file size in bytes
+          files: 1, // Max number of file fields
+          headerPairs: 2000, // Max number of header key=>value pairs
+          parts: 1000, // For multipart forms, the max number of parts (fields + files)
+        },
+      });
+      await server.register(fastifyStatic, {
+        root: path.join(path.resolve(), process.env.UPLOADS_DIR || "./srcs/shared/uploads"),
+        prefix: "/uploads",
+      });
       await server.register(fastifyJwt, jwtPluginRegister);
-      await server.register(authRoutes);
-      server.addHook("preHandler", jwtPluginHook);
+      await server.register(apiRoutes, { prefix: "/api/v1/" });
+      await server.register(authRoutes, { prefix: "/api/v1/" });
+      await server.register(profilRoutes, { prefix: "/api/v1/" });
+      await server.register(friendsRoutes, { prefix: "/api/v1/" });
+      server.addHook("preValidation", checkMicroservicesHook);
+      server.addHook("onRequest", jwtPluginHook);
       server.listen(
-        { port: Number(process.env.AUTH_PORT) || 8082, host: process.env.AUTH_ADD || "0.0.0.0" },
+        { port: Number(process.env.API_PORT) || 8080, host: process.env.API_ADDR || '0.0.0.0' },
         (err, address) => {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);
-            if (err instanceof Error && err.message.includes('EADDRINUSE'))
-              server.log.error(`Port ${Number(process.env.AUTH_PORT) || 8082} is already in use`);
+            if (err.message.includes('EADDRINUSE'))
+              server.log.error(`Port ${Number(process.env.API_PORT) || 8080} is already in use`);
             process.exit(1);
           }
           server.log.info(`Server listening at ${address}`);
         }
       );
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
-      server.log.error(err);
+      server.log.error("Fatal error", err);
       process.exit(1);
     }
   }
 
-  public static async shutdown(signal: string): Promise<undefined> {
+  public static async shutdown(signal: string): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
     server.log.info("Server has been closed.");
     server.log.info(`Received ${signal}.`);

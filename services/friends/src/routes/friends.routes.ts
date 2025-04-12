@@ -1,52 +1,21 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { getFriends,getFriend, postFriend, patchFriend, deleteFriend, deleteFriends } from '../controllers/friends.controllers.js';
+import { getFriends, getFriend, getFriendsMe, postFriend, patchFriend, deleteFriend, deleteFriends } from '../controllers/friends.controllers.js';
+import { IId } from '../shared/types/api.types.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get('/', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getFriends);
+  fastify.get<{ Body: IId }>('/all', getFriends);
 
-  fastify.get('/check', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    getFriend);
+  fastify.get<{ Params: IId}>('/all/me/:id', getFriendsMe);
 
-  fastify.post('/create', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    postFriend);
+  fastify.get<{ Body: IId, Params: IId}>('/check/:id', getFriend);
 
-  fastify.patch('/modify', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    patchFriend);
+  fastify.post<{ Body: IId, Params: IId}>('/create/:id', postFriend);
 
-  fastify.delete('/delete', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    deleteFriends);
+  fastify.patch<{ Body: IId, Params: IId}>('/accept/:id', patchFriend);
 
-  fastify.delete('/delete/:id', {
-    config: { 
-      auth: true, 
-      roles: ['user', 'admin']
-    }},
-    deleteFriend);
+  fastify.delete<{ Params: IId}>('/delete/all/:id', deleteFriends);
 
-  fastify.get('/health', {
-    config: { 
-      auth: false
-    }},
-    (request: FastifyRequest, reply: FastifyReply) => { reply.code(200).send(); });
+  fastify.delete<{ Querystring: IId, Params: IId}>('/delete/:id', deleteFriend);
+
+  fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => { reply.code(200).send(); });
 }

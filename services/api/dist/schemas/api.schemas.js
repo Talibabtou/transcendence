@@ -6,8 +6,9 @@ export const getPicSchema = {
         properties: {
             id: {
                 type: 'string',
-                format: 'uuid',
-                pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                minLength: 36,
+                maxLength: 36,
+                description: 'Unique identifier (UUID format)'
             }
         },
         required: ['id'],
