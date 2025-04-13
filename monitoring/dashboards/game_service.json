@@ -407,111 +407,6 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
-            "drawStyle": "bars",
-            "fillOpacity": 100,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 0,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "linearThreshold": 0,
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": 3600000,
-            "stacking": {
-              "group": "A",
-              "mode": "normal"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "ms",
-          "unitScale": true
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 12,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "id": 9,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "10.3.1",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"UPDATE\"}[$__rate_interval]))",
-          "format": "heatmap",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{table}}",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
-        }
-      ],
-      "title": "UPDATE operation time",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
             "drawStyle": "line",
             "fillOpacity": 0,
             "gradientMode": "none",
@@ -560,7 +455,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 36
       },
       "id": 3,
       "options": {
@@ -583,14 +478,33 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "avg by(http_method) (histogram_quantile(0.9, rate(http_server_duration_bucket[$__rate_interval])))",
+          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"GET\", net_host_name!=\"host.docker.internal\"}[$__rate_interval]))",
           "fullMetaSearch": false,
+          "hide": false,
           "includeNullMetadata": false,
           "instant": false,
           "interval": "",
-          "legendFormat": "{{label_name}}",
+          "legendFormat": "{{http_route}} - {{http_method}}",
           "range": true,
           "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"POST\"}[$__rate_interval]))",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{http_route}} - {{http_method}}",
+          "range": true,
+          "refId": "B",
           "useBackend": false
         }
       ],
@@ -642,7 +556,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 48
       },
       "id": 1,
       "options": {

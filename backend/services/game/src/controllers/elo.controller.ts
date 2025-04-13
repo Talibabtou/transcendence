@@ -1,13 +1,31 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
-import { recordMediumDatabaseMetrics, eloHistogram } from '../telemetry/metrics.js'
-
+import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, eloHistogram } from '../telemetry/metrics.js'
+import { Database } from 'sqlite'
 import { 
   Elo,
+	UpdatePlayerElo,
+	CreateEloRequest,
   GetElosQuery,
 	DailyElo
 } from '@shared/types/elo.type.js'
 
+
+async function calculateEloChange(winnerElo: number, loserElo: number): Promise<{ winnerElo: number, loserElo: number }> {
+	const K_FACTOR = 32;
+
+	const expectedWinner = 1 / (1 + Math.pow(10, (loserElo - winnerElo) / 400));
+	const expectedLoser = 1 / (1 + Math.pow(10, (winnerElo - loserElo) / 400));
+	
+	// Calculate new ratings (winner gets score 1, loser gets score 0)
+	const newWinnerElo = Math.round(winnerElo + K_FACTOR * (1 - expectedWinner));
+	const newLoserElo = Math.round(loserElo + K_FACTOR * (0 - expectedLoser));
+
+	return {
+		winnerElo: newWinnerElo,
+		loserElo: newLoserElo
+	}
+}
 
 // Get a single elo by ID
 export async function getElo(request: FastifyRequest<{
@@ -27,6 +45,41 @@ export async function getElo(request: FastifyRequest<{
 		const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
 		return reply.code(500).send(errorResponse)
 	}
+}
+
+// Create a new elo
+export async function createElo(request: FastifyRequest<{
+  Body: CreateEloRequest
+}>, reply: FastifyReply): Promise<void> {
+  const { player, elo } = request.body
+  
+  request.log.info({
+    msg: 'Creating elo entry',
+    data: { player, elo }
+  });
+  
+  try {
+    const startTime = performance.now(); // Start timer
+    const newElo = await request.server.db.get(
+      'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+      player, elo
+    ) as Elo
+    recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime)); // Record metric
+    eloHistogram.record(elo);
+    
+    return reply.code(201).send(newElo)
+  } catch (error) {
+    request.log.error({
+      msg: 'Error in createElo',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    return reply.code(500).send(errorResponse)
+  }
 }
 
 // Get all elos
@@ -74,4 +127,44 @@ export async function dailyElo(request: FastifyRequest<{
 		const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
 		return reply.code(500).send(errorResponse)
 	}
+}
+
+// Add this new function that doesn't handle HTTP responses
+export async function updateEloRatings(db: Database, winner: string, loser: string): Promise<{ newWinnerElo: number, newLoserElo: number }> {
+  // Get current ELO ratings
+	let startTime = performance.now(); // Start timer
+  const winnerElo = await db.get(
+    'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
+    [winner]
+  ) as Elo | null;
+  
+  const loserElo = await db.get(
+    'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
+    [loser]
+  ) as Elo | null;
+  recordFastDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime) / 2); // Record metric
+  if (!winnerElo || !loserElo) {
+    // Throw a specific error code instead of a generic Error
+    const missingPlayer = !winnerElo ? winner : loser;
+    throw new Error(ErrorCodes.ELO_NOT_FOUND + `:${missingPlayer}`);
+  }
+  
+  const { winnerElo: newWinnerElo, loserElo: newLoserElo } = await calculateEloChange(winnerElo.elo, loserElo.elo);
+	startTime = performance.now(); // Start timer
+  // Insert new ELO values
+  await db.get(
+    'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+    [winner, newWinnerElo]
+  );
+  
+  await db.get(
+    'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+    [loser, newLoserElo]
+  );
+  recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime) / 2); // Record metric
+  // Record metrics
+  eloHistogram.record(newWinnerElo);
+  eloHistogram.record(newLoserElo);
+  
+  return { newWinnerElo, newLoserElo };
 }

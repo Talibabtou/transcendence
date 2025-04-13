@@ -61,7 +61,7 @@ def create_users(player_list):
 
 async def initialize_players(session):
     # Create initial DataFrame with 100 players
-    players = [str(uuid.uuid4()) for _ in range(100)]
+    players = [str(uuid.uuid4()) for _ in range(20)]
     player_list = pd.DataFrame({
         'player_id': players
     })
@@ -77,6 +77,7 @@ async def initialize_players(session):
 async def run_match(player_1, player_2):
     try:
         # Create a new session for each match to prevent resource contention
+        await asyncio.sleep(random.randint(1, 5))
         async with aiohttp.ClientSession() as match_session:
             match = await create_match_with_retry(match_session, player_1, player_2)
             match_id = match.get('id') or match.get('match_id')
@@ -95,7 +96,7 @@ async def run_match(player_1, player_2):
             last_goal_time = start_time
             current_interval = 0
             
-            max_match_duration = 60  # Maximum match duration in seconds
+            max_match_duration = 30  # Maximum match duration in seconds
             
             while (goals_1 != 3 and goals_2 != 3):
                 current_time = datetime.now()
@@ -103,13 +104,12 @@ async def run_match(player_1, player_2):
                 time_since_last_goal = (current_time - last_goal_time).total_seconds()
                 
                 if current_duration > max_match_duration:
-                    print(f"Match {match_id} exceeded maximum duration of {max_match_duration} seconds")
-                    await update_match(match_session, match_id, int(current_duration), True, False)
                     break
                 
                 if time_since_last_goal > delay:
                     current_interval = int(time_since_last_goal)  # Get interval since last goal
-                    
+                    if (random.randint(0, 1000) == 12):
+                      await asyncio.sleep(max_match_duration/2)
                     # Score a goal
                     if (datetime.now().second % 2 == 0):
                         await create_goal(match_session, match["id"], player_1, current_interval)
@@ -128,21 +128,9 @@ async def run_match(player_1, player_2):
             
             if (goals_1 == 3 or goals_2 == 3):
                 print(f"Match {match_id} finished")
-                final_duration = (datetime.now() - start_time).total_seconds()
-                await update_match(match_session, match["id"], int(final_duration), False, True)
-                match = await get_match(match_session, match["id"])
                 elo_1 = await get_elo(match_session, player_1)
                 elo_2 = await get_elo(match_session, player_2)
-                if (goals_1 == 3):
-                    await create_elo(match_session, player_1, elo_1["elo"] + 10)
-                    await create_elo(match_session, player_2, elo_2["elo"] - 10)
-                else:
-                    await create_elo(match_session, player_1, elo_1["elo"] - 10)
-                    await create_elo(match_session, player_2, elo_2["elo"] + 10)
-                
-                elo_1 = await get_elo(match_session, player_1)
-                elo_2 = await get_elo(match_session, player_2)
-                print(f"Final Elo: {elo_1['elo']} - {elo_2['elo']}")
+                print(f"New Elo: {elo_1['elo']} - {elo_2['elo']}")
     except Exception as e:
         print(f"Error in match between {player_1} and {player_2}: {str(e)}")
 
@@ -165,16 +153,15 @@ async def main():
     except FileNotFoundError:
         async with aiohttp.ClientSession() as session:
             player_list = await initialize_players(session)
-            print("Created 100 initial players")
+            print("Created 20 initial players")
 
     while True:
         # Create matches concurrently
         matches = []
-        for i in range(4):  # Running 10 concurrent matches
+        for i in range(10):
             player_1, player_2 = create_users(player_list)
             print(f"Creating match {i+1}: {player_1} vs {player_2}")
             # Each match gets its own task
-            await asyncio.sleep(random.randint(1, 5))
             matches.append(run_match(player_1, player_2))  # Pass None for session since each match creates its own
         
         # Wait for all matches to complete with a timeout

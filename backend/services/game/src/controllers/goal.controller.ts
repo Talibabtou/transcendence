@@ -1,8 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
 import { Match } from '@shared/types/match.type.js'
-import { Elo } from '@shared/types/elo.type.js'
-import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, goalDurationHistogram, eloHistogram } from '../telemetry/metrics.js'
+import { updateEloRatings } from './elo.controller.js'
+import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, goalDurationHistogram, matchDurationHistogram } from '../telemetry/metrics.js'
 
 import { 
   Goal, 
@@ -10,6 +10,7 @@ import {
   CreateGoalRequest, 
   GetGoalsQuery 
 } from '@shared/types/goal.type.js'
+import { Database } from 'sqlite'
 
 
 // Get a single goal by ID
@@ -70,16 +71,17 @@ export async function createGoal(request: FastifyRequest<{
 }>, reply: FastifyReply): Promise<void> {
   const { match_id, player, duration } = request.body
   try {
-    // Verify the match exists
+
     const selectStartTime = performance.now(); // Timer for SELECT
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', match_id) as Match | null
     recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime)); // Record SELECT
     goalDurationHistogram.record(duration);
+		console.log(match)
 		if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
     }
-		if (match.active === false) {
+		if (!match.active) {
 			const errorResponse = createErrorResponse(400, ErrorCodes.MATCH_NOT_ACTIVE)
 			return reply.code(400).send(errorResponse)
 		}
@@ -97,55 +99,26 @@ export async function createGoal(request: FastifyRequest<{
       match_id, player, duration || null
     ) as Goal
     recordMediumDatabaseMetrics('INSERT', 'goal', (performance.now() - insertStartTime)); // Record INSERT
-    
+    const startTime = performance.now(); // Start timer
 		const maxGoals = await request.server.db.get(`
 			SELECT MAX(goal_count) as max_goals FROM (
 				SELECT player, COUNT(*) as goal_count 
 				FROM goal 
-				WHERE match_id = ? 
+				WHERE match_id = ?
 				GROUP BY player
-			)`, match_id) as number
-
-		if (maxGoals == 3) {
-			const matchDuration = new Date(Date.now() - new Date(match.created_at).getTime())
-			const updateStartTime = performance.now();
-			await request.server.db.run(
-				`UPDATE matches SET active = false, duration = ? WHERE id = ?`,
-				matchDuration, match_id
-			)
-			recordMediumDatabaseMetrics('UPDATE', 'matches', (performance.now() - updateStartTime));
-			
-			const startTime = performance.now();
-			let winner: string
-			let loser: string
-			if (match.player_1 === player)
-			{
-				winner = match.player_1
-				loser = match.player_2
+			)`, match_id);
+		recordFastDatabaseMetrics('SELECT', 'goal', (performance.now() - startTime)); // Record metric
+		if (maxGoals && maxGoals.max_goals == 3) {
+			console.log(`Max goals reached (${maxGoals.max_goals}), triggering final goal`);
+			try {
+				await finalGoal(match, player, request.server.db, reply);
+			} catch (error) {
+				if (error instanceof Error && error.message.startsWith(ErrorCodes.ELO_NOT_FOUND)) {
+					const errorResponse = createErrorResponse(404, ErrorCodes.ELO_NOT_FOUND);
+					return reply.code(404).send(errorResponse);
+				}
+				throw error; // Rethrow if it's not our specific error
 			}
-			else
-			{
-				winner = match.player_2
-				loser = match.player_1
-			}
-			const eloWinner = await request.server.db.get(
-				'SELECT elo FROM elo WHERE player = ?',
-				winner
-			) as Elo
-			const eloLoser = await request.server.db.get(
-				'SELECT elo FROM elo WHERE player = ?',
-				loser
-			) as Elo
-			const newEloWinner = await request.server.db.get(
-				'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
-				player, eloWinner.elo + 20
-			) as Elo
-			const newEloLoser = await request.server.db.get(
-				'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
-				loser, eloLoser.elo - 20
-			) as Elo
-			recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime)); // Record metric
-			eloHistogram.record(eloWinner.elo + 20);
 		}
     // Return 201 Created for resource creation instead of default 200
     return reply.code(201).send(newGoal)
@@ -179,5 +152,43 @@ export async function longestGoal(request: FastifyRequest<{
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
     return reply.code(500).send(errorResponse)
+  }
+}
+
+async function finalGoal(match: Match, player: string, db: Database, reply: FastifyReply) {
+  try {
+    
+    // Get match duration using SQLite's datetime functions directly
+    // This ensures all time calculations happen in the database with consistent timezone
+		let startTime = performance.now(); // Start timer
+    const matchDurationResult = await db.get(
+      `SELECT CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds 
+       FROM matches WHERE id = ?`,
+      [match.id]
+    );
+		recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime)); // Record metric
+    // Update match
+		startTime = performance.now(); // Start timer
+    await db.run(
+      `UPDATE matches SET active = false, duration = ? WHERE id = ?`,
+      matchDurationResult.duration_seconds, match.id
+    );
+		recordFastDatabaseMetrics('UPDATE', 'matches', (performance.now() - startTime)); // Record metric
+    
+    // Determine winner and loser
+    const winner = match.player_1 === player ? match.player_1 : match.player_2;
+    const loser = match.player_1 === player ? match.player_2 : match.player_1;
+    
+    // Update ELO ratings
+    await updateEloRatings(db, winner, loser);
+    
+    matchDurationHistogram.record(matchDurationResult.duration_seconds);
+  } catch (error) {    
+    // Check if it's our custom error
+    if (error instanceof Error && error.message.startsWith(ErrorCodes.ELO_NOT_FOUND)) {
+      const playerInfo = error.message.split(':')[1];
+      throw new Error(`${ErrorCodes.ELO_NOT_FOUND}:${playerInfo}`);
+    }
+    throw error; // Rethrow for createGoal to handle
   }
 }

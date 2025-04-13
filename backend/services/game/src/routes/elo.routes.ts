@@ -1,15 +1,17 @@
 import { FastifyInstance } from 'fastify'
 import { 
   getElo, 
-  getElos
+  getElos,
+	createElo
 } from '../controllers/elo.controller.js'
 
 import { 
   getEloSchema, 
-  getElosSchema
+  getElosSchema,
+	createEloSchema
 } from '../schemas/elo.schema.js'
 
-export default async function goalRoutes(fastify: FastifyInstance) {
+export default async function eloRoutes(fastify: FastifyInstance) {
   // Get all goals with optional filters
   fastify.get('/', { 
     schema: {
@@ -18,6 +20,15 @@ export default async function goalRoutes(fastify: FastifyInstance) {
     }
   }, getElos)
   
+	// make it only accessible from auth service
+	fastify.post('/', { 
+    schema: {
+      ...createEloSchema,
+      tags: ['elos']
+    }
+  }, createElo)
+
+
   // Get a specific goal by ID
   fastify.get('/:id', { 
     schema: {
@@ -26,3 +37,6 @@ export default async function goalRoutes(fastify: FastifyInstance) {
     }
   }, getElo)
 }
+
+
+

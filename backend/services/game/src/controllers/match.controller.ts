@@ -73,32 +73,41 @@ export async function createMatch(request: FastifyRequest<{
   const { player_1, player_2, tournament_id } = request.body
   
   try {
-    const startTime = performance.now();
-    const prevMatch = await request.server.db.get('SELECT * FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE', [player_1, player_2]) as Match[] | null
-		if (prevMatch) {
-			for (const match of prevMatch) {
-				if (new Date(match.created_at) < new Date(Date.now() - 1000 * 60 * 10)) {
-				await request.server.db.run(
-					`UPDATE matches SET active = FALSE, duration = NULL WHERE id = ?`,
-					match.id
-				)
-			}
-		}
-	}
+    let startTime = performance.now();
+
+    const prevMatches = await request.server.db.all('SELECT *, CAST((julianday(\'now\') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE', 
+      [player_1, player_2]) as (Match & { duration_seconds: number })[];
+		recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - startTime)); // Record metric
+    // Update any old active matches (10 minutes timeout)
+    if (prevMatches && prevMatches.length > 0) {
+      for (const match of prevMatches) {
+        // Check if duration is over 600 seconds (10 minutes)
+        if (match.duration_seconds > 600) {
+					startTime = performance.now(); // Start timer
+          await request.server.db.run(
+            `UPDATE matches SET active = FALSE, duration = NULL WHERE id = ?`,
+            match.id
+          );
+					recordFastDatabaseMetrics('UPDATE', 'matches', (performance.now() - startTime)); // Record metric
+        }
+      }
+    }
+
+    // Create new match
+		startTime = performance.now(); // Start timer
     const newMatch = await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
       [player_1, player_2, tournament_id || null]
-    ) as Match
+    ) as Match;
     
-    // Record database operation metrics
+    // Record metrics
     recordSlowDatabaseMetrics('INSERT', 'matches', (performance.now() - startTime));
+    matchCreationCounter.add(1, { 'match.status': 'created' });
+    if (tournament_id) {
+      matchTournamentCounter.add(1, { 'match.tournament_id': tournament_id });
+    }
     
-    // Increment the match creation counter
-    matchCreationCounter.add(1, { 'match.status': 'created' })
-		if (tournament_id) {
-			matchTournamentCounter.add(1, { 'match.tournament_id': tournament_id });
-		}
-    return reply.code(201).send(newMatch)
+    return reply.code(201).send(newMatch);
   } catch (error) {
     request.log.error({
       msg: 'Error in createMatch',
@@ -109,8 +118,8 @@ export async function createMatch(request: FastifyRequest<{
       } : error
     });
     
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-    return reply.code(500).send(errorResponse)
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorResponse);
   }
 }
 
@@ -173,40 +182,40 @@ export async function matchStats(request: FastifyRequest<{
   const { player_id } = request.params
   try {
     // Get daily performance for line plot
-    const dailyPerfStartTime = performance.now();
+    let startTime = performance.now();
     const dailyPerformance = await request.server.db.all(
       'SELECT match_date, matches_played, wins, losses, daily_win_ratio FROM player_daily_performance WHERE player_id = ? ORDER BY match_date',
       [player_id]
     ) as DailyPerformance[] || []
-    recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', (performance.now() - dailyPerfStartTime));
+    recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', (performance.now() - startTime));
     
     // Get goal durations for heatmap
-    const goalDurStartTime = performance.now();
+    startTime = performance.now();
     const goalDurationsResult = await request.server.db.all(
       'SELECT duration FROM player_goal_durations WHERE player = ?',
       [player_id]
     ) 
-    recordFastDatabaseMetrics('SELECT', 'player_goal_durations', (performance.now() - goalDurStartTime));
+    recordFastDatabaseMetrics('SELECT', 'player_goal_durations', (performance.now() - startTime));
     // Transform result into array of numbers
     const goalDurations = goalDurationsResult ? goalDurationsResult.map(row => Number(row.duration)) : []
     
     // Get match durations for histogram
-    const matchDurStartTime = performance.now();
+    startTime = performance.now();
     const matchDurationsResult = await request.server.db.all(
       'SELECT match_duration FROM player_match_durations WHERE player_id = ?',
       [player_id]
     ) 
-    recordFastDatabaseMetrics('SELECT', 'player_match_durations', (performance.now() - matchDurStartTime));
+    recordFastDatabaseMetrics('SELECT', 'player_match_durations', (performance.now() - startTime));
     // Transform result into array of numbers
     const matchDurations = matchDurationsResult ? matchDurationsResult.map(row => Number(row.match_duration)) : []
     
     // Get player's Elo rating history (all data points)
-    const eloStartTime = performance.now();
+    startTime = performance.now();
     const eloRatingsResult = await request.server.db.all(
       'SELECT elo FROM elo WHERE player = ? ORDER BY created_at',
       [player_id]
     )
-    recordMediumDatabaseMetrics('SELECT', 'elo', (performance.now() - eloStartTime));
+    recordMediumDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime));
     // Transform result into array of numbers
     const eloRatings = eloRatingsResult ? eloRatingsResult.map(row => Number(row.elo)) : []
     

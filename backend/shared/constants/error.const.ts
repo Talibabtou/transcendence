@@ -8,6 +8,7 @@ export enum ErrorCodes {
 	NOT_FOUND = 'NOT_FOUND',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 	SERVICE_UNAVAILABLE = 'SERVICE_UNAVAILABLE',
+	PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
   // Match related errors
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
   INVALID_FIELDS = 'INVALID_FIELDS',
@@ -18,7 +19,7 @@ export enum ErrorCodes {
   PLAYER_NOT_IN_MATCH = 'PLAYER_NOT_IN_MATCH',
 
 	//elo related errors
-	PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
+  ELO_NOT_FOUND = 'ELO_NOT_FOUND',
 }
 
 // Create a map of error codes to their messages
@@ -35,6 +36,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
 	// Common errors
   [ErrorCodes.INTERNAL_ERROR, 'Internal server error'],
 	[ErrorCodes.SERVICE_UNAVAILABLE, 'Service unavailable'],
+	[ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
 	// Match related errors
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
@@ -44,7 +46,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],
 
 	//elo related errors
-	[ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
+	[ErrorCodes.ELO_NOT_FOUND, 'Elo rating not found for this player'],
 ]);
 
 // Helper function to create error response objects
@@ -108,4 +110,10 @@ export const ErrorExamples = {
 		error: ErrorTypes.get(404),
 		message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND)
 	},
+  eloNotFound: {
+    statusCode: 404,
+    code: ErrorCodes.ELO_NOT_FOUND,
+    error: ErrorTypes.get(404),
+    message: ErrorMessages.get(ErrorCodes.ELO_NOT_FOUND)
+  },
 };

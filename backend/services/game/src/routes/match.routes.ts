@@ -42,7 +42,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
     },
     config: {
       rateLimit: {
-        max: 10,
+        max: 1000,
         timeWindow: '1 minute'
       }
     }
