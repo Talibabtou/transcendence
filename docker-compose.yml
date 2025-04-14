@@ -1,0 +1,98 @@
+services:
+
+  prometheus:
+    image: prom/prometheus:v3.2.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      # Specify the configuration file for Prometheus
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      # Set the path for Prometheus to store its time series database
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      # Specify the path for console libraries used in the web UI
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      # Specify the path for console templates used in the web UI
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - cadvisor
+      - tempo
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - backend
+    labels:
+      - "container_name=prometheus"
+  
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - backend
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    labels:
+      - "container_name=cadvisor"
+      
+  tempo:
+    image: grafana/tempo:2.3.1
+    container_name: tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./monitoring/tempo.yaml:/etc/tempo.yaml
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"   # Tempo UI & API port
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+    networks:
+      - backend
+    labels:
+      - "container_name=tempo"
+
+  grafana:
+    image: grafana/grafana:10.3.1
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
+      - ./monitoring/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+    depends_on:
+      - prometheus
+      - tempo
+    restart: unless-stopped
+    networks:
+      - backend
+    labels:
+      - "container_name=grafana"
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  tempo_data:
+
+networks:
+  backend:
