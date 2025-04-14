@@ -1,11 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
 import { recordFastDatabaseMetrics} from '../telemetry/metrics.js'
 import { 
   Match,
 	GetTournamentQuery,
 	GetTournamentsQuery
-} from '@shared/types/match.type.js'
+} from '../shared/types/match.type.js'
 
 
 // Get a single matches by tournament ID

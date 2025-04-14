@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
 import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter} from '../telemetry/metrics.js'
 import { 
   Match, 
@@ -8,8 +8,8 @@ import {
 	PlayerStats,
 	PlayerMatchSummary,
 	DailyPerformance
-} from '@shared/types/match.type.js'
-import { MatchGoals } from '@shared/types/goal.type.js'
+} from '../shared/types/match.type.js'
+import { MatchGoals } from '../shared/types/goal.type.js'
 
 // Get a single match by ID
 export async function getMatch(request: FastifyRequest<{

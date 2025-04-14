@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
 import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, eloHistogram } from '../telemetry/metrics.js'
 import { Database } from 'sqlite'
 import { 
@@ -8,7 +8,7 @@ import {
   GetElosQuery,
 	DailyElo,
   LeaderboardEntry
-} from '../../../../shared/types/elo.type.js'
+} from '../shared/types/elo.type.js'
 
 async function calculateEloChange(winnerElo: number, loserElo: number): Promise<{ winnerElo: number, loserElo: number }> {
 	const K_FACTOR = 32;

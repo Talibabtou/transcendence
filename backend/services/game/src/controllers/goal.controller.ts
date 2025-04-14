@@ -1,6 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../../../../shared/constants/error.const.js'
-import { Match } from '@shared/types/match.type.js'
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
+import { Match } from '../shared/types/match.type.js'
 import { updateEloRatings } from './elo.controller.js'
 import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, goalDurationHistogram, matchDurationHistogram } from '../telemetry/metrics.js'
 
@@ -9,7 +9,7 @@ import {
 	LongestGoal,
   CreateGoalRequest, 
   GetGoalsQuery 
-} from '@shared/types/goal.type.js'
+} from '../shared/types/goal.type.js'
 import { Database } from 'sqlite'
 
 
