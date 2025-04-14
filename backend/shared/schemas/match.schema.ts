@@ -1,5 +1,5 @@
-import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
-import { ErrorExamples } from '../../../../shared/constants/error.const.js';
+import { errorResponseSchema } from './error.schema.js';
+import { ErrorExamples } from '../constants/error.const.js';
 
 export const matchSchema = {
   type: 'object',

@@ -13,6 +13,7 @@ export enum ErrorCodes {
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
   INVALID_FIELDS = 'INVALID_FIELDS',
 	MATCH_NOT_ACTIVE = 'MATCH_NOT_ACTIVE',
+  TOURNAMENT_NOT_FOUND = 'TOURNAMENT_NOT_FOUND',
   
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
@@ -41,6 +42,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
 	[ErrorCodes.MATCH_NOT_ACTIVE, 'Match has been cancelled or timeout'],
+	[ErrorCodes.TOURNAMENT_NOT_FOUND, 'Tournament not found'],
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],

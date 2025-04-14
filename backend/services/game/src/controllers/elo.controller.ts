@@ -4,12 +4,11 @@ import { recordFastDatabaseMetrics, recordMediumDatabaseMetrics, eloHistogram } 
 import { Database } from 'sqlite'
 import { 
   Elo,
-	UpdatePlayerElo,
 	CreateEloRequest,
   GetElosQuery,
-	DailyElo
-} from '@shared/types/elo.type.js'
-
+	DailyElo,
+  LeaderboardEntry
+} from '../../../../shared/types/elo.type.js'
 
 async function calculateEloChange(winnerElo: number, loserElo: number): Promise<{ winnerElo: number, loserElo: number }> {
 	const K_FACTOR = 32;
@@ -167,4 +166,36 @@ export async function updateEloRatings(db: Database, winner: string, loser: stri
   eloHistogram.record(newLoserElo);
   
   return { newWinnerElo, newLoserElo };
+}
+
+// Get a single elo by ID
+export async function getLeaderboard(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+  try {
+    const startTime = performance.now();
+    const leaderboard = await request.server.db.all(`
+      SELECT 
+        e.player,
+        e.elo,
+        COALESCE(pms.victories, 0) as victories,
+        COALESCE(pms.total_matches - pms.victories, 0) as defeats,
+        COALESCE(pms.total_matches, 0) as total_matches
+      FROM latest_player_elos e
+      LEFT JOIN player_match_summary pms ON e.player = pms.player_id
+      ORDER BY e.elo DESC;
+    `) as LeaderboardEntry[];
+    
+    recordMediumDatabaseMetrics('SELECT', 'leaderboard', (performance.now() - startTime));
+    return reply.code(200).send(leaderboard);
+  } catch (error) {
+    request.log.error({
+      msg: 'Error in getLeaderboard',
+      error: error instanceof Error ? {
+        message: error.message,
+        stack: error.stack
+      } : error
+    });
+    
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorResponse);
+  }
 }

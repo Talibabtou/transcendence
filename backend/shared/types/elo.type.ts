@@ -6,6 +6,12 @@ export interface Elo {
   created_at: string;
 }
 
+export interface LeaderboardEntry extends Omit<Elo, 'id' | 'created_at'> {
+  victories: number;
+  defeats: number;
+  total_matches: number;
+}
+
 export interface CreateEloRequest {
   player: string;
   elo: number;

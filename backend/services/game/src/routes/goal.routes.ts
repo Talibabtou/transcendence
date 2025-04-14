@@ -8,7 +8,7 @@ import {
   getGoalSchema, 
   getGoalsSchema, 
   createGoalSchema 
-} from '../schemas/goal.schema.js'
+} from '../../../../shared/schemas/goal.schema.js'
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   // Get all goals with optional filters

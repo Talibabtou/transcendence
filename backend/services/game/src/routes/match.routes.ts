@@ -10,12 +10,11 @@ import {
 import { 
   getMatchSchema, 
   getMatchesSchema, 
-  createMatchSchema, 
-  updateMatchSchema,
+  createMatchSchema,
 	matchTimelineSchema,
 	matchStatsSchema,
 	matchSummarySchema
-} from '../schemas/match.schema.js'
+} from '../../../../shared/schemas/match.schema.js'
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   // Get all matches with optional filters

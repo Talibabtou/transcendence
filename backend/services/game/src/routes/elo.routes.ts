@@ -2,14 +2,15 @@ import { FastifyInstance } from 'fastify'
 import { 
   getElo, 
   getElos,
-	createElo
+	createElo,
+	getLeaderboard
 } from '../controllers/elo.controller.js'
 
 import { 
   getEloSchema, 
   getElosSchema,
 	createEloSchema
-} from '../schemas/elo.schema.js'
+} from '../../../../shared/schemas/elo.schema.js'
 
 export default async function eloRoutes(fastify: FastifyInstance) {
   // Get all goals with optional filters
@@ -36,6 +37,12 @@ export default async function eloRoutes(fastify: FastifyInstance) {
       tags: ['elos']
     }
   }, getElo)
+
+	fastify.get('/leaderboard', { 
+    schema: {
+      tags: ['elos']
+    }
+  }, getLeaderboard)
 }
 
 

@@ -24,6 +24,17 @@ export interface GetMatchesQuery {
   offset?: number;
 }
 
+export interface GetTournamentQuery {
+	tournament_id: string;
+}
+
+export interface GetTournamentsQuery {
+  player_id?: string;
+  limit?: number;
+  offset?: number;
+}
+
+
 export interface PlayerMatchSummary {
 	total_matches: number;
 	elo: number;

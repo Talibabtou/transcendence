@@ -1,19 +1,19 @@
-import { errorResponseSchema } from '../../../../shared/schemas/error.schema.js';
-import { ErrorExamples } from '../../../../shared/constants/error.const.js';
-export const goalSchema = {
+import { errorResponseSchema } from './error.schema.js';
+import { ErrorExamples } from '../constants/error.const.js';
+
+export const eloSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-    match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
     player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-    duration: { type: ['integer', 'null'], minimum: 0, default: null }, // duration in seconds
+    elo: { type: ['integer'], minimum: 0, default: 1000 }, // duration in seconds
     created_at: { type: 'string', format: 'date-time' }
   },
-  required: ['id', 'match_id', 'player', 'duration', 'created_at']
+  required: ['id', 'player', 'elo', 'created_at']
 }
 
 
-export const getGoalSchema = {
+export const getEloSchema = {
   params: {
     type: 'object',
     properties: {
@@ -22,10 +22,10 @@ export const getGoalSchema = {
     required: ['id']
   },
   response: {
-    200: goalSchema,
+    200: eloSchema,
     404: {
       ...errorResponseSchema,
-      example: ErrorExamples.goalNotFound
+      example: ErrorExamples.playerNotFound
     },
     500: {
       ...errorResponseSchema,
@@ -34,11 +34,10 @@ export const getGoalSchema = {
   }
 }
 
-export const getGoalsSchema = {
+export const getElosSchema = {
   querystring: {
     type: 'object',
     properties: {
-      match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
       player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
       limit: { type: 'integer', minimum: 1, default: 10 },
       offset: { type: 'integer', minimum: 0, default: 0 }
@@ -47,7 +46,7 @@ export const getGoalsSchema = {
   response: {
     200: {
       type: 'array',
-      items: goalSchema
+      items: eloSchema
     },
 		500: {
       ...errorResponseSchema,
@@ -56,25 +55,20 @@ export const getGoalsSchema = {
   }
 }
 
-export const createGoalSchema = {
+export const createEloSchema = {
   body: {
     type: 'object',
     properties: {
-      match_id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
       player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-      duration: { type: ['integer'], minimum: 0}
-    },
-    required: ['match_id', 'player', 'duration']
+			elo: { type: ['integer'], minimum: 0, default: 1000 },
+		},
+    required: ['player', 'elo']
   },
   response: {
-    201: goalSchema,
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotInMatch
-    },
+    201: eloSchema,
 		404: {
       ...errorResponseSchema,
-      example: ErrorExamples.matchNotFound
+      example: ErrorExamples.playerNotFound
     },
     500: {
       ...errorResponseSchema,
@@ -83,3 +77,31 @@ export const createGoalSchema = {
   }
 }
 
+export const updatePlayerEloSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      winner: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      loser: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+    },
+    required: ['winner', 'loser']
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        winner: eloSchema,
+        loser: eloSchema
+      },
+      required: ['winner', 'loser']
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}

@@ -13,3 +13,18 @@ CREATE TABLE IF NOT EXISTS elo (
 
 -- Create composite index for the common query pattern
 CREATE INDEX IF NOT EXISTS idx_elo_player_created_at ON elo(player, created_at DESC);
+
+CREATE VIEW IF NOT EXISTS latest_player_elos AS
+SELECT 
+    player,
+    elo,
+    created_at
+FROM (
+    SELECT 
+        player,
+        elo,
+        created_at,
+        ROW_NUMBER() OVER (PARTITION BY player ORDER BY created_at DESC) as rn
+    FROM elo
+) ranked
+WHERE rn = 1;

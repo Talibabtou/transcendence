@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS matches (
   active BOOLEAN DEFAULT TRUE,
   duration INTEGER DEFAULT NULL,
   tournament_id TEXT DEFAULT NULL, -- UUID
+	final BOOLEAN DEFAULT FALSE,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

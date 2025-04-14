@@ -5,7 +5,7 @@ import json
 
 # Configuration
 API_BASE_URL = "http://localhost:8082/api/v1"
-MATCH_ID = "3013aded-1349-a8ae-d516-f598073a6454"
+MATCH_ID = "9a996480-e8dc-1502-6242-a75d8ee6a043"
 MATCH_STATS_ENDPOINT = f"{API_BASE_URL}/matches/{MATCH_ID}/stats"
 
 def get_first_player_stats():
