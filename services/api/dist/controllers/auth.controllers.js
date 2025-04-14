@@ -1,17 +1,11 @@
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
-export async function getUserMe(request, reply) {
+export async function getUsers(request, reply) {
     try {
-        const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
-        const response = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            },
-        });
-        const user = await response.json();
-        return reply.code(response.status).send(user);
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const users = await response.json();
+        return reply.code(response.status).send(users);
     }
     catch (err) {
         request.server.log.error(err);
@@ -23,12 +17,7 @@ export async function getUser(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            },
-        });
+        const response = await fetch(serviceUrl, { method: 'GET' });
         const user = await response.json();
         return reply.code(response.status).send(user);
     }
@@ -38,18 +27,14 @@ export async function getUser(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
-export async function getUsers(request, reply) {
+export async function getUserMe(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            },
-        });
-        const users = await response.json();
-        return reply.code(response.status).send(users);
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const user = await response.json();
+        return reply.code(response.status).send(user);
     }
     catch (err) {
         request.server.log.error(err);
@@ -65,7 +50,6 @@ export async function postUser(request, reply) {
             method: 'POST',
             headers: {
                 'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token',
                 'From': request.ip
             },
             body: JSON.stringify(request.body)
@@ -89,7 +73,6 @@ export async function patchUser(request, reply) {
             method: 'PATCH',
             headers: {
                 'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token'
             },
             body: JSON.stringify(request.body)
         });
@@ -110,12 +93,7 @@ export async function deleteUser(request, reply) {
         const id = request.user.id;
         const subpath = request.url.split('/auth')[1];
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
-        const response = await fetch(serviceUrl, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            }
-        });
+        const response = await fetch(serviceUrl, { method: 'DELETE' });
         if (response.status >= 400) {
             const responseData = await response.json();
             return reply.code(response.status).send(responseData);
@@ -136,7 +114,6 @@ export async function postLogin(request, reply) {
             method: 'POST',
             headers: {
                 'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token',
                 'From': request.ip
             },
             body: JSON.stringify(request.body)

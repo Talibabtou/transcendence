@@ -6,10 +6,7 @@ export const uploadSchema = {
         type: 'object',
         required: ['file'],
         properties: {
-            file: {
-                type: 'string',
-                format: 'binary'
-            },
+            file: { type: 'string' },
             description: { type: 'string' }
         }
     },

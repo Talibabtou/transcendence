@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { upload, deletePic } from '../controllers/profil.controllers.js';
 
 export default async function profilRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post<{ Params: IId }>('/uploads/:id', upload);
+  fastify.post<{ Body: FormData, Params: IId }>('/uploads/:id', upload);
   
   fastify.delete<{ Params: IId }>('/uploads/:id', deletePic);
 

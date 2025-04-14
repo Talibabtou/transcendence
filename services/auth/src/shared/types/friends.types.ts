@@ -7,3 +7,7 @@ interface IFriend {
 export interface IReplyGetFriends {
   ids: Array<IFriend>
 }
+
+export interface IId {
+  id: string
+}

@@ -3,7 +3,7 @@ import { getFriends, getFriend, getFriendsMe, postFriend, patchFriend, deleteFri
 import { IId } from '../shared/types/api.types.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Body: IId }>('/all', getFriends);
+  fastify.get<{ Params: IId }>('/all/:id', getFriends);
 
   fastify.get<{ Params: IId}>('/all/me/:id', getFriendsMe);
 

@@ -6,7 +6,7 @@ export const jwtPluginRegister = {
     }
 };
 export async function jwtPluginHook(request, reply) {
-    if (!request.routeOptions.config?.auth)
+    if (!request.routeOptions.config || !request.routeOptions.config?.auth)
         return;
     const authHeader = request.headers['authorization'];
     if (!authHeader?.startsWith('Bearer ')) {

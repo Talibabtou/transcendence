@@ -1,4 +1,5 @@
 import path from "path";
+import helmet from '@fastify/helmet';
 import fastifyJwt from "@fastify/jwt";
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from "@fastify/static";
@@ -51,6 +52,7 @@ export class Server {
                 root: path.join(path.resolve(), process.env.UPLOADS_DIR || "/uploads"),
                 prefix: "/uploads",
             });
+            await server.register(helmet, { global: true });
             await server.register(fastifyJwt, jwtPluginRegister);
             await server.register(apiRoutes, { prefix: "/api/v1/" });
             await server.register(authRoutes, { prefix: "/api/v1/" });

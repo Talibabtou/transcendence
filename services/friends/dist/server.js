@@ -1,8 +1,6 @@
-import { fastify } from "fastify";
 import { initDb } from "./db.js";
+import { fastify } from "fastify";
 import friendsRoutes from "./routes/friends.routes.js";
-import { jwtPluginRegister, jwtPluginHook } from "./shared/plugins/jwtPlugin.js";
-import fastifyJwt from "@fastify/jwt";
 class Server {
     static instance;
     constructor() { }
@@ -17,9 +15,7 @@ class Server {
             process.on("SIGINT", () => Server.shutdown("SIGINT"));
             process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
             server.decorate("db", await initDb());
-            await server.register(fastifyJwt, jwtPluginRegister);
             await server.register(friendsRoutes);
-            server.addHook("onRequest", jwtPluginHook);
             server.listen({ port: Number(process.env.FRIENDS_PORT) || 8084, host: process.env.FRIENDS_ADDR || "0.0.0.0" }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);

@@ -2,6 +2,7 @@ import { MultipartFile } from '@fastify/multipart';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { IUpload } from '../shared/types/profil.type.js';
 import { FastifyJWT } from '../shared/plugins/jwtPlugin.js';
+import { ErrorResponse } from '../shared/types/error.type.js'
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
 function verifTypeFile(file: MultipartFile): boolean {
@@ -39,7 +40,7 @@ export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: 
         body: formData
       });
       if (response.status >= 400) {
-        const responseData = await response.json();
+        const responseData = await response.json() as ErrorResponse;
         return reply.code(response.status).send(responseData);
       }
       return reply.code(response.status).send();
@@ -62,7 +63,7 @@ export async function deletePic(request: FastifyRequest, reply: FastifyReply): P
       },
     });
     if (response.status >= 400) {
-      const responseData = await response.json();
+      const responseData = await response.json() as ErrorResponse;
       return reply.code(response.status).send(responseData);
     }
     return reply.code(response.status).send();

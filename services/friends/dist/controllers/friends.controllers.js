@@ -1,44 +1,17 @@
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
-export async function getFriend(request, reply) {
-    try {
-        const id = request.body;
-        if (!id || id.id === request.user.id) {
-            const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
-            return reply.code(400).send(errorMessage);
-        }
-        const friend = await request.server.db.get(`
-      SELECT
-        EXISTS (
-          SELECT 1
-          FROM friends
-          WHERE
-            ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
-            AND accepted = true)
-        AS FriendExists`, [request.user.id, id.id, id.id, request.user.id]);
-        if (!friend.FriendExists) {
-            const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
-            return reply.code(404).send(errorMessage);
-        }
-        return reply.code(200).send(friend.FriendExists);
-    }
-    catch (err) {
-        request.server.log.error(err);
-        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-        return reply.code(500).send(errorMessage);
-    }
-}
 export async function getFriends(request, reply) {
     try {
+        const { id } = request.params;
         const friends = await request.server.db.all(`
-        SELECT 
-          CASE 
-            WHEN id_1 = ? THEN id_2 
-            ELSE id_1 
-          END AS id, 
-          accepted, 
-          created_at 
-        FROM friends
-        WHERE id_1 = ? OR id_2 = ?`, [request.user.id, request.user.id, request.user.id]);
+      SELECT 
+        CASE 
+          WHEN id_1 = ? THEN id_2 
+          ELSE id_1 
+        END AS id, 
+        accepted, 
+        created_at 
+      FROM friends
+      WHERE id_1 = ? OR id_2 = ?`, [id, id, id]);
         if (!friends) {
             const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);
@@ -51,21 +24,73 @@ export async function getFriends(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
+export async function getFriendsMe(request, reply) {
+    try {
+        const friends = await request.server.db.all(`
+        SELECT 
+          CASE 
+            WHEN id_1 = ? THEN id_2 
+            ELSE id_1 
+          END AS id, 
+          accepted, 
+          created_at 
+        FROM friends
+        WHERE id_1 = ? OR id_2 = ?`, [request.params.id, request.params.id, request.params.id]);
+        if (!friends) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
+            return reply.code(404).send(errorMessage);
+        }
+        return reply.code(200).send({ friends });
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function getFriend(request, reply) {
+    try {
+        const { id } = request.body;
+        if (id === request.params.id) {
+            const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
+            return reply.code(400).send(errorMessage);
+        }
+        const friend = await request.server.db.get(`
+      SELECT
+        EXISTS (
+          SELECT 1
+          FROM friends
+          WHERE
+            ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
+            AND accepted = true)
+        AS friendExists`, [request.params.id, id, id, request.params.id]);
+        if (!friend.friendExists) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
+            return reply.code(404).send(errorMessage);
+        }
+        return reply.code(200).send({ friendExists: friend.friendExists });
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function postFriend(request, reply) {
     try {
-        const id = request.body;
-        if (id.id === request.user.id) {
+        const { id } = request.body;
+        if (id === request.params.id) {
             const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
             return reply.code(400).send(errorMessage);
         }
         const result = await request.server.db.get(`
       SELECT
-          EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`, [request.user.id, id.id, request.user.id, id.id]);
+          EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`, [request.params.id, id, request.params.id, id]);
         if (result.FriendExists) {
             const errorMessage = createErrorResponse(409, ErrorCodes.FRIENDSHIP_EXISTS);
             return reply.code(409).send(errorMessage);
         }
-        await request.server.db.run('INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);', [request.user.id, id.id]);
+        await request.server.db.run('INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);', [request.params.id, id]);
         return reply.code(201).send();
     }
     catch (err) {
@@ -86,8 +111,12 @@ export async function postFriend(request, reply) {
 }
 export async function patchFriend(request, reply) {
     try {
-        const id = request.body;
-        const result = await request.server.db.run('UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?', [request.user.id, id.id]);
+        const { id } = request.body;
+        if (id === request.params.id) {
+            const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
+            return reply.code(400).send(errorMessage);
+        }
+        const result = await request.server.db.run('UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?', [request.params.id, id]);
         if (result.changes === 0) {
             const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);
@@ -102,7 +131,7 @@ export async function patchFriend(request, reply) {
 }
 export async function deleteFriends(request, reply) {
     try {
-        const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? AND id_2 = ?', [request.user.id, request.user.id]);
+        const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? AND id_2 = ?', [request.params.id, request.params.id]);
         if (result.changes === 0) {
             const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);
@@ -117,7 +146,7 @@ export async function deleteFriends(request, reply) {
 }
 export async function deleteFriend(request, reply) {
     try {
-        const result = await request.server.db.run('DELETE FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?)', [request.params.id, request.user.id, request.user.id, request.params.id]);
+        const result = await request.server.db.run('DELETE FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?)', [request.params.id, request.query.id, request.query.id, request.params.id]);
         if (result.changes === 0) {
             const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
             return reply.code(404).send(errorMessage);

@@ -3,12 +3,22 @@ export async function getFriends(request, reply) {
     try {
         const subpath = request.url.split('/friends')[1];
         const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'GET',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token'
-            },
-        });
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const friends = await response.json();
+        return reply.code(response.status).send(friends);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function getFriendsMe(request, reply) {
+    try {
+        const id = request.user.id;
+        const subpath = request.url.split('/friends')[1];
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
         const friends = await response.json();
         return reply.code(response.status).send(friends);
     }
@@ -20,13 +30,13 @@ export async function getFriends(request, reply) {
 }
 export async function getFriend(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'GET',
             headers: {
-                'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token'
+                'Content-Type': request.headers['content-type'] || 'application/json'
             },
             body: JSON.stringify(request.body)
         });
@@ -41,13 +51,13 @@ export async function getFriend(request, reply) {
 }
 export async function postFriend(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token',
             },
             body: JSON.stringify(request.body)
         });
@@ -65,13 +75,13 @@ export async function postFriend(request, reply) {
 }
 export async function patchFriend(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
         const response = await fetch(serviceUrl, {
             method: 'PATCH',
             headers: {
                 'Content-Type': request.headers['content-type'] || 'application/json',
-                'Authorization': request.headers.authorization || 'no token',
             },
             body: JSON.stringify(request.body)
         });
@@ -87,16 +97,12 @@ export async function patchFriend(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
-export async function deleteFriend(request, reply) {
+export async function deleteFriends(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token',
-            }
-        });
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+        const response = await fetch(serviceUrl, { method: 'DELETE' });
         if (response.status >= 400) {
             const responseData = await response.json();
             return reply.code(response.status).send(responseData);
@@ -109,16 +115,12 @@ export async function deleteFriend(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
-export async function deleteFriends(request, reply) {
+export async function deleteFriend(request, reply) {
     try {
+        const id = request.user.id;
         const subpath = request.url.split('/friends')[1];
-        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
-        const response = await fetch(serviceUrl, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': request.headers.authorization || 'no token',
-            }
-        });
+        const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+        const response = await fetch(serviceUrl, { method: 'DELETE' });
         if (response.status >= 400) {
             const responseData = await response.json();
             return reply.code(response.status).send(responseData);

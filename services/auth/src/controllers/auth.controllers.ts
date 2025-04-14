@@ -1,4 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { IId } from '../shared/types/api.types.js'
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import { IAddUser, ILogin, IModifyUser, IReplyGetUser, IReplyGetUsers, IReplyLogin } from '../shared/types/auth.types.js'
 
@@ -17,7 +18,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
     }
 }
 
-export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
+export async function getUser(request: FastifyRequest<{ Params: IId}>, reply: FastifyReply): Promise<void> {
     try {
       const id = request.params.id;
       const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE id = ?', [id]);
@@ -37,7 +38,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string }}>
     }
 }
 
-export async function getUserMe(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
+export async function getUserMe(request: FastifyRequest<{ Params: IId}>, reply: FastifyReply): Promise<void> {
   try {
     const id = request.params.id;
     const user: IReplyGetUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE id = ?', [id]);
@@ -82,7 +83,40 @@ export async function addUser(request: FastifyRequest<{ Body: IAddUser }>, reply
   }
 }
 
-export async function deleteUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply): Promise<void> {
+export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser, Params: IId}>, reply: FastifyReply): Promise<void> {
+  try {
+      const id = request.params.id;
+      const { username, password, email } = request.body;
+      let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
+      if (!result) {
+        const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
+        return reply.code(404).send(errorMessage);
+      }
+      if (username)
+        await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, id]);
+      else if (password)
+        await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, id]);
+      else
+        await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
+      return reply.code(200).send();
+  } catch (err) {
+    if (err instanceof Error) {
+      if (err.message.includes('SQLITE_CONSTRAINT')) {
+        const errorMessage = createErrorResponse(409, ErrorCodes.SQLITE_CONSTRAINT)
+        return reply.code(409).send(errorMessage);
+      }
+      else if (err.message.includes('SQLITE_MISMATCH')) {
+        const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
+        return reply.code(400).send(errorMessage);
+      }
+    }
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function deleteUser(request: FastifyRequest<{ Params: IId}>, reply: FastifyReply): Promise<void> {
     try {
       const id = request.params.id;
       const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
@@ -96,39 +130,6 @@ export async function deleteUser(request: FastifyRequest<{ Params: { id: string 
       if (err instanceof Error && err.message.includes('SQLITE_MISMATCH')) {
         const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
         return reply.code(400).send(errorMessage);
-      }
-      request.server.log.error(err);
-      const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
-      return reply.code(500).send(errorMessage);
-    }
-}
-
-export async function modifyUser(request: FastifyRequest<{ Body: IModifyUser, Params: { id: string }}>, reply: FastifyReply): Promise<void> {
-    try {
-        const id = request.params.id;
-        const { username, password, email } = request.body;
-        let result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
-        if (!result) {
-          const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
-          return reply.code(404).send(errorMessage);
-        }
-        if (username)
-          await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, id]);
-        else if (password)
-          await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, id]);
-        else
-          await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
-        return reply.code(200).send();
-    } catch (err) {
-      if (err instanceof Error) {
-        if (err.message.includes('SQLITE_CONSTRAINT')) {
-          const errorMessage = createErrorResponse(409, ErrorCodes.SQLITE_CONSTRAINT)
-          return reply.code(409).send(errorMessage);
-        }
-        else if (err.message.includes('SQLITE_MISMATCH')) {
-          const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
-          return reply.code(400).send(errorMessage);
-        }
       }
       request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)

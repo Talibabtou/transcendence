@@ -4,8 +4,6 @@ import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import { IAddUser, ILogin, IModifyUser, IReplyGetUser, IReplyGetUsers, IReplyLogin } from '../shared/types/auth.types.js';
 
-
-
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
   try {
       const subpath = request.url.split('/auth')[1];
@@ -85,7 +83,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
           body: JSON.stringify(request.body)
         });
         if (response.status >= 400) {
-          const responseData = await response.json();
+          const responseData = await response.json() as ErrorResponse;
           return reply.code(response.status).send(responseData);
         }
         return reply.code(response.status).send();
@@ -103,7 +101,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
         const response = await fetch(serviceUrl, { method: 'DELETE' });
         if (response.status >= 400) {
-          const responseData = await response.json();
+          const responseData = await response.json() as ErrorResponse;
           return reply.code(response.status).send(responseData);
         }
         return reply.code(response.status).send();
