@@ -25,6 +25,7 @@ interface MatchResult {
 	player2Score: number;
 	matchId?: number;
 	gameMode?: GameMode;
+	isBackgroundGame?: boolean;
 }
 
 class MatchCacheSingleton {

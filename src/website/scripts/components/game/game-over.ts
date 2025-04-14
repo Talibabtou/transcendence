@@ -283,16 +283,20 @@ export class GameOverComponent extends Component<GameOverState> {
 		const customEvent = event as CustomEvent;
 		if (!customEvent.detail) return;
 		
-		// Ignore events from background demo games
-		if (customEvent.detail.matchId === null && this.getInternalState().visible) {
+		// Improved check for background games
+		if ((customEvent.detail.matchId === null || customEvent.detail.isBackgroundGame === true) && 
+			this.getInternalState().visible) {
 			return;
 		}
+		
+		// Prevent processing if already in transition
+		if (this.inTransition) return;
 
 		// Get all data from cache
 		const cachedResult = MatchCache.getLastMatchResult();
 		const gameInfo = MatchCache.getCurrentGameInfo();
 
-		if (cachedResult) {
+		if (cachedResult && !cachedResult.isBackgroundGame) {
 			// Show game over screen with cached data
 			this.showGameResult({
 				winner: cachedResult.winner,

@@ -248,16 +248,6 @@ export class GameEngine {
 			this.keyboardEventListener = null;
 		}
 		
-		// Complete any active match if it hasn't been completed yet
-		if (!this.matchCompleted && this.matchId && !this.scene.isBackgroundDemo()) {
-			try {
-				const winnerIndex = this.scene?.getPlayer1().getScore() > this.scene?.getPlayer2().getScore() ? 0 : 1;
-				this.completeMatch(winnerIndex);
-			} catch (error) {
-				console.error('Error completing match during cleanup:', error);
-			}
-		}
-		
 		// Clean up the scene
 		if (this.scene) {
 			try {
@@ -444,7 +434,7 @@ export class GameEngine {
 				const winnerIndex = this.scene?.getPlayer1().getScore() > this.scene?.getPlayer2().getScore() ? 0 : 1;
 				
 				// Complete the match with timeout flag
-				this.completeMatch(winnerIndex, true);
+				this.completeMatch(winnerIndex);
 			}
 		}, MAX_MATCH_DURATION);
 	}
@@ -454,7 +444,7 @@ export class GameEngine {
 	 * @param winnerIndex - Index of the winning player (0 for player 1, 1 for player 2)
 	 * @param timeout - Whether the match ended due to timeout
 	 */
-	public completeMatch(_winnerIndex: number, timeout: boolean = false): void {
+	public completeMatch(_winnerIndex: number): void {
 		// Skip if already completed or in background demo
 		if (this.scene.isBackgroundDemo() || this.matchCompleted) {
 			return;
@@ -477,27 +467,11 @@ export class GameEngine {
 			}
 		}
 		
-		// Calculate match duration
-		const matchDuration = this.getMatchDuration();
-		
 		// Stop the timer
 		this.isPaused = true;
 		
 		// Mark match as completed to prevent duplicates
 		this.matchCompleted = true;
-		
-		// Update match in database
-		DbService.completeMatch(this.matchId, matchDuration, timeout)
-			.then(() => {
-				// Clean up localStorage references
-				localStorage.removeItem('current_match_id');
-				localStorage.removeItem('current_match_start_time');
-			})
-			.catch((error: any) => {
-				console.error('Failed to complete match:', error);
-				// Reset completed flag to allow retry
-				this.matchCompleted = false;
-			});
 	}
 	
 	/**
@@ -698,7 +672,7 @@ export class GameEngine {
 		const winner = this.scene.getWinner();
 
 		// Get player names and scores correctly
-		const player1Name = player1.name; // Access name property directly
+		const player1Name = player1.name; 
 		const player2Name = player2.name;
 		const player1Score = player1.getScore();
 		const player2Score = player2.getScore();
@@ -712,7 +686,8 @@ export class GameEngine {
 				player1Name: player1Name,
 				player2Name: player2Name,
 				player1Score: player1Score,
-				player2Score: player2Score
+				player2Score: player2Score,
+				isBackgroundGame: false // Add this flag to indicate it's not a background game
 			});
 
 			// Use proper GameMode enum values
@@ -725,11 +700,12 @@ export class GameEngine {
 				playerColors: this.playerColors
 			});
 
-			// Dispatch minimal game over event
+			// Dispatch minimal game over event with isBackgroundGame flag
 			const gameOverEvent = new CustomEvent('gameOver', {
 				detail: {
 					matchId: this.matchId,
-					gameMode: this.gameMode
+					gameMode: this.gameMode,
+					isBackgroundGame: false // Add this flag to event details
 				}
 			});
 			window.dispatchEvent(gameOverEvent);

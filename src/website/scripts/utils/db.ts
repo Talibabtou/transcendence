@@ -871,66 +871,6 @@ export class DbService {
 	}
 
 	/**
-	 * Provides instructions for setting up a server endpoint to save the DB
-	 */
-	static getSaveInstructions(): string {
-		return `
-To save the database to db.json, create a server endpoint:
-
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const app = express();
-
-app.post('/api/save-db', (req, res) => {
-	const dbPath = path.resolve(__dirname, '../src/shared/db.json');
-	fs.writeFileSync(dbPath, JSON.stringify(req.body, null, 2));
-	res.json({ success: true });
-});
-
-Then send the database with:
-fetch('/api/save-db', {
-	method: 'POST',
-	headers: { 'Content-Type': 'application/json' },
-	body: JSON.stringify(DbService.getDatabaseSnapshot())
-});
-`;
-	}
-
-	/**
-	 * Completes a match and updates the database
-	 * @param matchId The match ID to complete
-	 * @param duration Match duration in seconds
-	 * @param timeout Whether the match ended due to timeout
-	 * @returns Promise with the updated match
-	 */
-	static completeMatch(matchId: number, duration: number, timeout: boolean = false): Promise<Match> {
-		// Log the request
-		this.logRequest('PUT', `/api/matches/${matchId}/complete`);
-		
-		// Find the match by ID
-		const matchIndex = db.matches.findIndex((m: any) => m.id === matchId);
-		
-		if (matchIndex === -1) {
-			console.error(`Match ${matchId} not found`);
-			return Promise.reject(new Error(`Match ${matchId} not found`));
-		}
-		// Update match properties
-		db.matches[matchIndex].completed = true;
-		db.matches[matchIndex].duration = Math.round(duration);
-		db.matches[matchIndex].timeout = timeout;
-		// Persist changes
-		persistDb();
-		// Sync to legacy storage
-		this.syncLegacyStorage();
-		// Return a properly formatted match object for the API
-		return Promise.resolve({
-			...db.matches[matchIndex],
-			created_at: new Date(db.matches[matchIndex].created_at)
-		} as Match);
-	}
-
-	/**
 	 * Gets a match by ID with detailed information
 	 * @param matchId The match ID to retrieve
 	 * @returns Promise with the match details
