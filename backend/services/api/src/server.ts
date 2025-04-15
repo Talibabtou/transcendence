@@ -5,8 +5,8 @@ import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from "@fastify/static";
 import fastifySwagger from "@fastify/swagger";
 import apiRoutes from "./routes/api.routes.js";
-// import eloRoutes from './routes/elo.routes.js';
-// import goalRoutes from './routes/goal.routes.js';
+import eloRoutes from './routes/elo.routes.js';
+import goalRoutes from './routes/goal.routes.js';
 import authRoutes from "./routes/auth.routes.js";
 import fastifyMultipart from "@fastify/multipart";
 // import matchRoutes from './routes/match.routes.js';
@@ -28,10 +28,10 @@ import { checkMicroservices, checkMicroservicesHook } from './controllers/api.co
 // });
 
 async function routes(server: FastifyInstance) {
-  // await server.register(eloRoutes, { prefix: API_PREFIX });
+  await server.register(eloRoutes, { prefix: API_PREFIX });
   await server.register(apiRoutes, { prefix: API_PREFIX });
   await server.register(authRoutes, { prefix: API_PREFIX });
-	// await server.register(goalRoutes, { prefix: API_PREFIX });
+	await server.register(goalRoutes, { prefix: API_PREFIX });
 	// await server.register(matchRoutes, { prefix: API_PREFIX });
   await server.register(profilRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });

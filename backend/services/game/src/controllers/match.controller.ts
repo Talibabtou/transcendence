@@ -1,19 +1,12 @@
-import { FastifyRequest, FastifyReply } from 'fastify'
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
-import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter} from '../telemetry/metrics.js'
-import { 
-  Match, 
-  CreateMatchRequest, 
-  GetMatchesQuery,
-	PlayerStats,
-	PlayerMatchSummary,
-	DailyPerformance
-} from '../shared/types/match.type.js'
-import { MatchGoals } from '../shared/types/goal.type.js'
+import { IId } from '../shared/types/match.type.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { MatchGoals } from '../shared/types/goal.type.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import { Match, CreateMatchRequest, GetMatchesQuery, PlayerStats, PlayerMatchSummary, DailyPerformance } from '../shared/types/match.type.js';
+import { matchCreationCounter, recordFastDatabaseMetrics, recordSlowDatabaseMetrics, recordMediumDatabaseMetrics, matchTournamentCounter} from '../telemetry/metrics.js';
 
-// Get a single match by ID
 export async function getMatch(request: FastifyRequest<{
-  Params: { id: string }
+  Params: IId
 }>, reply: FastifyReply): Promise<void> {
   const { id } = request.params
   try {
@@ -124,7 +117,7 @@ export async function createMatch(request: FastifyRequest<{
 }
 
 export async function matchTimeline(request: FastifyRequest<{
-		Params: { id: string }
+		Params: IId
 	}>, reply: FastifyReply): Promise<void> {
 		const { id } = request.params
 		try {
@@ -140,15 +133,15 @@ export async function matchTimeline(request: FastifyRequest<{
 
 // New function to get match summary for a player
 export async function matchSummary(request: FastifyRequest<{
-  Params: { player_id: string }
+  Params: IId
 }>, reply: FastifyReply): Promise<void> {
-  const { player_id } = request.params
+  const { id } = request.params
   try {
     // Get player match summary
     const startTime = performance.now();
     const matchSummaryResult = await request.server.db.get(
       'SELECT total_matches, elo, active_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?', 
-      [player_id]
+      [id]
     ) 
     recordFastDatabaseMetrics('SELECT', 'player_match_summary', (performance.now() - startTime));
     // Initialize default match summary if no data is returned
@@ -177,15 +170,15 @@ export async function matchSummary(request: FastifyRequest<{
 
 // Get match statistics for a player
 export async function matchStats(request: FastifyRequest<{
-  Params: { player_id: string }
+  Params: IId
 }>, reply: FastifyReply): Promise<void> {
-  const { player_id } = request.params
+  const { id } = request.params
   try {
     // Get daily performance for line plot
     let startTime = performance.now();
     const dailyPerformance = await request.server.db.all(
       'SELECT match_date, matches_played, wins, losses, daily_win_ratio FROM player_daily_performance WHERE player_id = ? ORDER BY match_date',
-      [player_id]
+      [id]
     ) as DailyPerformance[] || []
     recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', (performance.now() - startTime));
     
@@ -193,7 +186,7 @@ export async function matchStats(request: FastifyRequest<{
     startTime = performance.now();
     const goalDurationsResult = await request.server.db.all(
       'SELECT duration FROM player_goal_durations WHERE player = ?',
-      [player_id]
+      [id]
     ) 
     recordFastDatabaseMetrics('SELECT', 'player_goal_durations', (performance.now() - startTime));
     // Transform result into array of numbers
@@ -203,7 +196,7 @@ export async function matchStats(request: FastifyRequest<{
     startTime = performance.now();
     const matchDurationsResult = await request.server.db.all(
       'SELECT match_duration FROM player_match_durations WHERE player_id = ?',
-      [player_id]
+      [id]
     ) 
     recordFastDatabaseMetrics('SELECT', 'player_match_durations', (performance.now() - startTime));
     // Transform result into array of numbers
@@ -213,7 +206,7 @@ export async function matchStats(request: FastifyRequest<{
     startTime = performance.now();
     const eloRatingsResult = await request.server.db.all(
       'SELECT elo FROM elo WHERE player = ? ORDER BY created_at',
-      [player_id]
+      [id]
     )
     recordMediumDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime));
     // Transform result into array of numbers
@@ -229,6 +222,7 @@ export async function matchStats(request: FastifyRequest<{
     }
     
     // Combine all statistics into a comprehensive response
+    const player_id = id;
     const playerStats: PlayerStats = {
       player_id,
       goal_stats: {

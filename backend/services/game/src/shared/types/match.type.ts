@@ -65,3 +65,8 @@ export interface PlayerStats {
 	match_durations: number[];
 	elo_history: number[];
 }
+
+export interface IId {
+    id: string
+  }
+  
