@@ -686,35 +686,22 @@ export class GameManager {
 		const boundGameOverListener = function(event: Event) {
 			const customEvent = event as CustomEvent;
 			if (instance.isActive && instance.engine) {
-				// Store the result in the instance
-				instance.gameResult = {
-					...customEvent.detail,
-					gameMode: customEvent.detail.gameMode
-				};
-				
-				// IMPORTANT: Store the result in the cache immediately 
-				MatchCache.setLastMatchResult({
-					winner: customEvent.detail.winner,
-					player1Name: customEvent.detail.player1Name,
-					player2Name: customEvent.detail.player2Name,
-					player1Score: customEvent.detail.player1Score,
-					player2Score: customEvent.detail.player2Score,
-					matchId: customEvent.detail.matchId
-				});
 				
 				// Dispatch the game ended event
 				const gameManager = GameManager.getInstance();
 				gameManager.dispatchEvent(GameEvent.GAME_ENDED, customEvent.detail);
 				
-				// INCREASE THIS TIMEOUT to allow GameOverComponent to read the data
+				// Schedule cleanup
 				if (instance.type === GameInstanceType.MAIN && !instance.cleanupScheduled) {
 					instance.cleanupScheduled = true;
 
 					setTimeout(() => {
-						if (instance.isActive) {
+						// Check isActive again inside timeout, state might have changed
+						if (instance.isActive) { 
 							gameManager.cleanupGame(gameManager.mainGameInstance);
 						}
-					}, 500); // Increased from 300ms to 500ms
+						instance.cleanupScheduled = false; // Reset flag after timeout
+					}, 500); 
 				}
 			}
 		}.bind(this) as EventListener;

@@ -65,6 +65,8 @@ export class GameComponent extends Component<GameComponentState> {
 	// Add a reference to the TournamentTransitionsComponent
 	private tournamentTransitionsComponent: TournamentTransitionsComponent | null = null;
 	
+	private lastAuthState: boolean | null = null;
+	
 	// =========================================
 	// INITIALIZATION
 	// =========================================
@@ -76,6 +78,7 @@ export class GameComponent extends Component<GameComponentState> {
 		});
 		
 		this.gameManager = GameManager.getInstance();
+		this.lastAuthState = appState.isAuthenticated();
 		
 		// Subscribe to app state changes
 		this.unsubscribe = appState.subscribe((newState) => {
@@ -158,20 +161,36 @@ export class GameComponent extends Component<GameComponentState> {
 	private initializeComponents(): void {
 		if (!this.gameContainer) return;
 		
+		// Destroy existing components first to prevent duplicate listeners/instances
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = null;
+		}
+		if (this.gameOverComponent) {
+			this.gameOverComponent.destroy();
+			this.gameOverComponent = null;
+		}
+		if (this.canvasComponent) {
+			// Decide if canvas needs full destroy or just stopGame/hide
+			// For safety, let's destroy it if we are re-initializing everything
+			this.canvasComponent.destroy();
+			this.canvasComponent = null;
+		}
+
 		// Create components with proper containers
 		this.menuComponent = new GameMenuComponent(
-			this.gameContainer, 
+			this.gameContainer,
 			this.handleModeSelected.bind(this)
 		);
-		
+
 		this.gameOverComponent = new GameOverComponent(
 			this.gameContainer,
 			this.handlePlayAgain.bind(this),
 			this.handleBackToMenu.bind(this)
 		);
-		
+
 		this.canvasComponent = new GameCanvasComponent(this.gameContainer);
-		
+
 		// No explicit renderComponent() calls here - let the state system handle it
 	}
 	
@@ -225,23 +244,31 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.canvasComponent) {
 			this.canvasComponent.stopGame();
 		}
-		
+
 		if (this.gameOverComponent) {
 			this.gameOverComponent.hide();
 		}
-		
+
+		// Ensure menu component is destroyed BEFORE creating a new one
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
+			this.menuComponent = null; // Explicitly nullify
+		}
+
+		// Create and show the new menu component
+		if (this.gameContainer) { // Check if container exists
 			this.menuComponent = new GameMenuComponent(
-				this.gameContainer!, 
+				this.gameContainer,
 				this.handleModeSelected.bind(this)
 			);
 			this.menuComponent.show();
+		} else {
+			console.error('Game container not found, cannot create menu.');
 		}
-		
+
 		// Show background game
 		this.gameManager.showBackgroundGame();
-		
+
 		this.stopGameStateMonitoring();
 	}
 	
@@ -254,7 +281,7 @@ export class GameComponent extends Component<GameComponentState> {
 		// Get current user info
 		const currentUser = appState.getCurrentUser();
 		const playerName = currentUser?.username || 'Player 1';
-		const playerColor = appState.getAccentColorHex() || '#3498db';
+		const playerColor = appState.getAccentColorHex() || '#ffffff';
 		
 		// Ensure we have player IDs for single player mode
 		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
@@ -524,7 +551,7 @@ export class GameComponent extends Component<GameComponentState> {
 				// Use cache info if available, fallback to current user info
 				const currentUser = appState.getCurrentUser();
 				const playerName = currentUser?.username || 'Player 1';
-				const playerColor = appState.getAccentColorHex() || '#3498db';
+				const playerColor = appState.getAccentColorHex() || '#ffffff';
 				
 				// Prioritize cached info over defaults
 				const playerNames = state.playerNames || gameInfo.playerNames || [playerName];
@@ -652,26 +679,18 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param newState - The updated state properties
 	 */
 	private handleStateChange(newState: Partial<any>): void {
-		// Handle authentication changes
-		if ('auth' in newState) {
-			// Re-render the component
+		const currentAuth = appState.isAuthenticated();
+
+		// Handle authentication changes ONLY if the status has actually changed
+		if ('auth' in newState && currentAuth !== this.lastAuthState) {
+			this.lastAuthState = currentAuth;
 			this.renderComponent();
-			
-			// If we're on the menu, update it to reflect authenticated state
-			if (this.menuComponent) {
-				this.menuComponent.destroy();
-				this.menuComponent = new GameMenuComponent(
-					this.gameContainer!, 
-					this.handleModeSelected.bind(this)
-				);
-				this.menuComponent.show();
-			}
 		}
-		
+
 		// For accent color changes, update the player's color in the game
 		if ('accentColor' in newState) {
 			const accentColorHex = appState.getAccentColorHex();
-			
+
 			// Update color using the GameManager
 			if (this.gameManager.isMainGameActive()) {
 				this.gameManager.updateMainGamePlayerColor(accentColorHex);
