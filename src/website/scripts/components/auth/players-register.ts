@@ -578,12 +578,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 
-		let updatedGuests: PlayerData[] = [...state.guests]; // Initialize with current guests
-		let isReadyToPlay = state.isReadyToPlay; // Start with current readiness
+		let updatedGuests: PlayerData[] = [...state.guests];
+		let isReadyToPlay = state.isReadyToPlay;
 
 		if (state.gameMode === GameMode.MULTI) {
 			// For multiplayer, just replace the entire guests array
-			updatedGuests = [guestData]; // Set the single guest
+			updatedGuests = [guestData];
 			
 			// Set player 2's accent color
 			appState.setPlayerAccentColor(2, guestData.theme || '#ffffff');
@@ -600,7 +600,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				this.updateInternalState({
 					error: 'All player slots are filled'
 				});
-				return; // Exit early, no state change needed here
+				return;
 			}
 			
 			// Create a new guests array with the new player added at the correct position
@@ -628,9 +628,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Update state with both guest list and readiness in one go
 		this.updateInternalState({
 			guests: updatedGuests,
-			isReadyToPlay: isReadyToPlay, // Update readiness flag
-			error: null // Clear any previous error
+			isReadyToPlay: isReadyToPlay,
+			error: null
 		});
+
+		this.renderComponent();
 	}
 	
 	/**
@@ -739,8 +741,15 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Update app accent color for the host (current user)
 		appState.setAccentColor(colorName as any);
 		
-		// Keep this direct CSS update for immediate visual feedback,
-		// although the re-render triggered by appState should also handle it.
+		// Update host's theme in the local state to trigger re-render
+		this.updateInternalState({
+			host: {
+				...state.host,
+				theme: colorHex
+			}
+		});
+		
+		// Apply directly to CSS for immediate effect
 		document.documentElement.style.setProperty('--accent1-color', colorHex);
 	}
 	
@@ -781,6 +790,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				colorHex
 			);
 		}
+
+		this.renderComponent();
 	}
 	
 	/**

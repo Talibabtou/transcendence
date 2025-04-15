@@ -759,10 +759,8 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
+			this.gameOverComponent.destroy();
 		}
-		
-		// Keep the background game visible (don't hide it)
 		
 		// Destroy previous player registration component if it exists
 		if (this.playerRegistrationComponent) {
@@ -901,28 +899,10 @@ export class GameComponent extends Component<GameComponentState> {
 
 	// Add this new handler method
 	private handleCancelTournament(): void {
-		// Destroy the current tournament component
-		if (this.tournamentTransitionsComponent) {
-			this.tournamentTransitionsComponent.destroy();
-			this.tournamentTransitionsComponent = null;
-		}
+		// Clear the tournament cache
+		TournamentCache.clearTournament();
 		
-		// Also destroy the player registration component if it exists
-		if (this.playerRegistrationComponent) {
-			this.playerRegistrationComponent.destroy();
-			this.playerRegistrationComponent = null;
-		}
-		
-		// Create a fresh player registration component
-		this.playerRegistrationComponent = new PlayersRegisterComponent(
-			this.container,
-			GameMode.TOURNAMENT,
-			this.handlePlayersRegistered.bind(this),
-			this.handleBackToMenu.bind(this)
-		);
-		
-		// Update game state and show the component
-		this.updateInternalState({ currentState: GameState.PLAYER_REGISTRATION });
-		this.playerRegistrationComponent.render();
+		// Just use the existing back to menu handler which we know works
+		this.handleBackToMenu();
 	}
 }
