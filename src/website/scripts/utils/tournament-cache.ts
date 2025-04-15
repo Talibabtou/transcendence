@@ -28,6 +28,7 @@ interface TournamentMatch {
 	winner?: number;
 	completed: boolean;
 	isCurrent?: boolean;
+	isFinals: boolean;
 }
 
 /**
@@ -113,13 +114,24 @@ class TournamentCacheSingleton {
 					player2Index: j,
 					gamesPlayed: 0,
 					games: [],
-					completed: false
+					completed: false,
+					isFinals: false
 				});
 			}
 		}
 		
-		// Shuffle the matches for randomness
+		// Shuffle the pool matches for randomness
 		this.shuffleTournamentMatches();
+		
+		// Add a placeholder for the finals match structure
+		this.tournamentMatches.push({
+			player1Index: -1,
+			player2Index: -1,
+			gamesPlayed: 0,
+			games: [],
+			completed: false,
+			isFinals: true
+		});
 	}
 	
 	/**
@@ -193,6 +205,8 @@ class TournamentCacheSingleton {
 		if (player1Wins === 2 || player2Wins === 2) {
 			this.completeCurrentMatch();
 		}
+		
+		this.saveToLocalStorage();
 	}
 	
 	/**
@@ -206,16 +220,10 @@ class TournamentCacheSingleton {
 		currentMatch.completed = true;
 		currentMatch.isCurrent = false;
 		
-		// Count wins for each player
-		const player1Wins = currentMatch.games.filter(
-			g => g.winner === currentMatch.player1Index
-		).length;
-		
-		const player2Wins = currentMatch.games.filter(
-			g => g.winner === currentMatch.player2Index
-		).length;
-		
 		// Determine match winner
+		const player1Wins = currentMatch.games.filter(g => g.winner === currentMatch.player1Index).length;
+		const player2Wins = currentMatch.games.filter(g => g.winner === currentMatch.player2Index).length;
+		
 		if (player1Wins > player2Wins) {
 			currentMatch.winner = currentMatch.player1Index;
 			this.tournamentPlayers[currentMatch.player1Index].wins++;
@@ -224,47 +232,46 @@ class TournamentCacheSingleton {
 			this.tournamentPlayers[currentMatch.player2Index].wins++;
 		}
 		
-		// Reset current game counter
-		this.currentGameInMatch = 0;
-		
-		// Move to next match or to finals
+		// Move to next match or finals
 		if (this.tournamentPhase === 'pool') {
 			this.currentMatchIndex++;
-			
-			// Check if pool phase is complete
-			if (this.currentMatchIndex >= this.tournamentMatches.length - 1) { // -1 because the last one is finals
+			if (this.currentMatchIndex >= this.tournamentMatches.length - 1) {
 				this.prepareFinals();
 			}
 		} else if (this.tournamentPhase === 'finals') {
-			// Tournament is complete
 			this.tournamentPhase = 'complete';
 		}
+		
+		this.saveToLocalStorage();
 	}
 	
 	/**
 	 * Prepare for the finals phase
 	 */
 	private prepareFinals(): void {
-		// Sort players by wins (and then by games won as tiebreaker)
 		const sortedPlayers = [...this.tournamentPlayers]
 			.sort((a, b) => b.wins - a.wins || (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost));
 		
-		// Get top 2 player indices
 		const finalist1Index = this.tournamentPlayers.findIndex(p => p.id === sortedPlayers[0].id);
 		const finalist2Index = this.tournamentPlayers.findIndex(p => p.id === sortedPlayers[1].id);
 		
-		// Create finals match
-		this.tournamentMatches.push({
-			player1Index: finalist1Index,
-			player2Index: finalist2Index,
-			gamesPlayed: 0,
-			games: [],
-			completed: false
-		});
+		// Find the finals match placeholder (should be the last one)
+		const finalsMatchIndex = this.tournamentMatches.findIndex(m => m.isFinals);
+		if (finalsMatchIndex !== -1) {
+			this.tournamentMatches[finalsMatchIndex].player1Index = finalist1Index;
+			this.tournamentMatches[finalsMatchIndex].player2Index = finalist2Index;
+		} else {
+			// Fallback: Should not happen if generatePoolMatches worked correctly
+			console.error("Finals match placeholder not found!");
+		}
 		
 		this.tournamentPhase = 'finals';
-		this.currentMatchIndex = this.tournamentMatches.length - 1;
+		this.currentMatchIndex = finalsMatchIndex !== -1 ? finalsMatchIndex : this.tournamentMatches.length - 1;
 		this.currentGameInMatch = 0;
+		// Ensure the final match is marked as current
+		this.setCurrentMatchIndex(this.currentMatchIndex); 
+		
+		this.saveToLocalStorage();
 	}
 	
 	/**
@@ -343,22 +350,30 @@ class TournamentCacheSingleton {
 		isFinals: boolean;
 	}> {
 		return this.tournamentMatches.map((match, index) => {
-			const player1 = this.tournamentPlayers[match.player1Index];
-			const player2 = this.tournamentPlayers[match.player2Index];
+			const isFinalsMatch = match.isFinals;
+			const isPoolPhase = this.tournamentPhase === 'pool' || this.tournamentPhase === 'not_started';
 			
-			// Calculate match scores (number of games won by each player)
+			// Determine player names - use '?' for finals during pool phase
+			const player1Name = (isFinalsMatch && isPoolPhase) 
+				? '?' 
+				: (match.player1Index >= 0 ? this.tournamentPlayers[match.player1Index].name : '?');
+				
+			const player2Name = (isFinalsMatch && isPoolPhase) 
+				? '?' 
+				: (match.player2Index >= 0 ? this.tournamentPlayers[match.player2Index].name : '?');
+
 			const player1Score = match.games.filter(g => g.winner === match.player1Index).length;
 			const player2Score = match.games.filter(g => g.winner === match.player2Index).length;
 			
 			return {
 				matchIndex: index,
-				player1Name: player1.name,
-				player2Name: player2.name,
+				player1Name: player1Name,
+				player2Name: player2Name,
 				player1Score: match.completed ? player1Score : undefined,
 				player2Score: match.completed ? player2Score : undefined,
 				isComplete: match.completed,
-				isCurrent: index === this.currentMatchIndex,
-				isFinals: index === this.tournamentMatches.length - 1 && this.tournamentPhase !== 'pool'
+				isCurrent: index === this.currentMatchIndex && this.tournamentPhase !== 'complete' && this.tournamentPhase !== 'not_started', 
+				isFinals: isFinalsMatch
 			};
 		});
 	}
@@ -387,6 +402,8 @@ class TournamentCacheSingleton {
 		this.currentMatchIndex = 0;
 		this.currentGameInMatch = 0;
 		this.tournamentPhase = 'not_started';
+		localStorage.removeItem('tournament_state');
+		localStorage.removeItem('tournament_timestamp');
 	}
 	
 	/**
@@ -468,12 +485,16 @@ class TournamentCacheSingleton {
 			matches: this.tournamentMatches,
 			phase: this.tournamentPhase
 		});
+		
+		this.saveToLocalStorage();
 	}
 	
 	/**
 	 * Set the current match index
 	 */
 	public setCurrentMatchIndex(index: number): void {
+		console.log('Setting current match index to:', index);
+		
 		// Clear current flag from all matches
 		this.tournamentMatches.forEach(match => {
 			match.isCurrent = false;
@@ -483,6 +504,7 @@ class TournamentCacheSingleton {
 		if (index >= 0 && index < this.tournamentMatches.length) {
 			this.currentMatchIndex = index;
 			this.tournamentMatches[index].isCurrent = true;
+			console.log('Current match set:', this.tournamentMatches[index]);
 		}
 	}
 	
@@ -514,6 +536,109 @@ class TournamentCacheSingleton {
 		if (phase === 'finals' && this.tournamentMatches.length > 0) {
 			this.setCurrentMatchIndex(this.tournamentMatches.length - 1);
 		}
+		
+		this.saveToLocalStorage();
+	}
+	
+	/**
+	 * Restore tournament state from localStorage
+	 */
+	public restoreFromLocalStorage(): boolean {
+		try {
+			const savedState = localStorage.getItem('tournament_state');
+			if (!savedState) return false;
+			
+			const timestamp = localStorage.getItem('tournament_timestamp');
+			const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+			
+			// Check if tournament is too old
+			if (timestamp && Date.now() - parseInt(timestamp) > maxAge) {
+				localStorage.removeItem('tournament_state');
+				localStorage.removeItem('tournament_timestamp');
+				return false;
+			}
+			
+			const state = JSON.parse(savedState);
+			this.tournamentId = state.tournamentId;
+			this.tournamentPlayers = state.players;
+			this.tournamentMatches = state.matches;
+			this.currentMatchIndex = state.currentMatchIndex;
+			this.currentGameInMatch = state.currentGameInMatch;
+			this.tournamentPhase = state.phase;
+			
+			return true;
+		} catch (error) {
+			console.error('Failed to restore tournament:', error);
+			return false;
+		}
+	}
+	
+	/**
+	 * Save tournament state to localStorage
+	 */
+	public saveToLocalStorage(): void {
+		try {
+			const state = {
+				tournamentId: this.tournamentId,
+				players: this.tournamentPlayers,
+				matches: this.tournamentMatches,
+				currentMatchIndex: this.currentMatchIndex,
+				currentGameInMatch: this.currentGameInMatch,
+				phase: this.tournamentPhase
+			};
+			localStorage.setItem('tournament_state', JSON.stringify(state));
+			localStorage.setItem('tournament_timestamp', Date.now().toString());
+		} catch (error) {
+			console.error("Failed to save tournament state:", error);
+			// Decide how to handle potential storage errors (e.g., quota exceeded)
+		}
+	}
+	
+	/**
+	 * Start the tournament
+	 */
+	public startTournament(): void {
+		if (this.tournamentPhase !== 'not_started') return;
+		
+		this.setTournamentPhase('pool');
+		this.shuffleTournamentMatches();
+		
+		// Make sure to mark the first match as current
+		this.setCurrentMatchIndex(0);
+		
+		// Set isCurrent flag explicitly
+		if (this.tournamentMatches.length > 0) {
+			this.tournamentMatches[0].isCurrent = true;
+		}
+		
+		this.saveToLocalStorage();
+	}
+	
+	/**
+	 * Get current match player info
+	 */
+	public getCurrentMatchPlayerInfo(): {
+		playerIds: number[];
+		playerNames: string[];
+		playerColors: string[];
+	} {
+		const match = this.getCurrentMatch();
+		if (!match) return { playerIds: [], playerNames: [], playerColors: [] };
+		
+		return {
+			playerIds: [
+				this.tournamentPlayers[match.player1Index].id,
+				this.tournamentPlayers[match.player2Index].id
+			],
+			playerNames: [
+				this.tournamentPlayers[match.player1Index].name,
+				this.tournamentPlayers[match.player2Index].name
+			],
+			playerColors: [
+				this.tournamentPlayers[match.player1Index].color,
+				this.tournamentPlayers[match.player2Index].color
+			]
+		};
 	}
 }
 

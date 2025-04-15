@@ -278,54 +278,11 @@ export class AppStateManager {
 	 * Apply the current accent color to CSS variables
 	 */
 	private applyAccentColorToCSS(): void {
-		const colorHex = AppStateManager.ACCENT_COLORS[this.state.accentColor];
-		
-		// Main accent color (host)
-		document.documentElement.style.setProperty('--accent-color', colorHex);
-		document.documentElement.style.setProperty('--accent-color-dark', this.darkenColor(colorHex, 20));
-		document.documentElement.style.setProperty('--accent-color-light', this.lightenColor(colorHex, 20));
-		
 		// Apply multiple accent colors for players
 		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
 		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
 		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
 		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
-	}
-	
-	/**
-	 * Darken a hex color by a percentage
-	 */
-	private darkenColor(hex: string, percent: number): string {
-		// Convert hex to RGB
-		let r = parseInt(hex.substring(1, 3), 16);
-		let g = parseInt(hex.substring(3, 5), 16);
-		let b = parseInt(hex.substring(5, 7), 16);
-		
-		// Darken
-		r = Math.floor(r * (100 - percent) / 100);
-		g = Math.floor(g * (100 - percent) / 100);
-		b = Math.floor(b * (100 - percent) / 100);
-		
-		// Convert back to hex
-		return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-	}
-	
-	/**
-	 * Lighten a hex color by a percentage
-	 */
-	private lightenColor(hex: string, percent: number): string {
-		// Convert hex to RGB
-		let r = parseInt(hex.substring(1, 3), 16);
-		let g = parseInt(hex.substring(3, 5), 16);
-		let b = parseInt(hex.substring(5, 7), 16);
-		
-		// Lighten
-		r = Math.min(255, Math.floor(r + (255 - r) * (percent / 100)));
-		g = Math.min(255, Math.floor(g + (255 - g) * (percent / 100)));
-		b = Math.min(255, Math.floor(b + (255 - b) * (percent / 100)));
-		
-		// Convert back to hex
-		return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 	}
 	
 	/**

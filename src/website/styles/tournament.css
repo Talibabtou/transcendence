@@ -1,75 +1,68 @@
 /* ===== TOURNAMENT SCREEN LAYOUT ===== */
-.tournament-screen {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	color: #fff;
+.tournament-matches-list {
+	width: 65%;
+	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: space-between;
-	padding: 3rem;
-	box-sizing: border-box;
-	z-index: 100;
 }
 
-/* ===== TOURNAMENT HEADERS ===== */
-.tournament-header, .match-header, .finals-header, .winner-header {
-	text-align: center;
+/* Ensure tournament screen takes full container */
+.tournament-screen {
+	display: flex;
+	position: static;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.ascii-title-container {
 	margin-bottom: 2rem;
 }
 
-.tournament-header h1, .match-header h1, .finals-header h1, .winner-header h1 {
-	font-size: 3rem;
-	margin-bottom: 0.5rem;
-}
-
-.phase-name {
-	font-size: 1.5rem;
-	color: var(--accent-color);
-}
-
-/* ===== TOURNAMENT MATCHES LIST ===== */
-.tournament-matches-list {
-	width: 100%;
-	overflow-y: auto;
-	max-height: 60vh;
-}
-
+/* ===== MATCH ITEMS STYLING ===== */
 .tournament-match {
-	margin-bottom: 1rem;
+	margin-bottom: 0.5rem;
 	padding: 1rem;
-	border-radius: 0.5rem;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	width: 80%;
+	background-color: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--border-color);
 }
 
 .tournament-match.match-current {
-	border: 2px solid var(--accent-color);
+	border: 2px solid white;
+}
+
+.tournament-match.match-pending-finals {
+	opacity: 0.7;
+	border: 1px dashed gold;
 }
 
 .tournament-match.finals-match {
 	border: 2px solid gold;
 }
 
+.tournament-match.match-complete {
+	background-color: rgba(255, 255, 255, 0.4);
+}
+
 .match-number {
 	font-weight: bold;
-	width: 6rem;
+	min-width: 4rem;
 }
 
 .match-players {
+	font-size: 1.2rem;
+	font-weight: bold;
 	flex-grow: 1;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	padding: 0 1rem;
-}
-
-.match-player {
-	font-size: 1.2rem;
 }
 
 .match-vs {
@@ -83,22 +76,18 @@
 	text-align: center;
 }
 
+.match-status:not(:empty) {
+	color: white;
+}
+
 .tournament-controls {
-	margin-top: 2rem;
+	margin-top: 1.5rem;
 	display: flex;
-	gap: 1rem;
+	justify-content: center;
 }
 
 /* ===== MATCH RESULTS STYLES ===== */
-.match-title {
-	font-size: 2rem;
-	margin-bottom: 1rem;
-}
 
-.match-summary {
-	text-align: center;
-	margin-bottom: 2rem;
-}
 
 .match-score {
 	font-size: 3rem;
@@ -111,7 +100,7 @@
 }
 
 .winner {
-	color: var(--accent-color);
+	color: gold;
 }
 
 .match-winner {
@@ -119,17 +108,31 @@
 	color: gold;
 }
 
-.games-list {
-	width: 100%;
-}
-
 .game-result {
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.75rem;
 	padding: 0.75rem;
 	border-radius: 0.5rem;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+}
+
+.game-number {
+	font-weight: bold;
+	min-width: 5rem;
+}
+
+.game-scores {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.game-winner {
+	min-width: 8rem;
+	text-align: right;
 }
 
 /* ===== FINALS STYLES ===== */
@@ -138,7 +141,7 @@
 	align-items: center;
 	justify-content: center;
 	gap: 2rem;
-	margin-bottom: 2rem;
+	margin: 2rem 0;
 }
 
 .finalist {
@@ -148,13 +151,14 @@
 
 .vs {
 	font-size: 1.5rem;
+	font-weight: bold;
 	color: #888;
 }
 
 .finals-description, .winner-description {
 	text-align: center;
 	font-size: 1.2rem;
-	margin-bottom: 2rem;
+	margin: 2rem 0;
 }
 
 /* ===== WINNER STYLES ===== */
@@ -162,5 +166,6 @@
 	font-size: 4rem;
 	font-weight: bold;
 	margin: 2rem 0;
+	text-align: center;
 	text-shadow: 0 0 10px currentColor;
 }

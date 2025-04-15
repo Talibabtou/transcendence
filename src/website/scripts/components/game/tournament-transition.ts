@@ -1,6 +1,5 @@
 import { Component } from '@website/scripts/components';
-import { html, render, ASCII_ART } from '@website/scripts/utils';
-import { TournamentCache, TournamentPhase } from '@website/scripts/utils';
+import { html, render, ASCII_ART, TournamentCache, TournamentPhase } from '@website/scripts/utils';
 
 export interface TournamentTransitionsState {
 	visible: boolean;
@@ -31,32 +30,26 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 	render(): void {
 		const state = this.getInternalState();
 		
+		console.log('Tournament transition render called, visible:', state.visible);
+		
 		if (!state.visible) {
 			this.container.innerHTML = '';
+			console.log('Tournament transition hidden');
 			return;
 		}
 		
-		let content;
+		const screenRenderers = {
+			'schedule': this.renderTournamentSchedule,
+			'match-results': this.renderMatchResults,
+			'finals-intro': this.renderFinalsIntro,
+			'winner': this.renderTournamentWinner
+		};
 		
-		switch (state.currentScreen) {
-			case 'schedule':
-				content = this.renderTournamentSchedule();
-				break;
-			case 'match-results':
-				content = this.renderMatchResults();
-				break;
-			case 'finals-intro':
-				content = this.renderFinalsIntro();
-				break;
-			case 'winner':
-				content = this.renderTournamentWinner();
-				break;
-			default:
-				content = this.renderTournamentSchedule();
-		}
+		console.log('Rendering screen:', state.currentScreen);
 		
+		const content = screenRenderers[state.currentScreen]?.call(this) || this.renderTournamentSchedule();
 		render(content, this.container);
-		
+		console.log('Content rendered, setting up event listeners');
 		this.setupEventListeners();
 	}
 	
@@ -66,21 +59,16 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		const nextGame = TournamentCache.getNextGameInfo();
 		
 		let buttonText = 'Start Tournament';
-		if (nextGame?.isNewMatch && phase === 'pool' && nextGame.matchIndex > 0) {
-			buttonText = 'Next Match';
+		if (phase === 'pool' && nextGame?.isNewMatch) {
+			buttonText = (nextGame.matchIndex === 0) ? 'Start First Match' : 'Next Match';
 		} else if (phase === 'finals') {
 			buttonText = 'Start Finals';
 		}
 		
-		// Filter out finals match until all pool matches are completed
-		const displayedMatches = schedule.filter(match => 
-			!match.isFinals || phase === 'finals'
-		);
-		
-		// Generate list of matches using html template tags
-		const matchesList = displayedMatches.map((match, index) => {
+		const matchesList = schedule.map((match, index) => {
 			let statusClass = '';
 			let statusText = '';
+			let nextMatchStyles = '';
 			
 			if (match.isComplete) {
 				statusClass = 'match-complete';
@@ -88,14 +76,23 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 			} else if (match.isCurrent) {
 				statusClass = 'match-current';
 				statusText = 'NEXT';
+				nextMatchStyles = `
+					border: 0.25rem solid white;
+					box-shadow: 0 0 1.5rem rgba(255, 255, 255, 0.7);
+					transform: scale(1.05);
+					z-index: 2;
+				`;
+			} else if (match.isFinals && (phase === 'pool' || phase === 'not_started')) {
+				statusClass = 'match-pending-finals';
 			}
 			
 			return html`
-				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finals-match' : ''}">
+				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finals-match' : ''}" 
+					 style="${nextMatchStyles}">
 					<div class="match-number">${match.isFinals ? 'FINALS' : `Match ${index + 1}`}</div>
 					<div class="match-players">
 						<div class="match-player">${match.player1Name}</div>
-						<div class="match-vs">vs</div>
+						<div class="vs">VS</div>
 						<div class="match-player">${match.player2Name}</div>
 					</div>
 					<div class="match-status">${statusText}</div>
@@ -103,8 +100,8 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 			`;
 		});
 		
-		return html`
-			<div class="tournament-screen tournament-schedule">
+		const content = html`
+			<div class="tournament-screen">
 				<div class="ascii-title-container">
 					<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
 				</div>
@@ -115,10 +112,13 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 				
 				<div class="tournament-controls">
 					<button class="menu-button continue-button">${buttonText}</button>
-					<button class="menu-button back-button">Back to Menu</button>
+					${phase !== 'not_started' && phase !== 'complete' ? `<button class="menu-button back-button">Back to Menu</button>` : ''}
 				</div>
 			</div>
 		`;
+		
+		console.log('Tournament schedule render complete, button text:', buttonText);
+		return content;
 	}
 	
 	private renderMatchResults(): any {
@@ -133,10 +133,22 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		
 		const winnerName = player1Wins > player2Wins ? player1.name : player2.name;
 		
+		// Determine button text based on match completion
+		let buttonText = 'Continue';
+		if (currentMatch.completed) {
+			buttonText = 'Next Match';
+			const isLastPoolMatch = TournamentCache.getTournamentPhase() === 'pool' && 
+				TournamentCache.getCurrentMatchIndex() === TournamentCache.getTournamentMatches().length - 2;
+			
+			if (isLastPoolMatch) {
+				buttonText = 'To Finals';
+			}
+		}
+		
 		// Generate list of game results
 		const gamesList = currentMatch.games.map((game, index) => {
 			const winner = game.winner === currentMatch.player1Index ? player1.name : player2.name;
-			return `
+			return html`
 				<div class="game-result">
 					<div class="game-number">Game ${index + 1}</div>
 					<div class="game-scores">
@@ -149,20 +161,10 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 			`;
 		}).join('');
 		
-		// Determine button text based on match completion
-		let buttonText = 'Continue';
-		if (currentMatch.completed) {
-			buttonText = 'Next Match';
-			if (TournamentCache.getTournamentPhase() === 'pool' && 
-					TournamentCache.getCurrentMatchIndex() === TournamentCache.getTournamentMatches().length - 2) {
-				buttonText = 'To Finals';
-			}
-		}
-		
 		return html`
-			<div class="tournament-screen match-results">
-				<div class="match-header">
-					<h1>MATCH RESULTS</h1>
+			<div class="tournament-screen">
+				<div class="ascii-title">
+					<pre class="match-header">MATCH RESULTS</pre>
 					<div class="match-title">${player1.name} vs ${player2.name}</div>
 				</div>
 				
@@ -189,26 +191,21 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 	}
 	
 	private renderFinalsIntro(): any {
-		const finalists = TournamentCache.getTournamentSchedule()
-			.filter(match => match.isFinals)
-			.map(match => ({ player1: match.player1Name, player2: match.player2Name }))[0];
+		const finalsMatch = TournamentCache.getTournamentSchedule()
+			.find(match => match.isFinals);
 		
-		if (!finalists) return this.renderTournamentSchedule();
+		if (!finalsMatch) return this.renderTournamentSchedule();
 		
 		return html`
-			<div class="tournament-screen finals-intro">
-				<div class="finals-header">
-					<h1>TOURNAMENT FINALS</h1>
-				</div>
-				
+			<div class="tournament-screen">
 				<div class="ascii-title">
 					<pre class="finals-ascii">${ASCII_ART.FINALE || 'FINALS'}</pre>
 				</div>
 				
 				<div class="finalists">
-					<div class="finalist">${finalists.player1}</div>
+					<div class="finalist">${finalsMatch.player1Name}</div>
 					<div class="vs">VS</div>
-					<div class="finalist">${finalists.player2}</div>
+					<div class="finalist">${finalsMatch.player2Name}</div>
 				</div>
 				
 				<div class="finals-description">
@@ -228,11 +225,7 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		if (!winner) return this.renderTournamentSchedule();
 		
 		return html`
-			<div class="tournament-screen winner-screen">
-				<div class="winner-header">
-					<h1>TOURNAMENT CHAMPION</h1>
-				</div>
-				
+			<div class="tournament-screen">
 				<div class="ascii-title">
 					<pre class="champion-ascii">${ASCII_ART.CHAMPION || 'CHAMPION'}</pre>
 				</div>
@@ -253,46 +246,51 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 	}
 	
 	private setupEventListeners(): void {
-		// Remove any existing event listeners first by cloning elements
+		console.log('Setting up tournament transition event listeners');
+		
 		const continueButton = this.container.querySelector('.continue-button');
+		console.log('Continue button found:', continueButton !== null);
+		
 		if (continueButton) {
+			console.log('Adding click listener to continue button');
 			const newButton = continueButton.cloneNode(true);
 			continueButton.parentNode?.replaceChild(newButton, continueButton);
 			
-			// Add the event listener to the new button
 			newButton.addEventListener('click', () => {
+				console.log('Continue button clicked!');
 				if (!this.inTransition) {
+					console.log('Not in transition, proceeding');
 					this.inTransition = true;
 					this.onContinue();
-					setTimeout(() => {
-						this.inTransition = false;
-					}, 100);
+					setTimeout(() => this.inTransition = false, 100);
 				}
 			});
+		} else {
+			console.error('Continue button not found!');
 		}
 		
-		// Same approach for back to menu button
+		// Set up back button
 		const backButton = this.container.querySelector('.back-button');
 		if (backButton) {
+			console.log('Adding click listener to back button');
 			const newButton = backButton.cloneNode(true);
 			backButton.parentNode?.replaceChild(newButton, backButton);
 			
-			// Add the event listener to the new button
 			newButton.addEventListener('click', () => {
+				console.log('Back button clicked!');
 				if (!this.inTransition) {
 					this.inTransition = true;
-					this.onBackToMenu();
-					setTimeout(() => {
-						this.inTransition = false;
-					}, 100);
+					this.onBackToMenu(); // Call the provided callback
+					setTimeout(() => this.inTransition = false, 100);
 				}
 			});
+		} else {
+			console.log('Back button not found or not applicable for current phase');
 		}
 	}
 	
-	/**
-	 * Show tournament schedule screen
-	 */
+	// Public methods to control screen visibility
+	
 	public showTournamentSchedule(): void {
 		this.updateInternalState({
 			visible: true,
@@ -301,18 +299,13 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		});
 	}
 	
-	/**
-	 * Show match results screen
-	 */
 	public showMatchResults(matchIndex: number): void {
-		// Get match information from cache
 		const matches = TournamentCache.getTournamentMatches();
 		if (matchIndex < 0 || matchIndex >= matches.length) {
 			console.error('Invalid match index:', matchIndex);
 			return;
 		}
 		
-		// Update current match to be the one we're showing results for
 		TournamentCache.setCurrentMatchIndex(matchIndex);
 		
 		this.updateInternalState({
@@ -322,9 +315,6 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		});
 	}
 	
-	/**
-	 * Show finals introduction screen
-	 */
 	public showFinalsIntro(): void {
 		this.updateInternalState({
 			visible: true,
@@ -333,9 +323,6 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		});
 	}
 	
-	/**
-	 * Show tournament winner screen
-	 */
 	public showTournamentWinner(): void {
 		this.updateInternalState({
 			visible: true,
@@ -344,21 +331,27 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		});
 	}
 	
-	/**
-	 * Hide the transitions component
-	 */
 	public hide(): void {
 		this.updateInternalState({ visible: false });
 	}
 	
-	/**
-	 * Update match status and proceed to next match
-	 */
 	public proceedToNextMatch(): void {
 		const currentIndex = TournamentCache.getCurrentMatchIndex();
 		const matches = TournamentCache.getTournamentMatches();
+		const phase = TournamentCache.getTournamentPhase();
 		
-		// Mark current match as complete
+		console.log('proceedToNextMatch: phase=', phase, 'currentIndex=', currentIndex);
+		
+		// If tournament hasn't started yet, mark it as started
+		if (phase === 'not_started') {
+			console.log('Setting tournament phase to pool');
+			TournamentCache.setTournamentPhase('pool');
+			console.log('Calling onContinue to start first match');
+			this.onContinue(); // Start the first match
+			return;
+		}
+		
+		// Mark current match as complete if valid
 		if (currentIndex >= 0 && currentIndex < matches.length) {
 			TournamentCache.completeCurrentMatch();
 		}
@@ -367,10 +360,8 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		const nextIndex = TournamentCache.findNextMatchIndex();
 		
 		if (nextIndex >= 0) {
-			// Set as current match
+			// Set as current match and show schedule
 			TournamentCache.setCurrentMatchIndex(nextIndex);
-			
-			// Show schedule with updated status
 			this.showTournamentSchedule();
 		} else if (TournamentCache.getTournamentPhase() === 'pool') {
 			// If no more pool matches, proceed to finals

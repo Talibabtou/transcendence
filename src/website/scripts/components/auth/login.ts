@@ -123,7 +123,6 @@ export class LoginHandler {
 				};
 				
 				this.setCurrentUser(userData);
-				await DbService.updateUser(user.id, { last_login: new Date() });
 				this.switchToSuccessState();
 			} else {
 				this.updateState({ error: 'Invalid username or password' });

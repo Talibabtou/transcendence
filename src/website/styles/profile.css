@@ -131,7 +131,7 @@
 }
 
 .opponent-cell:hover {
-	color: var(--accent-color);
+	color: var(--accent1-color);
 }
 
 
@@ -188,8 +188,8 @@
 
 .nav-item.active .nav-button {
 	background: rgba(0, 0, 0, 0.4);
-	color: var(--accent-color);
-	border-left: 2px solid var(--accent-color);
+	color: var(--accent1-color);
+	border-left: 2px solid var(--accent1-color);
 }
 
 .nav-icon {

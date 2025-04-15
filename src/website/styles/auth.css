@@ -128,7 +128,7 @@
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	color: var(--accent-color);
+	color: var(--accent1-color);
 	font-size: 0.75rem;
 }
 
@@ -180,13 +180,13 @@
 }
 
 .auth-links a {
-	color: var(--accent-color);
+	color: var(--accent1-color);
 	text-decoration: none;
 	transition: all var(--transition-normal);
 }
 
 .auth-links a:hover {
-	text-shadow: 0 0 5px var(--accent-color);
+	text-shadow: 0 0 5px var(--accent1-color);
 }
 
 /* ===== BUTTONS ===== */

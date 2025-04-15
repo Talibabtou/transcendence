@@ -125,16 +125,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	render(): void {
 		const state = this.getInternalState();
 		
-		// Debug CSS variables for player colors
-		console.log('PlayersRegister: CSS Variables', {
-			accentColor: getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim(),
-			accent1: getComputedStyle(document.documentElement).getPropertyValue('--accent1-color').trim(),
-			accent2: getComputedStyle(document.documentElement).getPropertyValue('--accent2-color').trim(),
-			accent3: getComputedStyle(document.documentElement).getPropertyValue('--accent3-color').trim(),
-			accent4: getComputedStyle(document.documentElement).getPropertyValue('--accent4-color').trim(),
-			gameMode: state.gameMode
-		});
-		
 		// Main container setup
 		this.container.className = 'players-register-container';
 		
@@ -239,9 +229,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		// Initialize auth container after rendering
 		this.setupAuthComponent();
-		
-		// Setup play button event listener
-		this.setupEventListeners();
 	}
 	
 	destroy(): void {
@@ -269,8 +256,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Get available colors from app state
 		const availableColors = Object.entries(appState.getAvailableColors());
 		
-		// Use host's theme directly if available, otherwise use app accent color
-		const currentColor = host.theme || appState.getAccentColorHex();
+		// Get host's current color directly from appState
+		const currentColor = appState.getAccentColorHex();
 		
 		// Split colors into two rows (6 in first row, 5 in second row)
 		const firstRowColors = availableColors.slice(0, 6);
@@ -474,19 +461,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 	}
 	
-	/**
-	 * Setup event listeners for buttons
-	 */
-	private setupEventListeners(): void {
-		// Play button
-		const playButton = this.container.querySelector('.play-button');
-		if (playButton && !playButton.hasAttribute('disabled')) {
-			playButton.addEventListener('click', () => {
-				this.startGame();
-			});
-		}
-	}
-	
 	// =========================================
 	// AUTH EVENT HANDLERS
 	// =========================================
@@ -603,19 +577,21 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			}
 			return;
 		}
-		
+
+		let updatedGuests: PlayerData[] = [...state.guests]; // Initialize with current guests
+		let isReadyToPlay = state.isReadyToPlay; // Start with current readiness
+
 		if (state.gameMode === GameMode.MULTI) {
 			// For multiplayer, just replace the entire guests array
-			this.updateInternalState({
-				guests: [guestData],
-				error: null
-			});
+			updatedGuests = [guestData]; // Set the single guest
 			
 			// Set player 2's accent color
 			appState.setPlayerAccentColor(2, guestData.theme || '#ffffff');
 			
-			// Re-render the component to refresh UI
-			this.render();
+			// Calculate readiness here
+			const connectedGuestsCount = (state.host ? 1 : 0) + updatedGuests.filter(g => g && g.isConnected).length;
+			isReadyToPlay = connectedGuestsCount >= this.maxPlayers;
+			
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			// For tournament, add player to the next available slot
 			const nextIndex = state.guests.filter(g => g && g.isConnected).length;
@@ -624,15 +600,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				this.updateInternalState({
 					error: 'All player slots are filled'
 				});
-				return;
+				return; // Exit early, no state change needed here
 			}
 			
 			// Create a new guests array with the new player added at the correct position
-			const updatedGuests = [...state.guests];
-			
 			// Ensure the array is big enough
 			while (updatedGuests.length <= nextIndex) {
-				updatedGuests.push({} as PlayerData);
+				updatedGuests.push({} as PlayerData); // Add placeholders if needed
 			}
 			
 			// Add the new guest at the next position
@@ -645,18 +619,18 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			// Also update the CSS variable directly for immediate effect
 			const cssVarName = `--accent${playerPosition}-color`;
 			document.documentElement.style.setProperty(cssVarName, guestData.theme || '#ffffff');
-			
-			this.updateInternalState({
-				guests: updatedGuests,
-				error: null
-			});
-			
-			// Re-render to update UI and show the next auth component if needed
-			this.render();
+
+			// Calculate readiness here
+			const connectedGuestsCount = (state.host ? 1 : 0) + updatedGuests.filter(g => g && g.isConnected).length;
+			isReadyToPlay = connectedGuestsCount >= this.maxPlayers;
 		}
-		
-		// Check if we have enough players to start
-		this.checkReadyToPlay();
+
+		// Update state with both guest list and readiness in one go
+		this.updateInternalState({
+			guests: updatedGuests,
+			isReadyToPlay: isReadyToPlay, // Update readiness flag
+			error: null // Clear any previous error
+		});
 	}
 	
 	/**
@@ -682,28 +656,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	// =========================================
 	// GAME STATE MANAGEMENT
 	// =========================================
-	
-	/**
-	 * Check if we have enough players to start the game
-	 */
-	private checkReadyToPlay(): void {
-		const state = this.getInternalState();
-		
-		// Make sure we only count guests that have complete data
-		const connectedGuests = state.guests.filter(g => 
-			g && g.isConnected && g.id && g.username
-		).length;
-		
-		const requiredGuests = this.maxPlayers - 1;
-		const isReady = connectedGuests >= requiredGuests;
-		
-		this.updateInternalState({
-			isReadyToPlay: isReady
-		});
-		
-		// Force a complete re-render to ensure button is updated
-		this.render();
-	}
 	
 	/**
 	 * Start the game with registered players
@@ -780,22 +732,16 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	/**
 	 * Handle host color selection
 	 */
-	private handleHostColorSelect(_colorName: string, colorHex: string): void {
+	private handleHostColorSelect(colorName: string, colorHex: string): void {
 		const state = this.getInternalState();
 		if (!state.host) return;
 		
 		// Update app accent color for the host (current user)
-		appState.setAccentColor(_colorName as any);
+		appState.setAccentColor(colorName as any);
 		
-		// Update host's theme in the local state
-		const updatedHost = {
-			...state.host,
-			theme: colorHex
-		};
-		
-		this.updateInternalState({
-			host: updatedHost
-		});
+		// Keep this direct CSS update for immediate visual feedback,
+		// although the re-render triggered by appState should also handle it.
+		document.documentElement.style.setProperty('--accent1-color', colorHex);
 	}
 	
 	/**

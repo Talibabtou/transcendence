@@ -85,10 +85,10 @@ export class GameComponent extends Component<GameComponentState> {
 			this.handleStateChange(newState);
 		});
 		
-		// Add listener for show-tournament-schedule
-		document.addEventListener('show-tournament-schedule', () => {
-			this.updateGameState(GameState.TOURNAMENT_TRANSITION);
-		});
+		// Bind the handler
+		this.handleShowTournamentSchedule = this.handleShowTournamentSchedule.bind(this);
+		// Add listener using the bound handler
+		document.addEventListener('show-tournament-schedule', this.handleShowTournamentSchedule);
 	}
 	
 	// =========================================
@@ -123,6 +123,9 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.unsubscribe) {
 			this.unsubscribe();
 		}
+		
+		// Remove document listener
+		document.removeEventListener('show-tournament-schedule', this.handleShowTournamentSchedule);
 		
 		// Clean up the main game
 		if (this.canvasComponent) {
@@ -856,4 +859,9 @@ export class GameComponent extends Component<GameComponentState> {
 		// Start the actual game
 		this.updateGameState(GameState.PLAYING);
 	}
+
+	// Add this method if you don't have it
+	private handleShowTournamentSchedule = (): void => {
+		this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+	};
 }

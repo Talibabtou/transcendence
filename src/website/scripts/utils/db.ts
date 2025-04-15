@@ -315,8 +315,6 @@ export class DbService {
 	 * @param id - The user's ID
 	 */
 	static getUser(id: number): Promise<User> {
-		this.logRequest('GET', `/api/users/${id}`);
-		
 		return new Promise((resolve, reject) => {
 			try {
 				// Find the user in the database
@@ -1011,7 +1009,6 @@ export class DbService {
 	 */
 	static updateUserLastConnection(userId: string): Promise<void> {
 		const numericId = parseInt(userId.replace(/\D/g, ''));
-		this.logRequest('PUT', `/api/users/${numericId}/last-connection`);
 		
 		return new Promise((resolve, reject) => {
 			try {
