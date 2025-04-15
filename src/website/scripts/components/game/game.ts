@@ -901,8 +901,6 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleCancelTournament(): void {
 		// Clear the tournament cache
 		TournamentCache.clearTournament();
-		
-		// Just use the existing back to menu handler which we know works
 		this.handleBackToMenu();
 	}
 }

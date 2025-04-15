@@ -372,7 +372,7 @@ class TournamentCacheSingleton {
 				player1Score: match.completed ? player1Score : undefined,
 				player2Score: match.completed ? player2Score : undefined,
 				isComplete: match.completed,
-				isCurrent: index === this.currentMatchIndex && this.tournamentPhase !== 'complete' && this.tournamentPhase !== 'not_started', 
+				isCurrent: index === this.currentMatchIndex,
 				isFinals: isFinalsMatch
 			};
 		});
@@ -456,7 +456,8 @@ class TournamentCacheSingleton {
 	 * Initialize tournament with player information
 	 */
 	public initializeTournament(playerIds: number[], playerNames: string[], playerColors: string[]): void {
-		console.log('Initializing tournament with:', { playerIds, playerNames, playerColors });
+		// Generate a tournament ID first
+		this.tournamentId = uuidv4();
 		
 		// Store players
 		this.tournamentPlayers = playerIds.map((id, index) => ({

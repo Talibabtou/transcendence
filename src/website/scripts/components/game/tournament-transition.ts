@@ -35,6 +35,8 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 			return;
 		}
 		
+		this.container.className = 'players-register-container';
+		
 		const screenRenderers = {
 			'schedule': this.renderTournamentSchedule,
 			'match-results': this.renderMatchResults,
@@ -76,64 +78,59 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		
 		const matchesList = schedule.map((match, index) => {
 			let statusClass = '';
-			let statusText = '';
-			let nextMatchStyles = '';
 			
 			if (match.isComplete) {
 				statusClass = 'match-complete';
-				statusText = `${match.player1Score}-${match.player2Score}`;
 			} else if (match.isCurrent) {
 				statusClass = 'match-current';
-				statusText = 'NEXT';
-				nextMatchStyles = `
-					border: 0.25rem solid white;
-					box-shadow: 0 0 1.5rem rgba(255, 255, 255, 0.7);
-					transform: scale(1.05);
-					z-index: 2;
-				`;
 			} else if (match.isFinals && (phase === 'pool' || phase === 'not_started')) {
 				statusClass = 'match-pending-finals';
 			}
 			
 			return html`
-				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finals-match' : ''}" 
-					 style="${nextMatchStyles}">
+				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finals-match' : ''}">
 					<div class="match-number">${match.isFinals ? 'FINALS' : `Match ${index + 1}`}</div>
 					<div class="match-players">
-						<div class="match-player">${match.player1Name}</div>
+						<div class="match-player match-player-left">
+							${match.player1Name}
+							<span class="player-score ${match.isComplete ? 'visible' : ''}">
+								${match.isComplete ? match.player1Score : (match.isCurrent ? '0' : '')}
+							</span>
+						</div>
 						<div class="vs">VS</div>
-						<div class="match-player">${match.player2Name}</div>
+						<div class="match-player match-player-right">
+							<span class="player-score ${match.isComplete ? 'visible' : ''}">
+								${match.isComplete ? match.player2Score : (match.isCurrent ? '0' : '')}
+							</span>
+							${match.player2Name}
+						</div>
 					</div>
-					<div class="match-status">${statusText}</div>
+					<div class="match-status">${!match.isComplete && match.isCurrent ? 'NEXT' : ''}</div>
 				</div>
 			`;
 		});
 		
-		const content = html`
-			<div class="tournament-screen">
-				<button class="back-button nav-item" onclick="${() => this.onBackToMenu()}">
-					← Back
-				</button>
-				
-				<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
-					Cancel
-				</button>
-				
-				<div class="ascii-title-container">
-					<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
-				</div>
-				
-				<div class="tournament-matches-list">
-					${matchesList}
-				</div>
-				
-				<div class="tournament-controls">
-					<button class="menu-button continue-button">${buttonText}</button>
-				</div>
+		return html`
+			<button class="back-button nav-item" onclick="${() => this.onBackToMenu()}">
+				← Back
+			</button>
+			
+			<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
+				Cancel
+			</button>
+			
+			<div class="ascii-title-container">
+				<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
+			</div>
+			
+			<div class="tournament-matches-list">
+				${matchesList}
+			</div>
+			
+			<div class="tournament-controls">
+				<button class="menu-button continue-button">${buttonText}</button>
 			</div>
 		`;
-		
-		return content;
 	}
 	
 	private renderMatchResults(): any {

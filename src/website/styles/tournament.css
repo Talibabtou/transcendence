@@ -1,24 +1,17 @@
 /* ===== TOURNAMENT SCREEN LAYOUT ===== */
-.tournament-matches-list {
-	width: 65%;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
 
-/* Ensure tournament screen takes full container */
-.tournament-screen {
+.tournament-matches-list {
+	width: 50%;
+	height: 100%;
+	align-self: center;
+	overflow-y: visible;
 	display: flex;
-	position: static;
 	flex-direction: column;
 	align-items: center;
-	width: 100%;
-	box-sizing: border-box;
 }
 
 .ascii-title-container {
-	margin-bottom: 2rem;
+	margin-bottom: 4rem;
 }
 
 /* ===== MATCH ITEMS STYLING ===== */
@@ -28,13 +21,16 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	width: 80%;
+	width: 100%;
 	background-color: rgba(0, 0, 0, 0.4);
 	border: 1px solid var(--border-color);
 }
 
 .tournament-match.match-current {
-	border: 2px solid white;
+	border: 0.25rem solid white;
+	box-shadow: 0 0 1.5rem rgba(255, 255, 255, 0.7);
+	transform: scale(1.05);
+	z-index: 2;
 }
 
 .tournament-match.match-pending-finals {
@@ -52,11 +48,11 @@
 
 .match-number {
 	font-weight: bold;
-	min-width: 4rem;
+	min-width: 8rem;
 }
 
 .match-players {
-	font-size: 1.2rem;
+	font-size: 1.3rem;
 	font-weight: bold;
 	flex-grow: 1;
 	display: flex;
@@ -66,14 +62,16 @@
 }
 
 .match-vs {
-	color: #888;
+	color: var(--text-color);
 	margin: 0 1rem;
 }
 
 .match-status {
 	font-weight: bold;
-	min-width: 4rem;
-	text-align: center;
+	font-size: 1.1rem;
+	min-width: 8rem;
+	text-align: right;
+
 }
 
 .match-status:not(:empty) {
@@ -88,7 +86,6 @@
 
 /* ===== MATCH RESULTS STYLES ===== */
 
-
 .match-score {
 	font-size: 3rem;
 	font-weight: bold;
@@ -100,12 +97,12 @@
 }
 
 .winner {
-	color: gold;
+	color: var(--winner-color);
 }
 
 .match-winner {
 	font-size: 1.5rem;
-	color: gold;
+	color: var(--winner-color);
 }
 
 .game-result {
@@ -152,7 +149,7 @@
 .vs {
 	font-size: 1.5rem;
 	font-weight: bold;
-	color: #888;
+	color: var(--text-color);
 }
 
 .finals-description, .winner-description {
@@ -171,7 +168,7 @@
 }
 
 /* Back button */
-.tournament-screen .back-button {
+.back-button {
 	position: absolute;
 	top: 1%;
 	left: 5%;
@@ -181,7 +178,7 @@
 }
 
 /* Cancel button styled like logout button but positioned on the right */
-.tournament-screen .cancel-button {
+.cancel-button {
 	position: absolute;
 	top: 1%;
 	right: 5%;
@@ -202,7 +199,7 @@
 	overflow: hidden;
 }
 
-.tournament-screen .cancel-button:hover {
+.cancel-button:hover {
 	text-shadow: 0 0 10px var(--error-color);
 	border-color: var(--error-color);
 	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
