@@ -670,7 +670,7 @@ class TournamentCacheSingleton {
 		const timestamp = localStorage.getItem('tournament_timestamp');
 		if (!timestamp) return -1;
 		
-		const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+		const maxAge = 60 * 60 * 1000;
 		const createTime = parseInt(timestamp, 10);
 		const expirationTime = createTime + maxAge;
 		

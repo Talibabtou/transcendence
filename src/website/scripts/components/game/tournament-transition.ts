@@ -115,6 +115,10 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 					← Back
 				</button>
 				
+				<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
+					Cancel
+				</button>
+				
 				<div class="ascii-title-container">
 					<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
 				</div>
@@ -286,6 +290,29 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 				}
 			});
 		}
+	}
+	
+	private handleCancelTournament(): void {
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		
+		// Clear the tournament cache
+		TournamentCache.clearTournament();
+		
+		// Hide the tournament transition screen
+		this.hide();
+		
+		// Notify the parent component that we want to go back to the player registration
+		// We can use the same callback as for back to menu, but with an additional parameter
+		document.dispatchEvent(new CustomEvent('cancel-tournament', {
+			detail: { returnToRegistration: true }
+		}));
+		
+		// Reset transition flag after a delay
+		setTimeout(() => {
+			this.inTransition = false;
+		}, 100);
 	}
 	
 	// Public methods to control screen visibility
