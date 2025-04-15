@@ -30,11 +30,8 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 	render(): void {
 		const state = this.getInternalState();
 		
-		console.log('Tournament transition render called, visible:', state.visible);
-		
 		if (!state.visible) {
 			this.container.innerHTML = '';
-			console.log('Tournament transition hidden');
 			return;
 		}
 		
@@ -45,12 +42,24 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 			'winner': this.renderTournamentWinner
 		};
 		
-		console.log('Rendering screen:', state.currentScreen);
-		
 		const content = screenRenderers[state.currentScreen]?.call(this) || this.renderTournamentSchedule();
 		render(content, this.container);
-		console.log('Content rendered, setting up event listeners');
 		this.setupEventListeners();
+		
+		// Display tournament state and expiration info
+		const tournament = TournamentCache.getTournamentData();
+		const expirationTime = TournamentCache.getExpirationTime();
+		const currentTime = new Date().getTime();
+		const timeRemaining = expirationTime - currentTime;
+		const minutesRemaining = Math.floor(timeRemaining / (1000 * 60));
+		
+		console.log('Tournament State:', {
+			phase: tournament.phase,
+			players: tournament.players.map(p => p.name),
+			matches: tournament.matches.length,
+			currentMatchIndex: tournament.currentMatchIndex
+		});
+		console.log(`Tournament data will expire in ${minutesRemaining} minutes`);
 	}
 	
 	private renderTournamentSchedule(): any {
@@ -102,6 +111,10 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		
 		const content = html`
 			<div class="tournament-screen">
+				<button class="back-button nav-item" onclick="${() => this.onBackToMenu()}">
+					← Back
+				</button>
+				
 				<div class="ascii-title-container">
 					<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
 				</div>
@@ -112,12 +125,10 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 				
 				<div class="tournament-controls">
 					<button class="menu-button continue-button">${buttonText}</button>
-					${phase !== 'not_started' && phase !== 'complete' ? `<button class="menu-button back-button">Back to Menu</button>` : ''}
 				</div>
 			</div>
 		`;
 		
-		console.log('Tournament schedule render complete, button text:', buttonText);
 		return content;
 	}
 	
@@ -246,46 +257,34 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 	}
 	
 	private setupEventListeners(): void {
-		console.log('Setting up tournament transition event listeners');
-		
 		const continueButton = this.container.querySelector('.continue-button');
-		console.log('Continue button found:', continueButton !== null);
 		
 		if (continueButton) {
-			console.log('Adding click listener to continue button');
 			const newButton = continueButton.cloneNode(true);
 			continueButton.parentNode?.replaceChild(newButton, continueButton);
 			
 			newButton.addEventListener('click', () => {
-				console.log('Continue button clicked!');
 				if (!this.inTransition) {
-					console.log('Not in transition, proceeding');
 					this.inTransition = true;
 					this.onContinue();
 					setTimeout(() => this.inTransition = false, 100);
 				}
 			});
-		} else {
-			console.error('Continue button not found!');
 		}
 		
 		// Set up back button
 		const backButton = this.container.querySelector('.back-button');
 		if (backButton) {
-			console.log('Adding click listener to back button');
 			const newButton = backButton.cloneNode(true);
 			backButton.parentNode?.replaceChild(newButton, backButton);
 			
 			newButton.addEventListener('click', () => {
-				console.log('Back button clicked!');
 				if (!this.inTransition) {
 					this.inTransition = true;
 					this.onBackToMenu(); // Call the provided callback
 					setTimeout(() => this.inTransition = false, 100);
 				}
 			});
-		} else {
-			console.log('Back button not found or not applicable for current phase');
 		}
 	}
 	
@@ -340,13 +339,9 @@ export class TournamentTransitionsComponent extends Component<TournamentTransiti
 		const matches = TournamentCache.getTournamentMatches();
 		const phase = TournamentCache.getTournamentPhase();
 		
-		console.log('proceedToNextMatch: phase=', phase, 'currentIndex=', currentIndex);
-		
 		// If tournament hasn't started yet, mark it as started
 		if (phase === 'not_started') {
-			console.log('Setting tournament phase to pool');
 			TournamentCache.setTournamentPhase('pool');
-			console.log('Calling onContinue to start first match');
 			this.onContinue(); // Start the first match
 			return;
 		}

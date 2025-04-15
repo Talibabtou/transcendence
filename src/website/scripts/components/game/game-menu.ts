@@ -6,6 +6,7 @@
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
 import { GameMode, GameMenuState } from '@shared/types';
+import { TournamentCache } from '@website/scripts/utils';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
@@ -134,6 +135,28 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			buttons.forEach(button => {
 				button.addEventListener('click', (e) => {
 					const mode = (e.target as HTMLElement).getAttribute('data-mode') as GameMode;
+					
+					// Special handling for tournament mode
+					if (mode === GameMode.TOURNAMENT) {
+						// Try to restore tournament state
+						const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
+						
+						if (hasRestoredTournament) {
+							// Skip the player registration completely
+							// Just dispatch the event to show tournament schedule
+							document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
+							
+							// We still need to notify GameComponent about the mode,
+							// but we'll add a flag to indicate it's a restored tournament
+							const customEvent = new CustomEvent('tournament-restored');
+							document.dispatchEvent(customEvent);
+							
+							// Don't call onModeSelected as it would trigger the normal flow
+							return;
+						}
+					}
+					
+					// Normal flow for other modes or new tournament
 					this.onModeSelected(mode);
 				});
 			});

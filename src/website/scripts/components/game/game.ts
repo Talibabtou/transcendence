@@ -495,10 +495,40 @@ export class GameComponent extends Component<GameComponentState> {
 		// Clear the match cache since we're going back to menu
 		MatchCache.clearCache();
 		
+		// Hide tournament transitions component if it exists
+		if (this.tournamentTransitionsComponent) {
+			this.tournamentTransitionsComponent.hide();
+			// Destroy it to make sure we create a new one next time
+			this.tournamentTransitionsComponent.destroy();
+			this.tournamentTransitionsComponent = null;
+		}
+		
+		// Force a complete recreate of the menu component
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = null;
+		}
+		
 		// Clean up current game state
 		this.cleanupCurrentGame()
 			.then(() => {
-				this.updateGameState(GameState.MENU);
+				// Create a new menu component
+				if (this.gameContainer) {
+					this.menuComponent = new GameMenuComponent(
+						this.gameContainer,
+						this.handleModeSelected.bind(this)
+					);
+				}
+				
+				// Update state to menu
+				this.updateInternalState({
+					currentState: GameState.MENU
+				});
+				
+				// Show the menu
+				if (this.menuComponent) {
+					this.menuComponent.show();
+				}
 			})
 			.catch(error => {
 				console.error('Error returning to menu:', error);

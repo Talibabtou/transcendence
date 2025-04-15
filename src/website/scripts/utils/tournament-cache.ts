@@ -549,7 +549,7 @@ class TournamentCacheSingleton {
 			if (!savedState) return false;
 			
 			const timestamp = localStorage.getItem('tournament_timestamp');
-			const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+			const maxAge = 60 * 60 * 1000;
 			
 			// Check if tournament is too old
 			if (timestamp && Date.now() - parseInt(timestamp) > maxAge) {
@@ -639,6 +639,42 @@ class TournamentCacheSingleton {
 				this.tournamentPlayers[match.player2Index].color
 			]
 		};
+	}
+	
+	/**
+	 * Get complete tournament data for debugging or display
+	 */
+	public getTournamentData(): {
+		tournamentId: string | null;
+		players: TournamentPlayer[];
+		matches: TournamentMatch[];
+		currentMatchIndex: number;
+		currentGameInMatch: number;
+		phase: TournamentPhase;
+	} {
+		return {
+			tournamentId: this.tournamentId,
+			players: [...this.tournamentPlayers],
+			matches: [...this.tournamentMatches],
+			currentMatchIndex: this.currentMatchIndex,
+			currentGameInMatch: this.currentGameInMatch,
+			phase: this.tournamentPhase
+		};
+	}
+	
+	/**
+	 * Get the tournament expiration time in milliseconds
+	 * Returns -1 if no tournament is saved or timestamp is missing
+	 */
+	public getExpirationTime(): number {
+		const timestamp = localStorage.getItem('tournament_timestamp');
+		if (!timestamp) return -1;
+		
+		const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+		const createTime = parseInt(timestamp, 10);
+		const expirationTime = createTime + maxAge;
+		
+		return expirationTime;
 	}
 }
 
