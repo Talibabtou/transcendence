@@ -9,7 +9,7 @@ import eloRoutes from './routes/elo.routes.js';
 import goalRoutes from './routes/goal.routes.js';
 import authRoutes from "./routes/auth.routes.js";
 import fastifyMultipart from "@fastify/multipart";
-// import matchRoutes from './routes/match.routes.js';
+import matchRoutes from './routes/match.routes.js';
 import { fastify, FastifyInstance } from "fastify";
 import fastifySwaggerUi from "@fastify/swagger-ui";
 import profilRoutes from "./routes/profil.routes.js";
@@ -32,7 +32,7 @@ async function routes(server: FastifyInstance) {
   await server.register(apiRoutes, { prefix: API_PREFIX });
   await server.register(authRoutes, { prefix: API_PREFIX });
 	await server.register(goalRoutes, { prefix: API_PREFIX });
-	// await server.register(matchRoutes, { prefix: API_PREFIX });
+	await server.register(matchRoutes, { prefix: API_PREFIX });
   await server.register(profilRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });
 }
@@ -51,9 +51,14 @@ const swaggerParams = {
       }
     ],
     tags: [
+      { name: 'api', description: 'Main API endpoints' },
+      { name: 'auth', description: 'Authentication and authorization endpoints' },
+      { name: 'friends', description: 'Endpoints for managing friends and connections' },
       { name: 'matches', description: 'Match management endpoints' },
       { name: 'goals', description: 'Goal tracking endpoints' },
-      { name: 'system', description: 'System and health check endpoints' }
+      { name: 'elos', description: 'Elo rating management endpoints' },
+      { name: 'system', description: 'System and health check endpoints' },
+      { name: 'profil', description: 'User profile management endpoints' },
     ]
   }
 };
@@ -97,9 +102,9 @@ export class Server {
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-      await server.register(rateLimit, rateLimitParams);
       await server.register(fastifySwagger, swaggerParams);
       await server.register(fastifySwaggerUi, { routePrefix: '/documentation', uiConfig: { docExpansion: 'list', deepLinking: true }, staticCSP: true });
+      await server.register(rateLimit, rateLimitParams);
       await server.register(fastifyMultipart, multipartParams);
       await server.register(fastifyStatic, staticParams);
       await server.register(helmet, { global: true });

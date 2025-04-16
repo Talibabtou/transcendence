@@ -5,6 +5,9 @@ all:
 	@if [ ! -d "dist/" ]; then \
 		mkdir dist; \
 	fi
+	@if [ ! -d "db/" ]; then \
+		mkdir db; \
+	fi
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} start
 

@@ -1,29 +1,23 @@
-import { FastifyInstance } from 'fastify'
-import { 
-  getMatch, 
-  getMatches, 
-  createMatch,
-	matchTimeline,
-	matchStats,
-	matchSummary
-} from '../controllers/match.controller.js'
+import { FastifyInstance } from 'fastify';
+import { GetMatchesQuery, IId, CreateMatchRequest } from '../shared/types/match.type.js';
+import { getMatch, getMatches, createMatch, matchTimeline, matchStats, matchSummary } from '../controllers/match.controller.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get('/match/',
+  fastify.get<{ Querystring: GetMatchesQuery }>('/',
   getMatches)
   
-  fastify.get('/match/:id',
+  fastify.get<{ Params: IId }>('/:id',
   getMatch)
   
-  fastify.post('/match/',
+  fastify.post<{ Body: CreateMatchRequest }>('/',
   createMatch)
 
-	fastify.get('/match/:id/stats',
+	fastify.get<{ Params: IId }>('/:id/stats',
   matchTimeline)
 
-	fastify.get('/match/stats/:player_id',
+	fastify.get<{ Params: IId }>('/stats/:player_id',
   matchStats)
 
-	fastify.get('/match/summary/:player_id',
+	fastify.get<{ Params: IId }>('/summary/:id',
   matchSummary)
 }

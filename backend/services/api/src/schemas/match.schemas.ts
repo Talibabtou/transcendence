@@ -152,9 +152,9 @@ export const matchSummarySchema = {
   params: {
     type: 'object',
     properties: {
-      player_id: { type: 'string', format: 'uuid' }
+      id: { type: 'string', format: 'uuid' }
     },
-    required: ['player_id']
+    required: ['id']
   },
   response: {
     200: {
@@ -179,9 +179,9 @@ export const matchStatsSchema = {
   params: {
     type: 'object',
     properties: {
-      player_id: { type: 'string', format: 'uuid' }
+      id: { type: 'string', format: 'uuid' }
     },
-    required: ['player_id']
+    required: ['id']
   },
   response: {
     200: {

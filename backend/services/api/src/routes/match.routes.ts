@@ -7,7 +7,7 @@ import { getMatchSchema, getMatchesSchema, createMatchSchema, matchTimelineSchem
 const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Querystring: GetMatchesQuery }>('match/', { 
+  fastify.get<{ Querystring: GetMatchesQuery }>('/match/', { 
     schema: {
       ...getMatchesSchema,
       tags: ['matches']
@@ -16,7 +16,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   },
   getMatches)
 
-  fastify.get<{ Params: IId }>('match/:id', { 
+  fastify.get<{ Params: IId }>('/match/:id', { 
     schema: {
       ...getMatchSchema,
       tags: ['matches']
@@ -24,17 +24,8 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
     config: auth
   },
   getMatch)
-  
-  fastify.post<{ Body: CreateMatchRequest }>('match/', {
-    schema: {
-      ...createMatchSchema,
-      tags: ['matches']
-    },
-    config: auth
-  },
-  createMatch)
 
-	fastify.get<{ Params: IId }>('match/:id/stats', { 
+	fastify.get<{ Params: IId }>('/match/:id/stats', { 
     schema: {
       ...matchTimelineSchema,
       tags: ['matches']
@@ -43,7 +34,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   },
   matchTimeline)
 
-	fastify.get<{ Params: IId }>('match/stats/:id', { 
+	fastify.get<{ Params: IId }>('/match/stats/:id', { 
     schema: {
       ...matchStatsSchema,
       tags: ['matches']
@@ -52,7 +43,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   },
   matchStats)
 
-	fastify.get<{ Params: IId }>('match/summary/:id', { 
+	fastify.get<{ Params: IId }>('/match/summary/:id', { 
     schema: {
       ...matchSummarySchema,
       tags: ['matches']
@@ -60,4 +51,13 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
     config: auth
   },
   matchSummary)
+
+  fastify.post<{ Body: CreateMatchRequest }>('/match/', {
+    schema: {
+      ...createMatchSchema,
+      tags: ['matches']
+    },
+    config: auth
+  },
+  createMatch)
 }

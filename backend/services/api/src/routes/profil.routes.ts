@@ -7,13 +7,19 @@ const auth = { auth: true, roles: ['user', 'admin'] }
 
 export default async function authRoutes(fastify: FastifyInstance) {
 	fastify.post<{ Body: IUpload }>('/profil/uploads', {
-		schema: uploadSchema,
+		schema: {
+			...uploadSchema,
+			tags: ['profil']
+		},
 		config: auth
 		},
 		upload);
 
 	fastify.delete('/profil/uploads', {
-		schema: deleteSchema,
+		schema: {
+			...deleteSchema,
+			tags: ['profil']
+		},
 		config: auth
 		},
 		deletePic);

@@ -1,6 +1,21 @@
 import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
+const UserSchema = {
+  type: 'object',
+  properties: {
+    user: { 
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string' }
+      }
+    }
+  },
+  required: ['username', 'email'],
+  additionalProperties: false
+}
+
 export const getUserSchema = {
   params: {
     type: 'object',
@@ -11,21 +26,7 @@ export const getUserSchema = {
     additionalProperties: false
   },
   response: {
-    200: {
-      body: {
-      type: 'object',
-      properties: {
-        user: { 
-          type: 'object',
-          properties: {
-            username: 'string',
-            email: 'string'
-          }
-        }
-      },
-      required: ['username', 'email'],
-      additionalProperties: false
-    }},
+    200: UserSchema,
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -43,21 +44,7 @@ export const getUserSchema = {
 
 export const getUserMeSchema = {
   response: {
-    200: {
-      body: {
-      type: 'object',
-      properties: {
-        user: { 
-          type: 'object',
-          properties: {
-            username: 'string',
-            email: 'string'
-          }
-        }
-      },
-      required: ['username', 'email'],
-      additionalProperties: false
-    }},
+    200: UserSchema,
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -76,20 +63,9 @@ export const getUserMeSchema = {
 export const getUsersSchema = {
   response: {
     200: {
-      body: {
-      type: 'object',
-      properties: {
-        users: { 
-          type: 'array',
-          properties: {
-            username: 'string',
-            email: 'string'
-          }
-        }
-      },
-      required: ['username', 'email'],
-      additionalProperties: false
-    }},
+      type: 'array',
+      items: UserSchema
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -188,22 +164,16 @@ export const loginSchema = {
   },
   response: {
     200: {
-      body: {
       type: 'object',
       properties: {
-        token: { type: 'string' },
-        user: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            role: { type: 'string' },
-            username: { type: 'string' }
-          }
-        }
+        token: { type: 'string', pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$', description: 'JWT token for user authentication' },
+        id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+        role: { type: 'string' },
+        username: { type: 'string' }
       },
       required: ['token', 'id', 'role', 'username'],
       additionalProperties: false
-    }},
+    },
     401: {
       ...errorResponseSchema,
       example: ErrorExamples.loginFailure

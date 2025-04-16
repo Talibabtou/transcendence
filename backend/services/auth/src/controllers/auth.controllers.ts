@@ -150,11 +150,9 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     const token: string = request.server.jwt.sign( { id: data.id } );
     const user: IReplyLogin = {
       token: token,
-      user: {
-        id: data.id,
-        role: data.role,
-        username: data.username
-      }
+      id: data.id,
+      role: data.role,
+      username: data.username
     };
     return reply.code(200).send(user);
   } catch (err) {

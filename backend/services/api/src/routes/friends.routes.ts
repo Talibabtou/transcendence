@@ -8,43 +8,64 @@ const auth = { auth: true, roles: ['user', 'admin'] }
 export default async function friendsRoutes(fastify: FastifyInstance) {
 	
 	fastify.get<{ Params: IId }>('friends/all/:id', {
-		schema: getFriendsSchema,
+		schema: {
+			...getFriendsSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		getFriends);
 
 	fastify.get('friends/all/me', {
-		schema: getFriendsMeSchema,
+		schema: {
+			...getFriendsMeSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		getFriendsMe);
 
 	fastify.get<{ Body: IId }>('friends/check', {
-		schema: getCheckSchema,
+		schema: {
+			...getCheckSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		getFriend);
 
 	fastify.post<{ Body: IId }>('friends/create', {
-		schema: postCreateSchema,
+		schema: {
+			...postCreateSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		postFriend);
 
 	fastify.patch<{ Body: IId }>('friends/accept', {
-		schema: patchAcceptSchema,
+		schema: {
+			...patchAcceptSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		patchFriend);
 
 	fastify.delete('friends/delete/all', {
-		schema: deleteAllSchema,
+		schema: {
+			...deleteAllSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		deleteFriends);
 	
 	fastify.delete<{ Querystring: IId }>('friends/delete', {
-		schema: deleteFriendSchema,
+		schema: {
+			...deleteFriendSchema,
+			tags: ['friends']
+		},
 		config: auth
 		},
 		deleteFriend);

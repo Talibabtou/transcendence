@@ -1,6 +1,18 @@
 import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
+const friendsSchema = {
+  type: 'object',
+    properties: {
+      id: { type: 'string' },
+      accepted: { type: 'boolean' },
+      created_at: { type: 'string' },
+  },
+  required: ['id', 'accepted', 'created_at'],
+  additionalProperties: false
+}
+
+
 export const getFriendsSchema = {
   params: {
     type: 'object',
@@ -12,21 +24,9 @@ export const getFriendsSchema = {
   },
   response: {
     200: {
-      body: {
-      type: 'object',
-      properties: {
-        friends: { 
-          type: 'array',
-          properties: {
-            id: 'string',
-            accepted: 'boolean',
-            created_at: 'string',
-          }
-        }
-      },
-      required: ['id', 'accepted', 'created_at'],
-      additionalProperties: false
-    }},
+      type: 'array',
+      items: friendsSchema
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.friendshipNotFound
@@ -41,21 +41,9 @@ export const getFriendsSchema = {
 export const getFriendsMeSchema = {
     response: {
         200: {
-          body: {
-          type: 'object',
-          properties: {
-            friends: { 
-              type: 'array',
-              properties: {
-                id: 'string',
-                accepted: 'boolean',
-                created_at: 'string',
-              }
-            }
-          },
-          required: ['id', 'accepted', 'created_at'],
-          additionalProperties: false
-        }},
+          type: 'array',
+          items: friendsSchema
+        },
       404: {
         ...errorResponseSchema,
         example: ErrorExamples.friendshipNotFound
@@ -78,11 +66,9 @@ export const getCheckSchema = {
     },
     response: {
       200: {
-        body: {
         type: 'object',
         properties: {
-            friendExists: 'boolean',
-            }
+          friendExists: { type: 'boolean' },
         },
         required: ['friendExists'],
         additionalProperties: false
