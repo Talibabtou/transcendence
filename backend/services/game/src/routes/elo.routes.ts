@@ -9,7 +9,8 @@ import {
 import { 
   getEloSchema, 
   getElosSchema,
-	createEloSchema
+	createEloSchema,
+	getLeaderboardSchema
 } from '../../../../shared/schemas/elo.schema.js'
 
 export default async function eloRoutes(fastify: FastifyInstance) {
@@ -40,6 +41,7 @@ export default async function eloRoutes(fastify: FastifyInstance) {
 
 	fastify.get('/leaderboard', { 
     schema: {
+			...getLeaderboardSchema,
       tags: ['elos']
     }
   }, getLeaderboard)

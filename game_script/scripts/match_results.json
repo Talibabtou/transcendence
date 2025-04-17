@@ -1,0 +1,50 @@
+[
+  {
+    "player_1": "4be6fa4c-bb1e-4652-8a26-9d82ab618b90",
+    "player_2": "d247d764-0901-4172-9eca-8218ebd0881d",
+    "goals_player_1": 2,
+    "goals_player_2": 3,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  },
+  {
+    "player_1": "4be6fa4c-bb1e-4652-8a26-9d82ab618b90",
+    "player_2": "2b322ed4-09d2-44b8-861f-e32289a5dcfa",
+    "goals_player_1": 1,
+    "goals_player_2": 3,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  },
+	{
+    "player_1": "4be6fa4c-bb1e-4652-8a26-9d82ab618b90",
+    "player_2": "90a7a028-3971-4173-8998-6900a4a41376",
+    "goals_player_1": 2,
+    "goals_player_2": 3,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  },
+	{
+    "player_1": "d247d764-0901-4172-9eca-8218ebd0881d",
+    "player_2": "2b322ed4-09d2-44b8-861f-e32289a5dcfa",
+    "goals_player_1": 2,
+    "goals_player_2": 3,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  },
+	{
+    "player_1": "d247d764-0901-4172-9eca-8218ebd0881d",
+    "player_2": "90a7a028-3971-4173-8998-6900a4a41376",
+    "goals_player_1": 3,
+    "goals_player_2": 2,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  },
+	{
+    "player_1": "2b322ed4-09d2-44b8-861f-e32289a5dcfa",
+    "player_2": "90a7a028-3971-4173-8998-6900a4a41376",
+    "goals_player_1": 1,
+    "goals_player_2": 3,
+    "duration_player_1": 1,
+    "duration_player_2": 1
+  }
+]

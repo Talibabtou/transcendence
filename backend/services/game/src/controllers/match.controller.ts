@@ -11,6 +11,7 @@ import {
 } from '@shared/types/match.type.js'
 import { MatchGoals } from '@shared/types/goal.type.js'
 
+//check if player 1 = player 2
 // Get a single match by ID
 export async function getMatch(request: FastifyRequest<{
   Params: { id: string }
@@ -59,11 +60,9 @@ export async function getMatches(request: FastifyRequest<{
     return reply.code(500).send(errorResponse)
   }
 }
-
-//Create a new match
-// returns a Promise<void> because it performs database operations
-// that are inherently asynchronous.
-// Promises allow the server to handle other requests while waiting for database
+// if tournament not more than 4 players
+//avoid 7 matchs not being a final
+//avoid 8 matches
 export async function createMatch(request: FastifyRequest<{
   Body: CreateMatchRequest
 }>, reply: FastifyReply): Promise<void> {

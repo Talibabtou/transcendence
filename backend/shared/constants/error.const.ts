@@ -14,6 +14,8 @@ export enum ErrorCodes {
   INVALID_FIELDS = 'INVALID_FIELDS',
 	MATCH_NOT_ACTIVE = 'MATCH_NOT_ACTIVE',
   TOURNAMENT_NOT_FOUND = 'TOURNAMENT_NOT_FOUND',
+	TOURNAMENT_WRONG_MATCH_COUNT = 'TOURNAMENT_WRONG_MATCH_COUNT',
+	TOURNAMENT_INSUFFICIENT_PLAYERS = 'TOURNAMENT_INSUFFICIENT_PLAYERS',
   
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
@@ -43,6 +45,8 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
 	[ErrorCodes.MATCH_NOT_ACTIVE, 'Match has been cancelled or timeout'],
 	[ErrorCodes.TOURNAMENT_NOT_FOUND, 'Tournament not found'],
+	[ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT, 'Tournament is not at the final stage'],
+	[ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS, 'Tournament has less than 3 players'],
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],
@@ -118,4 +122,22 @@ export const ErrorExamples = {
     error: ErrorTypes.get(404),
     message: ErrorMessages.get(ErrorCodes.ELO_NOT_FOUND)
   },
+	tournamentWrongMatchCount: {
+		statusCode: 400,
+		code: ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT,
+		error: ErrorTypes.get(400),
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT)
+	},
+	tournamentNotFound: {
+		statusCode: 404,
+		code: ErrorCodes.TOURNAMENT_NOT_FOUND,
+		error: ErrorTypes.get(404),
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_NOT_FOUND)
+	},
+	tournamentInsufficientPlayers: {
+		statusCode: 400,
+		code: ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS,
+		error: ErrorTypes.get(400),
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS)
+	},
 };

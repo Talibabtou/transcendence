@@ -105,3 +105,23 @@ export const updatePlayerEloSchema = {
     }
   }
 }
+
+export const getLeaderboardSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, default: 10 },
+			offset: { type: 'integer', minimum: 0, default: 0 }
+    }
+  },
+  response: {
+    200: {
+      type: 'array',
+      items: eloSchema
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError
+    }
+  }
+}

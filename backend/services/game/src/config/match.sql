@@ -22,3 +22,5 @@ CREATE INDEX IF NOT EXISTS idx_matches_player2 ON matches(player_2);
 CREATE INDEX IF NOT EXISTS idx_matches_created_at ON matches(created_at);
 -- Index for filtering active matches (e.g., in player_match_durations)
 CREATE INDEX IF NOT EXISTS idx_matches_active ON matches(active);
+
+

@@ -24,10 +24,6 @@ export interface GetMatchesQuery {
   offset?: number;
 }
 
-export interface GetTournamentQuery {
-	tournament_id: string;
-}
-
 export interface GetTournamentsQuery {
   player_id?: string;
   limit?: number;
@@ -64,4 +60,17 @@ export interface PlayerStats {
 	goal_durations: number[];
 	match_durations: number[];
 	elo_history: number[];
+}
+
+export interface Finalist {
+  player_id: string;
+	victory_count?: number;
+	goals_scored?: number;
+	goals_conceded?: number;
+	goal_duration?: number;
+}
+
+export interface GetLeaderboardQuery {
+  limit?: number;
+  offset?: number;
 }
