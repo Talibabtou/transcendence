@@ -1,21 +1,6 @@
 import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
-const UserSchema = {
-  type: 'object',
-  properties: {
-    user: { 
-      type: 'object',
-      properties: {
-        username: { type: 'string' },
-        email: { type: 'string' }
-      }
-    }
-  },
-  required: ['username', 'email'],
-  additionalProperties: false
-}
-
 export const getUserSchema = {
   params: {
     type: 'object',
@@ -26,7 +11,16 @@ export const getUserSchema = {
     additionalProperties: false
   },
   response: {
-    200: UserSchema,
+    200: {
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      },
+      required: ['username', 'email', 'id'],
+      additionalProperties: false
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -44,7 +38,16 @@ export const getUserSchema = {
 
 export const getUserMeSchema = {
   response: {
-    200: UserSchema,
+    200: {
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      },
+      required: ['username', 'email', 'id'],
+      additionalProperties: false
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -64,7 +67,16 @@ export const getUsersSchema = {
   response: {
     200: {
       type: 'array',
-      items: UserSchema
+      item: {
+        type: 'object',
+        properties: {
+          username: { type: 'string' },
+          email: { type: 'string', format: 'email' },
+          id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+        },
+        required: ['username', 'email', 'id'],
+        additionalProperties: false
+      },
     },
     404: {
       ...errorResponseSchema,
@@ -124,7 +136,16 @@ export const createUserSchema = {
     description: 'Schema for creating a new user account'
   },
   response: {
-    201: {},
+    201: {
+      type: 'object',
+      properties: {
+        username: { type: 'string' },
+        email: { type: 'string', format: 'email' },
+        id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
+      },
+      required: ['username', 'email', 'id'],
+      additionalProperties: false
+    },
     400: {
       ...errorResponseSchema,
       example: ErrorExamples.sqliteMismatch

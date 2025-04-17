@@ -50,6 +50,14 @@ const swaggerParams = {
         description: 'Local development server'
       }
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http', // Change to https later
+          scheme: 'bearer'
+        }
+      }
+    },
     tags: [
       { name: 'api', description: 'Main API endpoints' },
       { name: 'auth', description: 'Authentication and authorization endpoints' },
@@ -102,7 +110,40 @@ export class Server {
     try {
       process.on("SIGINT", () => Server.shutdown("SIGINT"));
       process.on("SIGTERM", () => Server.shutdown("SIGTERM"));
-      await server.register(fastifySwagger, swaggerParams);
+      await server.register(fastifySwagger, {
+        openapi: {
+          info: {
+            title: 'Game Service API',
+            description: 'API documentation for the Game microservice',
+            version: '1.0.0'
+          },
+          servers: [
+            {
+              url: `http://localhost:${process.env.API_PORT || 8080}${API_PREFIX}`,
+              description: 'Local development server'
+            }
+          ],
+          components: {
+            securitySchemes: {
+              bearerAuth: {
+                type: 'http', // Change to https later
+                scheme: 'bearer'
+              }
+            }
+          },
+          security: [{ bearerAuth: [] }],
+          tags: [
+            { name: 'api', description: 'Main API endpoints' },
+            { name: 'auth', description: 'Authentication and authorization endpoints' },
+            { name: 'friends', description: 'Endpoints for managing friends and connections' },
+            { name: 'matches', description: 'Match management endpoints' },
+            { name: 'goals', description: 'Goal tracking endpoints' },
+            { name: 'elos', description: 'Elo rating management endpoints' },
+            { name: 'system', description: 'System and health check endpoints' },
+            { name: 'profil', description: 'User profile management endpoints' },
+          ]
+        }
+      })
       await server.register(fastifySwaggerUi, { routePrefix: '/documentation', uiConfig: { docExpansion: 'list', deepLinking: true }, staticCSP: true });
       await server.register(rateLimit, rateLimitParams);
       await server.register(fastifyMultipart, multipartParams);
@@ -125,7 +166,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error("Fatal error", err);
       process.exit(1);

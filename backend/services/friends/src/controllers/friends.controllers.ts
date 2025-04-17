@@ -24,12 +24,13 @@ export async function getFriends(request: FastifyRequest<{ Params: IId}>, reply:
         accepted, 
         created_at 
       FROM friends
-      WHERE id_1 = ? OR id_2 = ?`, [id, id, id]);
-      if (!friends) {
-        const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
-        return reply.code(404).send(errorMessage);
-      }
-    return reply.code(200).send({ friends });
+      WHERE id_1 = ? OR id_2 = ?`, [id, id, id]
+    );
+    if (!friends) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
+      return reply.code(404).send(errorMessage);
+    }
+    return reply.code(200).send(friends);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -53,7 +54,7 @@ export async function getFriendsMe(request: FastifyRequest<{ Params: IId}>, repl
         const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
         return reply.code(404).send(errorMessage);
       }
-      return reply.code(200).send({ friends });
+      return reply.code(200).send(friends);
     } catch (err) {
       request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -61,9 +62,9 @@ export async function getFriendsMe(request: FastifyRequest<{ Params: IId}>, repl
     }
 }
 
-export async function getFriend(request: FastifyRequest<{ Body: IId, Params: IId}>, reply: FastifyReply): Promise<void> {
+export async function getFriend(request: FastifyRequest<{ Querystring: IId, Params: IId}>, reply: FastifyReply): Promise<void> {
   try {
-    const { id } = request.body;
+    const { id } = request.query;
     if (id === request.params.id) {
       const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST)
       return reply.code(400).send(errorMessage);
@@ -76,12 +77,13 @@ export async function getFriend(request: FastifyRequest<{ Body: IId, Params: IId
           WHERE
             ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
             AND accepted = true)
-        AS friendExists`, [request.params.id, id, id, request.params.id]);
+        AS friendExists`, [id, request.params.id, request.params.id, id]
+    );
     if (!friend.friendExists) {
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send({ friendExists: friend.friendExists });
+    return reply.code(200).send(JSON.parse(friend));
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -96,10 +98,10 @@ export async function postFriend(request: FastifyRequest<{ Body: IId, Params: II
       const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST)
       return reply.code(400).send(errorMessage);
     }
-    const result = await request.server.db.get(`
+    const friend = await request.server.db.get(`
       SELECT
           EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`, [request.params.id, id, request.params.id, id]);
-    if (result.FriendExists) {
+    if (friend.FriendExists) {
       const errorMessage = createErrorResponse(409, ErrorCodes.FRIENDSHIP_EXISTS)
       return reply.code(409).send(errorMessage);
     }
@@ -129,8 +131,8 @@ export async function patchFriend(request: FastifyRequest<{ Body: IId, Params: I
       const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST)
       return reply.code(400).send(errorMessage);
     }
-    const result = await request.server.db.run('UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?', [request.params.id, id]);
-    if (result.changes === 0) {
+    const friend = await request.server.db.run('UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?', [request.params.id, id]);
+    if (friend.changes === 0) {
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
       return reply.code(404).send(errorMessage);
     }

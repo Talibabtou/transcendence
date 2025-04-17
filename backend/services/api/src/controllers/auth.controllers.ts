@@ -9,7 +9,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
       const subpath = request.url.split('/auth')[1];
       const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
-      const users = await response.json() as IReplyGetUsers | ErrorResponse;
+      const users = await response.json() as IReplyGetUsers[] | ErrorResponse;
       return reply.code(response.status).send(users);
     } catch (err) {
       request.server.log.error(err);

@@ -30,7 +30,7 @@ export async function getPics(request: FastifyRequest, reply: FastifyReply) {
     const existingFiles: string[] | undefined = fs
       .readdirSync(uploadDir)
     if (existingFiles.length > 0) {
-      const modifiedFiles = existingFiles.map(f => '/uploads/' + f);
+      const modifiedFiles = existingFiles.map(file => '/uploads/' + file);
       return reply.code(200).send({ links: modifiedFiles });
     } else {
       const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND)

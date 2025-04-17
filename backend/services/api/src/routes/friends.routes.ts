@@ -7,7 +7,7 @@ const auth = { auth: true, roles: ['user', 'admin'] }
 
 export default async function friendsRoutes(fastify: FastifyInstance) {
 	
-	fastify.get<{ Params: IId }>('friends/all/:id', {
+	fastify.get<{ Params: IId }>('/friends/all/:id', {
 		schema: {
 			...getFriendsSchema,
 			tags: ['friends']
@@ -16,7 +16,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		getFriends);
 
-	fastify.get('friends/all/me', {
+	fastify.get('/friends/all/me', {
 		schema: {
 			...getFriendsMeSchema,
 			tags: ['friends']
@@ -25,7 +25,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		getFriendsMe);
 
-	fastify.get<{ Body: IId }>('friends/check', {
+	fastify.get<{ Params: IId }>('/friends/check/:id', {
 		schema: {
 			...getCheckSchema,
 			tags: ['friends']
@@ -34,7 +34,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		getFriend);
 
-	fastify.post<{ Body: IId }>('friends/create', {
+	fastify.post<{ Body: IId }>('/friends/create', {
 		schema: {
 			...postCreateSchema,
 			tags: ['friends']
@@ -43,7 +43,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		postFriend);
 
-	fastify.patch<{ Body: IId }>('friends/accept', {
+	fastify.patch<{ Body: IId }>('/friends/accept', {
 		schema: {
 			...patchAcceptSchema,
 			tags: ['friends']
@@ -52,7 +52,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		patchFriend);
 
-	fastify.delete('friends/delete/all', {
+	fastify.delete('/friends/delete/all', {
 		schema: {
 			...deleteAllSchema,
 			tags: ['friends']
@@ -61,7 +61,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
 		},
 		deleteFriends);
 	
-	fastify.delete<{ Querystring: IId }>('friends/delete', {
+	fastify.delete<{ Querystring: IId }>('/friends/delete', {
 		schema: {
 			...deleteFriendSchema,
 			tags: ['friends']

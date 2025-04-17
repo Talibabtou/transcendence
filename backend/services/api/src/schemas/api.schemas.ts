@@ -1,15 +1,6 @@
 import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
-const PicSchema = {
-  type: 'object',
-  properties: {
-    link: { type: 'string' }
-  },
-  required: ['link'],
-  additionalProperties: false
-}
-
 export const getPicSchema = {
   params: {
     type: 'object',
@@ -20,7 +11,14 @@ export const getPicSchema = {
     additionalProperties: false
   },
   response: {
-    200: PicSchema,
+    200: {
+      type: 'object',
+      properties: {
+        link: { type: 'string', description: "A link to an uploaded picture." },
+      },
+      required: ['link'],
+      additionalProperties: false
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound
@@ -35,8 +33,15 @@ export const getPicSchema = {
 export const getPicsSchema = {
   response: {
     200: {
-      type: 'array',
-      items: PicSchema
+      type: 'object',
+      properties: {
+        links: { type: 'array' },
+        items: {
+          link: { type: 'string', description: "A link to an uploaded picture." },
+        }
+      },
+      required: ['links'],
+      additionalProperties: false
     },
     404: {
       ...errorResponseSchema,

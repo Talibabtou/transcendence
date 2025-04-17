@@ -7,7 +7,7 @@ import { getGoalSchema, getGoalsSchema, createGoalSchema } from '../schemas/goal
 const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function goalRoutes(fastify: FastifyInstance) {
-  fastify.get<{ Querystring: GetGoalsQuery }>('goal/', { 
+  fastify.get<{ Querystring: GetGoalsQuery }>('/goal/', { 
     schema: {
       ...getGoalsSchema,
       tags: ['goals']
@@ -16,7 +16,7 @@ export default async function goalRoutes(fastify: FastifyInstance) {
   },
   getGoals)
 
-  fastify.get<{ Params: IId }>('goal/:id', { 
+  fastify.get<{ Params: IId }>('/goal/:id', { 
     schema: {
       ...getGoalSchema,
       tags: ['goals']
@@ -25,7 +25,7 @@ export default async function goalRoutes(fastify: FastifyInstance) {
   },
   getGoal)
 
-  fastify.post<{ Body: CreateGoalRequest }>('goal/', { 
+  fastify.post<{ Body: CreateGoalRequest }>('/goal/', { 
     schema: {
       ...createGoalSchema,
       tags: ['goals']

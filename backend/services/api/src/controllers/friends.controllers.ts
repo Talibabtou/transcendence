@@ -11,16 +11,12 @@ export interface IReplyGetFriend {
   created_at: string;
 }
 
-interface IReplyGetFriends {
-  friends: Array<IReplyGetFriend>
-}
-
 export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
     try {
         const subpath = request.url.split('/friends')[1];
         const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
-        const friends = await response.json() as IReplyGetFriends | ErrorResponse;
+        const friends = await response.json() as IReplyGetFriend[] | ErrorResponse;
         return reply.code(response.status).send(friends);
       } catch (err) {
         request.server.log.error(err);
@@ -35,7 +31,7 @@ export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply
       const subpath = request.url.split('/friends')[1];
       const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
-      const friends = await response.json() as IReplyGetFriends | ErrorResponse;
+      const friends = await response.json() as IReplyGetFriend[] | ErrorResponse;
       return reply.code(response.status).send(friends);
     } catch (err) {
       request.server.log.error(err);
@@ -44,19 +40,14 @@ export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply
   }
 }
 
- export async function getFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply) {
+ export async function getFriend(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
       const id: string = (request.user as FastifyJWT['user']).id;
       const subpath = request.url.split('/friends')[1];
-      const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
-      const response = await fetch(serviceUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': request.headers['content-type'] || 'application/json'
-        },
-        body: JSON.stringify(request.body)
-      });
+      const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
+      const response = await fetch(serviceUrl, { method: 'GET' });
       const friend = await response.json() as IReplyGetFriend | ErrorResponse;
+      console.log(friend);
       return reply.code(response.status).send(friend);
     } catch (err) {
       request.server.log.error(err);

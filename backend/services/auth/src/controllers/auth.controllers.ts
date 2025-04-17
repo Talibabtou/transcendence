@@ -5,12 +5,12 @@ import { IAddUser, ILogin, IModifyUser, IReplyGetUser, IReplyGetUsers, IReplyLog
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
     try {
-      const users: IReplyGetUsers = await request.server.db.all('SELECT username, email, id FROM users');
+      const users: IReplyGetUsers[] = await request.server.db.all('SELECT username, email, id FROM users');
       if (!users) {
         const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
         return reply.code(404).send(errorMessage);
       }
-      return reply.code(200).send({ users });
+      return reply.code(200).send(users);
     } catch (err) {
       request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -26,7 +26,7 @@ export async function getUser(request: FastifyRequest<{ Params: IId}>, reply: Fa
         const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
         return reply.code(404).send(errorMessage);
       }
-      return reply.code(200).send({ user });
+      return reply.code(200).send(user);
     } catch (err) {
       if (err instanceof Error && err.message.includes('SQLITE_MISMATCH')) {
         const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
@@ -46,7 +46,7 @@ export async function getUserMe(request: FastifyRequest<{ Params: IId}>, reply: 
       const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND)
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send({ user });
+    return reply.code(200).send(user);
   } catch (err) {
     if (err instanceof Error && err.message.includes('SQLITE_MISMATCH')) {
       const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH)
