@@ -76,7 +76,6 @@ export async function createGoal(request: FastifyRequest<{
     const match = await request.server.db.get('SELECT * FROM matches WHERE id = ?', match_id) as Match | null
     recordFastDatabaseMetrics('SELECT', 'matches', (performance.now() - selectStartTime)); // Record SELECT
     goalDurationHistogram.record(duration);
-		console.log(match)
 		if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
       return reply.code(404).send(errorResponse)
