@@ -3,7 +3,7 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentTransitionsComponent } from '@website/scripts/components';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
 import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
 
@@ -62,8 +62,8 @@ export class GameComponent extends Component<GameComponentState> {
 	// Add a reference to the player registration component
 	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
 	
-	// Add a reference to the TournamentTransitionsComponent
-	private tournamentTransitionsComponent: TournamentTransitionsComponent | null = null;
+	// Add a reference to the TournamentComponent
+	private TournamentComponent: TournamentComponent | null = null;
 	
 	private lastAuthState: boolean | null = null;
 	
@@ -500,11 +500,11 @@ export class GameComponent extends Component<GameComponentState> {
 		MatchCache.clearCache();
 		
 		// Hide tournament transitions component if it exists
-		if (this.tournamentTransitionsComponent) {
-			this.tournamentTransitionsComponent.hide();
+		if (this.TournamentComponent) {
+			this.TournamentComponent.hide();
 			// Destroy it to make sure we create a new one next time
-			this.tournamentTransitionsComponent.destroy();
-			this.tournamentTransitionsComponent = null;
+			this.TournamentComponent.destroy();
+			this.TournamentComponent = null;
 		}
 		
 		// Force a complete recreate of the menu component
@@ -831,8 +831,8 @@ export class GameComponent extends Component<GameComponentState> {
 	private showTournamentTransition(): void {
 		// Add a small delay to ensure tournament data is initialized
 		setTimeout(() => {
-			if (!this.tournamentTransitionsComponent && this.gameContainer) {
-				this.tournamentTransitionsComponent = new TournamentTransitionsComponent(
+			if (!this.TournamentComponent && this.gameContainer) {
+				this.TournamentComponent = new TournamentComponent(
 					this.gameContainer,
 					this.handleTournamentContinue.bind(this),
 					this.handleBackToMenu.bind(this)
@@ -840,8 +840,8 @@ export class GameComponent extends Component<GameComponentState> {
 			}
 			
 			// Show the tournament schedule
-			if (this.tournamentTransitionsComponent) {
-				this.tournamentTransitionsComponent.showTournamentSchedule();
+			if (this.TournamentComponent) {
+				this.TournamentComponent.showTournamentSchedule();
 			}
 			
 			// Reset transition flag
@@ -853,33 +853,16 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Handle continue button from tournament screens
 	 */
 	private handleTournamentContinue(): void {
-		const nextMatch = TournamentCache.getNextGameInfo();
+		if (!this.TournamentComponent) return;
 		
-		if (!nextMatch) {
+		// Use the tournament component's method to get player info
+		const playerInfo = this.TournamentComponent.handleContinue();
+		
+		if (!playerInfo) {
 			// No more matches, go back to menu
 			this.handleBackToMenu();
 			return;
 		}
-		
-		if (this.tournamentTransitionsComponent) {
-			this.tournamentTransitionsComponent.hide();
-		}
-		
-		// Get player info for the next match
-		const playerInfo = {
-			playerIds: [
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].id,
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].id
-			],
-			playerNames: [
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].name,
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].name
-			],
-			playerColors: [
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].color,
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].color
-			]
-		};
 		
 		// Update state with player info for the current match
 		this.updateInternalState({
