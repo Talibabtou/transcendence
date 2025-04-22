@@ -6,18 +6,18 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get<{ Querystring: GetMatchesQuery }>('/',
   getMatches)
   
-  fastify.get<{ Params: IId }>('/:id',
+  fastify.get<{ Params: IId }>('/match/:id',
   getMatch)
   
-  fastify.post<{ Body: CreateMatchRequest }>('/',
+  fastify.post<{ Body: CreateMatchRequest }>('/match',
   createMatch)
 
-	fastify.get<{ Params: IId }>('/:id/stats',
+	fastify.get<{ Params: IId }>('/match/:id/stats',
   matchTimeline)
 
-	fastify.get<{ Params: IId }>('/stats/:player_id',
+	fastify.get<{ Params: IId }>('/match/stats/:player_id',
   matchStats)
 
-	fastify.get<{ Params: IId }>('/summary/:id',
+	fastify.get<{ Params: IId }>('/match/summary/:id',
   matchSummary)
 }

@@ -6,7 +6,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 
 export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuery }>, reply: FastifyReply) {
     try {
-        const subpath = request.url.split('/elo')[1];
+        const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const reponseData = await response.json() as Elo[] | ErrorResponse;
@@ -20,7 +20,7 @@ export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuer
 
  export async function getElo(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
-      const subpath = request.url.split('/elo')[1];
+      const subpath = request.url.split('/v1')[1];
       const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
       const reponseData = await response.json() as Elo | ErrorResponse;
@@ -34,7 +34,7 @@ export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuer
 
 export async function getLeaderboard(request: FastifyRequest, reply: FastifyReply) {
     try {
-        const subpath = request.url.split('/elo')[1];
+        const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const reponseData = await response.json() as LeaderboardEntry[] | ErrorResponse;
@@ -48,7 +48,7 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
 
  export async function createElo(request: FastifyRequest<{ Body: CreateEloRequest }>, reply: FastifyReply) {
     try {
-        const subpath = request.url.split('/elo')[1];
+        const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'POST',
@@ -57,13 +57,7 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
           },
           body: JSON.stringify(request.body)
         });
-        console.log({
-          response: response
-        })
         const responseData = await response.json() as Elo | ErrorResponse;
-        console.log({
-          elo: responseData
-        })
         return reply.code(response.status).send(responseData);
       } catch (err) {
         request.server.log.error(err);

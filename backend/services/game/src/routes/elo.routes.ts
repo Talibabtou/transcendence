@@ -7,10 +7,10 @@ import {
 } from '../controllers/elo.controller.js'
 
 export default async function eloRoutes(fastify: FastifyInstance) {
-  fastify.get('/elo/',
+  fastify.get('/elo',
   getElos)
 
-	fastify.post('/elo/',
+	fastify.post('/elo',
   createElo)
 
   fastify.get('/elo/:id',

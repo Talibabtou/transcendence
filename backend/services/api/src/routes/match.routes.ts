@@ -7,7 +7,7 @@ import { getMatchSchema, getMatchesSchema, createMatchSchema, matchTimelineSchem
 const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Querystring: GetMatchesQuery }>('/match/', { 
+  fastify.get<{ Querystring: GetMatchesQuery }>('/match', { 
     schema: {
       ...getMatchesSchema,
       tags: ['matches']
@@ -52,7 +52,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   },
   matchSummary)
 
-  fastify.post<{ Body: CreateMatchRequest }>('/match/', {
+  fastify.post<{ Body: CreateMatchRequest }>('/match', {
     schema: {
       ...createMatchSchema,
       tags: ['matches']

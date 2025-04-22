@@ -6,12 +6,12 @@ import {
 } from '../controllers/goal.controller.js'
 
 export default async function goalRoutes(fastify: FastifyInstance) {
-  fastify.get('/goal/',
+  fastify.get('/goal',
   getGoals)
 
   fastify.get('/goal/:id',
   getGoal)
 
-  fastify.post('/goal/',
+  fastify.post('/goal',
   createGoal)
 }

@@ -6,7 +6,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 
 export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQuery }>, reply: FastifyReply) {
     try {
-        const subpath = request.url.split('/goal')[1];
+        const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const reponseData = await response.json() as Goal[] | ErrorResponse;
@@ -20,7 +20,7 @@ export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQu
 
  export async function getGoal(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
-      const subpath = request.url.split('/goal')[1];
+      const subpath = request.url.split('/v1')[1];
       const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
       const reponseData = await response.json() as Goal | null | ErrorResponse;
@@ -34,7 +34,7 @@ export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQu
 
  export async function createGoal(request: FastifyRequest<{ Body: CreateGoalRequest }>, reply: FastifyReply) {
     try {
-        const subpath = request.url.split('/goal')[1];
+        const subpath = request.url.split('/v1')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, {
           method: 'POST',
