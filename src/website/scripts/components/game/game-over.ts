@@ -14,6 +14,7 @@ export class GameOverComponent extends Component<GameOverState> {
 	
 	private onPlayAgain: (mode: GameMode) => void;
 	private onBackToMenu: () => void;
+	private onShowTournamentSchedule: () => void;
 	private inTransition: boolean = false;
 	private boundGameOverHandler: EventListener;
 	
@@ -24,7 +25,8 @@ export class GameOverComponent extends Component<GameOverState> {
 	constructor(
 		container: HTMLElement,
 		onPlayAgain: (mode: GameMode) => void,
-		onBackToMenu: () => void
+		onBackToMenu: () => void,
+		onShowTournamentSchedule: () => void
 	) {
 		super(container, {
 			visible: false,
@@ -39,6 +41,7 @@ export class GameOverComponent extends Component<GameOverState> {
 		
 		this.onPlayAgain = onPlayAgain;
 		this.onBackToMenu = onBackToMenu;
+		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
 		// Store the bound handler reference for proper cleanup
 		this.boundGameOverHandler = this.handleGameOver.bind(this) as EventListener;
@@ -59,7 +62,7 @@ export class GameOverComponent extends Component<GameOverState> {
 			return;
 		}
 		
-		// IMPORTANT: Get canvas dimensions instead of container dimensions!
+		// Get dimensions for positioning
 		const gameCanvas = document.querySelector('canvas');
 		let canvasWidth = this.container.clientWidth;
 		let canvasHeight = this.container.clientHeight;
@@ -69,7 +72,6 @@ export class GameOverComponent extends Component<GameOverState> {
 			canvasHeight = gameCanvas.height;
 		}
 		
-		// Use canvas dimensions for UI positioning
 		const ui = calculateUIPositions(canvasWidth, canvasHeight);
 		
 		// Game over screen with player names and scores
@@ -114,8 +116,15 @@ export class GameOverComponent extends Component<GameOverState> {
 						</div>
 						<div class="go-winner">${state.winner} Wins!</div>
 						<div class="go-buttons">
-							<button class="menu-button play-again-button">Play Again</button>
-							<button class="menu-button back-menu-button">Back to Menu</button>
+							${state.gameMode === GameMode.TOURNAMENT 
+								? html`
+									<button class="menu-button show-pool-button">Show Pool</button>
+									<button class="menu-button back-menu-button">Back to Menu</button>
+								`
+								: html`
+									<button class="menu-button play-again-button">Play Again</button>
+									<button class="menu-button back-menu-button">Back to Menu</button>
+								`}
 						</div>
 					</div>
 				</div>
@@ -152,23 +161,17 @@ export class GameOverComponent extends Component<GameOverState> {
 	 * Sets up event listeners for game over buttons
 	 */
 	private setupEventListeners(): void {
-		// Remove any existing event listeners first by cloning elements
+		// Handle Play Again button (for regular games)
 		const playAgainButton = this.container.querySelector('.play-again-button');
 		if (playAgainButton) {
 			const newButton = playAgainButton.cloneNode(true);
 			playAgainButton.parentNode?.replaceChild(newButton, playAgainButton);
 			
-			// Add the event listener to the new button
 			newButton.addEventListener('click', () => {
 				if (!this.inTransition) {
 					this.inTransition = true;
-					
-					// Get game info from MatchCache instead of component state
 					const gameInfo = MatchCache.getCurrentGameInfo();
-					
-					// Call onPlayAgain with cached game mode
 					this.onPlayAgain(gameInfo.gameMode);
-					
 					setTimeout(() => {
 						this.inTransition = false;
 					}, 100);
@@ -176,20 +179,35 @@ export class GameOverComponent extends Component<GameOverState> {
 			});
 		}
 		
-		// Same approach for back to menu button
+		// Handle Show Pool button (for tournament matches)
+		const showPoolButton = this.container.querySelector('.show-pool-button');
+		if (showPoolButton) {
+			const newButton = showPoolButton.cloneNode(true);
+			showPoolButton.parentNode?.replaceChild(newButton, showPoolButton);
+			
+			newButton.addEventListener('click', () => {
+				if (!this.inTransition) {
+					this.inTransition = true;
+					if (this.onShowTournamentSchedule) {
+						this.onShowTournamentSchedule();
+					}
+					setTimeout(() => {
+						this.inTransition = false;
+					}, 100);
+				}
+			});
+		}
+		
+		// Handle Back to Menu button (for all modes)
 		const backMenuButton = this.container.querySelector('.back-menu-button');
 		if (backMenuButton) {
 			const newButton = backMenuButton.cloneNode(true);
 			backMenuButton.parentNode?.replaceChild(newButton, backMenuButton);
 			
-			// Add the event listener to the new button
 			newButton.addEventListener('click', () => {
 				if (!this.inTransition) {
 					this.inTransition = true;
-					
-					// Just call onBackToMenu - don't manage the background game here
 					this.onBackToMenu();
-					
 					setTimeout(() => {
 						this.inTransition = false;
 					}, 100);
@@ -224,12 +242,8 @@ export class GameOverComponent extends Component<GameOverState> {
 			visible: true
 		});
 		
-		// In tournament mode, modify the rendered content
-		if (result.gameMode === GameMode.TOURNAMENT) {
-			this.renderTournamentGameOver();
-		} else {
-			this.renderComponent();
-		}
+		// Just render the component - handle tournament mode in the main render
+		this.renderComponent();
 
 		// Show background game except in tournament mode
 		if (result.gameMode !== GameMode.TOURNAMENT) {
@@ -238,37 +252,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 		
 		this.inTransition = false;
-	}
-	
-	/**
-	 * Renders special game over screen for tournament mode
-	 */
-	private renderTournamentGameOver(): void {
-		const state = this.getInternalState();
-		
-		// Game over screen with player names and scores but modified for tournament
-		const content = html`
-			<div class="game-container">
-				<div class="game-over-screen tournament-game-over">
-					<div class="go-content">
-						<div class="go-ascii-container">
-							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
-						</div>
-						<div class="go-winner">${state.winner} Wins!</div>
-						<div class="go-scores-display">
-							<div>${state.player1Name}: ${state.player1Score}</div>
-							<div>${state.player2Name}: ${state.player2Score}</div>
-						</div>
-						<div class="go-buttons">
-							<button class="menu-button play-again-button">Next Match</button>
-						</div>
-					</div>
-				</div>
-			</div>
-		`;
-		
-		render(content, this.container);
-		this.setupEventListeners();
 	}
 	
 	/**

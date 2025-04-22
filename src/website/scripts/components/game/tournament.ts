@@ -19,7 +19,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	) {
 		super(container, {
 			visible: false,
-			phase: 'not_started',
+			phase: 'pool',
 			currentScreen: 'schedule'
 		});
 		
@@ -36,6 +36,17 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		
 		this.container.className = 'players-register-container';
+		
+		// Force winner screen if tournament is complete
+		const phase = TournamentCache.getTournamentPhase();
+		if (phase === 'complete' && state.currentScreen !== 'winner') {
+			this.updateInternalState({
+				currentScreen: 'winner'
+			});
+			// Call render again after state update
+			setTimeout(() => this.render(), 0);
+			return;
+		}
 		
 		const screenRenderers = {
 			'schedule': this.renderTournamentSchedule,
@@ -67,9 +78,9 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const phase = TournamentCache.getTournamentPhase();
 		const nextGame = TournamentCache.getNextGameInfo();
 		
-		let buttonText = 'Start Tournament';
-		if (phase === 'pool' && nextGame?.isNewMatch) {
-			buttonText = (nextGame.matchIndex === 0) ? 'Start First Match' : 'Next Match';
+		let buttonText = 'Start First Match';
+		if (phase === 'pool' && nextGame?.matchIndex !== undefined && nextGame.matchIndex > 0) {
+			buttonText = 'Next Match';
 		} else if (phase === 'finals') {
 			buttonText = 'Start Finals';
 		}
@@ -81,25 +92,45 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				statusClass = 'match-complete';
 			} else if (match.isCurrent) {
 				statusClass = 'match-current';
-			} else if (match.isFinals && (phase === 'pool' || phase === 'not_started')) {
+			} else if (match.isFinals && (phase === 'pool')) {
 				statusClass = 'match-pending-finals';
+			}
+			
+			// Determine winner and loser for styling
+			let player1Class = '';
+			let player2Class = '';
+			
+			// Get actual game scores instead of match wins
+			let player1Score = 0;
+			let player2Score = 0;
+			
+			if (match.isComplete) {
+				// Just use the player1Score and player2Score directly
+				// Player1Score and player2Score are now the actual game scores
+				player1Score = match.player1Score || 0;
+				player2Score = match.player2Score || 0;
+				
+				// Set winner/loser classes
+				if (player1Score > player2Score) {
+					player1Class = 'winner-name';
+					player2Class = 'loser-name';
+				} else {
+					player1Class = 'loser-name';
+					player2Class = 'winner-name';
+				}
 			}
 			
 			return html`
 				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finals-match' : ''}">
 					<div class="match-number">${match.isFinals ? 'FINALS' : `Match ${index + 1}`}</div>
 					<div class="match-players">
-						<div class="match-player match-player-left">
+						<div class="match-player match-player-left ${player1Class}">
 							${match.player1Name}
-							<span class="player-score ${match.isComplete ? 'visible' : ''}">
-								${match.isComplete ? match.player1Score : ''}
-							</span>
 						</div>
-						<div class="vs">VS</div>
-						<div class="match-player match-player-right">
-							<span class="player-score ${match.isComplete ? 'visible' : ''}">
-								${match.isComplete ? match.player2Score : ''}
-							</span>
+						<div class="vs">
+							${match.isComplete ? `${player1Score} - ${player2Score}` : 'VS'}
+						</div>
+						<div class="match-player match-player-right ${player2Class}">
 							${match.player2Name}
 						</div>
 					</div>
@@ -141,16 +172,23 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 					<pre class="champion-ascii">${ASCII_ART.CHAMPION || 'CHAMPION'}</pre>
 				</div>
 				
-				<div class="winner-name" style="color: ${winner.color};">
-					${winner.name}
+				<div class="winner-container">
+					<div class="winner-name champion-name" style="color: ${winner.color}; text-shadow: 0 0 20px ${winner.color};">
+						${winner.name}
+					</div>
+					
+					<div class="winner-description">
+						Congratulations!
+					</div>
+					<div class="winner-description">
+						You are the Pong Tournament Champion!
+					</div>
 				</div>
 				
-				<div class="winner-description">
-					Congratulations! You are the Pong Tournament Champion!
-				</div>
-				
-				<div class="tournament-controls">
-					<button class="menu-button back-button">Back to Menu</button>
+				<div class="tournament-footer">
+					<button class="menu-button back-button-centered" onclick="${() => this.handleEndTournament()}">
+						Back to Menu
+					</button>
 				</div>
 			</div>
 		`;
@@ -172,23 +210,51 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 			});
 		}
 		
-		// Set up back button
-		const backButton = this.container.querySelector('.back-button');
+		// Set up back button (including the centered one for the winner screen)
+		const backButton = this.container.querySelector('.back-button, .back-button-centered');
 		if (backButton) {
 			const newButton = backButton.cloneNode(true);
 			backButton.parentNode?.replaceChild(newButton, backButton);
 			
-			newButton.addEventListener('click', () => {
-				if (!this.inTransition) {
-					this.inTransition = true;
-					this.onBackToMenu();
-					setTimeout(() => this.inTransition = false, 100);
-				}
-			});
+			// If it's the centered button on winner screen, use handleEndTournament
+			if ((newButton as HTMLElement).classList.contains('back-button-centered')) {
+				newButton.addEventListener('click', () => {
+					if (!this.inTransition) {
+						this.inTransition = true;
+						this.handleEndTournament();
+						setTimeout(() => this.inTransition = false, 100);
+					}
+				});
+			} else {
+				// Regular back button behavior
+				newButton.addEventListener('click', () => {
+					if (!this.inTransition) {
+						this.inTransition = true;
+						this.onBackToMenu();
+						setTimeout(() => this.inTransition = false, 100);
+					}
+				});
+			}
 		}
 	}
 	
 	private handleCancelTournament(): void {
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		
+		// Clear the tournament cache
+		TournamentCache.clearTournament();
+		this.hide();
+		this.onBackToMenu();
+		
+		setTimeout(() => {
+			this.inTransition = false;
+		}, 100);
+	}
+	
+	// Add this new method to handle ending the tournament and clearing cache
+	private handleEndTournament(): void {
 		if (this.inTransition) return;
 		
 		this.inTransition = true;
@@ -230,20 +296,24 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const matches = TournamentCache.getTournamentMatches();
 		const phase = TournamentCache.getTournamentPhase();
 		
-		// If tournament hasn't started yet, mark it as started
-		if (phase === 'not_started') {
-			TournamentCache.setTournamentPhase('pool');
+		console.log("proceedToNextMatch called", { currentIndex, phase });
+		
+		// If tournament is already complete, show winner screen directly
+		if (phase === 'complete') {
+			this.showTournamentWinner();
+			return;
+		}
+		
+		// If it's the first match of the pool phase, start it directly
+		const currentMatch = TournamentCache.getCurrentMatch();
+		if (phase === 'pool' && (!currentMatch || currentMatch.gamesPlayed === 0) && currentIndex === 0) {
 			this.onContinue(); // Start the first match
 			return;
 		}
 		
-		// Mark current match as complete if valid
-		if (currentIndex >= 0 && currentIndex < matches.length) {
-			TournamentCache.completeCurrentMatch();
-		}
-		
 		// Find next match
 		const nextIndex = TournamentCache.findNextMatchIndex();
+		console.log("Next match index:", nextIndex);
 		
 		if (nextIndex >= 0) {
 			// Check if moving to finals
@@ -283,11 +353,11 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		// Hide tournament screen
 		this.hide();
 		
-		// Get player info for the next match
+		// Get player info for the next match - don't use player IDs as array indices
 		return {
 			playerIds: [
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player1Id].id,
-				TournamentCache.getTournamentPlayers()[nextMatch.matchInfo.player2Id].id
+				nextMatch.matchInfo.player1Id,
+				nextMatch.matchInfo.player2Id
 			],
 			playerNames: [
 				nextMatch.matchInfo.player1Name,

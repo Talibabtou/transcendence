@@ -17,7 +17,7 @@ import { GameMode } from '@shared/types';
 enum GameState {
 	MENU = 'menu',
 	PLAYER_REGISTRATION = 'player_registration',
-	TOURNAMENT_TRANSITION = 'tournament_transition',
+	TOURNAMENT = 'tournament',
 	PLAYING = 'playing',
 	GAME_OVER = 'game_over'
 }
@@ -97,6 +97,16 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameManager.setOnGameOverCallback((result) => {
 			// Store the result before changing state
 			console.log("Game over callback with result:", result);
+			
+			// If in tournament mode, process the result in the tournament component
+			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
+				// Process the game result in the tournament
+				this.TournamentComponent.processGameResult(
+					result.player1Score,
+					result.player2Score,
+					result.matchId
+				);
+			}
 			
 			// Force transition to game over state
 			this.updateGameState(GameState.GAME_OVER);
@@ -200,12 +210,11 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameOverComponent = new GameOverComponent(
 			this.gameContainer,
 			this.handlePlayAgain.bind(this),
-			this.handleBackToMenu.bind(this)
+			this.handleBackToMenu.bind(this),
+			this.handleShowTournamentSchedule.bind(this)
 		);
 
 		this.canvasComponent = new GameCanvasComponent(this.gameContainer);
-
-		// No explicit renderComponent() calls here - let the state system handle it
 	}
 	
 	// =========================================
@@ -237,7 +246,7 @@ export class GameComponent extends Component<GameComponentState> {
 				this.showPlayerRegistration();
 				break;
 				
-			case GameState.TOURNAMENT_TRANSITION:
+			case GameState.TOURNAMENT:
 				this.showTournamentTransition();
 				break;
 				
@@ -896,7 +905,7 @@ export class GameComponent extends Component<GameComponentState> {
 
 	// Add this method if you don't have it
 	private handleShowTournamentSchedule = (): void => {
-		this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+		this.updateGameState(GameState.TOURNAMENT);
 	};
 
 	// Add this new handler method
@@ -911,6 +920,6 @@ export class GameComponent extends Component<GameComponentState> {
 		this.updateInternalState({ currentMode: GameMode.TOURNAMENT });
 		
 		// Update the game state to show tournament transition
-		this.updateGameState(GameState.TOURNAMENT_TRANSITION);
+		this.updateGameState(GameState.TOURNAMENT);
 	}
 }

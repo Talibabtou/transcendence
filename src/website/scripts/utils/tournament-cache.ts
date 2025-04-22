@@ -34,7 +34,7 @@ interface TournamentMatch {
 /**
  * Tournament state types
  */
-export type TournamentPhase = 'not_started' | 'pool' | 'finals' | 'complete';
+export type TournamentPhase = 'pool' | 'finals' | 'complete';
 
 /**
  * Singleton class for tournament caching and management
@@ -47,7 +47,7 @@ class TournamentCacheSingleton {
 	private tournamentPlayers: TournamentPlayer[] = [];
 	private tournamentMatches: TournamentMatch[] = [];
 	private currentMatchIndex: number = 0;
-	private tournamentPhase: TournamentPhase = 'not_started';
+	private tournamentPhase: TournamentPhase = 'pool';
 	private currentGameInMatch: number = 0;
 	
 	private constructor() {}
@@ -150,7 +150,7 @@ class TournamentCacheSingleton {
 	 * Get the current match information
 	 */
 	public getCurrentMatch(): TournamentMatch | null {
-		if (this.tournamentPhase === 'not_started' || this.tournamentPhase === 'complete') {
+		if (this.tournamentPhase === 'complete') {
 			return null;
 		}
 		
@@ -166,7 +166,19 @@ class TournamentCacheSingleton {
 	 */
 	public recordGameResult(player1Score: number, player2Score: number, matchId?: number): void {
 		const currentMatch = this.getCurrentMatch();
-		if (!currentMatch) return;
+		if (!currentMatch) {
+			console.error("Cannot record game result: No current match found");
+			return;
+		}
+		
+		console.log("Recording game result:", { 
+			player1Score, 
+			player2Score, 
+			currentMatch: { 
+				player1Index: currentMatch.player1Index, 
+				player2Index: currentMatch.player2Index 
+			} 
+		});
 		
 		// Determine winner
 		const winnerIndex = player1Score > player2Score ? 
@@ -192,21 +204,10 @@ class TournamentCacheSingleton {
 			this.tournamentPlayers[currentMatch.player1Index].gamesLost++;
 		}
 		
-		// Check if match is complete (best of 3)
-		const player1Wins = currentMatch.games.filter(
-			g => g.winner === currentMatch.player1Index
-		).length;
-		
-		const player2Wins = currentMatch.games.filter(
-			g => g.winner === currentMatch.player2Index
-		).length;
-		
-		// Match is complete if either player has 2 wins
-		if (player1Wins === 2 || player2Wins === 2) {
-			this.completeCurrentMatch();
-		}
+		this.completeCurrentMatch();
 		
 		this.saveToLocalStorage();
+		console.log("Tournament state after recording result:", this.getTournamentData());
 	}
 	
 	/**
@@ -348,10 +349,14 @@ class TournamentCacheSingleton {
 		isComplete: boolean;
 		isCurrent: boolean;
 		isFinals: boolean;
+		games?: Array<{
+			player1Score: number;
+			player2Score: number;
+		}>;
 	}> {
 		return this.tournamentMatches.map((match, index) => {
 			const isFinalsMatch = match.isFinals;
-			const isPoolPhase = this.tournamentPhase === 'pool' || this.tournamentPhase === 'not_started';
+			const isPoolPhase = this.tournamentPhase === 'pool';
 			
 			// Determine player names - use '?' for finals during pool phase
 			const player1Name = (isFinalsMatch && isPoolPhase) 
@@ -362,18 +367,25 @@ class TournamentCacheSingleton {
 				? '?' 
 				: (match.player2Index >= 0 ? this.tournamentPlayers[match.player2Index].name : '?');
 
-			const player1Score = match.games.filter(g => g.winner === match.player1Index).length;
-			const player2Score = match.games.filter(g => g.winner === match.player2Index).length;
-			
+			// Use actual game scores instead of win counts
+			const gameScores = match.completed && match.games.length > 0 ? {
+				player1Score: match.games[0].player1Score, 
+				player2Score: match.games[0].player2Score
+			} : undefined;
+
 			return {
 				matchIndex: index,
 				player1Name: player1Name,
 				player2Name: player2Name,
-				player1Score: match.completed ? player1Score : undefined,
-				player2Score: match.completed ? player2Score : undefined,
+				player1Score: gameScores?.player1Score,
+				player2Score: gameScores?.player2Score,
 				isComplete: match.completed,
 				isCurrent: index === this.currentMatchIndex,
-				isFinals: isFinalsMatch
+				isFinals: isFinalsMatch,
+				games: match.games.map(game => ({
+					player1Score: game.player1Score,
+					player2Score: game.player2Score
+				}))
 			};
 		});
 	}
@@ -401,7 +413,7 @@ class TournamentCacheSingleton {
 		this.tournamentMatches = [];
 		this.currentMatchIndex = 0;
 		this.currentGameInMatch = 0;
-		this.tournamentPhase = 'not_started';
+		this.tournamentPhase = 'pool';
 		localStorage.removeItem('tournament_state');
 		localStorage.removeItem('tournament_timestamp');
 	}
@@ -478,8 +490,8 @@ class TournamentCacheSingleton {
 			this.tournamentMatches[0].isCurrent = true;
 		}
 		
-		// Set initial phase
-		this.tournamentPhase = 'not_started';
+		// Set initial phase as POOL directly instead of not_started
+		this.tournamentPhase = 'pool';
 		
 		console.log('Tournament initialized:', { 
 			players: this.tournamentPlayers,
@@ -599,7 +611,7 @@ class TournamentCacheSingleton {
 	 * Start the tournament
 	 */
 	public startTournament(): void {
-		if (this.tournamentPhase !== 'not_started') return;
+		if (this.tournamentPhase !== 'pool') return;
 		
 		this.setTournamentPhase('pool');
 		this.shuffleTournamentMatches();

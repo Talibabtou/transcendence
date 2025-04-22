@@ -359,7 +359,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			<div class="play-button-container">
 				${isReady ? html`
 					<button class="menu-button play-button" onclick=${() => this.startGame()}>
-						${state.gameMode === GameMode.TOURNAMENT ? 'Show Pool' : 'Play Now'}
+						${state.gameMode === GameMode.TOURNAMENT ? 'Show Tournament Schedule' : 'Play Now'}
 					</button>
 				` : ''}
 			</div>
@@ -716,8 +716,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				state.host.theme || '#ffffff',
 				...connectedGuests.map(g => g.theme || '#ffffff')
 			];
-			
-			// Hide any existing menu
+
 			document.getElementById('game-menu')?.remove();
 			
 			this.onAllPlayersRegistered(playerIds, playerNames, playerColors);
