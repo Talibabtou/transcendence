@@ -5,12 +5,11 @@ import matchRoutes from './routes/match.routes.js';
 import systemRoutes from './routes/system.routes.js';
 import databaseConnector from './db.js';
 import { startTelemetry } from './telemetry/telemetry.js';
-import { API_PREFIX } from './shared/constants/path.const.js';
 
 async function routes(server: FastifyInstance) {
-  await server.register(eloRoutes, { prefix: API_PREFIX });
-	await server.register(goalRoutes, { prefix: API_PREFIX });
-	await server.register(matchRoutes, { prefix: API_PREFIX });
+  await server.register(eloRoutes);
+	await server.register(goalRoutes);
+	await server.register(matchRoutes);
   await server.register(systemRoutes);
 }
 

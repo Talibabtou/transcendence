@@ -50,7 +50,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
       //   return reply.code(403).send(errorMessage);
       // }
     } catch (err) {
-      if (err instanceof Error && err.message.includes('FST_JWT_AUTHORIZATION_TOKEN_EXPIRED')) {
+      if (err instanceof Error && err.message.includes('expired')) {
           request.server.log.error("JWT verification failed", {
             error: err.message,
             ip: request.ip,

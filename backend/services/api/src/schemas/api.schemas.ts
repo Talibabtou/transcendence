@@ -56,7 +56,17 @@ export const getPicsSchema = {
 
 export const getHealthSchema = {
   response: {
-    200: {}
+    200: {
+      type: 'object',
+      properties: {
+        profil: { type: 'boolean' },
+        auth: { type: 'boolean' },
+        game: { type: 'boolean' },
+        friends: { type: 'boolean' },
+      },
+      required: ['profil', 'auth', 'game', 'friends'],
+      additionalProperties: false
+    },
   }
 }
 

@@ -83,7 +83,7 @@ export async function getFriend(request: FastifyRequest<{ Querystring: IId, Para
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND)
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send(JSON.parse(friend));
+    return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR)
@@ -146,7 +146,7 @@ export async function patchFriend(request: FastifyRequest<{ Body: IId, Params: I
 
 export async function deleteFriends(request: FastifyRequest<{ Params: IId}>, reply: FastifyReply): Promise<void> {
   try {
-    const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? AND id_2 = ?', [request.params.id, request.params.id]);
+    const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? OR id_2 = ?', [request.params.id, request.params.id]);
     if (result.changes === 0) {
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
@@ -173,3 +173,4 @@ export async function deleteFriend(request: FastifyRequest<{ Querystring: IId, P
     return reply.code(500).send(errorMessage);
   }
 }
+

@@ -60,7 +60,7 @@ export const createEloSchema = {
     type: 'object',
     properties: {
       player: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
-			elo: { type: ['integer'], minimum: 0, default: 1000 },
+			elo: { type: 'integer', minimum: 0, default: 1000 },
 		},
     required: ['player', 'elo']
   },

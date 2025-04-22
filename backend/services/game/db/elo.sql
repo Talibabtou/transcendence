@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS elo (
     lower(hex(randomblob(6)))
   ), -- Auto-generated UUID
   player TEXT NOT NULL, -- UUID
-  elo INTEGER NOT NULL,
+  elo INTEGER NOT NULL DEFAULT 1000,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

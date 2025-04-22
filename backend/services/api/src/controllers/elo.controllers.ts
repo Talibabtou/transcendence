@@ -57,7 +57,13 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
           },
           body: JSON.stringify(request.body)
         });
+        console.log({
+          response: response
+        })
         const responseData = await response.json() as Elo | ErrorResponse;
+        console.log({
+          elo: responseData
+        })
         return reply.code(response.status).send(responseData);
       } catch (err) {
         request.server.log.error(err);

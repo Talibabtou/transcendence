@@ -17,26 +17,9 @@ declare module 'fastify' {
 }
 
 // Initialize database connection
-async function dbConnector(fastify: FastifyInstance) {
-  const env = process.env.NODE_ENV || 'development'
-  
+async function dbConnector(fastify: FastifyInstance) { 
   // Select database based on environment
-  let dbPath: string
-  
-  switch (env) {
-    case 'test':
-      dbPath = ':memory:' // Use in-memory database for tests
-      break
-    case 'development':
-      dbPath = path.join(__dirname, 'game.dev.sqlite')
-      break
-    case 'production':
-      // Use environment variable for production database path
-      dbPath = process.env.DB_PATH || path.join(__dirname, 'game.sqlite')
-      break
-    default:
-      dbPath = path.join(__dirname, 'game.dev.sqlite')
-  }
+  const dbPath: string = path.join(path.resolve(), 'db/game.dev.sqlite')
   
   fastify.log.info(`Connecting to database: ${dbPath}`)
   
@@ -52,14 +35,10 @@ async function dbConnector(fastify: FastifyInstance) {
   // Set synchronous mode to NORMAL for better performance
   await db.exec('PRAGMA synchronous = NORMAL');
   // Set locking mode to EXCLUSIVE
-  await db.exec('PRAGMA locking_mode = EXCLUSIVE');
+  // await db.exec('PRAGMA locking_mode = EXCLUSIVE');
   await db.exec('PRAGMA foreign_keys = ON');
   
   // Read SQL commands from files
-  console.log({
-    dirname: __dirname,
-    path: path.join(__dirname, '../db/match.sql')
-   })
   const matchSql = fs.readFileSync(path.join(__dirname, '../db/match.sql'), 'utf-8')
   const goalSql = fs.readFileSync(path.join(__dirname, '../db/goal.sql'), 'utf-8')
 	const eloSql = fs.readFileSync(path.join(__dirname, '../db/elo.sql'), 'utf-8')

@@ -46,9 +46,11 @@ export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply
       const subpath = request.url.split('/friends')[1];
       const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
-      const friend = await response.json() as IReplyGetFriend | ErrorResponse;
-      console.log(friend);
-      return reply.code(response.status).send(friend);
+      if (response.status >= 400) {
+        const responseData = await response.json() as ErrorResponse;
+        return reply.code(response.status).send(responseData);
+      }
+      return reply.code(response.status).send();
     } catch (err) {
       request.server.log.error(err);
       const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

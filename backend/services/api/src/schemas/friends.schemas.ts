@@ -65,14 +65,7 @@ export const getCheckSchema = {
       additionalProperties: false
     },
     response: {
-      200: {
-        type: 'object',
-        properties: {
-          friendExists: { type: 'boolean' },
-        },
-        required: ['friendExists'],
-        additionalProperties: false
-      },
+      204: {},
       404: {
         ...errorResponseSchema,
         example: ErrorExamples.friendshipNotFound
@@ -89,7 +82,7 @@ export const getCheckSchema = {
   }
 
 export const postCreateSchema = {
-    Body: {
+    body: {
       type: 'object',
       properties: {
         id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
@@ -115,7 +108,7 @@ export const postCreateSchema = {
   }
 
 export const patchAcceptSchema = {
-    Body: {
+    body: {
       type: 'object',
       properties: {
         id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
@@ -155,7 +148,7 @@ export const deleteAllSchema = {
   }
 
 export const deleteFriendSchema = {
-    Querystring: {
+  querystring: {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid', pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$' },
