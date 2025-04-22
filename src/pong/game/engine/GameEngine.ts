@@ -27,6 +27,7 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
+	public onGameOver?: (detail: any) => void;
 
 	// =========================================
 	// Lifecycle
@@ -440,38 +441,23 @@ export class GameEngine {
 	}
 
 	/**
-	 * Completes the match in the database
+	 * Completes the match and handles all game-over logic
 	 * @param winnerIndex - Index of the winning player (0 for player 1, 1 for player 2)
-	 * @param timeout - Whether the match ended due to timeout
 	 */
 	public completeMatch(_winnerIndex: number): void {
 		// Skip if already completed or in background demo
 		if (this.scene.isBackgroundDemo() || this.matchCompleted) {
 			return;
 		}
-
-		// Store game result in cache before completing match
-		this.dispatchGameOver();
 		
-		// Ensure we have a match ID
-		if (!this.matchId) {
-			if (this.gameMode === 'single' && this.playerIds.length > 0 && !this.matchCreated) {
-				// Last attempt to create match for single player
-				this.createMatch();
-				
-				if (!this.matchId) {
-					return;
-				}
-			} else {
-				return;
-			}
-		}
+		// Mark as completed immediately to prevent multiple calls
+		this.matchCompleted = true;
+		
+		// Store game result in cache
+		this.dispatchGameOver();
 		
 		// Stop the timer
 		this.isPaused = true;
-		
-		// Mark match as completed to prevent duplicates
-		this.matchCompleted = true;
 	}
 	
 	/**
@@ -671,14 +657,14 @@ export class GameEngine {
 		const player2 = this.scene.getPlayer2();
 		const winner = this.scene.getWinner();
 
-		// Get player names and scores correctly
+		// Get player names and scores
 		const player1Name = player1.name; 
 		const player2Name = player2.name;
 		const player1Score = player1.getScore();
 		const player2Score = player2.getScore();
 		const winnerName = winner ? winner.name : (player1Score > player2Score ? player1Name : player2Name);
 
-		// Store game result directly in cache
+		// Store game result in cache
 		import('@website/scripts/utils').then(({ MatchCache }) => {
 			// Store complete game info in cache
 			MatchCache.setLastMatchResult({
@@ -687,10 +673,9 @@ export class GameEngine {
 				player2Name: player2Name,
 				player1Score: player1Score,
 				player2Score: player2Score,
-				isBackgroundGame: false // Add this flag to indicate it's not a background game
+				isBackgroundGame: false
 			});
 
-			// Use proper GameMode enum values
 			MatchCache.setCurrentGameInfo({
 				gameMode: this.gameMode === 'single' ? GameMode.SINGLE : 
 						 this.gameMode === 'multi' ? GameMode.MULTI : 
@@ -700,15 +685,41 @@ export class GameEngine {
 				playerColors: this.playerColors
 			});
 
-			// Dispatch minimal game over event with isBackgroundGame flag
-			const gameOverEvent = new CustomEvent('gameOver', {
-				detail: {
+			// Call the callback instead of dispatching an event
+			if (this.onGameOver) {
+				this.onGameOver({
 					matchId: this.matchId,
 					gameMode: this.gameMode,
-					isBackgroundGame: false // Add this flag to event details
-				}
-			});
-			window.dispatchEvent(gameOverEvent);
+					isBackgroundGame: false,
+					player1Score: player1Score,
+					player2Score: player2Score,
+					player1Name: player1Name,
+					player2Name: player2Name,
+					winner: winnerName
+				});
+			}
 		});
+	}
+
+	/**
+	 * Checks if the game has reached a win condition and completes the match if needed
+	 * Should be called regularly as part of the game loop
+	 */
+	public checkWinCondition(): void {
+		// Skip if already completed or in background demo
+		if (this.matchCompleted || this.scene.isBackgroundDemo()) {
+			return;
+		}
+		
+		// Use the scene's isGameOver method to check the win condition
+		if (this.scene.isGameOver()) {
+			// Determine winner based on score
+			const player1 = this.scene.getPlayer1();
+			const player2 = this.scene.getPlayer2();
+			const winnerIndex = player1.getScore() > player2.getScore() ? 0 : 1;
+			
+			// Complete the match - this handles all game over logic
+			this.completeMatch(winnerIndex);
+		}
 	}
 }

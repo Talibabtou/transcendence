@@ -14,18 +14,27 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
 
 	private onModeSelected: (mode: GameMode) => void;
+	private onTournamentRestored: () => void;
+	private onShowTournamentSchedule: () => void;
 	
 	// =========================================
 	// INITIALIZATION
 	// =========================================
 	
-	constructor(container: HTMLElement, onModeSelected: (mode: GameMode) => void) {
+	constructor(
+		container: HTMLElement, 
+		onModeSelected: (mode: GameMode) => void,
+		onTournamentRestored: () => void,
+		onShowTournamentSchedule: () => void
+	) {
 		super(container, {
 			visible: true,
 			isAuthenticated: false
 		});
 		
 		this.onModeSelected = onModeSelected;
+		this.onTournamentRestored = onTournamentRestored;
+		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
 		// Check authentication status
 		this.checkAuthentication();
@@ -143,15 +152,8 @@ export class GameMenuComponent extends Component<GameMenuState> {
 						
 						if (hasRestoredTournament) {
 							// Skip the player registration completely
-							// Just dispatch the event to show tournament schedule
-							document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
-							
-							// We still need to notify GameComponent about the mode,
-							// but we'll add a flag to indicate it's a restored tournament
-							const customEvent = new CustomEvent('tournament-restored');
-							document.dispatchEvent(customEvent);
-							
-							// Don't call onModeSelected as it would trigger the normal flow
+							this.onShowTournamentSchedule();
+							this.onTournamentRestored();
 							return;
 						}
 					}

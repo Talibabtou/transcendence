@@ -62,6 +62,8 @@ export class GameManager {
 	// Add a cleanup lock to prevent recursive cleanup calls
 	private isCleaningUp: boolean = false;
 	
+	private onGameOverCallback: ((result: any) => void) | null = null;
+	
 	private constructor() {
 		// Mark that we're in bootstrap phase
 		GameManager.isBootstrapping = true;
@@ -156,6 +158,23 @@ export class GameManager {
 		}
 		// Create game engine
 		const gameEngine = new GameEngine(ctx);
+		gameEngine.onGameOver = (detail) => {
+			if (instance.isActive && instance.engine) {
+				// Directly call callbacks
+				this.notifyGameEnded(detail);
+				
+				// Schedule cleanup
+				if (instance.type === GameInstanceType.MAIN && !instance.cleanupScheduled) {
+					instance.cleanupScheduled = true;
+					setTimeout(() => {
+						if (instance.isActive) { 
+							this.cleanupGame(instance);
+						}
+						instance.cleanupScheduled = false;
+					}, 500);
+				}
+			}
+		};
 		// Initialize proper game mode
 		if (instance.type === GameInstanceType.MAIN) {
 			switch (mode) {
@@ -667,7 +686,7 @@ export class GameManager {
 	}
 
 	private setupGameEventListeners(instance: GameInstance): void {
-		// Clean up any existing listeners first
+		// Clean up any existing listeners
 		if (instance.eventListeners) {
 			instance.eventListeners.forEach(listenerInfo => {
 				window.removeEventListener(listenerInfo.type, listenerInfo.listener);
@@ -681,39 +700,9 @@ export class GameManager {
 		if (instance.type === GameInstanceType.BACKGROUND_DEMO) {
 			return;
 		}
-
-		// Create a listener function that we store as a property for later removal
-		const boundGameOverListener = function(event: Event) {
-			const customEvent = event as CustomEvent;
-			if (instance.isActive && instance.engine) {
-				
-				// Dispatch the game ended event
-				const gameManager = GameManager.getInstance();
-				gameManager.dispatchEvent(GameEvent.GAME_ENDED, customEvent.detail);
-				
-				// Schedule cleanup
-				if (instance.type === GameInstanceType.MAIN && !instance.cleanupScheduled) {
-					instance.cleanupScheduled = true;
-
-					setTimeout(() => {
-						// Check isActive again inside timeout, state might have changed
-						if (instance.isActive) { 
-							gameManager.cleanupGame(gameManager.mainGameInstance);
-						}
-						instance.cleanupScheduled = false; // Reset flag after timeout
-					}, 500); 
-				}
-			}
-		}.bind(this) as EventListener;
 		
-		// Store the bound function reference
-		instance.eventListeners.push({
-			type: 'gameOver',
-			listener: boundGameOverListener
-		});
-		
-		// Add the listener
-		window.addEventListener('gameOver', boundGameOverListener);
+		// We don't need the gameOver event listener anymore
+		// The engine's onGameOver callback will handle this
 	}
 
 	public getLastGameResult(): any {
@@ -728,5 +717,19 @@ export class GameManager {
 			// Never completely clean up the background game, just hide it
 			this.hideBackgroundGame();
 		}
+	}
+
+	private notifyGameEnded(data: any): void {
+		if (this.eventListeners.has(GameEvent.GAME_ENDED)) {
+			this.eventListeners.get(GameEvent.GAME_ENDED)!.forEach(callback => callback(data));
+		}
+		
+		if (this.onGameOverCallback) {
+			this.onGameOverCallback(data);
+		}
+	}
+
+	public setOnGameOverCallback(callback: (result: any) => void): void {
+		this.onGameOverCallback = callback;
 	}
 }

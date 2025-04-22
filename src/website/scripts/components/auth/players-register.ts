@@ -13,6 +13,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void;
 	private onBack: () => void;
 	private maxPlayers: number = 2;
+	private onShowTournamentSchedule?: () => void;
 	
 	// =========================================
 	// INITIALIZATION & LIFECYCLE
@@ -22,7 +23,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		container: HTMLElement, 
 		gameMode: GameMode, 
 		onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void,
-		onBack: () => void
+		onBack: () => void,
+		onShowTournamentSchedule: () => void
 	) {
 		super(container, {
 			gameMode,
@@ -34,6 +36,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
 		this.onBack = onBack;
+		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
 		// Set max players based on game mode
 		if (gameMode === GameMode.TOURNAMENT) {
@@ -717,13 +720,10 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			// Hide any existing menu
 			document.getElementById('game-menu')?.remove();
 			
-			// First pass player data to initialize tournament
 			this.onAllPlayersRegistered(playerIds, playerNames, playerColors);
-			
-			// Then show tournament schedule after a small delay to ensure initialization is complete
-			setTimeout(() => {
-				document.dispatchEvent(new CustomEvent('show-tournament-schedule'));
-			}, 100);
+			if (this.onShowTournamentSchedule) {
+				this.onShowTournamentSchedule();
+			}
 		}
 	}
 	

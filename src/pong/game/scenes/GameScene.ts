@@ -43,11 +43,6 @@ export class GameScene {
 	// =========================================
 	private gameEngine: any;
 
-	// =========================================
-	// Game Over Event
-	// =========================================
-	private _gameOverEventDispatched: boolean = false;
-
 	/**
 	 * Creates a new GameScene instance
 	 * @param context The canvas rendering context
@@ -95,7 +90,11 @@ export class GameScene {
 		
 		const deltaTime = this.calculateDeltaTime();
 		this.updateGameState(deltaTime);
-		this.checkWinCondition();
+		
+		// Instead of calling local checkWinCondition, let the engine handle it
+		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
+			this.gameEngine.checkWinCondition();
+		}
 	}
 
 	/**
@@ -477,66 +476,9 @@ export class GameScene {
 		return this.player1.getScore() >= this.winningScore ? this.player1 : this.player2;
 	}
 
-	private checkWinCondition(): void {
-		if (this.isGameOver()) {
-			// Only dispatch the gameOver event once by checking a flag
-			if (!this._gameOverEventDispatched) {
-				this._gameOverEventDispatched = true;
-				
-				// Skip game over events for background demo games
-				if (this.isBackgroundDemo()) {
-					return;
-				}
-				
-				// Complete the match in DB first
-				const player1Score = this.player1.getScore();
-				const player2Score = this.player2.getScore();
-				const winnerIndex = player1Score > player2Score ? 0 : 1;
-				
-				if (this.gameEngine && typeof this.gameEngine.completeMatch === 'function') {
-					try {
-						// Get the current match ID
-						const matchId = this.gameEngine.getMatchId ? this.gameEngine.getMatchId() : null;
-						
-						// Complete the match first
-						this.gameEngine.completeMatch(winnerIndex);
-						
-						// Determine winner name correctly - especially for single player
-						let winnerName;
-						if (this.isSinglePlayer()) {
-							winnerName = winnerIndex === 0 ? this.player1.name : "Computer";
-						} else {
-							winnerName = winnerIndex === 0 ? this.player1.name : this.player2.name;
-						}
-						
-						const gameResult = {
-							matchId,
-							player1Score,
-							player2Score,
-							player1Name: this.player1.name,
-							player2Name: this.isSinglePlayer() ? "Computer" : this.player2.name,
-							winner: winnerName
-						};
-						
-						const event = new CustomEvent('gameOver', { 
-							detail: gameResult,
-							bubbles: false
-						});
-						window.dispatchEvent(event);
-						
-						// Stop game timers
-						if (this.gameEngine.stopAllTimers) {
-							this.gameEngine.stopAllTimers();
-						}
-					} catch (error) {
-						console.error('Error during game completion:', error);
-					}
-				}
-			}
-		}
+	public getGameEngine(): any {
+		return this.gameEngine;
 	}
-
-	// =========================================
 	// Game Engine
 	// =========================================
 
@@ -547,9 +489,5 @@ export class GameScene {
 		if (this.pauseManager && typeof this.pauseManager.setGameEngine === 'function') {
 			this.pauseManager.setGameEngine(engine);
 		}
-	}
-
-	public getGameEngine(): any {
-		return this.gameEngine;
 	}
 }
