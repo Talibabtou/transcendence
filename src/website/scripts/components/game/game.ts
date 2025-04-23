@@ -855,9 +855,16 @@ export class GameComponent extends Component<GameComponentState> {
 				);
 			}
 			
-			// Show the tournament schedule
+			// Check tournament phase directly from cache
+			const phase = TournamentCache.getTournamentPhase();
+			
+			// Show the appropriate tournament screen based on phase
 			if (this.TournamentComponent) {
-				this.TournamentComponent.showTournamentSchedule();
+				if (phase === 'complete') {
+					this.TournamentComponent.showTournamentWinner();
+				} else {
+					this.TournamentComponent.showTournamentSchedule();
+				}
 			}
 			
 			// Reset transition flag

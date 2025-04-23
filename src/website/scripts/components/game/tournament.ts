@@ -187,7 +187,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				</div>
 				
 				<div class="tournament-footer">
-					<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
+					<button class="menu-button" onclick="${() => this.handleCancelTournament()}">
 						Back to Menu
 					</button>
 				</div>
@@ -229,11 +229,21 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	// Public methods to control screen visibility
 	
 	public showTournamentSchedule(): void {
+		// First check if tournament is complete - if so, force winner screen
+		const phase = TournamentCache.getTournamentPhase();
+		if (phase === 'complete') {
+			this.showTournamentWinner();
+			return;
+		}
+		
 		this.updateInternalState({
 			visible: true,
-			phase: TournamentCache.getTournamentPhase(),
+			phase: phase,
 			currentScreen: 'schedule'
 		});
+		
+		// Force a render to update the view
+		this.renderComponent();
 	}
 	
 	public showTournamentWinner(): void {
