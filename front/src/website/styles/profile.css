@@ -1,0 +1,376 @@
+/* Inherit base styles from leaderboard */
+.ascii-container {
+	max-width: 1200px;
+	margin: 2rem auto;
+	padding: 2rem;
+	background-color: rgba(0, 0, 0, 0.6);
+	border: 1px solid rgba(150, 150, 150, 0.5);
+	border-radius: 8px;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Profile specific styles */
+.profile-card {
+	width: 100%;
+	background-color: rgba(0, 0, 0, 0.6);
+	border-radius: 8px;
+	border: 1px solid #444;
+	box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+	padding: 1.5rem;
+}
+
+.profile-header {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	margin-bottom: 2rem;
+}
+
+.profile-avatar img {
+	width: 100px;
+	height: 100px;
+	border-radius: 50%;
+	border: 3px solid rgba(150, 150, 150, 0.8);
+	box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.profile-username {
+	font-family: var(--font-family);
+	font-size: 1.5rem;
+	color: var(--text-color);
+	margin: 0 0 0.5rem 0;
+	text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.profile-level {
+	font-family: var(--font-family);
+	color: var(--accent-color);
+	font-size: 1.1rem;
+	margin-bottom: 1rem;
+}
+
+.profile-stats {
+	display: flex;
+	gap: 2rem;
+}
+
+.stat {
+	text-align: center;
+}
+
+.stat-label {
+	font-family: var(--font-family);
+	color: var(--text-color);
+	font-size: 0.8rem;
+	display: block;
+	margin-bottom: 0.3rem;
+}
+
+.stat-value {
+	font-family: var(--font-family);
+	font-size: 1.2rem;
+	font-weight: bold;
+	color: var(--text-color);
+}
+
+.wins-value { color: var(--win-color); }
+.losses-value { color: var(--loss-color); }
+
+/* Tabs styling */
+.profile-tabs {
+	display: flex;
+	gap: 1px;
+	background-color: rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+	margin-bottom: 1.5rem;
+}
+
+.tab-button {
+	flex: 1;
+	padding: 0.75rem;
+	background: none;
+	border: none;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+}
+
+.tab-button:hover {
+	color: var(--text-color);
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-button.active {
+	color: var(--text-color);
+	background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Game history table */
+.game-history-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-family: var(--font-family);
+}
+
+.game-history-table th {
+	text-align: left;
+	padding: 0.75rem;
+	background-color: rgba(0, 0, 0, 0.5);
+	color: var(--text-color);
+	font-weight: bold;
+}
+
+.game-history-table td {
+	padding: 0.75rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-win { background-color: rgba(152, 251, 152, 0.1); }
+.game-loss { background-color: rgba(255, 160, 122, 0.1); }
+
+.result-cell-win { color: var(--win-color); }
+.result-cell-loss { color: var(--loss-color); }
+
+.opponent-cell {
+	cursor: pointer;
+	transition: color 0.2s;
+}
+
+.opponent-cell:hover {
+	color: var(--accent-color);
+}
+
+
+/* Layout */
+.profile-layout {
+	display: grid;
+	grid-template-columns: 180px 1fr;
+	gap: var(--spacing-md);
+	height: calc(100vh - 200px);
+	min-height: 600px;
+	max-height: 800px;
+	overflow: hidden;
+}
+
+/* Navigation */
+.profile-nav {
+	background: var(--menu-bg);
+	border-radius: 8px;
+	padding: var(--spacing-xs);
+	height: 100%;
+	border: 1px solid var(--border-color);
+}
+
+.nav-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.nav-item {
+	margin: 0.25rem 0;
+}
+
+.nav-button {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	padding: 0.75rem 1rem;
+	background: none;
+	border: none;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all var(--transition-fast);
+	text-align: left;
+	font-size: 0.9rem;
+	border-radius: 4px;
+}
+
+.nav-button:hover {
+	background: rgba(255, 255, 255, 0.1);
+	color: var(--text-color);
+}
+
+.nav-item.active .nav-button {
+	background: rgba(0, 0, 0, 0.4);
+	color: var(--accent-color);
+	border-left: 2px solid var(--accent-color);
+}
+
+.nav-icon {
+	margin-right: 0.75rem;
+	font-size: 1rem;
+	min-width: 20px;
+	text-align: center;
+}
+
+/* Main Content Area */
+.profile-main {
+	background: rgba(0, 0, 0, 0.6);
+	border-radius: 8px;
+	padding: 1.5rem;
+	height: 100%;
+	border: 1px solid rgba(150, 150, 150, 0.2);
+	overflow-y: auto;
+}
+
+/* Summary Section */
+.profile-hero {
+	display: flex;
+	gap: 2rem;
+	padding: 1.5rem;
+	background: rgba(0, 0, 0, 0.4);
+	border-radius: 8px;
+	margin-bottom: 1.5rem;
+	border: 1px solid rgba(150, 150, 150, 0.2);
+}
+
+.profile-avatar-large img {
+	width: 150px;
+	height: 150px;
+	border-radius: 50%;
+	border: 3px solid rgba(150, 150, 150, 0.8);
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+	background-color: #2a2a2a;
+	object-fit: cover;
+}
+
+/* Friends styles */
+.friends-list {
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+.friend-card {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem;
+	background: rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.friend-avatar {
+	width: 48px;
+	height: 48px;
+	border-radius: 50%;
+}
+
+.friend-info {
+	flex: 1;
+}
+
+.friend-name {
+	display: block;
+	color: var(--text-color);
+	font-family: var(--font-family);
+}
+
+.friend-status {
+	font-size: 0.8rem;
+	font-family: var(--font-family);
+}
+
+.friend-status.online { color: #98FB98; }
+.friend-status.offline { color: #aaa; }
+.friend-status.in-game { color: #7cf; }
+
+/* Messages styles */
+.messages-container {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+}
+
+.conversations-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	max-height: 500px;
+	overflow-y: auto;
+}
+
+.conversation {
+	background: rgba(0, 0, 0, 0.3);
+	border-radius: 4px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.conversation-header {
+	padding: 0.75rem;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.messages-list {
+	padding: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.message {
+	max-width: 80%;
+	padding: 0.5rem 1rem;
+	border-radius: 4px;
+	font-family: var(--font-family);
+}
+
+.message.sent {
+	align-self: flex-end;
+	background: rgba(124, 204, 255, 0.1);
+}
+
+.message.received {
+	align-self: flex-start;
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.message-time {
+	font-size: 0.7rem;
+	color: var(--text-color);
+	margin-top: 0.25rem;
+}
+
+/* Recent games modifications */
+.recent-games {
+	margin-top: 1rem;
+}
+
+/* Tab content visibility */
+.tab-pane {
+	display: none;
+}
+
+.tab-pane.active {
+	display: block;
+}
+
+.color-picker {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin-bottom: 20px;
+}
+
+.color-option {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+	border: 2px solid transparent;
+}
+
+.color-option:hover {
+	transform: scale(1.1);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
