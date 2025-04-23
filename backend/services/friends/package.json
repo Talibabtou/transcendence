@@ -26,6 +26,7 @@
     "typescript": "^5.8.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.17"
+    "@types/node": "^22.13.17",
+    "prettier": "^3.5.3"
   }
 }

@@ -16,9 +16,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@fastify/jwt": "^9.1.0",
     "@tsconfig/node23": "^23.0.0",
     "@types/node-fetch": "^2.6.12",
-    "@fastify/jwt": "^9.1.0",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "sqlite": "^5.1.1",
@@ -27,6 +27,7 @@
     "typescript": "^5.8.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.17"
+    "@types/node": "^22.13.17",
+    "prettier": "^3.5.3"
   }
 }
