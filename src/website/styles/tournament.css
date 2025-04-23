@@ -171,14 +171,20 @@
 }
 
 /* ===== WINNER STYLES ===== */
-.winner-name {
+.winner-name:not(.match-player) {
 	padding-top: 7rem;
 	font-size: 6rem;
 	font-weight: bold;
 	text-align: center;
 }
 
-.loser-name {
+.match-player.winner-name {
+	font-size: 1.3rem;
+	color: var(--win-color);
+	text-shadow: 0 0 5px var(--win-color);
+}
+
+.match-player.loser-name {
 	font-size: 1.3rem;
 	color: var(--loss-color);
 	text-shadow: 0 0 5px var(--loss-color);

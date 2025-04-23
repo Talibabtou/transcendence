@@ -135,7 +135,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		if (state.gameMode === GameMode.MULTI) {
 			template = html`
-				<button class="back-button nav-item" onclick=${() => this.handleBack()}>
+				<button class="back-button nav-item" onclick="${() => this.handleBack()}">
 					← Back
 				</button>
 				
@@ -169,7 +169,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const nextAuthIndex = state.guests.filter(g => g && g.isConnected).length;
 			
 			template = html`
-				<button class="back-button nav-item" onclick=${() => this.handleBack()}>
+				<button class="back-button nav-item" onclick="${() => this.handleBack()}">
 					← Back
 				</button>
 
@@ -280,7 +280,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick=${() => this.handleHostColorSelect(colorName, colorHex)}
+								onclick="${() => this.handleHostColorSelect(colorName, colorHex)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -290,7 +290,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick=${() => this.handleHostColorSelect(colorName, colorHex)}
+								onclick="${() => this.handleHostColorSelect(colorName, colorHex)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -324,7 +324,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${guest.theme === colorHex ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
+								onclick="${() => this.handleGuestColorSelect(colorHex, guest.id)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -334,7 +334,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${guest.theme === colorHex ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick=${() => this.handleGuestColorSelect(colorHex, guest.id)}
+								onclick="${() => this.handleGuestColorSelect(colorHex, guest.id)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -358,8 +358,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		return html`
 			<div class="play-button-container">
 				${isReady ? html`
-					<button class="menu-button play-button" onclick=${() => this.startGame()}>
-						${state.gameMode === GameMode.TOURNAMENT ? 'Show Tournament Schedule' : 'Play Now'}
+					<button class="menu-button play-button" onclick="${() => this.startGame()}">
+						${state.gameMode === GameMode.TOURNAMENT ? 'Start Tournament' : 'Play Now'}
 					</button>
 				` : ''}
 			</div>

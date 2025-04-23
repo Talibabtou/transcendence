@@ -77,24 +77,27 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			return;
 		}
 		
-		// Add game menu with ASCII art title
+		// Add game menu with ASCII art title - with direct event handlers
 		let menuContent;
 		
 		if (state.isAuthenticated) {
-			// User is authenticated, show game mode options
+			// User is authenticated, show game mode options with direct handlers
 			menuContent = html`
 				<div id="game-menu" class="game-menu">
 					<div class="ascii-title">
 						<pre class="pong-title">${ASCII_ART.PONG}</pre>
 					</div>
 					<div class="menu-buttons">
-						<button class="menu-button" data-mode="${GameMode.SINGLE}">
+						<button class="menu-button" 
+								onclick="${() => this.handleModeSelection(GameMode.SINGLE)}">
 							Single Player
 						</button>
-						<button class="menu-button" data-mode="${GameMode.MULTI}">
+						<button class="menu-button" 
+								onclick="${() => this.handleModeSelection(GameMode.MULTI)}">
 							Multiplayer
 						</button>
-						<button class="menu-button" data-mode="${GameMode.TOURNAMENT}">
+						<button class="menu-button" 
+								onclick="${() => this.handleModeSelection(GameMode.TOURNAMENT)}">
 							Tournament
 						</button>
 					</div>
@@ -108,7 +111,8 @@ export class GameMenuComponent extends Component<GameMenuState> {
 						<pre class="pong-title">${ASCII_ART.PONG}</pre>
 					</div>
 					<div class="menu-buttons">
-						<button class="menu-button auth-trigger">
+						<button class="menu-button auth-trigger" 
+								onclick="${() => this.showAuthComponent()}">
 							Connect to Play
 						</button>
 					</div>
@@ -117,7 +121,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		}
 		
 		render(menuContent, this.container);
-		this.setupEventListeners();
 	}
 	
 	destroy(): void {
@@ -126,51 +129,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		document.removeEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
 		
 		super.destroy();
-	}
-	
-	// =========================================
-	// EVENT HANDLING
-	// =========================================
-	
-	/**
-	 * Sets up event listeners for menu buttons
-	 */
-	private setupEventListeners(): void {
-		const state = this.getInternalState();
-		
-		if (state.isAuthenticated) {
-			// Set up game mode selection buttons
-			const buttons = this.container.querySelectorAll('.menu-button[data-mode]');
-			buttons.forEach(button => {
-				button.addEventListener('click', (e) => {
-					const mode = (e.target as HTMLElement).getAttribute('data-mode') as GameMode;
-					
-					// Special handling for tournament mode
-					if (mode === GameMode.TOURNAMENT) {
-						// Try to restore tournament state
-						const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
-						
-						if (hasRestoredTournament) {
-							// Skip the player registration completely
-							this.onShowTournamentSchedule();
-							this.onTournamentRestored();
-							return;
-						}
-					}
-					
-					// Normal flow for other modes or new tournament
-					this.onModeSelected(mode);
-				});
-			});
-		} else {
-			// Set up auth trigger button
-			const authButton = this.container.querySelector('.auth-trigger');
-			if (authButton) {
-				authButton.addEventListener('click', () => {
-					this.showAuthComponent();
-				});
-			}
-		}
 	}
 	
 	/**
@@ -209,5 +167,31 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
+	}
+	
+	// =========================================
+	// HANDLER METHODS
+	// =========================================
+	
+	/**
+	 * Handles game mode selection
+	 */
+	private handleModeSelection(mode: GameMode): void {
+		// Special handling for tournament mode
+		if (mode === GameMode.TOURNAMENT) {
+			// Try to restore tournament state
+			const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
+			
+			if (hasRestoredTournament) {
+				// Skip the player registration completely
+				console.log("Restored tournament from localStorage");
+				this.onShowTournamentSchedule();
+				this.onTournamentRestored();
+				return;
+			}
+		}
+		
+		// Normal flow for other modes or new tournament
+		this.onModeSelected(mode);
 	}
 }

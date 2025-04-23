@@ -55,7 +55,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		
 		const content = screenRenderers[state.currentScreen]?.call(this) || this.renderTournamentSchedule();
 		render(content, this.container);
-		this.setupEventListeners();
 		
 		// Display tournament state and expiration info (for debugging)
 		const tournament = TournamentCache.getTournamentData();
@@ -140,7 +139,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		});
 		
 		return html`
-			<button class="back-button nav-item" onclick="${() => this.onBackToMenu()}">
+			<button class="back-button nav-item" onclick="${() => this.handleBackToMenu()}">
 				← Back
 			</button>
 			
@@ -157,7 +156,9 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 			</div>
 			
 			<div class="tournament-controls">
-				<button class="menu-button continue-button">${buttonText}</button>
+				<button class="menu-button continue-button" onclick="${() => this.handleContinueButton()}">
+					${buttonText}
+				</button>
 			</div>
 		`;
 	}
@@ -186,7 +187,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				</div>
 				
 				<div class="tournament-footer">
-					<button class="menu-button back-button-centered" onclick="${() => this.handleEndTournament()}">
+					<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
 						Back to Menu
 					</button>
 				</div>
@@ -194,67 +195,23 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		`;
 	}
 	
-	private setupEventListeners(): void {
-		const continueButton = this.container.querySelector('.continue-button');
-		
-		if (continueButton) {
-			const newButton = continueButton.cloneNode(true);
-			continueButton.parentNode?.replaceChild(newButton, continueButton);
-			
-			newButton.addEventListener('click', () => {
-				if (!this.inTransition) {
-					this.inTransition = true;
-					this.onContinue();
-					setTimeout(() => this.inTransition = false, 100);
-				}
-			});
+	private handleBackToMenu(): void {
+		if (!this.inTransition) {
+			this.inTransition = true;
+			this.onBackToMenu();
+			setTimeout(() => this.inTransition = false, 100);
 		}
-		
-		// Set up back button (including the centered one for the winner screen)
-		const backButton = this.container.querySelector('.back-button, .back-button-centered');
-		if (backButton) {
-			const newButton = backButton.cloneNode(true);
-			backButton.parentNode?.replaceChild(newButton, backButton);
-			
-			// If it's the centered button on winner screen, use handleEndTournament
-			if ((newButton as HTMLElement).classList.contains('back-button-centered')) {
-				newButton.addEventListener('click', () => {
-					if (!this.inTransition) {
-						this.inTransition = true;
-						this.handleEndTournament();
-						setTimeout(() => this.inTransition = false, 100);
-					}
-				});
-			} else {
-				// Regular back button behavior
-				newButton.addEventListener('click', () => {
-					if (!this.inTransition) {
-						this.inTransition = true;
-						this.onBackToMenu();
-						setTimeout(() => this.inTransition = false, 100);
-					}
-				});
-			}
+	}
+	
+	private handleContinueButton(): void {
+		if (!this.inTransition) {
+			this.inTransition = true;
+			this.onContinue();
+			setTimeout(() => this.inTransition = false, 100);
 		}
 	}
 	
 	private handleCancelTournament(): void {
-		if (this.inTransition) return;
-		
-		this.inTransition = true;
-		
-		// Clear the tournament cache
-		TournamentCache.clearTournament();
-		this.hide();
-		this.onBackToMenu();
-		
-		setTimeout(() => {
-			this.inTransition = false;
-		}, 100);
-	}
-	
-	// Add this new method to handle ending the tournament and clearing cache
-	private handleEndTournament(): void {
 		if (this.inTransition) return;
 		
 		this.inTransition = true;

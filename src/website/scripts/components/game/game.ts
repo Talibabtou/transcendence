@@ -85,14 +85,6 @@ export class GameComponent extends Component<GameComponentState> {
 			this.handleStateChange(newState);
 		});
 		
-		// Bind the handlers
-		this.handleShowTournamentSchedule = this.handleShowTournamentSchedule.bind(this);
-		this.handleCancelTournament = this.handleCancelTournament.bind(this);
-		
-		// Add listeners
-		document.addEventListener('show-tournament-schedule', this.handleShowTournamentSchedule);
-		document.addEventListener('cancel-tournament', this.handleCancelTournament);
-		
 		// Set game over callback
 		this.gameManager.setOnGameOverCallback((result) => {
 			// Store the result before changing state
@@ -141,10 +133,6 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.unsubscribe) {
 			this.unsubscribe();
 		}
-		
-		// Remove document listeners
-		document.removeEventListener('show-tournament-schedule', this.handleShowTournamentSchedule);
-		document.removeEventListener('cancel-tournament', this.handleCancelTournament);
 		
 		// Clean up the main game
 		if (this.canvasComponent) {
@@ -907,13 +895,6 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleShowTournamentSchedule = (): void => {
 		this.updateGameState(GameState.TOURNAMENT);
 	};
-
-	// Add this new handler method
-	private handleCancelTournament(): void {
-		// Clear the tournament cache
-		TournamentCache.clearTournament();
-		this.handleBackToMenu();
-	}
 
 	private handleTournamentRestored(): void {
 		// Set the appropriate game mode

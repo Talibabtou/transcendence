@@ -118,12 +118,24 @@ export class GameOverComponent extends Component<GameOverState> {
 						<div class="go-buttons">
 							${state.gameMode === GameMode.TOURNAMENT 
 								? html`
-									<button class="menu-button show-pool-button">Show Pool</button>
-									<button class="menu-button back-menu-button">Back to Menu</button>
+									<button class="menu-button show-pool-button" 
+											onclick="${() => this.handleShowTournamentSchedule()}">
+										Show Pool
+									</button>
+									<button class="menu-button back-menu-button" 
+											onclick="${() => this.handleBackToMenu()}">
+										Back to Menu
+									</button>
 								`
 								: html`
-									<button class="menu-button play-again-button">Play Again</button>
-									<button class="menu-button back-menu-button">Back to Menu</button>
+									<button class="menu-button play-again-button" 
+											onclick="${() => this.handlePlayAgain()}">
+										Play Again
+									</button>
+									<button class="menu-button back-menu-button" 
+											onclick="${() => this.handleBackToMenu()}">
+										Back to Menu
+									</button>
 								`}
 						</div>
 					</div>
@@ -132,7 +144,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		`;
 		
 		render(content, this.container);
-		this.setupEventListeners();
 	}
 	
 	destroy(): void {
@@ -158,69 +169,6 @@ export class GameOverComponent extends Component<GameOverState> {
 	// =========================================
 	
 	/**
-	 * Sets up event listeners for game over buttons
-	 */
-	private setupEventListeners(): void {
-		// Handle Play Again button (for regular games)
-		const playAgainButton = this.container.querySelector('.play-again-button');
-		if (playAgainButton) {
-			const newButton = playAgainButton.cloneNode(true);
-			playAgainButton.parentNode?.replaceChild(newButton, playAgainButton);
-			
-			newButton.addEventListener('click', () => {
-				if (!this.inTransition) {
-					this.inTransition = true;
-					const gameInfo = MatchCache.getCurrentGameInfo();
-					this.onPlayAgain(gameInfo.gameMode);
-					setTimeout(() => {
-						this.inTransition = false;
-					}, 100);
-				}
-			});
-		}
-		
-		// Handle Show Pool button (for tournament matches)
-		const showPoolButton = this.container.querySelector('.show-pool-button');
-		if (showPoolButton) {
-			const newButton = showPoolButton.cloneNode(true);
-			showPoolButton.parentNode?.replaceChild(newButton, showPoolButton);
-			
-			newButton.addEventListener('click', () => {
-				if (!this.inTransition) {
-					this.inTransition = true;
-					if (this.onShowTournamentSchedule) {
-						this.onShowTournamentSchedule();
-					}
-					setTimeout(() => {
-						this.inTransition = false;
-					}, 100);
-				}
-			});
-		}
-		
-		// Handle Back to Menu button (for all modes)
-		const backMenuButton = this.container.querySelector('.back-menu-button');
-		if (backMenuButton) {
-			const newButton = backMenuButton.cloneNode(true);
-			backMenuButton.parentNode?.replaceChild(newButton, backMenuButton);
-			
-			newButton.addEventListener('click', () => {
-				if (!this.inTransition) {
-					this.inTransition = true;
-					this.onBackToMenu();
-					setTimeout(() => {
-						this.inTransition = false;
-					}, 100);
-				}
-			});
-		}
-	}
-	
-	// =========================================
-	// STATE MANAGEMENT
-	// =========================================
-	
-	/**
 	 * Shows the game over screen with results
 	 */
 	showGameResult(result: {
@@ -242,14 +190,9 @@ export class GameOverComponent extends Component<GameOverState> {
 			visible: true
 		});
 		
-		// Just render the component - handle tournament mode in the main render
 		this.renderComponent();
-
-		// Show background game except in tournament mode
-		if (result.gameMode !== GameMode.TOURNAMENT) {
-			const gameManager = GameManager.getInstance();
-			gameManager.showBackgroundGame();
-		}
+		const gameManager = GameManager.getInstance();
+		gameManager.showBackgroundGame();
 		
 		this.inTransition = false;
 	}
@@ -290,6 +233,41 @@ export class GameOverComponent extends Component<GameOverState> {
 				player2Score: cachedResult.player2Score,
 				matchId: cachedResult.matchId
 			});
+		}
+	}
+	
+	// Add these simple handler methods
+	private handleShowTournamentSchedule(): void {
+		if (!this.inTransition) {
+			this.inTransition = true;
+			this.hide();
+			if (this.onShowTournamentSchedule) {
+				this.onShowTournamentSchedule();
+			}
+			setTimeout(() => {
+				this.inTransition = false;
+			}, 100);
+		}
+	}
+	
+	private handleBackToMenu(): void {
+		if (!this.inTransition) {
+			this.inTransition = true;
+			this.onBackToMenu();
+			setTimeout(() => {
+				this.inTransition = false;
+			}, 100);
+		}
+	}
+	
+	private handlePlayAgain(): void {
+		if (!this.inTransition) {
+			this.inTransition = true;
+			const gameInfo = MatchCache.getCurrentGameInfo();
+			this.onPlayAgain(gameInfo.gameMode);
+			setTimeout(() => {
+				this.inTransition = false;
+			}, 100);
 		}
 	}
 }
