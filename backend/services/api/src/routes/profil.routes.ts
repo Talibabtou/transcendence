@@ -1,26 +1,32 @@
 import { FastifyInstance } from 'fastify';
-import { deletePic, upload } from '../controllers/profil.controllers.js'
-import { deleteSchema, uploadSchema } from '../schemas/profil.schemas.js'
-import { IUpload } from '../shared/types/profil.type.js'
+import { deletePic, upload } from '../controllers/profil.controllers.js';
+import { deleteSchema, uploadSchema } from '../schemas/profil.schemas.js';
+import { IUpload } from '../shared/types/profil.type.js';
 
-const auth = { auth: true, roles: ['user', 'admin'] }
+const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function authRoutes(fastify: FastifyInstance) {
-	fastify.post<{ Body: IUpload }>('/profil/uploads', {
-		schema: {
-			...uploadSchema,
-			tags: ['profil']
-		},
-		config: auth
-		},
-		upload);
+    fastify.post<{ Body: IUpload }>(
+        '/profil/uploads',
+        {
+            schema: {
+                ...uploadSchema,
+                tags: ['profil'],
+            },
+            config: auth,
+        },
+        upload
+    );
 
-	fastify.delete('/profil/uploads', {
-		schema: {
-			...deleteSchema,
-			tags: ['profil']
-		},
-		config: auth
-		},
-		deletePic);
+    fastify.delete(
+        '/profil/uploads',
+        {
+            schema: {
+                ...deleteSchema,
+                tags: ['profil'],
+            },
+            config: auth,
+        },
+        deletePic
+    );
 }

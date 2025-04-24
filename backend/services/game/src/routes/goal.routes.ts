@@ -1,17 +1,14 @@
-import { FastifyInstance } from 'fastify'
-import { 
-  getGoal, 
-  getGoals, 
-  createGoal 
-} from '../controllers/goal.controller.js'
+import { FastifyInstance } from 'fastify';
+import {
+    getGoal,
+    getGoals,
+    createGoal,
+} from '../controllers/goal.controller.js';
 
 export default async function goalRoutes(fastify: FastifyInstance) {
-  fastify.get('/goal',
-  getGoals)
+    fastify.get('/goal', getGoals);
 
-  fastify.get('/goal/:id',
-  getGoal)
+    fastify.get('/goal/:id', getGoal);
 
-  fastify.post('/goal',
-  createGoal)
+    fastify.post('/goal', createGoal);
 }

@@ -10,10 +10,16 @@ all:
 
 re: fclean all
 
+prettier:
+	npx prettier . --write
+
+linter:
+	npx eslint .
+
 clean:
 
 
 fclean: clean
 	@${RM} dist/
 
-.PHONY: all re clean fclean
+.PHONY: all re clean fclean prettier linter

@@ -10,12 +10,20 @@ declare module 'fastify' {
 }
 
 const dirname: string = path.resolve();
-const filepath: string = path.join(dirname, process.env.DB_FRIENDS || "/db/friends.sqlite");
+const filepath: string = path.join(
+    dirname,
+    process.env.DB_FRIENDS || '/db/friends.sqlite'
+);
 
-export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.Statement>>{
-  try {
-    const db: Database<sqlite3.Database, sqlite3.Statement> = await open({ filename: filepath, driver: sqlite3.Database });
-    await db.exec(`
+export async function initDb(): Promise<
+    Database<sqlite3.Database, sqlite3.Statement>
+> {
+    try {
+        const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
+            filename: filepath,
+            driver: sqlite3.Database,
+        });
+        await db.exec(`
         CREATE TABLE IF NOT EXISTS friends (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_1 VARCHAR(32) NOT NULL,
@@ -23,8 +31,8 @@ export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.State
         accepted BOOLEAN NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
     `);
-    return db;
+        return db;
     } catch (err) {
-      throw new Error(`Database initialization failed: ${err}`)
+        throw new Error(`Database initialization failed: ${err}`);
     }
-  };
+}

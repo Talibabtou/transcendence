@@ -1,0 +1,8 @@
+**/.git
+**/.svn
+**/.hg
+**/node_modules
+Makefile
+package.json
+package-lock.json
+tsconfig.json

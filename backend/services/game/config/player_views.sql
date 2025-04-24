@@ -130,4 +130,4 @@ FROM (
     m.duration
   FROM matches m
   WHERE m.active = FALSE
-) AS player_matches; 
+) AS player_matches;
