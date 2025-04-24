@@ -1,4 +1,4 @@
 export interface IUpload {
-    file: string;
-    description?: string;
+  file: string;
+  description?: string;
 }

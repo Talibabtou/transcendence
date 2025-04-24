@@ -4,26 +4,26 @@ import path from 'path';
 import { Database } from 'sqlite';
 
 declare module 'fastify' {
-    interface FastifyInstance {
-        db: Database;
-    }
+  interface FastifyInstance {
+    db: Database;
+  }
 }
 
 const dirname: string = path.resolve();
 const filepath: string = path.join(
-    dirname,
-    process.env.DB_AUTH || '/db/users.sqlite'
+  dirname,
+  process.env.DB_AUTH || '/db/users.sqlite'
 );
 
 export async function initDb(): Promise<
-    Database<sqlite3.Database, sqlite3.Statement>
+  Database<sqlite3.Database, sqlite3.Statement>
 > {
-    try {
-        const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
-            filename: filepath,
-            driver: sqlite3.Database,
-        });
-        await db.exec(`
+  try {
+    const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
+      filename: filepath,
+      driver: sqlite3.Database,
+    });
+    await db.exec(`
         CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY DEFAULT (
           lower(hex(randomblob(4))) || '-' || 
@@ -41,8 +41,8 @@ export async function initDb(): Promise<
         updated_at DATETIME NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
     `);
-        return db;
-    } catch (err) {
-        throw new Error(`Database initialization failed: ${err}`);
-    }
+    return db;
+  } catch (err) {
+    throw new Error(`Database initialization failed: ${err}`);
+  }
 }

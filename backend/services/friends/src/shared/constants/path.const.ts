@@ -12,30 +12,30 @@ export const HEALTH_CHECK_PATH = '/health';
 
 // Game service paths
 export const GAME = {
-    BASE: '/games',
-    BY_ID: (id: string | number) => `/games/${id}`,
-    LEADERBOARD: '/leaderboard',
+  BASE: '/games',
+  BY_ID: (id: string | number) => `/games/${id}`,
+  LEADERBOARD: '/leaderboard',
 };
 
 // User service paths
 export const USER = {
-    BASE: '/users',
-    BY_ID: (id: string | number) => `/users/${id}`,
-    PROFILE: '/profile',
-    SETTINGS: '/settings',
+  BASE: '/users',
+  BY_ID: (id: string | number) => `/users/${id}`,
+  PROFILE: '/profile',
+  SETTINGS: '/settings',
 };
 
 // Authentication paths
 export const AUTH = {
-    LOGIN: '/auth/login',
-    LOGOUT: '/auth/logout',
-    REGISTER: '/auth/register',
-    REFRESH: '/auth/refresh',
+  LOGIN: '/auth/login',
+  LOGOUT: '/auth/logout',
+  REGISTER: '/auth/register',
+  REFRESH: '/auth/refresh',
 };
 
 // Social service paths
 export const SOCIAL = {
-    FRIENDS: '/social/friends',
-    REQUESTS: '/social/requests',
-    MESSAGES: '/social/messages',
+  FRIENDS: '/social/friends',
+  REQUESTS: '/social/requests',
+  MESSAGES: '/social/messages',
 };

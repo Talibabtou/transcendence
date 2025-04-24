@@ -4,26 +4,26 @@ import path from 'path';
 import { Database } from 'sqlite';
 
 declare module 'fastify' {
-    interface FastifyInstance {
-        db: Database;
-    }
+  interface FastifyInstance {
+    db: Database;
+  }
 }
 
 const dirname: string = path.resolve();
 const filepath: string = path.join(
-    dirname,
-    process.env.DB_FRIENDS || '/db/friends.sqlite'
+  dirname,
+  process.env.DB_FRIENDS || '/db/friends.sqlite'
 );
 
 export async function initDb(): Promise<
-    Database<sqlite3.Database, sqlite3.Statement>
+  Database<sqlite3.Database, sqlite3.Statement>
 > {
-    try {
-        const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
-            filename: filepath,
-            driver: sqlite3.Database,
-        });
-        await db.exec(`
+  try {
+    const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
+      filename: filepath,
+      driver: sqlite3.Database,
+    });
+    await db.exec(`
         CREATE TABLE IF NOT EXISTS friends (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         id_1 VARCHAR(32) NOT NULL,
@@ -31,8 +31,8 @@ export async function initDb(): Promise<
         accepted BOOLEAN NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
     `);
-        return db;
-    } catch (err) {
-        throw new Error(`Database initialization failed: ${err}`);
-    }
+    return db;
+  } catch (err) {
+    throw new Error(`Database initialization failed: ${err}`);
+  }
 }

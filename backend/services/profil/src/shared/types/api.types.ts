@@ -1,11 +1,11 @@
 export interface IGetPicResponse {
-    link: string;
+  link: string;
 }
 
 export interface IGetPicsResponse {
-    link: string[];
+  link: string[];
 }
 
 export interface IId {
-    id: string;
+  id: string;
 }
