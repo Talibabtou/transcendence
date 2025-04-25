@@ -15,6 +15,10 @@ export enum ErrorCodes {
   // Match related errors
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
   INVALID_FIELDS = 'INVALID_FIELDS',
+	MATCH_NOT_ACTIVE = 'MATCH_NOT_ACTIVE',
+  TOURNAMENT_NOT_FOUND = 'TOURNAMENT_NOT_FOUND',
+	TOURNAMENT_WRONG_MATCH_COUNT = 'TOURNAMENT_WRONG_MATCH_COUNT',
+	TOURNAMENT_INSUFFICIENT_PLAYERS = 'TOURNAMENT_INSUFFICIENT_PLAYERS',
   
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
@@ -59,6 +63,10 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
 	// Match related errors
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
+	[ErrorCodes.MATCH_NOT_ACTIVE, 'Match has been cancelled or timeout'],
+	[ErrorCodes.TOURNAMENT_NOT_FOUND, 'Tournament not found'],
+	[ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT, 'Tournament is not at the final stage'],
+	[ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS, 'Tournament has less than 3 players'],
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
   [ErrorCodes.PLAYER_NOT_IN_MATCH, 'Player is not part of this match'],
@@ -162,48 +170,28 @@ export const ErrorExamples = {
 		error: ErrorTypes.get(404),
 		message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND)
 	},
-
-	//api related errors
-	pictureNotFound: {
+  eloNotFound: {
+    statusCode: 404,
+    code: ErrorCodes.ELO_NOT_FOUND,
+    error: ErrorTypes.get(404),
+    message: ErrorMessages.get(ErrorCodes.ELO_NOT_FOUND)
+  },
+	tournamentWrongMatchCount: {
+		statusCode: 400,
+		code: ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT,
+		error: ErrorTypes.get(400),
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT)
+	},
+	tournamentNotFound: {
 		statusCode: 404,
-		code: ErrorCodes.PICTURE_NOT_FOUND,
+		code: ErrorCodes.TOURNAMENT_NOT_FOUND,
 		error: ErrorTypes.get(404),
-		message: ErrorMessages.get(ErrorCodes.PICTURE_NOT_FOUND)
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_NOT_FOUND)
 	},
-
-	//auth related errors
-	loginFailure: {
-		statusCode: 401,
-		code: ErrorCodes.LOGIN_FAILURE,
-		error: ErrorTypes.get(401),
-		message: ErrorMessages.get(ErrorCodes.LOGIN_FAILURE)
-	},
-
-	//profil related errors
-	noFileProvided: {
-		statusCode: 404,
-		code: ErrorCodes.NO_FILE_PROVIDED,
-		error: ErrorTypes.get(404),
-		message: ErrorMessages.get(ErrorCodes.NO_FILE_PROVIDED)
-	},
-	invalidType: {
-		statusCode: 403,
-		code: ErrorCodes.INVALID_TYPE,
-		error: ErrorTypes.get(403),
-		message: ErrorMessages.get(ErrorCodes.INVALID_TYPE)
-	},
-
-	//friends
-	friendshipExist: {
-		statusCode: 409,
-		code: ErrorCodes.FRIENDSHIP_EXISTS,
-		error: ErrorTypes.get(409),
-		message: ErrorMessages.get(ErrorCodes.FRIENDSHIP_EXISTS)
-	},
-	friendshipNotFound: {
-		statusCode: 404,
-		code: ErrorCodes.FRIENDS_NOTFOUND,
-		error: ErrorTypes.get(404),
-		message: ErrorMessages.get(ErrorCodes.FRIENDS_NOTFOUND)
+	tournamentInsufficientPlayers: {
+		statusCode: 400,
+		code: ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS,
+		error: ErrorTypes.get(400),
+		message: ErrorMessages.get(ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS)
 	},
 };

@@ -95,10 +95,9 @@ export async function createGoal(
     )) as Match | null;
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - selectStartTime); // Record SELECT
     goalDurationHistogram.record(duration);
-    console.log(match);
-    if (!match) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
-      return reply.code(404).send(errorResponse);
+		if (!match) {
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND)
+      return reply.code(404).send(errorResponse)
     }
     if (!match.active) {
       const errorResponse = createErrorResponse(400, ErrorCodes.MATCH_NOT_ACTIVE);

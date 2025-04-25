@@ -1,13 +1,51 @@
-import { FastifyInstance } from 'fastify';
-import { getElo, getElos, createElo, getLeaderboard } from '../controllers/elo.controller.js';
-import { IId } from '../shared/types/elo.type.js';
+import { FastifyInstance } from 'fastify'
+import { 
+  getElo, 
+  getElos,
+	createElo,
+	getLeaderboard
+} from '../controllers/elo.controller.js'
+
+import { 
+  getEloSchema, 
+  getElosSchema,
+	createEloSchema,
+	getLeaderboardSchema
+} from '../../../../shared/schemas/elo.schema.js'
 
 export default async function eloRoutes(fastify: FastifyInstance) {
-  fastify.get('/elo', getElos);
+  // Get all goals with optional filters
+  fastify.get('/', { 
+    schema: {
+      ...getElosSchema,
+      tags: ['elos']
+    }
+  }, getElos)
+  
+	// make it only accessible from auth service
+	fastify.post('/', { 
+    schema: {
+      ...createEloSchema,
+      tags: ['elos']
+    }
+  }, createElo)
 
-  fastify.post<{ Params: IId }>('/elo/:id', createElo);
 
-  fastify.get('/elo/:id', getElo);
+  // Get a specific goal by ID
+  fastify.get('/:id', { 
+    schema: {
+      ...getEloSchema,
+      tags: ['elos']
+    }
+  }, getElo)
 
-  fastify.get('/elo/leaderboard', getLeaderboard);
+	fastify.get('/leaderboard', { 
+    schema: {
+			...getLeaderboardSchema,
+      tags: ['elos']
+    }
+  }, getLeaderboard)
 }
+
+
+

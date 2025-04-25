@@ -29,6 +29,13 @@ export interface GetMatchesQuery {
   offset?: number;
 }
 
+export interface GetTournamentsQuery {
+  player_id?: string;
+  limit?: number;
+  offset?: number;
+}
+
+
 export interface PlayerMatchSummary {
 	total_matches: number;
 	completed_matches: number;
@@ -57,5 +64,18 @@ export interface PlayerStats {
 	daily_performance: DailyPerformance[];
 	goal_durations: number[];
 	match_durations: number[];
-	elo_history: EloRating[];
+	elo_history: number[];
+}
+
+export interface Finalist {
+  player_id: string;
+	victory_count?: number;
+	goals_scored?: number;
+	goals_conceded?: number;
+	goal_duration?: number;
+}
+
+export interface GetLeaderboardQuery {
+  limit?: number;
+  offset?: number;
 }

@@ -9,25 +9,18 @@ import {
   Match,
   CreateMatchRequest,
   GetMatchesQuery,
-  PlayerStats,
-  PlayerMatchSummary,
-  DailyPerformance,
-} from '../shared/types/match.type.js';
-import {
-  matchCreationCounter,
-  recordFastDatabaseMetrics,
-  recordSlowDatabaseMetrics,
-  recordMediumDatabaseMetrics,
-  matchTournamentCounter,
-} from '../telemetry/metrics.js';
+	PlayerStats,
+	PlayerMatchSummary,
+	DailyPerformance
+} from '@shared/types/match.type.js'
+import { MatchGoals } from '@shared/types/goal.type.js'
 
-export async function getMatch(
-  request: FastifyRequest<{
-    Params: IId;
-  }>,
-  reply: FastifyReply
-): Promise<void> {
-  const { id } = request.params;
+//check if player 1 = player 2
+// Get a single match by ID
+export async function getMatch(request: FastifyRequest<{
+  Params: { id: string }
+}>, reply: FastifyReply): Promise<void> {
+  const { id } = request.params
   try {
     const startTime = performance.now();
     const match = (await request.server.db.get(
@@ -88,24 +81,17 @@ export async function getMatches(
     return reply.code(500).send(errorResponse);
   }
 }
-
-//Create a new match
-// returns a Promise<void> because it performs database operations
-// that are inherently asynchronous.
-// Promises allow the server to handle other requests while waiting for database
-export async function createMatch(
-  request: FastifyRequest<{
-    Body: CreateMatchRequest;
-    Params: IId;
-  }>,
-  reply: FastifyReply
-): Promise<void> {
-  //Request Body Extraction
-  // destructuring to extract the required fields
-  // match the CreateMatchRequest interface
-  const player_1 = request.params.id;
-  const { player_2, tournament_id } = request.body;
-
+// if tournament not more than 4 players
+//avoid 7 matchs not being a final
+//avoid 8 matches
+export async function createMatch(request: FastifyRequest<{
+  Body: CreateMatchRequest
+}>, reply: FastifyReply): Promise<void> {
+	//Request Body Extraction
+	// destructuring to extract the required fields
+	// match the CreateMatchRequest interface
+  const { player_1, player_2, tournament_id } = request.body
+  
   try {
     let startTime = performance.now();
 

@@ -1,0 +1,121 @@
+.pong-title {
+	font-size: 2vh;
+	line-height: 1.2;
+	text-align: center;
+	white-space: pre;
+	overflow: visible;
+	font-family: var(--font-family);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color), 
+							 0 0 10px var(--text-color), 
+							 0 0 15px var(--text-color), 
+							 0 0 20px rgba(255, 255, 255, 0.5);
+	width: 100%;
+	display: block;
+	margin: 0 auto 8vh auto;
+	font-weight: bold;
+	position: relative;
+	z-index: 1;
+}
+
+/* Game Menu */
+.game-menu {
+	text-align: center;
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	padding: 2rem 0;
+	overflow-y: auto;
+	z-index: 1;
+}
+
+.menu-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	align-items: center;
+	position: relative;
+	width: 100%;
+	margin: 0 auto;
+	max-height: 100%;
+	z-index: 1;
+}
+
+.menu-button {
+	background: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	font-family: var(--font-family);
+	font-size: 1.2rem;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	padding: 1rem 2rem;
+	position: relative;
+}
+
+.menu-button:hover {
+	text-shadow: 0 0 10px var(--glow-color);
+	border-color: var(--text-color);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+	transform: scale(1.05);
+}
+
+.menu-button:before {
+	content: '>';
+	position: absolute;
+	left: 1rem;
+	opacity: 0;
+	transition: all 0.3s ease;
+}
+
+.menu-button:after {
+	content: '<';
+	position: absolute;
+	right: 1rem;
+	opacity: 0;
+	transition: all 0.3s ease;
+}
+
+.menu-button:hover:before,
+.menu-button:hover:after {
+	opacity: 1;
+}
+
+/* Game canvas styles */
+#game-canvas {
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	z-index: 1;
+	image-rendering: pixelated;
+	image-rendering: crisp-edges;
+	image-rendering: -moz-crisp-edges;
+	image-rendering: -webkit-optimize-contrast;
+}
+
+.game-container {
+	position: fixed;
+	top: var(--navbar-height);
+	left: 0;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	z-index: 1;
+}
+
+.game-result {
+	padding: 2rem;
+	text-align: center;
+	white-space: pre;
+	overflow: visible;
+	font-family: var(--font-family);
+	font-size: 3vh;
+	color: var(--text-color);
+}
