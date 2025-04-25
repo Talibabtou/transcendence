@@ -66,7 +66,6 @@ export const createMatchSchema = {
   body: {
     type: 'object',
     properties: {
-      player_1: { type: 'string', format: 'uuid' },
       player_2: { type: 'string', format: 'uuid' },
       tournament_id: {
         type: ['string', 'null'],

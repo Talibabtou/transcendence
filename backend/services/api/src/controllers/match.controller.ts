@@ -1,6 +1,7 @@
 import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { MatchGoals } from '../shared/types/goal.type.js';
+import { FastifyJWT } from '../shared/plugins/jwtPlugin.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
@@ -89,8 +90,9 @@ export async function createMatch(
   reply: FastifyReply
 ) {
   try {
+    const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/v1')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {

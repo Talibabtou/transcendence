@@ -96,13 +96,15 @@ export async function getMatches(
 export async function createMatch(
   request: FastifyRequest<{
     Body: CreateMatchRequest;
+    Params: IId;
   }>,
   reply: FastifyReply
 ): Promise<void> {
   //Request Body Extraction
   // destructuring to extract the required fields
   // match the CreateMatchRequest interface
-  const { player_1, player_2, tournament_id } = request.body;
+  const player_1 = request.params.id;
+  const { player_2, tournament_id } = request.body;
 
   try {
     let startTime = performance.now();

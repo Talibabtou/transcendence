@@ -20,7 +20,7 @@ export default async function matchRoutes(
 
   fastify.get<{ Params: IId }>('/match/:id', getMatch);
 
-  fastify.post<{ Body: CreateMatchRequest }>('/match', createMatch);
+  fastify.post<{ Body: CreateMatchRequest, Params: IId }>('/match/:id', createMatch);
 
   fastify.get<{ Params: IId }>('/match/:id/stats', matchTimeline);
 
