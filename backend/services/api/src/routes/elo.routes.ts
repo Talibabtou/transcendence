@@ -8,7 +8,7 @@ const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function eloRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetElosQuery }>(
-    '/elo',
+    '/elos',
     {
       schema: {
         ...getElosSchema,
@@ -32,7 +32,7 @@ export default async function eloRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
-    '/elo/leaderboard',
+    '/leaderboard',
     {
       schema: {
         tags: ['elos'],

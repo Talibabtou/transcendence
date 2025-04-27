@@ -19,7 +19,7 @@ export default async function tournamentRoutes(fastify: FastifyInstance): Promis
     getTournament
   );
   fastify.get<{ Querystring: GetTournamentsQuery }>(
-    '/tournament',
+    '/tournaments',
     {
       schema: {
         ...getTournamentSchema,

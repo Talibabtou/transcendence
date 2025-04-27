@@ -1,6 +1,6 @@
 import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { FastifyJWT } from '../shared/plugins/jwtPlugin.js';
+import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 

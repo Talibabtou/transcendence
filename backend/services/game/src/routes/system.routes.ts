@@ -45,10 +45,7 @@ export default async function systemRoutes(server: FastifyInstance) {
       server.log.error('Health check failed:', error);
       span.setStatus({
         code: SpanStatusCode.ERROR,
-        message:
-          error instanceof Error
-            ? error.message
-            : 'Unknown error during health check',
+        message: error instanceof Error ? error.message : 'Unknown error during health check',
       });
       throw error;
     } finally {

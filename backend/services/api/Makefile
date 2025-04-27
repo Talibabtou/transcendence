@@ -14,7 +14,7 @@ prettier:
 	npx prettier . --write
 
 linter:
-	npx eslint .
+	npx eslint . --fix
 
 clean:
 	clear

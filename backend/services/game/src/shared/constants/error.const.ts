@@ -17,7 +17,11 @@ export enum ErrorCodes {
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
   INVALID_FIELDS = 'INVALID_FIELDS',
   MATCH_NOT_ACTIVE = 'MATCH_NOT_ACTIVE',
+
+  // Tournament related errors
   TOURNAMENT_NOT_FOUND = 'TOURNAMENT_NOT_FOUND',
+  TOURNAMENT_WRONG_MATCH_COUNT = 'TOURNAMENT_WRONG_MATCH_COUNT',
+  TOURNAMENT_INSUFFICIENT_PLAYERS = 'TOURNAMENT_INSUFFICIENT_PLAYERS',
 
   // Goal related errors
   GOAL_NOT_FOUND = 'GOAL_NOT_FOUND',
@@ -64,10 +68,17 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.SQLITE_MISMATCH, 'Sqlite mismatch'],
   [ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
   [ErrorCodes.BAD_REQUEST, 'Bad request'],
+  [ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
+
+  // Match related errors
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
   [ErrorCodes.INVALID_FIELDS, 'Invalid or insufficient fields given to update the match'],
   [ErrorCodes.MATCH_NOT_ACTIVE, 'Match has been cancelled or timeout'],
+
+  // Tournament related errors
   [ErrorCodes.TOURNAMENT_NOT_FOUND, 'Tournament not found'],
+  [ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT, 'Tournament is not at the final stage'],
+  [ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS, 'Tournament has less than 3 players'],
 
   // Goal related errors
   [ErrorCodes.GOAL_NOT_FOUND, 'Goal not found'],
@@ -141,6 +152,12 @@ export const ErrorExamples = {
     error: ErrorTypes.get(400),
     message: ErrorMessages.get(ErrorCodes.BAD_REQUEST),
   },
+  playerNotFound: {
+    statusCode: 404,
+    code: ErrorCodes.PLAYER_NOT_FOUND,
+    error: ErrorTypes.get(404),
+    message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND),
+  },
 
   // Match related errors
   matchNotFound: {
@@ -154,6 +171,32 @@ export const ErrorExamples = {
     code: ErrorCodes.INVALID_FIELDS,
     error: ErrorTypes.get(400),
     message: ErrorMessages.get(ErrorCodes.INVALID_FIELDS),
+  },
+  matchNotActive: {
+    statusCode: 400,
+    code: ErrorCodes.MATCH_NOT_ACTIVE,
+    error: ErrorTypes.get(400),
+    message: ErrorMessages.get(ErrorCodes.MATCH_NOT_ACTIVE),
+  },
+
+  // Tournament related errors
+  tournamentWrongMatchCount: {
+    statusCode: 400,
+    code: ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT,
+    error: ErrorTypes.get(400),
+    message: ErrorMessages.get(ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT),
+  },
+  tournamentNotFound: {
+    statusCode: 404,
+    code: ErrorCodes.TOURNAMENT_NOT_FOUND,
+    error: ErrorTypes.get(404),
+    message: ErrorMessages.get(ErrorCodes.TOURNAMENT_NOT_FOUND),
+  },
+  tournamentInsufficientPlayers: {
+    statusCode: 400,
+    code: ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS,
+    error: ErrorTypes.get(400),
+    message: ErrorMessages.get(ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS),
   },
 
   // Goal related errors
@@ -171,12 +214,6 @@ export const ErrorExamples = {
   },
 
   //elo related errors
-  playerNotFound: {
-    statusCode: 404,
-    code: ErrorCodes.PLAYER_NOT_FOUND,
-    error: ErrorTypes.get(404),
-    message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND),
-  },
   eloNotFound: {
     statusCode: 404,
     code: ErrorCodes.ELO_NOT_FOUND,

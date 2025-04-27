@@ -2,7 +2,7 @@ import { initDb } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
 import { fastify, FastifyInstance } from 'fastify';
-import { jwtPluginRegister } from './shared/plugins/jwtPlugin.js';
+import { jwtPluginRegister } from './plugins/jwtPlugin.js';
 
 class Server {
   private static instance: FastifyInstance;

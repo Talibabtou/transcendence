@@ -63,6 +63,24 @@ export interface PlayerStats {
   elo_history: number[];
 }
 
+export interface FinalResultObject {
+  player_1: string | null;
+  player_2: string | null;
+}
+
 export interface IId {
   id: string;
+}
+
+export interface GetLeaderboardQuery {
+  limit?: number;
+  offset?: number;
+}
+
+export interface Finalist {
+  player_id: string;
+  victory_count?: number;
+  goals_scored?: number;
+  goals_conceded?: number;
+  goal_duration?: number;
 }

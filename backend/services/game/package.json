@@ -11,9 +11,16 @@
     "node-gyp": "10.3.1"
   },
   "scripts": {
+    "test": "echo 'test is working...'",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/server.js",
-    "dev": "node --loader ts-node/esm src/server.ts"
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": [
+      "prettier --write .",
+      "eslint --fix ."
+    ]
   },
   "dependencies": {
     "@fastify/otel": "^0.5.1",
@@ -26,7 +33,6 @@
     "@opentelemetry/sdk-metrics": "~1.30.1",
     "@opentelemetry/sdk-node": "~0.57.2",
     "@opentelemetry/semantic-conventions": "~1.30.0",
-    "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "fastify-plugin": "^5.0.1",
     "sqlite": "^5.1.1",
@@ -38,6 +44,7 @@
     "@types/node": "^22.13.5",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^10.1.2",
+    "eslint-plugin-prettier": "^5.2.6",
     "globals": "^16.0.0",
     "prettier": "^3.5.3",
     "ts-node": "^10.9.2",

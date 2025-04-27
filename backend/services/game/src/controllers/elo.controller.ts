@@ -1,21 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import {
-  ErrorCodes,
-  createErrorResponse,
-} from '../shared/constants/error.const.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
   recordFastDatabaseMetrics,
   recordMediumDatabaseMetrics,
   eloHistogram,
 } from '../telemetry/metrics.js';
 import { Database } from 'sqlite';
-import {
-  Elo,
-  GetElosQuery,
-	DailyElo,
-  LeaderboardEntry
-} from '../../../../shared/types/elo.type.js'
-import { GetLeaderboardQuery } from '@shared/types/match.type.js'
+import { Elo, GetElosQuery, DailyElo, LeaderboardEntry } from '../shared/types/elo.type.js';
+import { IId, GetLeaderboardQuery } from '../shared/types/match.type.js';
 
 async function calculateEloChange(
   winnerElo: number,
@@ -52,10 +44,7 @@ export async function getElo(
     )) as Elo | null;
     recordMediumDatabaseMetrics('SELECT', 'elo', performance.now() - startTime); // Record metric
     if (!elo) {
-      const errorResponse = createErrorResponse(
-        404,
-        ErrorCodes.PLAYER_NOT_FOUND
-      );
+      const errorResponse = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
       return reply.code(404).send(errorResponse);
     }
     return reply.code(200).send(elo);
@@ -153,11 +142,7 @@ export async function dailyElo(
       'SELECT player, match_date, elo FROM player_daily_elo WHERE player = ?',
       [player]
     )) as DailyElo[];
-    recordMediumDatabaseMetrics(
-      'SELECT',
-      'player_daily_elo',
-      performance.now() - startTime
-    ); // Record metric
+    recordMediumDatabaseMetrics('SELECT', 'player_daily_elo', performance.now() - startTime); // Record metric
     return reply.code(200).send(dailyElo);
   } catch (error) {
     if (error) {
@@ -184,35 +169,23 @@ export async function updateEloRatings(
     'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
     [loser]
   )) as Elo | null;
-  recordFastDatabaseMetrics(
-    'SELECT',
-    'elo',
-    (performance.now() - startTime) / 2
-  ); // Record metric
+  recordFastDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime) / 2); // Record metric
   if (!winnerElo || !loserElo) {
     // Throw a specific error code instead of a generic Error
     const missingPlayer = !winnerElo ? winner : loser;
     throw new Error(ErrorCodes.ELO_NOT_FOUND + `:${missingPlayer}`);
   }
 
-  const { winnerElo: newWinnerElo, loserElo: newLoserElo } =
-    await calculateEloChange(winnerElo.elo, loserElo.elo);
+  const { winnerElo: newWinnerElo, loserElo: newLoserElo } = await calculateEloChange(
+    winnerElo.elo,
+    loserElo.elo
+  );
   startTime = performance.now(); // Start timer
   // Insert new ELO values
-  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [
-    winner,
-    newWinnerElo,
-  ]);
+  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [winner, newWinnerElo]);
 
-  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [
-    loser,
-    newLoserElo,
-  ]);
-  recordMediumDatabaseMetrics(
-    'INSERT',
-    'elo',
-    (performance.now() - startTime) / 2
-  ); // Record metric
+  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [loser, newLoserElo]);
+  recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime) / 2); // Record metric
   // Record metrics
   eloHistogram.record(newWinnerElo);
   eloHistogram.record(newLoserElo);
@@ -221,13 +194,17 @@ export async function updateEloRatings(
 }
 
 // Get a single elo by ID
-export async function getLeaderboard(request: FastifyRequest<{
-  Querystring: GetLeaderboardQuery
-}>, reply: FastifyReply): Promise<void> {
-  const { limit = 10, offset = 0 } = request.query
+export async function getLeaderboard(
+  request: FastifyRequest<{
+    Querystring: GetLeaderboardQuery;
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { limit, offset } = request.query;
   try {
     const startTime = performance.now();
-    const leaderboard = (await request.server.db.all(`
+    const leaderboard = (await request.server.db.all(
+      `
       SELECT 
         e.player,
         e.elo,
@@ -237,9 +214,12 @@ export async function getLeaderboard(request: FastifyRequest<{
       FROM latest_player_elos e
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id
       ORDER BY e.elo DESC LIMIT ? OFFSET ?;
-    `, limit, offset) as LeaderboardEntry[];
-    
-    recordMediumDatabaseMetrics('SELECT', 'leaderboard', (performance.now() - startTime));
+    `,
+      limit,
+      offset
+    )) as LeaderboardEntry[];
+
+    recordMediumDatabaseMetrics('SELECT', 'leaderboard', performance.now() - startTime);
     return reply.code(200).send(leaderboard);
   } catch (error) {
     request.log.error({

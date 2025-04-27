@@ -13,11 +13,12 @@ export interface FastifyJWT {
     id: string;
   };
 }
+
 export const jwtPluginRegister = {
-    secret: process.env.JWT_SECRET || 'super_secret',
-    sign: {
-      expiresIn: '24h',
-    },
+  secret: process.env.JWT_SECRET || 'super_secret',
+  sign: {
+    expiresIn: '24h',
+  },
 };
 
 export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {

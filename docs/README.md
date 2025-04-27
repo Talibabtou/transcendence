@@ -1,5 +1,7 @@
 # transcendance (Back)
 ## Features
+- Prettier (configurer pour formater les fichiers du projet rapidement et de la même manière pour rentre le code simple à lire, avec un fichier de configuration par service)
+- ESLint (avec la configuration recommandé pour afficher les fautes de syntaxes sur l'IDE, avec un fichier de configuration par service)
 - Typescript (plus sécure avec le typage)
 - Zod (Validateur de schéma populaire et recommandé pour typescript car permet le typage)
 - Gateway (Permet de centraliser les vérifications pour alléger les autres services)
@@ -25,21 +27,20 @@ rm csr.pem
 ```bash
 npm init -y // generate .json files
 
+// GLOBAL (dev)
+npm i --save-dev @types/node @eslint/js eslint eslint-config-prettier globals prettier typescript-eslint eslint-plugin-prettier
+
 // API
-npm i --save-dev @types/node
-npm install @types/node typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit 
+npm install typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/swagger-ui @fastify/swagger @fastify/helmet
 
 // AUTH
-npm i --save-dev @types/node
-npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt 
+npm install typescript fastify sqlite3 sqlite @fastify/jwt 
 
 // PROFIL
-npm i --save-dev @types/node
-npm install @types/node typescript fastify @fastify/jwt @fastify/static @fastify/multipart
+npm install typescript fastify @fastify/jwt @fastify/static @fastify/multipart
 
 // FRIENDS
-npm i --save-dev @types/node
-npm install @types/node typescript fastify sqlite3 sqlite @fastify/jwt 
+npm install typescript fastify sqlite3 sqlite @fastify/jwt 
 
 npx tsc --init // generate tsconfig file
 ```
@@ -50,32 +51,89 @@ npx tsc // compile .ts to .js
 ### Docker-compose
 ```bash
 services:
-  api_gateway:
+  api:
     build: ./requirements/api
     container_name: api
-    port:
+    environment:
+      - API_ADDR="0.0.0.0"
+      - API_PORT="8080"
+      - PROFIL_PORT="8081"
+      - AUTH_PORT="8082"
+      - FRIENDS_PORT="8084"
+      - UPLOADS_DIR="./uploads"
+    env_file:
+      - .env
+    ports:
       - 8080:8080
     networks:
       - transcendance-net
+    volumes:
+      - uploads-volume:/app/uploads
+    restart: always
+  profil:
+    build: ./requirements/profil
+    container_name: profil
+    environment:
+      - PROFIL_ADDR="profil"
+      - PROFIL_PORT="8081"
+    env_file:
+      - .env
+    expose:
+      - 8081
+    networks:
+      - transcendance-net
+    volumes:
+      - uploads-volume:/app/uploads
     restart: always
   auth:
     build: ./requirements/auth
     container_name: auth
+    environment:
+      - AUTH_ADDR="auth"
+      - AUTH_PORT="8082"
+    env_file:
+      - .env
     expose:
       - 8082
     networks:
       - transcendance-net
+    volumes:
+      - dev-volume:/app/db
     restart: always
-  game:
-    build: ./requirements/game
-    container_name: game
+  # game:
+  #   build: ./requirements/game
+  #   container_name: game
+  #   expose:
+  #     - 8083
+  #   networks:
+  #     - transcendance-net
+  #   restart: always
+  friends:
+    build: ./requirements/friends
+    container_name: friends
+    environment:
+      - FRIENDS_ADDR="friends"
+      - FRIENDS_PORT="8084"
+    env_file:
+      - .env
     expose:
-      - 8083
+      - 8084
     networks:
       - transcendance-net
+    volumes:
+      - dev-volume:/app/db
     restart: always
 
 networks:
   transcendance-net:
     driver: bridge
+
+volumes:
+  uploads-volume: 
+  dev-volume:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/${USER}/Documents/db
 ```

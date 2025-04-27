@@ -5,11 +5,13 @@ import matchRoutes from './routes/match.routes.js';
 import systemRoutes from './routes/system.routes.js';
 import databaseConnector from './db.js';
 import { startTelemetry } from './telemetry/telemetry.js';
+import tournamentRoutes from './routes/tournament.routes.js';
 
 async function routes(server: FastifyInstance) {
   await server.register(eloRoutes);
   await server.register(goalRoutes);
   await server.register(matchRoutes);
+  await server.register(tournamentRoutes);
   await server.register(systemRoutes);
 }
 

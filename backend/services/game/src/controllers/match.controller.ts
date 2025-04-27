@@ -1,42 +1,41 @@
 import { IId } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { MatchGoals } from '../shared/types/goal.type.js';
-import {
-  ErrorCodes,
-  createErrorResponse,
-} from '../shared/constants/error.const.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
   Match,
   CreateMatchRequest,
   GetMatchesQuery,
-	PlayerStats,
-	PlayerMatchSummary,
-	DailyPerformance
-} from '@shared/types/match.type.js'
-import { MatchGoals } from '@shared/types/goal.type.js'
+  PlayerStats,
+  PlayerMatchSummary,
+  DailyPerformance,
+} from '../shared/types/match.type.js';
+import {
+  recordFastDatabaseMetrics,
+  recordMediumDatabaseMetrics,
+  recordSlowDatabaseMetrics,
+  matchCreationCounter,
+  matchTournamentCounter,
+} from '../telemetry/metrics.js';
 
 //check if player 1 = player 2
 // Get a single match by ID
-export async function getMatch(request: FastifyRequest<{
-  Params: { id: string }
-}>, reply: FastifyReply): Promise<void> {
-  const { id } = request.params
+export async function getMatch(
+  request: FastifyRequest<{
+    Params: { id: string };
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = request.params;
   try {
     const startTime = performance.now();
     const match = (await request.server.db.get(
       'SELECT * FROM matches WHERE id = ?',
       id
     )) as Match | null;
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'matches',
-      performance.now() - startTime
-    );
+    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     if (!match) {
-      const errorResponse = createErrorResponse(
-        404,
-        ErrorCodes.MATCH_NOT_FOUND
-      );
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
       return reply.code(404).send(errorResponse);
     }
     return reply.code(200).send(match);
@@ -70,11 +69,7 @@ export async function getMatches(
     //parameterized queries
     const startTime = performance.now();
     const matches = (await request.server.db.all(query, params)) as Match[];
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'matches',
-      performance.now() - startTime
-    );
+    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     return reply.code(200).send(matches);
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -84,14 +79,19 @@ export async function getMatches(
 // if tournament not more than 4 players
 //avoid 7 matchs not being a final
 //avoid 8 matches
-export async function createMatch(request: FastifyRequest<{
-  Body: CreateMatchRequest
-}>, reply: FastifyReply): Promise<void> {
-	//Request Body Extraction
-	// destructuring to extract the required fields
-	// match the CreateMatchRequest interface
-  const { player_1, player_2, tournament_id } = request.body
-  
+export async function createMatch(
+  request: FastifyRequest<{
+    Body: CreateMatchRequest;
+    Params: IId;
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  //Request Body Extraction
+  // destructuring to extract the required fields
+  // match the CreateMatchRequest interface
+  const player_1 = request.params.id;
+  const { player_2, tournament_id } = request.body;
+
   try {
     let startTime = performance.now();
 
@@ -99,11 +99,7 @@ export async function createMatch(request: FastifyRequest<{
       "SELECT *, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE",
       [player_1, player_2]
     )) as (Match & { duration_seconds: number })[];
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'matches',
-      performance.now() - startTime
-    ); // Record metric
+    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime); // Record metric
     // Update any old active matches (10 minutes timeout)
     if (prevMatches && prevMatches.length > 0) {
       for (const match of prevMatches) {
@@ -114,11 +110,7 @@ export async function createMatch(request: FastifyRequest<{
             `UPDATE matches SET active = FALSE, duration = NULL WHERE id = ?`,
             match.id
           );
-          recordFastDatabaseMetrics(
-            'UPDATE',
-            'matches',
-            performance.now() - startTime
-          ); // Record metric
+          recordFastDatabaseMetrics('UPDATE', 'matches', performance.now() - startTime); // Record metric
         }
       }
     }
@@ -131,11 +123,7 @@ export async function createMatch(request: FastifyRequest<{
     )) as Match;
 
     // Record metrics
-    recordSlowDatabaseMetrics(
-      'INSERT',
-      'matches',
-      performance.now() - startTime
-    );
+    recordSlowDatabaseMetrics('INSERT', 'matches', performance.now() - startTime);
     matchCreationCounter.add(1, { 'match.status': 'created' });
     if (tournament_id) {
       matchTournamentCounter.add(1, {
@@ -175,11 +163,7 @@ export async function matchTimeline(
       'SELECT match_id, player, duration FROM goal WHERE match_id = ?',
       id
     )) as MatchGoals[];
-    recordSlowDatabaseMetrics(
-      'SELECT',
-      'match_timeline',
-      performance.now() - startTime
-    );
+    recordSlowDatabaseMetrics('SELECT', 'match_timeline', performance.now() - startTime);
     return reply.code(200).send(goals);
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -202,11 +186,7 @@ export async function matchSummary(
       'SELECT total_matches, elo, active_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?',
       [id]
     );
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'player_match_summary',
-      performance.now() - startTime
-    );
+    recordFastDatabaseMetrics('SELECT', 'player_match_summary', performance.now() - startTime);
     // Initialize default match summary if no data is returned
     const matchSummary =
       matchSummaryResult ||
@@ -252,11 +232,7 @@ export async function matchStats(
         'SELECT match_date, matches_played, wins, losses, daily_win_ratio FROM player_daily_performance WHERE player_id = ? ORDER BY match_date',
         [id]
       )) as DailyPerformance[]) || [];
-    recordSlowDatabaseMetrics(
-      'SELECT',
-      'player_daily_performance',
-      performance.now() - startTime
-    );
+    recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', performance.now() - startTime);
 
     // Get goal durations for heatmap
     startTime = performance.now();
@@ -264,11 +240,7 @@ export async function matchStats(
       'SELECT duration FROM player_goal_durations WHERE player = ?',
       [id]
     );
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'player_goal_durations',
-      performance.now() - startTime
-    );
+    recordFastDatabaseMetrics('SELECT', 'player_goal_durations', performance.now() - startTime);
     // Transform result into array of numbers
     const goalDurations = goalDurationsResult
       ? goalDurationsResult.map((row) => Number(row.duration))
@@ -280,11 +252,7 @@ export async function matchStats(
       'SELECT match_duration FROM player_match_durations WHERE player_id = ?',
       [id]
     );
-    recordFastDatabaseMetrics(
-      'SELECT',
-      'player_match_durations',
-      performance.now() - startTime
-    );
+    recordFastDatabaseMetrics('SELECT', 'player_match_durations', performance.now() - startTime);
     // Transform result into array of numbers
     const matchDurations = matchDurationsResult
       ? matchDurationsResult.map((row) => Number(row.match_duration))
@@ -298,9 +266,7 @@ export async function matchStats(
     );
     recordMediumDatabaseMetrics('SELECT', 'elo', performance.now() - startTime);
     // Transform result into array of numbers
-    const eloRatings = eloRatingsResult
-      ? eloRatingsResult.map((row) => Number(row.elo))
-      : [];
+    const eloRatings = eloRatingsResult ? eloRatingsResult.map((row) => Number(row.elo)) : [];
 
     // Calculate goal stats with safe handling of empty arrays
     let longestGoalDuration = null;
@@ -309,8 +275,7 @@ export async function matchStats(
     if (goalDurations.length > 0) {
       longestGoalDuration = Math.max(...goalDurations);
       averageGoalDuration =
-        goalDurations.reduce((sum, duration) => sum + duration, 0) /
-        goalDurations.length;
+        goalDurations.reduce((sum, duration) => sum + duration, 0) / goalDurations.length;
     }
 
     // Combine all statistics into a comprehensive response

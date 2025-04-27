@@ -22,7 +22,7 @@ const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Querystring: GetMatchesQuery }>(
-    '/match',
+    '/matches',
     {
       schema: {
         ...getMatchesSchema,
