@@ -1,0 +1,201 @@
+/* ==========================================================================
+	Leaderboard Component Styles
+	========================================================================== */
+
+/* Container Layout
+	========================================================================== */
+.ascii-container {
+	height: calc(100vh - var(--navbar-height) - var(--footer-height) - 4rem);
+}
+
+.leaderboard-container {
+	width: 80%;
+	margin: 0 auto;
+	padding: var(--spacing-md) 0;
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow-normal);
+}
+
+/* Table Layout
+	========================================================================== */
+.leaderboard-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin-top: 1rem;
+	font-size: var(--font-size-medium);
+	table-layout: fixed;
+	padding: 0 1.5rem;
+}
+
+/* Table Headers
+	========================================================================== */
+.leaderboard-table th {
+	text-align: center;
+	padding: var(--spacing-sm) 0;
+	background-color: var(--menu-bg);
+	border-bottom: 2px solid var(--border-color);
+	font-weight: bold;
+	color: var(--text-color);
+	font-size: var(--font-size-medium);
+	letter-spacing: 1px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Table Cells
+	========================================================================== */
+.leaderboard-table td {
+	padding: 0.75rem 0;
+	border-bottom: 1px solid #333;
+}
+
+/* Row Styling
+	========================================================================== */
+.leaderboard-table tr:nth-child(odd) {
+	background-color: rgba(51, 51, 51, 0.4);
+}
+
+.leaderboard-table tr:nth-child(even) {
+	background-color: rgba(34, 34, 34, 0.4);
+}
+
+/* Top Players Highlighting
+	========================================================================== */
+.leaderboard-table tr.top-1 {
+	background-color: rgba(218, 165, 32, 0.3); /* Gold */
+}
+
+.leaderboard-table tr.top-2 {
+	background-color: rgba(192, 192, 192, 0.3); /* Silver */
+}
+
+.leaderboard-table tr.top-3 {
+	background-color: rgba(176, 141, 87, 0.3); /* Bronze */
+}
+
+/* Column-specific Styles
+	========================================================================== */
+.rank-cell {
+	width: 1rem;
+	text-align: center;
+	font-weight: bold;
+	font-size: var(--font-size-medium);
+	color: var(--text-color);
+}
+
+.player-cell {
+	position: relative;
+	cursor: pointer;
+	transition: transform 0.2s ease, color 0.2s ease;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-left: 1rem;
+	padding-right: 1rem;
+	max-width: 10rem;
+}
+
+.elo-cell,
+.wins-cell,
+.losses-cell {
+	width: 80px;
+	text-align: center;
+	font-weight: bold;
+}
+
+/* Stats Colors */
+.elo-cell { color: var(--text-color); }
+.wins-cell { color: var(--win-color); }
+.losses-cell { color: var(--loss-color); }
+
+/* Interactive Elements
+	========================================================================== */
+/* Player Cell Hover Effects */
+.player-cell:hover {
+	transform: scale(1.05);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	z-index: 1;
+}
+
+.player-cell:hover:before {
+	content: '>';
+	position: static;
+	margin-right: 5px;
+}
+
+.player-cell:hover:after {
+	content: '<';
+	position: static;
+	margin-left: 5px;
+}
+
+/* State Indicators
+	========================================================================== */
+.loading-text {
+	text-align: center;
+	padding: 2rem;
+	color: var(--text-color);
+	font-size: var(--font-size-small);
+}
+
+.error-message {
+	color: var(--error-color);
+	text-align: center;
+	padding: 1rem;
+	margin-bottom: 1rem;
+}
+
+.no-data {
+	text-align: center;
+	padding: 2rem 0;
+	color: var(--text-color);
+	font-style: italic;
+}
+
+/* Buttons
+	========================================================================== */
+.retry-button {
+	display: block;
+	margin: 0 auto;
+	padding: 0.5rem 1rem;
+	background-color: var(--menu-bg);
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
+	border-radius: 4px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.retry-button:hover {
+	background-color: var(--border-color);
+	color: var(--text-color);
+}
+
+/* Responsive Design
+	========================================================================== */
+@media screen and (max-width: 1200px) {
+	.ascii-title {
+			font-size: 7px;
+	}
+}
+
+@media screen and (max-width: 768px) {
+	.ascii-container {
+			padding: 1rem;
+	}
+	
+	.leaderboard-table th,
+	.leaderboard-table td {
+			padding: 0.75rem 0.5rem;
+			font-size: 0.9rem;
+	}
+	
+	.ascii-title {
+			font-size: 5px;
+	}
+}

@@ -12,10 +12,10 @@ import { Database } from 'sqlite';
 import {
   Elo,
   GetElosQuery,
-  DailyElo,
-  LeaderboardEntry,
-} from '../shared/types/elo.type.js';
-import { IId } from '../shared/types/match.type.js';
+	DailyElo,
+  LeaderboardEntry
+} from '../../../../shared/types/elo.type.js'
+import { GetLeaderboardQuery } from '@shared/types/match.type.js'
 
 async function calculateEloChange(
   winnerElo: number,
@@ -221,10 +221,10 @@ export async function updateEloRatings(
 }
 
 // Get a single elo by ID
-export async function getLeaderboard(
-  request: FastifyRequest,
-  reply: FastifyReply
-): Promise<void> {
+export async function getLeaderboard(request: FastifyRequest<{
+  Querystring: GetLeaderboardQuery
+}>, reply: FastifyReply): Promise<void> {
+  const { limit = 10, offset = 0 } = request.query
   try {
     const startTime = performance.now();
     const leaderboard = (await request.server.db.all(`
@@ -236,14 +236,10 @@ export async function getLeaderboard(
         COALESCE(pms.total_matches, 0) as total_matches
       FROM latest_player_elos e
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id
-      ORDER BY e.elo DESC;
-    `)) as LeaderboardEntry[];
-
-    recordMediumDatabaseMetrics(
-      'SELECT',
-      'leaderboard',
-      performance.now() - startTime
-    );
+      ORDER BY e.elo DESC LIMIT ? OFFSET ?;
+    `, limit, offset) as LeaderboardEntry[];
+    
+    recordMediumDatabaseMetrics('SELECT', 'leaderboard', (performance.now() - startTime));
     return reply.code(200).send(leaderboard);
   } catch (error) {
     request.log.error({
