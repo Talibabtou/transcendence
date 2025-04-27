@@ -87,8 +87,7 @@ export const getUsersSchema = {
           id: {
             type: 'string',
             format: 'uuid',
-            pattern:
-              '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
           },
         },
         required: ['username', 'email', 'id'],
@@ -176,6 +175,16 @@ export const createUserSchema = {
       ...errorResponseSchema,
       example: ErrorExamples.sqliteConstraint,
     },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
+
+export const logoutSchema = {
+  response: {
+    204: {},
     500: {
       ...errorResponseSchema,
       example: ErrorExamples.internalError,

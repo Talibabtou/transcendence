@@ -5,10 +5,7 @@ import { GetGoalsQuery, CreateGoalRequest, Goal } from '../shared/types/goal.typ
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
 
-export async function getGoals(
-  request: FastifyRequest<{ Querystring: GetGoalsQuery }>,
-  reply: FastifyReply
-) {
+export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQuery }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/v1')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
@@ -36,10 +33,7 @@ export async function getGoal(request: FastifyRequest<{ Params: IId }>, reply: F
   }
 }
 
-export async function createGoal(
-  request: FastifyRequest<{ Body: CreateGoalRequest }>,
-  reply: FastifyReply
-) {
+export async function createGoal(request: FastifyRequest<{ Body: CreateGoalRequest }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/v1')[1];

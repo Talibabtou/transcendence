@@ -25,10 +25,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function getUser(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-) {
+export async function getUser(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
@@ -79,10 +76,7 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
   }
 }
 
-export async function patchUser(
-  request: FastifyRequest<{ Body: IModifyUser }>,
-  reply: FastifyReply
-) {
+export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
@@ -112,6 +106,30 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'DELETE' });
+    if (response.status >= 400) {
+      const responseData = (await response.json()) as ErrorResponse;
+      return reply.code(response.status).send(responseData);
+    }
+    return reply.code(response.status).send();
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const jwtId: string = (request.user as FastifyJWT['user']).jwtId;
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const response = await fetch(serviceUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': request.headers['content-type'] || 'application/json',
+      },
+      body: JSON.stringify(jwtId),
+    });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
       return reply.code(response.status).send(responseData);

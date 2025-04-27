@@ -10,9 +10,7 @@ import {
 } from '../controllers/friends.controller.js';
 import { IId } from '../shared/types/api.types.js';
 
-export default async function authRoutes(
-  fastify: FastifyInstance
-): Promise<void> {
+export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>('/all/:id', getFriends);
 
   fastify.get<{ Params: IId }>('/all/me/:id', getFriendsMe);
@@ -25,10 +23,7 @@ export default async function authRoutes(
 
   fastify.delete<{ Params: IId }>('/delete/all/:id', deleteFriends);
 
-  fastify.delete<{ Querystring: IId; Params: IId }>(
-    '/delete/:id',
-    deleteFriend
-  );
+  fastify.delete<{ Querystring: IId; Params: IId }>('/delete/:id', deleteFriend);
 
   fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => {
     reply.code(200).send();

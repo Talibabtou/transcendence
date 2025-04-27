@@ -1,6 +1,6 @@
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 import { ErrorExamples } from '../shared/constants/error.const.js';
-import { matchSchema } from '../schemas/match.schemas.js';
+import { matchSchema } from './match.schemas.js';
 
 export const getTournamentSchema = {
   params: {

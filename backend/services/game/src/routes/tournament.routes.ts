@@ -1,9 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import {
-  getTournament,
-  getTournaments,
-  getFinalMatches,
-} from '../controllers/tournament.controller.js';
+import { getTournament, getTournaments, getFinalMatches } from '../controllers/tournament.controller.js';
 
 export default async function tournamentRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/tournament/:id', getTournament);

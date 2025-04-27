@@ -16,10 +16,12 @@ prettier:
 linter:
 	npx eslint . --fix
 
+format: linter prettier
+
 clean:
 	clear
 
 fclean: clean
 	@${RM} dist/
 
-.PHONY: all re clean fclean prettier linter
+.PHONY: all re clean fclean prettier linter format

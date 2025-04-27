@@ -23,9 +23,7 @@ export async function getGoal(
   const { id } = request.params;
   try {
     const startTime = performance.now(); // Start timer
-    const goal = (await request.server.db.get('SELECT * FROM goal WHERE id = ?', [
-      id,
-    ])) as Goal | null;
+    const goal = (await request.server.db.get('SELECT * FROM goal WHERE id = ?', [id])) as Goal | null;
     recordMediumDatabaseMetrics('SELECT', 'goal', performance.now() - startTime); // Record metric
     if (!goal) {
       const errorResponse = createErrorResponse(404, ErrorCodes.GOAL_NOT_FOUND);

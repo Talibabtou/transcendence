@@ -1,9 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import {
-  getTournament,
-  getTournaments,
-  getFinalMatches,
-} from '../controllers/tournament.controller.js';
+import { getTournament, getTournaments, getFinalMatches } from '../controllers/tournament.controller.js';
 import { getTournamentSchema, getFinalMatchesSchema } from '../schemas/tournament.schema.js';
 import { IId, GetTournamentsQuery } from '../shared/types/match.type.js';
 

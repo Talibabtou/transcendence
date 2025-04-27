@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "game",
   "version": "1.0.0",
   "main": "dist/server.js",
   "repository": "git@github.com:Talibabtou/transcendence.git",
@@ -11,10 +11,8 @@
     "node-gyp": "10.3.1"
   },
   "scripts": {
-    "test": "echo 'test is working...'",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "prepare": "husky"
+    "start": "node dist/server.js"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,tsx}": [

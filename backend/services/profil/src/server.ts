@@ -40,9 +40,7 @@ class Server {
           if (err) {
             server.log.error(`Failed to start server: ${err.message}`);
             if (err.message.includes('EADDRINUSE'))
-              server.log.error(
-                `Port ${Number(process.env.PROFIL_PORT) || 8081} is already in use`
-              );
+              server.log.error(`Port ${Number(process.env.PROFIL_PORT) || 8081} is already in use`);
             process.exit(1);
           }
           server.log.info(`Server listening at ${address}`);

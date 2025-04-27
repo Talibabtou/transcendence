@@ -8,6 +8,7 @@ import {
   patchUser,
   deleteUser,
   postLogin,
+  postLogout,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -17,6 +18,7 @@ import {
   createUserSchema,
   modifyUserSchema,
   loginSchema,
+  logoutSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
@@ -67,6 +69,18 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     postUser
+  );
+
+  fastify.post(
+    '/auth/logout',
+    {
+      schema: {
+        ...logoutSchema,
+        tags: ['auth'],
+      },
+      config: auth,
+    },
+    postLogout
   );
 
   fastify.post<{ Body: ILogin }>(

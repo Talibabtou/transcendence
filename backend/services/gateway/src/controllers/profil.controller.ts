@@ -13,10 +13,7 @@ function verifTypeFile(file: MultipartFile): boolean {
   return true;
 }
 
-export async function upload(
-  request: FastifyRequest<{ Body: IUpload }>,
-  reply: FastifyReply
-): Promise<void> {
+export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: FastifyReply): Promise<void> {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath: string = request.url.split('/profil')[1];

@@ -2,6 +2,7 @@
 **/.svn
 **/.hg
 **/node_modules
+dist/
 Makefile
 package.json
 package-lock.json

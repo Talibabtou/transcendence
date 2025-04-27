@@ -1,10 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import {
-  getPicSchema,
-  getPicsSchema,
-  getHealthSchema,
-  getCheckSchema,
-} from '../schemas/api.schemas.js';
+import { getPicSchema, getPicsSchema, getHealthSchema, getCheckSchema } from '../schemas/api.schemas.js';
 import { getPic, getPics, getHealth } from '../controllers/api.controller.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };

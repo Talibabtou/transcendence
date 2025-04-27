@@ -4,16 +4,11 @@ import { Server } from '../server.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
-export async function getPic(
-  request: FastifyRequest<{ Params: { id: string } }>,
-  reply: FastifyReply
-) {
+export async function getPic(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
     const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
-    const existingFile: string | undefined = fs
-      .readdirSync(uploadDir)
-      .find((file) => file.startsWith(id));
+    const existingFile: string | undefined = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
     if (existingFile) {
       return reply.code(200).send({ link: `/uploads/${existingFile}` });
     } else {
@@ -47,10 +42,7 @@ export async function getPics(request: FastifyRequest, reply: FastifyReply) {
 
 export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
   try {
-    if (
-      request.url.includes(process.env.AUTH_ADDR || 'auth') &&
-      Server.microservices.get('auth') === false
-    ) {
+    if (request.url.includes(process.env.AUTH_ADDR || 'auth') && Server.microservices.get('auth') === false) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE);
       return reply.code(503).send(errorMessage);
     } else if (

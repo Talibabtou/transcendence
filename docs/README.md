@@ -34,7 +34,7 @@ npm i --save-dev @types/node @eslint/js eslint eslint-config-prettier globals pr
 npm install typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/swagger-ui @fastify/swagger @fastify/helmet
 
 // AUTH
-npm install typescript fastify sqlite3 sqlite @fastify/jwt 
+npm install typescript fastify sqlite3 sqlite @fastify/jwt uuid
 
 // PROFIL
 npm install typescript fastify @fastify/jwt @fastify/static @fastify/multipart

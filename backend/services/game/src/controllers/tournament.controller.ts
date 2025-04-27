@@ -13,10 +13,9 @@ export async function getTournament(
   const { id } = request.params;
   try {
     const startTime = performance.now();
-    const tournament = (await request.server.db.all(
-      'SELECT * FROM matches WHERE tournament_id = ?',
-      id
-    )) as Match[] | null;
+    const tournament = (await request.server.db.all('SELECT * FROM matches WHERE tournament_id = ?', id)) as
+      | Match[]
+      | null;
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     if (!tournament) {
       const errorResponse = createErrorResponse(404, ErrorCodes.TOURNAMENT_NOT_FOUND);
@@ -98,7 +97,10 @@ export async function getFinalMatches(
     let finalResult: FinalResultObject = { player_1: null, player_2: null };
     if (topVictories[1].victory_count !== topVictories[2].victory_count) {
       console.log('topVictories', topVictories);
-      finalResult = { player_1: topVictories[0].player_id, player_2: topVictories[1].player_id };
+      finalResult = {
+        player_1: topVictories[0].player_id,
+        player_2: topVictories[1].player_id,
+      };
       return reply.code(200).send(finalResult);
     }
     console.log('topVictories', topVictories);
@@ -116,10 +118,16 @@ export async function getFinalMatches(
     if (topScorer[0].goals_scored !== topScorer[1].goals_scored) {
       if (topScorer[1].goals_scored !== topScorer[2].goals_scored) {
         if (finalResult.player_1 === null) {
-          finalResult = { player_1: topScorer[0].player_id, player_2: topScorer[1].player_id };
+          finalResult = {
+            player_1: topScorer[0].player_id,
+            player_2: topScorer[1].player_id,
+          };
           console.log('topScorerTrio - duality', finalResult);
         } else {
-          finalResult = { player_1: finalResult.player_1, player_2: topScorer[0].player_id };
+          finalResult = {
+            player_1: finalResult.player_1,
+            player_2: topScorer[0].player_id,
+          };
           console.log('topScorerTrio', finalResult);
         }
         return reply.code(200).send(finalResult);
@@ -135,7 +143,10 @@ export async function getFinalMatches(
         );
         console.log('topScorerTrio - duality', finalResult);
       } else {
-        finalResult = { player_1: finalResult.player_1, player_2: topScorer[0].player_id };
+        finalResult = {
+          player_1: finalResult.player_1,
+          player_2: topScorer[0].player_id,
+        };
         console.log('topScorerTrio', finalResult);
       }
       return reply.code(200).send(finalResult);
@@ -144,7 +155,10 @@ export async function getFinalMatches(
       topScorer[1].goals_scored !== topScorer[2].goals_scored
     ) {
       if (finalResult.player_1 === null) {
-        finalResult = { player_1: topScorer[0].player_id, player_2: topScorer[1].player_id };
+        finalResult = {
+          player_1: topScorer[0].player_id,
+          player_2: topScorer[1].player_id,
+        };
         console.log('topScorerTrio', finalResult);
       } else {
         finalResult = await duality(
@@ -163,10 +177,16 @@ export async function getFinalMatches(
     if (topDefense[0].goals_conceded !== topDefense[1].goals_conceded) {
       if (topDefense[1].goals_conceded !== topDefense[2].goals_conceded) {
         if (finalResult.player_1 === null) {
-          finalResult = { player_1: topDefense[0].player_id, player_2: topDefense[1].player_id };
+          finalResult = {
+            player_1: topDefense[0].player_id,
+            player_2: topDefense[1].player_id,
+          };
           console.log('topDefenseTrio - duality', finalResult);
         } else {
-          finalResult = { player_1: finalResult.player_1, player_2: topDefense[0].player_id };
+          finalResult = {
+            player_1: finalResult.player_1,
+            player_2: topDefense[0].player_id,
+          };
           console.log('topDefenseTrio', finalResult);
         }
         return reply.code(200).send(finalResult);
@@ -182,7 +202,10 @@ export async function getFinalMatches(
         );
         console.log('topDefenseTrio - duality', finalResult);
       } else {
-        finalResult = { player_1: finalResult.player_1, player_2: topDefense[0].player_id };
+        finalResult = {
+          player_1: finalResult.player_1,
+          player_2: topDefense[0].player_id,
+        };
         console.log('topDefenseTrio', finalResult);
       }
       return reply.code(200).send(finalResult);
@@ -191,7 +214,10 @@ export async function getFinalMatches(
       topDefense[1].goals_conceded !== topDefense[2].goals_conceded
     ) {
       if (finalResult.player_1 === null) {
-        finalResult = { player_1: topDefense[0].player_id, player_2: topDefense[1].player_id };
+        finalResult = {
+          player_1: topDefense[0].player_id,
+          player_2: topDefense[1].player_id,
+        };
         console.log('topDefenseTrio', finalResult);
       } else {
         finalResult = await duality(
@@ -208,10 +234,16 @@ export async function getFinalMatches(
     }
     const topSpeed = await topSpeedTrio(request.server.db, id, player1, player2, player3);
     if (finalResult.player_1 !== null) {
-      finalResult = { player_1: finalResult.player_1, player_2: topSpeed[0].player_id };
+      finalResult = {
+        player_1: finalResult.player_1,
+        player_2: topSpeed[0].player_id,
+      };
       console.log('topSpeedTrio hello there', finalResult);
     } else {
-      finalResult = { player_1: topSpeed[0].player_id, player_2: topSpeed[1].player_id };
+      finalResult = {
+        player_1: topSpeed[0].player_id,
+        player_2: topSpeed[1].player_id,
+      };
       console.log('topSpeedTrio', finalResult);
     }
     return reply.code(200).send(finalResult);
@@ -237,12 +269,7 @@ async function topScorerTrio(
     ORDER BY goals_scored DESC
     LIMIT 3;
   `;
-  const topScorers = (await db.all(topScorersQuery, [
-    tournamentId,
-    player1,
-    player2,
-    player3,
-  ])) as Finalist[];
+  const topScorers = (await db.all(topScorersQuery, [tournamentId, player1, player2, player3])) as Finalist[];
   return topScorers;
 }
 
@@ -328,12 +355,7 @@ async function topSpeedTrio(
 		ORDER BY total_duration ASC
 		LIMIT 3;
 		`;
-  const topSpeed = (await db.all(topSpeedQuery, [
-    tournamentId,
-    player1,
-    player2,
-    player3,
-  ])) as Finalist[];
+  const topSpeed = (await db.all(topSpeedQuery, [tournamentId, player1, player2, player3])) as Finalist[];
   console.log('topSpeed', topSpeed);
   return topSpeed;
 }
@@ -371,17 +393,29 @@ async function duality(
       const topDefense = await topDefenseDuo(db, tournamentId, player1, player2);
       if (topDefense[0].goals_conceded !== topDefense[1].goals_conceded) {
         if (finalResult.player_1 === null) {
-          return { player_1: topDefense[0].player_id, player_2: topDefense[1].player_id };
+          return {
+            player_1: topDefense[0].player_id,
+            player_2: topDefense[1].player_id,
+          };
         } else {
-          return { player_1: finalResult.player_1, player_2: topDefense[0].player_id };
+          return {
+            player_1: finalResult.player_1,
+            player_2: topDefense[0].player_id,
+          };
         }
       }
     }
     const topSpeed = await topSpeedDuo(db, tournamentId, player1, player2);
     if (finalResult.player_1 === null) {
-      return { player_1: topSpeed[0].player_id, player_2: topSpeed[1].player_id };
+      return {
+        player_1: topSpeed[0].player_id,
+        player_2: topSpeed[1].player_id,
+      };
     } else {
-      return { player_1: finalResult.player_1, player_2: topSpeed[0].player_id };
+      return {
+        player_1: finalResult.player_1,
+        player_2: topSpeed[0].player_id,
+      };
     }
   } catch (error) {
     console.error(error);

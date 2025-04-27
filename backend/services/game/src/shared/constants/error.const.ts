@@ -48,13 +48,14 @@ export enum ErrorCodes {
   JWT_BAD_HEADER = 'JWT_BAD_HEADER',
   JWT_INSUFFICIENT_PERMISSIIONS = 'JWT_INSUFFICIENT_PERMISSIIONS',
   JWT_EXP_TOKEN = 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED',
+  JWT_REVOKED = 'JWT_REVOKED',
 }
 
 // Create a map of error codes to their messages
 export const ErrorTypes = new Map<number, string>([
   [400, 'Bad Request'],
   [401, 'Unauthorized'],
-  [403, 'InsufficientPermissions'],
+  [403, 'Insufficient Permissions'],
   [404, 'Not Found'],
   [409, 'Conflict'],
   [500, 'Internal Server Error'],
@@ -105,6 +106,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.JWT_BAD_HEADER, 'JWT bad header'],
   [ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS, 'JWT insufficient permissions'],
   [ErrorCodes.JWT_EXP_TOKEN, 'Token expired'],
+  [ErrorCodes.JWT_REVOKED, 'Jwt revoked'],
 ]);
 
 // Helper function to create error response objects
@@ -281,5 +283,11 @@ export const ErrorExamples = {
     code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
     error: ErrorTypes.get(401),
     message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
+  },
+  jwtRevoked: {
+    statusCode: 403,
+    code: ErrorCodes.JWT_REVOKED,
+    error: ErrorTypes.get(403),
+    message: ErrorMessages.get(ErrorCodes.JWT_REVOKED),
   },
 };

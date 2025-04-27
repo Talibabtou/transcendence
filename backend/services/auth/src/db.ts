@@ -10,14 +10,9 @@ declare module 'fastify' {
 }
 
 const dirname: string = path.resolve();
-const filepath: string = path.join(
-  dirname,
-  process.env.DB_AUTH || '/db/users.sqlite'
-);
+const filepath: string = path.join(dirname, process.env.DB_AUTH || '/db/users.sqlite');
 
-export async function initDb(): Promise<
-  Database<sqlite3.Database, sqlite3.Statement>
-> {
+export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.Statement>> {
   try {
     const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
       filename: filepath,
@@ -36,6 +31,8 @@ export async function initDb(): Promise<
         username VARCHAR(20) NOT NULL UNIQUE,
         email VARCHAR(255) NOT NULL UNIQUE,
         password VARCHAR(255) NOT NULL,
+        two_factor_enabled BOOLEAN NOT NULL DEFAULT 0,
+        two_factor_secret TEXT,
         last_ip VARCHAR(255) NOT NULL,
         last_login DATETIME NULL,
         updated_at DATETIME NULL,

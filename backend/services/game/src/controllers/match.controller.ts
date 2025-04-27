@@ -29,10 +29,7 @@ export async function getMatch(
   const { id } = request.params;
   try {
     const startTime = performance.now();
-    const match = (await request.server.db.get(
-      'SELECT * FROM matches WHERE id = ?',
-      id
-    )) as Match | null;
+    const match = (await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)) as Match | null;
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
@@ -242,9 +239,7 @@ export async function matchStats(
     );
     recordFastDatabaseMetrics('SELECT', 'player_goal_durations', performance.now() - startTime);
     // Transform result into array of numbers
-    const goalDurations = goalDurationsResult
-      ? goalDurationsResult.map((row) => Number(row.duration))
-      : [];
+    const goalDurations = goalDurationsResult ? goalDurationsResult.map((row) => Number(row.duration)) : [];
 
     // Get match durations for histogram
     startTime = performance.now();
@@ -274,8 +269,7 @@ export async function matchStats(
 
     if (goalDurations.length > 0) {
       longestGoalDuration = Math.max(...goalDurations);
-      averageGoalDuration =
-        goalDurations.reduce((sum, duration) => sum + duration, 0) / goalDurations.length;
+      averageGoalDuration = goalDurations.reduce((sum, duration) => sum + duration, 0) / goalDurations.length;
     }
 
     // Combine all statistics into a comprehensive response

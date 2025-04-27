@@ -1,9 +1,6 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { IId } from '../shared/types/api.types.js';
-import {
-  createErrorResponse,
-  ErrorCodes,
-} from '../shared/constants/error.const.js';
+import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -35,10 +32,7 @@ export async function getFriends(
       [id, id, id]
     );
     if (!friends) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(200).send(friends);
@@ -68,10 +62,7 @@ export async function getFriendsMe(
       [request.params.id, request.params.id, request.params.id]
     );
     if (!friends) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(200).send(friends);
@@ -105,10 +96,7 @@ export async function getFriend(
       [id, request.params.id, request.params.id, id]
     );
     if (!friend.friendExists) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(204).send();
@@ -136,10 +124,7 @@ export async function postFriend(
       [request.params.id, id, request.params.id, id]
     );
     if (friend.FriendExists) {
-      const errorMessage = createErrorResponse(
-        409,
-        ErrorCodes.FRIENDSHIP_EXISTS
-      );
+      const errorMessage = createErrorResponse(409, ErrorCodes.FRIENDSHIP_EXISTS);
       return reply.code(409).send(errorMessage);
     }
     await request.server.db.run(
@@ -150,16 +135,10 @@ export async function postFriend(
   } catch (err) {
     if (err instanceof Error) {
       if (err.message.includes('SQLITE_MISMATCH')) {
-        const errorMessage = createErrorResponse(
-          400,
-          ErrorCodes.SQLITE_MISMATCH
-        );
+        const errorMessage = createErrorResponse(400, ErrorCodes.SQLITE_MISMATCH);
         return reply.code(400).send(errorMessage);
       } else if (err.message.includes('SQLITE_CONSTRAINT')) {
-        const errorMessage = createErrorResponse(
-          409,
-          ErrorCodes.SQLITE_CONSTRAINT
-        );
+        const errorMessage = createErrorResponse(409, ErrorCodes.SQLITE_CONSTRAINT);
         return reply.code(409).send(errorMessage);
       }
     }
@@ -184,10 +163,7 @@ export async function patchFriend(
       [request.params.id, id]
     );
     if (friend.changes === 0) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(204).send();
@@ -203,15 +179,12 @@ export async function deleteFriends(
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const result = await request.server.db.run(
-      'DELETE FROM friends WHERE id_1 = ? OR id_2 = ?',
-      [request.params.id, request.params.id]
-    );
+    const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? OR id_2 = ?', [
+      request.params.id,
+      request.params.id,
+    ]);
     if (result.changes === 0) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(204).send();
@@ -232,10 +205,7 @@ export async function deleteFriend(
       [request.params.id, request.query.id, request.query.id, request.params.id]
     );
     if (result.changes === 0) {
-      const errorMessage = createErrorResponse(
-        404,
-        ErrorCodes.FRIENDS_NOTFOUND
-      );
+      const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(204).send();

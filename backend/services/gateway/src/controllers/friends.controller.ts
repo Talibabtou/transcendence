@@ -123,10 +123,7 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
   }
 }
 
-export async function deleteFriend(
-  request: FastifyRequest<{ Querystring: IId }>,
-  reply: FastifyReply
-) {
+export async function deleteFriend(request: FastifyRequest<{ Querystring: IId }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
