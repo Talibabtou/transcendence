@@ -1,5 +1,0 @@
-export * from './component'
-export * from './leaderboard'
-export * from './profile/index'
-export * from './game/index'
-export * from './auth/index'
