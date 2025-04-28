@@ -62,7 +62,6 @@ export class GameScene {
 	 * Initializes and starts the game scene
 	 */
 	public load(): void {
-		this.controlsManager.setupControls(this.gameMode);
 		this.pauseManager.startGame();
 	}
 
