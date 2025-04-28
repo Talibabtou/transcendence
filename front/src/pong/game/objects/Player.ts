@@ -231,7 +231,7 @@ export class Player implements GraphicalElement {
 
 		// Update AI inputs if AI-controlled and playing or in background mode
 		if (this._type === PlayerType.BACKGROUND && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
-			this.updateAIInputs(ctx);
+			this.updateBackgroundInputs(ctx);
 		}
 
 		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
@@ -408,6 +408,30 @@ export class Player implements GraphicalElement {
 		}
 
 		// Different behavior based on player position and ball direction
+		if (this._position === PlayerPosition.RIGHT) {
+			// Left player AI
+			if (this.ball.dx >= 0) {
+				// Ball moving away - return to center with smooth movement
+				this.moveTowardsCenter(paddleCenter, centerY);
+			} else {
+				// Ball coming towards - track with smooth movement
+				this.trackBallWithDelay(paddleCenter);
+			}
+		}
+	}
+
+	protected updateBackgroundInputs(ctx: GameContext): void {
+		const paddleCenter = this.y + (this.paddleHeight * 0.5);
+		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
+		
+		// Only update AI movement if the ball is actually moving
+		if (this.ball.dx === 0 && this.ball.dy === 0) {
+			// Slowly return to center when ball is not moving
+			this.moveTowardsCenter(paddleCenter, centerY);
+			return;
+		}
+
+		// Different behavior based on player position and ball direction
 		if (this._position === PlayerPosition.LEFT) {
 			// Left player AI
 			if (this.ball.dx >= 0) {
@@ -428,7 +452,7 @@ export class Player implements GraphicalElement {
 			}
 		}
 	}
-
+	
 	/**
 	 * AI helper method to move paddle towards center position
 	 */

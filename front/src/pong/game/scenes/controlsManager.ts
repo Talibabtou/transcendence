@@ -106,7 +106,7 @@ export class ControlsManager {
 	 * Both players: AI
 	 */
 	private setupBackgroundMode(): void {
-		this.player1.setPlayerType(PlayerType.AI);
-		this.player2.setPlayerType(PlayerType.AI);
+		this.player1.setPlayerType(PlayerType.BACKGROUND);
+		this.player2.setPlayerType(PlayerType.BACKGROUND);
 	}
 }
