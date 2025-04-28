@@ -189,7 +189,7 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		
 		Object.entries(data as Record<string, any>).forEach(([key, value]) => {
 			const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-			result = result.replace(regex, String(value));
+			result = result.replace(regex, value);
 		});
 		
 		return result;

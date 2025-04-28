@@ -14,7 +14,7 @@ export interface User {
 	created_at: Date;
 	email?: string;
 	auth_method?: string;
-	password?: string; // Only for mock DB
+	password?: string;
 	elo?: number;
 }
 

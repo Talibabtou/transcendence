@@ -271,7 +271,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				<img src="${host.pfp}" alt="${host.username}" />
 			</div>
 			<div class="player-name">${host.username}</div>
-			<div class="player-elo">${host.elo !== undefined ? String(host.elo) : '0'}</div>
+			<div class="player-elo">${host.elo !== undefined ? host.elo : '0'}</div>
 			
 			<div class="player-color-selection">
 				<div class="color-picker">
@@ -315,7 +315,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				<img src="${guest.pfp}" alt="${guest.username}" />
 			</div>
 			<div class="player-name">${guest.username}</div>
-			<div class="player-elo">${guest.elo !== undefined ? String(guest.elo) : '0'}</div>
+			<div class="player-elo">${guest.elo !== undefined ? guest.elo : '0'}</div>
 			
 			<div class="player-color-selection">
 				<div class="color-picker">

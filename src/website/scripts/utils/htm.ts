@@ -95,7 +95,7 @@ function applyProps(element: HTMLElement, props: Record<string, any>): void {
  */
 function appendChildren(
 	parent: HTMLElement | DocumentFragment,
-	children: (Node | string | (Node | string)[])[]
+	children: (Node | string | number | boolean | (Node | string | number | boolean)[])[]
 ): void {
 	children.forEach(child => {
 		if (child === null || child === undefined) {
@@ -104,8 +104,8 @@ function appendChildren(
 
 		if (Array.isArray(child)) {
 			appendChildren(parent, child);
-		} else if (typeof child === 'string') {
-			parent.appendChild(document.createTextNode(child));
+		} else if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
+			parent.appendChild(document.createTextNode(String(child)));
 		} else if (child instanceof Node) {
 			parent.appendChild(child);
 		}

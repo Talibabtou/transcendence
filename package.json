@@ -13,13 +13,16 @@
 	"author": "Talibabtou",
 	"license": "ISC",
 	"devDependencies": {
-		"@types/node": "^22.13.10",
-		"typescript": "^5.8.2",
-		"vite": "^6.2.1"
+		"@types/node": "^22.14.1",
+		"@types/plotly.js": "^2.35.5",
+		"typescript": "^5.8.3",
+		"vite": "^6.3.3"
 	},
 	"dependencies": {
 		"htm": "^3.1.1",
 		"navigo": "^8.11.1",
+		"plotly.js-dist": "^3.0.1",
+		"@types/plotly.js": "^2.35.5",
 		"uuid": "^11.1.0"
 	}
 }

@@ -18,7 +18,8 @@
 		"paths": {
 			"@pong/*": ["src/pong/*"],
 			"@website/*": ["src/website/*"],
-			"@shared/*": ["src/shared/*"]
+			"@shared/*": ["src/shared/*"],
+			"@plotly/*": ["node_modules/@types/plotly.js"]
 		}
 	},
 	"include": ["src/**/*.ts"],

@@ -984,7 +984,7 @@ export class DbService {
 					resolve({
 						success: true,
 						user: {
-							id: String(user.id),
+							id: user.id,
 							username: user.pseudo,
 							email: user.email,
 							profilePicture: user.pfp || '/images/default-avatar.svg',

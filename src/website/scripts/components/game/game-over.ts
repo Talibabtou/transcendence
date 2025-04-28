@@ -100,13 +100,13 @@ export class GameOverComponent extends Component<GameOverState> {
 							left: ${ui.scores.player1.left}; 
 							top: ${ui.scores.player1.top}; 
 							font-size: ${ui.scores.player1.fontSize};">
-							${String(state.player1Score)}
+							${state.player1Score}
 						</div>
 						<div class="go-score" style="
 							left: ${ui.scores.player2.left}; 
 							top: ${ui.scores.player2.top}; 
 							font-size: ${ui.scores.player2.fontSize};">
-							${String(state.player2Score)}
+							${state.player2Score}
 						</div>
 					</div>
 					
