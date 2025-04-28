@@ -9,6 +9,8 @@ import {
   deleteUser,
   postLogin,
   postLogout,
+  twofaGenerate,
+  twofaAuth,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -58,6 +60,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
       config: auth,
     },
     getUserMe
+  );
+
+  fastify.get('/auth/2fa/generate', twofaGenerate);
+
+  fastify.post(
+    '/auth/2fa/auth',
+    {
+      config: auth,
+    },
+    twofaAuth
   );
 
   fastify.post<{ Body: IAddUser }>(

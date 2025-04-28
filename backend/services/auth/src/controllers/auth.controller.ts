@@ -1,6 +1,8 @@
-import { v4 as uuid } from 'uuid';
-import { IId } from '../shared/types/api.types.js';
 import fs from 'fs';
+import qrcode from 'qrcode';
+import { v4 as uuid } from 'uuid';
+import speakeasy from 'speakeasy';
+import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import {
@@ -254,3 +256,84 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     return reply.code(500).send(errorMessage);
   }
 }
+
+export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+  try {
+    const secretCode = speakeasy.generateSecret({
+      name: 'TEST',
+    });
+    const qrCodeImage = await qrcode.toDataURL(secretCode.otpauth_url as string);
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Two-Factor Authentication</title>
+        </head>
+        <body>
+          <h1>Scan this QR Code with your 2FA App</h1>
+          <img src="${qrCodeImage}" alt="QR Code" />
+        </body>
+      </html>
+    `;
+    return reply.code(200).type('text/html').send(htmlContent);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+// export async function twofaAuth(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+//   try {
+
+//     return reply.code(200).send();
+//   } catch (err) {
+//     request.server.log.error(err);
+//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+//     return reply.code(500).send(errorMessage);
+//   }
+// }
+
+// export async function twofaEnable(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
+//   try {
+//     const id = request.params.id;
+//     // const two_factor_enabled = await request.server.db.get(
+//     //   'SELECT two_factor_enabled FROM users WHERE id = ?;',
+//     //   [id]
+//     // );
+//     // if(two_factor_enabled === true)
+//     //   return reply.code(304).send();
+//     // await request.server.db.run(
+//     //   'UPDATE two_factor_enabled = true WHERE id = ?',
+//     //   [id]
+//     // );
+//     // //
+//     return reply.code(204).send();
+//   } catch (err) {
+//     request.server.log.error(err);
+//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+//     return reply.code(500).send(errorMessage);
+//   }
+// }
+
+// export async function twofaDisable(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
+//   try {
+//     const id = request.params.id;
+//     // const two_factor_enabled = await request.server.db.get(
+//     //   'SELECT two_factor_enabled FROM users WHERE id = ?;',
+//     //   [id]
+//     // );
+//     // if(two_factor_enabled === false)
+//     //   return reply.code(304).send();
+//     // await request.server.db.run(
+//     //   'UPDATE two_factor_enabled = false WHERE id = ?',
+//     //   [id]
+//     // );
+//     // //
+//     return reply.code(204).send();
+//   } catch (err) {
+//     request.server.log.error(err);
+//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+//     return reply.code(500).send(errorMessage);
+//   }
+// }

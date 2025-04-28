@@ -54,6 +54,45 @@ export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    // const id: string = (request.user as FastifyJWT['user']).id;
+    const tmp_id = '8a136f1f-798f-8436-42c3-6609d4f57268';
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${tmp_id}`;
+    const response = await fetch(serviceUrl, { method: 'GET' });
+    const responseBody = await response.text();
+    console.log(responseBody);
+    return reply.code(response.status).type('text/html').send(responseBody);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function twofaAuth(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const id: string = (request.user as FastifyJWT['user']).id;
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const response = await fetch(serviceUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': request.headers['content-type'] || 'application/json',
+        From: request.ip,
+      },
+      body: JSON.stringify(request.body),
+    });
+    const data = await response.json(); // Add type
+    return reply.code(response.status).send(data);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
 export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];

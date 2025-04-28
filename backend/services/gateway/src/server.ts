@@ -1,5 +1,6 @@
 import path from 'path';
-import helmet from '@fastify/helmet';
+// import cors from '@fastify/cors';
+// import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
@@ -108,6 +109,12 @@ const rateLimitParams = {
   timeWindow: '1 minute',
 };
 
+// const corsConfig = {
+//   origin: '*', // Allow all origins (or specify your frontend's origin)
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allowed HTTP methods
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+// };
+
 export class Server {
   private static instance: FastifyInstance;
   public static microservices: Map<string, boolean> = new Map();
@@ -187,7 +194,8 @@ export class Server {
       await server.register(rateLimit, rateLimitParams);
       await server.register(fastifyMultipart, multipartParams);
       await server.register(fastifyStatic, staticParams);
-      await server.register(helmet, { global: true });
+      // await server.register(helmet, { global: true });
+      // server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);
       server.addHook('onRequest', jwtPluginHook);
