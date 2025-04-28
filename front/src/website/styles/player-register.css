@@ -1,0 +1,190 @@
+/* ===== PLAYER REGISTRATION LAYOUTS ===== */
+.players-register-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	z-index: 10;
+}
+
+/* Back button */
+.players-register-container .back-button {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	cursor: pointer;
+	font-size: 1rem;
+	z-index: 2;
+}
+
+/* ===== PLAYERS GRID ===== */
+.players-grid,
+.tournament-players-grid {
+	display: flex;
+	flex: 1;
+	width: 100%;
+	position: relative;
+}
+
+.vertical-separator {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	width: 1px;
+	height: 100%;
+	background-color: var(--border-color);
+	box-shadow: 0 0 5px var(--border-color);
+}
+
+.tournament-players-grid .vertical-separator:nth-child(2) {
+	left: 25%;
+}
+
+.tournament-players-grid .vertical-separator:nth-child(4) {
+	left: 50%;
+}
+
+.tournament-players-grid .vertical-separator:nth-child(6) {
+	left: 75%;
+}
+
+/* ===== PLAYER SIDES ===== */
+.player-side {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	position: relative;
+}
+
+.player-label {
+	font-size: 1.5rem;
+	text-transform: uppercase;
+	color: var(--text-color);
+	letter-spacing: 2px;
+	margin-bottom: 2.5rem;
+}
+
+/* ===== PLAYER AVATAR ===== */
+.player-avatar {
+	width: 8.75rem;
+	height: 8.75rem;
+	border-radius: 50%;
+	overflow: hidden;
+	margin-bottom: 1.25rem;
+}
+
+.player-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* ===== PLAYER INFO ===== */
+.player-name {
+	font-size: 2rem;
+	font-weight: bold;
+	color: var(--text-color);
+	margin-bottom: 0.5rem;
+}
+
+.player-elo {
+	font-size: 1.5rem;
+	font-weight: bold;
+	margin-bottom: 1rem;
+	color: var(--text-color);
+}
+
+/* ===== PLAYER COLOR SELECTION ===== */
+.player-color-selection {
+	position: relative;
+	z-index: 2;
+	margin-bottom: 1rem;
+}
+
+.color-picker {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.color-row {
+	display: flex;
+	justify-content: center;
+	gap: 0.5rem;
+}
+
+.color-option {
+	width: 1.5rem;
+	height: 1.5rem;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 0.125rem solid transparent;
+	transition: all var(--transition-fast);
+}
+
+.color-option:hover {
+	transform: scale(1.1);
+}
+
+.color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+}
+
+/* ===== PLAYER ACCENT COLORS - Fix with stronger selectors ===== */
+/* Host (Player 1) - Always colored with accent1 */
+.players-register-container .host-side .player-avatar,
+.tournament-players-grid .host-side .player-avatar {
+	border: 0.125rem solid var(--accent1-color) !important;
+	box-shadow: 0 0 2rem var(--accent1-color) !important;
+}
+
+/* Guest (Player 2) - Always colored with accent2 */
+.players-register-container .guest-side .player-avatar,
+.tournament-players-grid .player-side:nth-child(3) .player-avatar {
+	border: 0.125rem solid var(--accent2-color) !important;
+	box-shadow: 0 0 2rem var(--accent2-color) !important;
+}
+
+/* Tournament Guest (Player 3) - Always colored with accent3 */
+.tournament-players-grid .player-side:nth-child(5) .player-avatar {
+	border: 0.125rem solid var(--accent3-color) !important;
+	box-shadow: 0 0 2rem var(--accent3-color) !important;
+}
+
+/* Tournament Guest (Player 4) - Always colored with accent4 */
+.tournament-players-grid .player-side:nth-child(7) .player-avatar {
+	border: 0.125rem solid var(--accent4-color) !important;
+	box-shadow: 0 0 2rem var(--accent4-color) !important;
+}
+
+/* ===== PLAY BUTTON ===== */
+.play-button-container {
+	position: absolute;
+	bottom: 2.5rem;
+	left: 0;
+	right: 0;
+	text-align: center;
+	z-index: 1;
+}
+
+.play-button {
+	min-width: 12.5rem;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 48rem) {
+	.players-grid,
+	.tournament-players-grid {
+		flex-direction: column;
+		height: auto;
+	}
+	
+	.player-side {
+		width: 100%;
+		margin-bottom: var(--spacing-lg);
+	}
+}

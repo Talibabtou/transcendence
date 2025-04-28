@@ -85,74 +85,21 @@ export class RegistrationHandler {
 			return;
 		}
 		
-		// Log registration attempt
-		console.log('Auth: Registration attempt', {
-			username,
-			email
-		});
-		
 		this.updateState({ isLoading: true, error: null });
 		
 		// Use DbService to simulate API call
 		DbService.register({ username, email, password })
-			.then(() => {
-				// Simulate API call
-				setTimeout(() => {
-					// Check if email already exists
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					const existingUser = users.find((u: any) => u.email === email);
-					
-					if (existingUser) {
-						console.warn('Auth: Registration failed - Email exists', {
-							email
-						});
-						
-						this.updateState({
-							isLoading: false,
-							error: 'Email already registered'
-						});
-						return;
-					}
-					
-					// Create new user
-					const userId = `user_${Date.now()}`;
-					const newUser = {
-						id: userId,
-						username,
-						email,
-						password,
-						authMethod: AuthMethod.EMAIL,
-						createdAt: new Date().toISOString(),
-						lastLogin: new Date()
-					};
-					
-					// Save to localStorage (for simulation)
-					users.push(newUser);
-					localStorage.setItem('auth_users', JSON.stringify(users));
-					
-					// Log successful registration
-					console.log('Auth: Registration successful', {
-						userId,
-						username,
-						email
-					});
-					
-					// Create user in the database
-					DbService.createUser({
-						id: parseInt(userId),
-						pseudo: username,
-						human: true,
-						created_at: new Date(),
-						last_login: new Date()
-					});
+			.then((response) => {
+				if (response.success && response.user) {
+					const user = response.user;
 					
 					// Set current user without password
 					const userData: UserData = {
-						id: newUser.id,
-						username: newUser.username,
-						email: newUser.email,
+						id: String(user.id),
+						username: user.pseudo, 
+						email: user.email || email,
 						authMethod: AuthMethod.EMAIL,
-						lastLogin: new Date()
+						lastLogin: user.last_login ? new Date(user.last_login) : new Date()
 					};
 					
 					this.setCurrentUser(userData);
@@ -164,13 +111,18 @@ export class RegistrationHandler {
 					
 					// Switch to success state
 					this.switchToSuccessState();
-				}, 100);
+				} else {
+					this.updateState({
+						isLoading: false,
+						error: 'Registration failed. Please try again.'
+					});
+				}
 			})
 			.catch(error => {
 				console.error('Auth: Registration error', error);
 				this.updateState({
 					isLoading: false,
-					error: 'Registration failed. Please try again.'
+					error: error.message || 'Registration failed. Please try again.'
 				});
 			});
 	}

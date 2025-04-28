@@ -10,8 +10,6 @@
 							 0 0 10px var(--text-color), 
 							 0 0 15px var(--text-color), 
 							 0 0 20px rgba(255, 255, 255, 0.5);
-	width: 100%;
-	display: block;
 	margin: 0 auto 8vh auto;
 	font-weight: bold;
 	position: relative;
@@ -20,12 +18,11 @@
 
 /* Game Menu */
 .game-menu {
-	text-align: center;
 	position: fixed;
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -93,7 +90,7 @@
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	z-index: 1;
 	image-rendering: pixelated;
 	image-rendering: crisp-edges;
@@ -106,7 +103,7 @@
 	top: var(--navbar-height);
 	left: 0;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	height: var(--main-canvas-height);
 	z-index: 1;
 }
 
@@ -118,4 +115,59 @@
 	font-family: var(--font-family);
 	font-size: 3vh;
 	color: var(--text-color);
+}
+
+.game-over-screen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	z-index: 10;
+}
+
+.go-player-names {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	color: rgba(255, 255, 255, 0.4);
+}
+
+.go-scores {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+.go-score {
+	position: absolute;
+	font-family: Arial;
+	color: rgba(255, 255, 255, 0.4);
+	transform: translate(-50%, -50%);
+}
+
+.go-content {
+	text-align: center;
+	z-index: 2;
+}
+
+.go-winner {
+	font-family: monospace;
+	color: rgb(255, 255, 255);
+	margin: 2vh 0;
+	font-size: 2.5vh;
+}
+
+.go-buttons {
+	display: flex;
+	flex-direction: column;
+	gap: 1vh;
+	align-items: center;
+	margin-top: 2vh;
 }

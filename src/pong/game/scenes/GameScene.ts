@@ -4,6 +4,9 @@ import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 
+// Define the game mode type here since GameScene is the authority
+export type GameModeType = 'single' | 'multi' | 'tournament' | 'background_demo';
+
 /**
  * Main game scene that coordinates game objects, managers, and game flow.
  * Acts as the central coordinator between different game components.
@@ -29,7 +32,7 @@ export class GameScene {
 	// Game State
 	// =========================================
 	private readonly winningScore = GAME_CONFIG.WINNING_SCORE;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
+	private gameMode: GameModeType = 'single';
 	private lastTime: number = 0;
 	private isFrozen: boolean = false;
 	private lastDrawTime: number | null = null;
@@ -87,7 +90,11 @@ export class GameScene {
 		
 		const deltaTime = this.calculateDeltaTime();
 		this.updateGameState(deltaTime);
-		this.checkWinCondition();
+		
+		// Instead of calling local checkWinCondition, let the engine handle it
+		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
+			this.gameEngine.checkWinCondition();
+		}
 	}
 
 	/**
@@ -122,11 +129,58 @@ export class GameScene {
 	/**
 	 * Sets the game mode and updates all relevant components
 	 */
-	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
+	public setGameMode(mode: GameModeType): void {
 		this.gameMode = mode;
-		this.pauseManager?.setGameMode(mode);
-		this.resizeManager?.setGameMode(mode);
 		this.controlsManager.setupControls(mode);
+	}
+
+	/**
+	 * Gets the current game mode
+	 */
+	public getGameMode(): GameModeType {
+		return this.gameMode;
+	}
+
+	/**
+	 * Checks if current game mode is background demo
+	 */
+	public isBackgroundDemo(): boolean {
+		return this.gameMode === 'background_demo';
+	}
+
+	/**
+	 * Checks if current game mode is single player
+	 */
+	public isSinglePlayer(): boolean {
+		return this.gameMode === 'single';
+	}
+
+	/**
+	 * Checks if current game mode is multiplayer
+	 */
+	public isMultiPlayer(): boolean {
+		return this.gameMode === 'multi';
+	}
+
+	/**
+	 * Checks if current game mode is tournament
+	 */
+	public isTournament(): boolean {
+		return this.gameMode === 'tournament';
+	}
+
+	/**
+	 * Checks if current game mode is competitive (multi or tournament)
+	 */
+	public isCompetitive(): boolean {
+		return this.isMultiPlayer() || this.isTournament();
+	}
+
+	/**
+	 * Checks if current game mode requires database recording
+	 */
+	public requiresDbRecording(): boolean {
+		return !this.isBackgroundDemo();
 	}
 
 	/**
@@ -178,24 +232,24 @@ export class GameScene {
 	 */
 	private initializePauseManager(): void {
 		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
-		this.pauseManager.setGameMode(this.gameMode);
+		
+		// Set the GameScene reference to enable background mode detection
+		if (typeof this.pauseManager.setGameScene === 'function')
+			this.pauseManager.setGameScene(this);
 		
 		// Set game engine reference if available
-		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function') {
+		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function')
 			this.pauseManager.setGameEngine(this.gameEngine);
-		}
 		
 		this.pauseManager.setCountdownCallback((text) => {
-			if (!this.isBackgroundDemo()) {
+			if (!this.isBackgroundDemo())
 				this.uiManager.setCountdownText(text);
-			}
 		});
 		
 		// Set point started callback
 		this.pauseManager.setPointStartedCallback(() => {
-			if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function') {
+			if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function')
 				this.gameEngine.resetGoalTimer();
-			}
 		});
 	}
 
@@ -337,16 +391,6 @@ export class GameScene {
 				gameEngine.recordGoal(scoringPlayerIndex);
 			}
 
-			// Check if game is over
-			if (this.isGameOver()) {
-				const winnerIndex = this.player1.getScore() > this.player2.getScore() ? 0 : 1;
-				
-				// Complete the match if we have access to the game engine
-				if (gameEngine && typeof gameEngine.completeMatch === 'function') {
-					gameEngine.completeMatch(winnerIndex);
-				}
-			}
-
 			// Reset goal timer for the next point
 			if (gameEngine && typeof gameEngine.resetGoalTimer === 'function') {
 				gameEngine.resetGoalTimer();
@@ -382,10 +426,6 @@ export class GameScene {
 
 	private shouldSkipUpdate(): boolean {
 		return !this.isBackgroundDemo() && this.pauseManager.hasState(GameState.PAUSED);
-	}
-
-	private isBackgroundDemo(): boolean {
-		return this.gameMode === 'background_demo';
 	}
 
 	private cleanupManagers(): void {
@@ -428,7 +468,7 @@ export class GameScene {
 
 	public isGameOver(): boolean {
 		return this.player1.getScore() >= this.winningScore || 
-			   this.player2.getScore() >= this.winningScore;
+				 this.player2.getScore() >= this.winningScore;
 	}
 
 	public getWinner(): Player | null {
@@ -436,23 +476,9 @@ export class GameScene {
 		return this.player1.getScore() >= this.winningScore ? this.player1 : this.player2;
 	}
 
-	private checkWinCondition(): void {
-		if (this.isGameOver()) {
-			const gameResult = {
-				winner: this.getWinner(),
-				player1Score: this.player1.getScore(),
-				player2Score: this.player2.getScore(),
-				player1Name: this.player1.name,
-				player2Name: this.player2.name
-			};
-			const event = new CustomEvent('gameOver', { 
-				detail: gameResult
-			});
-			window.dispatchEvent(event);
-		}
+	public getGameEngine(): any {
+		return this.gameEngine;
 	}
-
-	// =========================================
 	// Game Engine
 	// =========================================
 
@@ -463,9 +489,5 @@ export class GameScene {
 		if (this.pauseManager && typeof this.pauseManager.setGameEngine === 'function') {
 			this.pauseManager.setGameEngine(engine);
 		}
-	}
-
-	public getGameEngine(): any {
-		return this.gameEngine;
 	}
 }

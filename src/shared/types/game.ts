@@ -10,7 +10,8 @@ export interface Match {
 	completed?: boolean;
 	duration?: number;
 	timeout?: boolean;
-	tournament_id?: number;
+	tournament_id?: string;
+	final?: boolean;
 	created_at: Date;
 }
 
@@ -40,6 +41,7 @@ export interface GameHistoryEntry {
  * Leaderboard entry for a player's ranking
  */
 export interface LeaderboardEntry {
+	id: number;
 	rank: number;
 	username: string;
 	elo: number;
@@ -48,16 +50,13 @@ export interface LeaderboardEntry {
 }
 
 /**
- * Game menu state interface
- */
-
-/**
  * Define possible game modes
  */
 export enum GameMode {
 	SINGLE = 'single',
 	MULTI = 'multi',
-	TOURNAMENT = 'tournament'
+	TOURNAMENT = 'tournament',
+	BACKGROUND_DEMO = 'background_demo'
 }
 
 /**
@@ -74,8 +73,11 @@ export interface GameMenuState {
 export interface PlayerData {
 	id: number;
 	username: string;
-	pfp?: string;
+	pfp: string;
 	isConnected: boolean;
+	theme?: string;
+	elo?: number;
+	position?: number;
 }
 
 /**
@@ -87,4 +89,18 @@ export interface PlayersRegisterState {
 	guests: PlayerData[];
 	isReadyToPlay: boolean;
 	error: string | null;
+}
+
+/**
+ * Game over component state interface
+ */
+export interface GameOverState {
+	visible: boolean;
+	winner: string;
+	gameMode: GameMode;
+	matchId: number | null;
+	player1Name: string;
+	player2Name: string;
+	player1Score: number;
+	player2Score: number;
 }

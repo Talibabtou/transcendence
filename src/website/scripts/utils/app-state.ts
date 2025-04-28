@@ -3,6 +3,8 @@
  * Centralized state management for the application
  */
 
+import { Router } from './router';
+
 // Define available accent colors
 export type AccentColor = 'white' | 'blue' | 'green' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cyan' | 'teal' | 'lime' | 'red';
 
@@ -14,6 +16,12 @@ export interface AppState {
 			token: string | null;
 	};
 	accentColor: AccentColor;
+	accentColors: {
+		accent1: string; // Host accent (same as accentColor but in hex)
+		accent2: string; // Guest 1 accent
+		accent3: string; // Guest 2 accent - for tournament
+		accent4: string; // Guest 3 accent - for tournament
+	};
 }
 
 // Define state change listener type
@@ -45,7 +53,13 @@ export class AppStateManager {
 			user: null,
 			token: null
 		},
-		accentColor: 'white'
+		accentColor: 'white',
+		accentColors: {
+			accent1: '#ffffff', // Host accent (default white)
+			accent2: '#ffffff', // Guest 1 accent (default white)
+			accent3: '#ffffff', // Guest 2 accent (default white)
+			accent4: '#ffffff'  // Guest 3 accent (default white)
+		}
 	};
 	
 	// Listeners for state changes
@@ -74,7 +88,7 @@ export class AppStateManager {
 	}
 	
 	/**
-	 * Initialize state from localStorage/sessionStorage
+	 * Initialize state from database and localStorage/sessionStorage
 	 */
 	private initializeFromStorage(): void {
 		// Check for auth data in storage
@@ -88,31 +102,81 @@ export class AppStateManager {
 				this.state.auth.isAuthenticated = true;
 				this.state.auth.user = user;
 				
-				// You might also have a token stored
+				// Set token if available
 				const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 				if (token)
 					this.state.auth.token = token;
 				
-				// If user has a stored accent color preference, use it
-				if (user.accentColor && AppStateManager.ACCENT_COLORS[user.accentColor as AccentColor])
-					this.state.accentColor = user.accentColor as AccentColor;
+				// Get user's theme from the database if possible
+				if (user.id) {
+					// Import DbService and get fresh user data
+					import('./db').then(({ DbService }) => {
+						// Try to get the latest user data from the database
+						DbService.getUser(parseInt(user.id))
+							.then(dbUser => {
+								// If user has a theme in the database, use it
+								if (dbUser.theme) {
+									// Find corresponding accent color by hex value
+									const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+										([_, hexValue]) => hexValue.toLowerCase() === dbUser.theme?.toLowerCase()
+									);
+									
+									if (colorEntry) {
+										this.state.accentColor = colorEntry[0] as AccentColor;
+										// Also set as accent1 (host accent)
+										this.state.accentColors.accent1 = dbUser.theme;
+										// Apply immediately
+										this.applyAccentColorToCSS();
+									}
+								}
+							})
+							.catch(err => {
+								console.warn('Could not fetch user theme from database, using stored value', err);
+								// Fallback to stored theme
+								this.applyStoredTheme(user);
+							});
+					});
+				} else {
+					// Fallback to stored theme
+					this.applyStoredTheme(user);
+				}
 				
 				console.log('AppState: Restored auth state from storage', {
-						user: user.username,
-						persistent: !!localUser,
-						accentColor: this.state.accentColor
-					});
-				} catch (error) {
-					console.error('Failed to parse stored user data', error);
-					localStorage.removeItem('auth_user');
-					sessionStorage.removeItem('auth_user');
-				}
+					user: user.username || user.pseudo,
+					persistent: !!localUser,
+					theme: user.theme
+				});
+			} catch (error) {
+				console.error('Failed to parse stored user data', error);
+				localStorage.removeItem('auth_user');
+				sessionStorage.removeItem('auth_user');
+			}
+		} else {
+			// For non-authenticated users, use default white
+			this.state.accentColor = 'white';
+			this.state.accentColors.accent1 = '#ffffff';
+			// Apply immediately
+			this.applyAccentColorToCSS();
 		}
-		
-		// Check for accent color preference for non-authenticated users
-		const accentColor = localStorage.getItem('app_accent_color');
-		if (accentColor && AppStateManager.ACCENT_COLORS[accentColor as AccentColor]) {
-			this.state.accentColor = accentColor as AccentColor;
+	}
+	
+	/**
+	 * Apply theme from stored user data (fallback)
+	 */
+	private applyStoredTheme(user: any): void {
+		if (user.theme) {
+			// Find corresponding accent color by hex value
+			const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+				([_, hexValue]) => hexValue.toLowerCase() === user.theme.toLowerCase()
+			);
+			
+			if (colorEntry) {
+				this.state.accentColor = colorEntry[0] as AccentColor;
+				// Also set as accent1 (host accent)
+				this.state.accentColors.accent1 = user.theme;
+				// Apply immediately
+				this.applyAccentColorToCSS();
+			}
 		}
 	}
 	
@@ -124,7 +188,8 @@ export class AppStateManager {
 			this.initializeFromStorage();
 			this.notifyListeners({
 				auth: { ...this.state.auth },
-				accentColor: this.state.accentColor
+				accentColor: this.state.accentColor,
+				accentColors: { ...this.state.accentColors }
 			}, {});
 		}
 	}
@@ -147,7 +212,8 @@ export class AppStateManager {
 			...this.state,
 			...newState,
 			// Handle nested objects
-			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth
+			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
+			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors
 		};
 		
 		// Notify listeners
@@ -163,13 +229,13 @@ export class AppStateManager {
 	private persistState(): void {
 		// Persist auth state
 		if (this.state.auth.isAuthenticated && this.state.auth.user) {
-			// Update user object with current accent color
+			// Store the user object with theme
 			const user = {
 				...this.state.auth.user,
-				accentColor: this.state.accentColor
+				theme: AppStateManager.ACCENT_COLORS[this.state.accentColor]
 			};
 			
-			// Check if we should use persistent storage - use the persistent property from user data
+			// Check if we should use persistent storage
 			const isPersistent = user.persistent === true;
 			
 			// Store the persistence preference
@@ -201,8 +267,9 @@ export class AppStateManager {
 			sessionStorage.removeItem('auth_token');
 		}
 		
-		// Always persist accent color (even for non-authenticated users)
-		localStorage.setItem('app_accent_color', this.state.accentColor);
+		// No need to store app_accent_color separately
+		localStorage.removeItem('app_accent_color');
+		
 		// Apply accent color to CSS variables
 		this.applyAccentColorToCSS();
 	}
@@ -211,49 +278,11 @@ export class AppStateManager {
 	 * Apply the current accent color to CSS variables
 	 */
 	private applyAccentColorToCSS(): void {
-		const colorHex = AppStateManager.ACCENT_COLORS[this.state.accentColor];
-		document.documentElement.style.setProperty('--accent-color', colorHex);
-		
-		// You might want to derive other colors from the accent color
-		// For example, a darker version for hover states
-		document.documentElement.style.setProperty('--accent-color-dark', this.darkenColor(colorHex, 20));
-		document.documentElement.style.setProperty('--accent-color-light', this.lightenColor(colorHex, 20));
-	}
-	
-	/**
-	 * Darken a hex color by a percentage
-	 */
-	private darkenColor(hex: string, percent: number): string {
-		// Convert hex to RGB
-		let r = parseInt(hex.substring(1, 3), 16);
-		let g = parseInt(hex.substring(3, 5), 16);
-		let b = parseInt(hex.substring(5, 7), 16);
-		
-		// Darken
-		r = Math.floor(r * (100 - percent) / 100);
-		g = Math.floor(g * (100 - percent) / 100);
-		b = Math.floor(b * (100 - percent) / 100);
-		
-		// Convert back to hex
-		return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-	}
-	
-	/**
-	 * Lighten a hex color by a percentage
-	 */
-	private lightenColor(hex: string, percent: number): string {
-		// Convert hex to RGB
-		let r = parseInt(hex.substring(1, 3), 16);
-		let g = parseInt(hex.substring(3, 5), 16);
-		let b = parseInt(hex.substring(5, 7), 16);
-		
-		// Lighten
-		r = Math.min(255, Math.floor(r + (255 - r) * (percent / 100)));
-		g = Math.min(255, Math.floor(g + (255 - g) * (percent / 100)));
-		b = Math.min(255, Math.floor(b + (255 - b) * (percent / 100)));
-		
-		// Convert back to hex
-		return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+		// Apply multiple accent colors for players
+		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
+		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
+		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
+		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
 	}
 	
 	/**
@@ -288,6 +317,11 @@ export class AppStateManager {
 		// Store persistence preference
 		localStorage.setItem('auth_persistent', persistent.toString());
 		
+		// Set this user's theme as accent1 (host accent)
+		if (user.theme) {
+			this.state.accentColors.accent1 = user.theme;
+		}
+		
 		// Update state
 		this.setState({
 			auth: {
@@ -305,6 +339,11 @@ export class AppStateManager {
 			}
 		});
 		document.dispatchEvent(authEvent);
+		
+		// Refresh components after login
+		setTimeout(() => {
+			Router.refreshAllComponents();
+		}, 100);
 	}
 	
 	/**
@@ -326,6 +365,11 @@ export class AppStateManager {
 		localStorage.removeItem('auth_token');
 		sessionStorage.removeItem('auth_token');
 		localStorage.removeItem('auth_persistent');
+		
+		// Refresh components after logout
+		setTimeout(() => {
+			Router.refreshAllComponents();
+		}, 100);
 	}
 	
 	/**
@@ -343,17 +387,70 @@ export class AppStateManager {
 	}
 	
 	/**
-	 * Set accent color
+	 * Set accent color and update user theme in database
 	 */
 	public setAccentColor(color: AccentColor): void {
 		if (AppStateManager.ACCENT_COLORS[color]) {
-			this.setState({ accentColor: color });
+			// Only update state if color is valid
+			const colorHex = AppStateManager.ACCENT_COLORS[color];
 			
-			// If user is authenticated, update their profile in the database
+			// Update both accentColor and accent1
+			this.setState({ 
+				accentColor: color,
+				accentColors: {
+					...this.state.accentColors,
+					accent1: colorHex
+				}
+			});
+			
+			// If user is authenticated, update their theme in the database
 			if (this.state.auth.isAuthenticated && this.state.auth.user) {
-				// This would be an API call in a real application
-				console.log('Updating user profile with new accent color:', color);
-				// api.updateUserProfile(this.state.auth.user.id, { accentColor: color });
+				const userId = this.state.auth.user.id;
+				
+				// Import DbService dynamically to avoid circular dependencies
+				import('./db').then(({ DbService }) => {
+					// Update user's theme in the database
+					DbService.updateUserTheme(userId, colorHex)
+						.then(() => {
+							// Also update the user object in memory
+							this.state.auth.user.theme = colorHex;
+						})
+						.catch(error => {
+							console.error('Failed to update user theme in database:', error);
+						});
+				});
+			}
+		}
+	}
+	
+	/**
+	 * Set accent color for a specific player (1-4)
+	 */
+	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined): void {
+		if (playerIndex < 1 || playerIndex > 4) {
+			console.error('Invalid player index, must be 1-4');
+			return;
+		}
+		
+		// Update the specific accent color
+		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
+		
+		this.setState({
+			accentColors: {
+				...this.state.accentColors,
+				[accentKey]: colorHex
+			}
+		});
+		
+		// If this is player 1 (host), also update the main accent color
+		if (playerIndex === 1) {
+			// Find color name from hex
+			const colorEntry = Object.entries(AppStateManager.ACCENT_COLORS).find(
+				([_, hexValue]) => hexValue.toLowerCase() === colorHex?.toLowerCase() || ''
+			);
+			
+			if (colorEntry) {
+				this.setState({ accentColor: colorEntry[0] as AccentColor });
 			}
 		}
 	}
@@ -370,6 +467,19 @@ export class AppStateManager {
 	 */
 	public getAccentColorHex(): string {
 		return AppStateManager.ACCENT_COLORS[this.state.accentColor];
+	}
+	
+	/**
+	 * Get player accent color
+	 */
+	public getPlayerAccentColor(playerIndex: number): string {
+		if (playerIndex < 1 || playerIndex > 4) {
+			console.error('Invalid player index, must be 1-4');
+			return '#ffffff'; // Default white
+		}
+		
+		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
+		return this.state.accentColors[accentKey];
 	}
 	
 	/**

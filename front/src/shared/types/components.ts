@@ -10,6 +10,17 @@ export interface ProfileState {
 	activeTab: string;
 	errorMessage?: string;
 	initialized: boolean;
+	historyPage: number;
+	historyPageSize: number;
+	historyIsLoading: boolean;
+	tabsLoading: {
+		summary: boolean;
+		stats: boolean;
+		history: boolean;
+		friends: boolean;
+		settings: boolean;
+	};
+	matchesCache: Map<number, any>;
 }
 
 /**

@@ -1,5 +1,6 @@
 import { Ball, Player } from '@pong/game/objects';
 import { GameState, GameSnapshot } from '@pong/types';
+import { GameScene } from '@pong/game/scenes';
 
 /**
  * Callback type for countdown events
@@ -24,10 +25,10 @@ export class PauseManager {
 	private countInterval: NodeJS.Timeout | null = null;
 	private gameSnapshot: GameSnapshot | null = null;
 	private countdownCallback: CountdownCallback | null = null;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
 	private pendingPauseRequest: boolean = false;
 	private gameEngine: any;
 	private pointStartedCallback: (() => void) | null = null;
+	private gameScene: GameScene | null = null;
 
 	// =========================================
 	// Constructor
@@ -176,9 +177,14 @@ export class PauseManager {
 	 * Handles state transitions after a point is scored
 	 */
 	public handlePointScored(): void {
-		// In background demo, skip countdown and just restart
-		if (this.isBackground()) {
-			this.ball.launchBall();
+		// Check game mode - prefer GameScene if available
+		const isBackground = this.gameScene?.isBackgroundDemo();
+		
+		if (isBackground) {
+			// Use the same countdown logic as the startCountdown method
+			this.startCountdown(() => {
+				this.ball.launchBall();
+			});
 			return;
 		}
 		
@@ -217,7 +223,7 @@ export class PauseManager {
 					this.gameEngine.resumeMatchTimer();
 				}
 			});
-		}, 500);
+		}, 100);
 	}
 
 	/**
@@ -252,13 +258,6 @@ export class PauseManager {
 	}
 
 	/**
-	 * Set game mode
-	 */
-	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
-		this.gameMode = mode;
-	}
-
-	/**
 	 * Clean up resources
 	 */
 	public cleanup(): void {
@@ -280,6 +279,13 @@ export class PauseManager {
 	 */
 	public setGameEngine(engine: any): void {
 		this.gameEngine = engine;
+	}
+
+	/**
+	 * Sets the reference to the game scene
+	 */
+	public setGameScene(scene: GameScene): void {
+		this.gameScene = scene;
 	}
 
 	// =========================================
@@ -334,48 +340,39 @@ export class PauseManager {
 		// Cancel any existing countdown
 		this.cleanupCountdown();
 		
-		let count = 3; // Default countdown
-		const intervalTime = 1000; // Default interval (1 second)
+		// Check if we're in background mode
+		const isBackground = this.gameScene?.isBackgroundDemo();
 		
-		// Use shorter countdown for background demo
-		if (this.isBackground()) {
-			count = 1;  // Just do a quick 1-count
-			// We could even make it shorter with:
-			// count = 0; // Skip countdown entirely
-		}
-		
-		this.isCountingDown = true;
-		
-		// If we want to skip countdown entirely for background demo
-		if (this.isBackground() && count === 0) {
-			this.cleanupCountdown();
-			this.isCountingDown = false;
-			onComplete();
+		// For background mode, use a simple timeout of 0.5 seconds
+		if (isBackground) {
+			this.isCountingDown = true;
+			// No UI update needed for background
+			
+			// Just set a direct timeout instead of countdown
+			this.countInterval = setTimeout(() => {
+				this.cleanupCountdown();
+				this.isCountingDown = false;
+				setTimeout(onComplete, 50);
+			}, 500); // 0.5 seconds for background
 			return;
 		}
 		
-		// Send initial count
+		// Regular gameplay with normal countdown
+		let count = 3;
+		const intervalTime = 1000;
+		
+		this.isCountingDown = true;
+		
+		// Send initial count to UI
 		if (this.countdownCallback) {
 			this.countdownCallback(count);
 		}
 		
-		// Modify the completion callback
-		const originalOnComplete = onComplete;
-		onComplete = () => {
-			originalOnComplete();
-			
-			// If we had a pending pause request, pause immediately after countdown
-			if (this.pendingPauseRequest) {
-				this.pendingPauseRequest = false;
-				this.pause();
-			}
-		};
-		
-		// Set up countdown interval
+		// Set up countdown interval for regular gameplay
 		this.countInterval = setInterval(() => {
 			count--;
 			
-			// Update countdown display
+			// Update UI with current count
 			if (this.countdownCallback) {
 				this.countdownCallback(count > 0 ? count : null);
 			}
@@ -385,15 +382,25 @@ export class PauseManager {
 				this.cleanupCountdown();
 				this.isCountingDown = false;
 				
-				// Check for pending pause request before completing countdown
-				if (this.pendingPauseRequest) {
-					this.pendingPauseRequest = false;
-					setTimeout(() => this.pause(), 0);
-					// Call onComplete after the pause has been processed
-					setTimeout(onComplete, 50);
-				} else {
+				// Process completion with slight delay
+				setTimeout(() => {
+					// If game engine is available, start the match timer
+					if (this.gameEngine && typeof this.gameEngine.startMatchTimer === 'function') {
+						// Only start match timer if this is not a resume from pause
+						if (this.isFirstStart || !this.gameSnapshot) {
+							this.gameEngine.startMatchTimer();
+						}
+					}
+					
+					// Call the completion function
 					onComplete();
-				}
+					
+					// Handle pending pause if needed
+					if (this.pendingPauseRequest) {
+						this.pendingPauseRequest = false;
+						this.pause();
+					}
+				}, 50);
 			}
 		}, intervalTime);
 	}
@@ -418,12 +425,5 @@ export class PauseManager {
 		this.states.add(GameState.PAUSED);
 		this.gameSnapshot = null;
 		this.cleanupCountdown();
-	}
-
-	/**
-	 * Check if the current game mode is background demo
-	 */
-	private isBackground(): boolean {
-		return this.gameMode === 'background_demo';
 	}
 }

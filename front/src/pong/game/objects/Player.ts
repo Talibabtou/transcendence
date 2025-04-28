@@ -36,7 +36,6 @@ export class Player implements GraphicalElement {
 	 * Handles keyboard keydown events for player control
 	 */
 	private readonly handleKeydown = (evt: KeyboardEvent): void => {
-		console.log('handleKeydown', evt.code);
 		switch (evt.code) {
 			case this._upKey:
 				this.upPressed = true;
@@ -104,7 +103,7 @@ export class Player implements GraphicalElement {
 		this.y = this.startY;
 		
 		this._position = position;
-		this._isAIControlled = type === PlayerType.BACKGROUND;
+		this._isAIControlled = type === PlayerType.AI;
 		
 		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
@@ -244,7 +243,6 @@ export class Player implements GraphicalElement {
 	 * Sets up keyboard event listeners for player control
 	 */
 	public bindControls(): void {
-		console.log('bindControls');
 		if (this._isAIControlled) return;
 		
 		window.addEventListener('keydown', this.handleKeydown, { passive: true });
@@ -270,13 +268,13 @@ export class Player implements GraphicalElement {
 	 * Sets whether this player is AI controlled or human controlled
 	 */
 	public setControlType(type: PlayerType): void {
-		// const wasAI = this._isAIControlled;
-		this._isAIControlled = type === PlayerType.BACKGROUND;
+		const wasAI = this._isAIControlled;
+		this._isAIControlled = type === PlayerType.AI;
 		
 		// Reset inputs
-		// this.upPressed = false;
-		// this.downPressed = false;
-		// this.direction = null;
+		this.upPressed = false;
+		this.downPressed = false;
+		this.direction = null;
 		
 		// Update name based on position and type
 		if (this._position === PlayerPosition.LEFT) {
@@ -286,13 +284,13 @@ export class Player implements GraphicalElement {
 		}
 		
 		// Handle control binding/unbinding
-		// if (wasAI && !this._isAIControlled) {
-		// 	// Changed from AI to human
-		// 	this.bindControls();
-		// } else if (!wasAI && this._isAIControlled) {
-		// 	// Changed from human to AI
-		// 	this.unbindControls();
-		// }
+		if (wasAI && !this._isAIControlled) {
+			// Changed from AI to human
+			this.bindControls();
+		} else if (!wasAI && this._isAIControlled) {
+			// Changed from human to AI
+			this.unbindControls();
+		}
 	}
 
 	// =========================================
@@ -461,8 +459,8 @@ export class Player implements GraphicalElement {
 	}
 
 	/**
-	 * Sets the color of the player's paddle
-	 * @param color New color in hex format (e.g. '#3498db')
+	 * Sets the paddle color
+	 * @param color Hex color string
 	 */
 	public setColor(color: string): void {
 		(this as any).colour = color;

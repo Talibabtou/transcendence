@@ -459,8 +459,8 @@ export class Player implements GraphicalElement {
 	}
 
 	/**
-	 * Sets the color of the player's paddle
-	 * @param color New color in hex format (e.g. '#3498db')
+	 * Sets the paddle color
+	 * @param color Hex color string
 	 */
 	public setColor(color: string): void {
 		(this as any).colour = color;

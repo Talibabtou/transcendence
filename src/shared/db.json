@@ -1,0 +1,369 @@
+{
+  "users": [
+		{
+      "id": 0,
+      "pseudo": "Computer",
+      "email": "ai@pong.com",
+      "auth_method": "system",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "last_login": "2025-01-01T00:00:00.000Z",
+      "theme": "#ffffff",
+      "elo": 1000
+    },
+    {
+      "id": 1,
+      "pseudo": "tali",
+      "email": "tali@tali",
+      "password": "tali",
+      "auth_method": "email",
+      "created_at": "2025-03-28T12:26:11.016Z",
+      "last_login": "2025-03-28T12:26:11.016Z",
+      "theme": "#ffffff",
+      "elo": 1000
+    },
+    {
+      "id": 2,
+      "pseudo": "gd",
+      "email": "gd@gd",
+      "password": "gd",
+      "auth_method": "email",
+      "created_at": "2025-03-28T12:30:00.000Z",
+      "last_login": "2025-03-28T12:30:00.000Z",
+      "theme": "#00ff00",
+      "elo": 1000
+    },
+    {
+      "id": 3,
+      "pseudo": "PongMaster",
+      "email": "pongmaster@example.com",
+      "password": "pongmaster",
+      "auth_method": "email",
+      "created_at": "2025-03-29T09:15:30.000Z",
+      "last_login": "2025-04-01T18:22:10.000Z",
+      "theme": "#ff5500",
+      "elo": 1200
+    },
+    {
+      "id": 4,
+      "pseudo": "RetroGamer",
+      "email": "retro@example.com",
+      "password": "retro",
+      "auth_method": "email",
+      "created_at": "2025-03-30T14:45:20.000Z",
+      "last_login": "2025-04-02T10:33:45.000Z",
+      "theme": "#9900cc",
+      "elo": 900
+    }
+  ],
+  "matches": [
+    {
+      "id": 1,
+      "player_1": 1,
+      "player_2": 2,
+      "completed": true,
+      "duration": 180,
+      "timeout": false,
+      "created_at": "2025-04-01T15:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "player_1": 1,
+      "player_2": 3,
+      "completed": true,
+      "duration": 210,
+      "timeout": false,
+      "created_at": "2025-04-02T16:45:00.000Z"
+    },
+    {
+      "id": 3,
+      "player_1": 1,
+      "player_2": 0,
+      "completed": true,
+      "duration": 150,
+      "timeout": false,
+      "created_at": "2025-04-03T10:15:00.000Z"
+    },
+    {
+      "id": 4,
+      "player_1": 2,
+      "player_2": 1,
+      "completed": true,
+      "duration": 195,
+      "timeout": false,
+      "created_at": "2025-04-03T18:20:00.000Z"
+    },
+    {
+      "id": 5,
+      "player_1": 3,
+      "player_2": 1,
+      "completed": true,
+      "duration": 240,
+      "timeout": false,
+      "created_at": "2025-04-04T14:10:00.000Z"
+    },
+    {
+      "id": 6,
+      "player_1": 1,
+      "player_2": 4,
+      "completed": true,
+      "duration": 175,
+      "timeout": false,
+      "created_at": "2025-04-05T11:30:00.000Z"
+    },
+    {
+      "id": 7,
+      "player_1": 4,
+      "player_2": 1,
+      "completed": false,
+      "timeout": false,
+      "created_at": "2025-04-06T19:45:00.000Z"
+    }
+  ],
+  "goals": [
+    {
+      "id": 1,
+      "match_id": 1,
+      "player": 1,
+      "duration": 25.5,
+      "created_at": "2025-04-01T15:30:25.500Z",
+      "hash": "goal_1_1_25.5"
+    },
+    {
+      "id": 2,
+      "match_id": 1,
+      "player": 2,
+      "duration": 58.2,
+      "created_at": "2025-04-01T15:30:58.200Z",
+      "hash": "goal_1_2_58.2"
+    },
+    {
+      "id": 3,
+      "match_id": 1,
+      "player": 1,
+      "duration": 95.7,
+      "created_at": "2025-04-01T15:31:35.700Z",
+      "hash": "goal_1_1_95.7"
+    },
+    {
+      "id": 4,
+      "match_id": 1,
+      "player": 1,
+      "duration": 142.3,
+      "created_at": "2025-04-01T15:32:22.300Z",
+      "hash": "goal_1_1_142.3"
+    },
+    {
+      "id": 5,
+      "match_id": 1,
+      "player": 2,
+      "duration": 175.8,
+      "created_at": "2025-04-01T15:32:55.800Z",
+      "hash": "goal_1_2_175.8"
+    },
+    {
+      "id": 6,
+      "match_id": 2,
+      "player": 3,
+      "duration": 32.1,
+      "created_at": "2025-04-02T16:45:32.100Z",
+      "hash": "goal_2_3_32.1"
+    },
+    {
+      "id": 7,
+      "match_id": 2,
+      "player": 3,
+      "duration": 87.4,
+      "created_at": "2025-04-02T16:46:27.400Z",
+      "hash": "goal_2_3_87.4"
+    },
+    {
+      "id": 8,
+      "match_id": 2,
+      "player": 1,
+      "duration": 129.8,
+      "created_at": "2025-04-02T16:47:09.800Z",
+      "hash": "goal_2_1_129.8"
+    },
+    {
+      "id": 9,
+      "match_id": 2,
+      "player": 3,
+      "duration": 185.2,
+      "created_at": "2025-04-02T16:48:05.200Z",
+      "hash": "goal_2_3_185.2"
+    },
+    {
+      "id": 10,
+      "match_id": 3,
+      "player": 1,
+      "duration": 45.6,
+      "created_at": "2025-04-03T10:15:45.600Z",
+      "hash": "goal_3_1_45.6"
+    },
+    {
+      "id": 11,
+      "match_id": 3,
+      "player": 0,
+      "duration": 78.9,
+      "created_at": "2025-04-03T10:16:18.900Z",
+      "hash": "goal_3_0_78.9"
+    },
+    {
+      "id": 12,
+      "match_id": 3,
+      "player": 1,
+      "duration": 102.3,
+      "created_at": "2025-04-03T10:16:42.300Z",
+      "hash": "goal_3_1_102.3"
+    },
+    {
+      "id": 13,
+      "match_id": 3,
+      "player": 1,
+      "duration": 135.7,
+      "created_at": "2025-04-03T10:17:15.700Z",
+      "hash": "goal_3_1_135.7"
+    },
+    {
+      "id": 14,
+      "match_id": 4,
+      "player": 2,
+      "duration": 28.4,
+      "created_at": "2025-04-03T18:20:28.400Z",
+      "hash": "goal_4_2_28.4"
+    },
+    {
+      "id": 15,
+      "match_id": 4,
+      "player": 2,
+      "duration": 67.2,
+      "created_at": "2025-04-03T18:21:07.200Z",
+      "hash": "goal_4_2_67.2"
+    },
+    {
+      "id": 16,
+      "match_id": 4,
+      "player": 1,
+      "duration": 120.5,
+      "created_at": "2025-04-03T18:22:00.500Z",
+      "hash": "goal_4_1_120.5"
+    },
+    {
+      "id": 17,
+      "match_id": 4,
+      "player": 2,
+      "duration": 168.9,
+      "created_at": "2025-04-03T18:22:48.900Z",
+      "hash": "goal_4_2_168.9"
+    },
+    {
+      "id": 18,
+      "match_id": 5,
+      "player": 3,
+      "duration": 42.3,
+      "created_at": "2025-04-04T14:10:42.300Z",
+      "hash": "goal_5_3_42.3"
+    },
+    {
+      "id": 19,
+      "match_id": 5,
+      "player": 3,
+      "duration": 96.7,
+      "created_at": "2025-04-04T14:11:36.700Z",
+      "hash": "goal_5_3_96.7"
+    },
+    {
+      "id": 20,
+      "match_id": 5,
+      "player": 1,
+      "duration": 152.1,
+      "created_at": "2025-04-04T14:12:32.100Z",
+      "hash": "goal_5_1_152.1"
+    },
+    {
+      "id": 21,
+      "match_id": 5,
+      "player": 3,
+      "duration": 198.6,
+      "created_at": "2025-04-04T14:13:18.600Z",
+      "hash": "goal_5_3_198.6"
+    },
+    {
+      "id": 22,
+      "match_id": 5,
+      "player": 3,
+      "duration": 225.9,
+      "created_at": "2025-04-04T14:13:45.900Z",
+      "hash": "goal_5_3_225.9"
+    },
+    {
+      "id": 23,
+      "match_id": 6,
+      "player": 1,
+      "duration": 35.8,
+      "created_at": "2025-04-05T11:30:35.800Z",
+      "hash": "goal_6_1_35.8"
+    },
+    {
+      "id": 24,
+      "match_id": 6,
+      "player": 4,
+      "duration": 82.4,
+      "created_at": "2025-04-05T11:31:22.400Z",
+      "hash": "goal_6_4_82.4"
+    },
+    {
+      "id": 25,
+      "match_id": 6,
+      "player": 1,
+      "duration": 125.7,
+      "created_at": "2025-04-05T11:32:05.700Z",
+      "hash": "goal_6_1_125.7"
+    },
+    {
+      "id": 26,
+      "match_id": 6,
+      "player": 1,
+      "duration": 153.2,
+      "created_at": "2025-04-05T11:32:33.200Z",
+      "hash": "goal_6_1_153.2"
+    }
+  ],
+  "friends": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "friend_id": 2,
+      "created_at": "2025-03-29T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "friend_id": 3,
+      "created_at": "2025-04-01T16:30:00.000Z"
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "friend_id": 1,
+      "created_at": "2025-03-29T10:00:00.000Z"
+    },
+    {
+      "id": 4,
+      "user_id": 2,
+      "friend_id": 4,
+      "created_at": "2025-04-02T14:15:00.000Z"
+    },
+    {
+      "id": 5,
+      "user_id": 3,
+      "friend_id": 1,
+      "created_at": "2025-04-01T16:30:00.000Z"
+    }
+  ],
+  "meta": {
+    "user_id_sequence": 5,
+    "match_id_sequence": 8,
+    "goal_id_sequence": 27
+  }
+}

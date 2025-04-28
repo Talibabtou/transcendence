@@ -22,15 +22,14 @@ export const COLORS = {
 	GAME_BACKGROUND: 'transparent',
 	
 	// Game elements
-	PITCH: 'rgba(255, 255, 255, 0.3)',
 	BALL: '#FFFFFF',
 	PADDLE: '#FFFFFF',
 	
 	// UI elements
 	TITLE: '#FDF3E7',
-	SCORE: 'rgba(255, 255, 255, 0.1)',
-	NAMES: 'rgba(255, 255, 255, 0.3)',
-	OVERLAY: 'rgba(0, 0, 0, 0.5)'
+	SCORE: 'rgba(255, 255, 255, 0.4)',
+	NAMES: 'rgba(255, 255, 255, 0.4)',
+	OVERLAY: 'rgba(0, 0, 0, 0.4)'
 } as const;
 
 // =========================================

@@ -21,7 +21,6 @@ export class ResizeManager {
 	private player2: Player | null;
 	private pauseManager: PauseManager | null;
 	private boundResizeHandler: () => void;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
 
 	// =========================================
 	// Constructor
@@ -89,14 +88,6 @@ export class ResizeManager {
 		this.boundResizeHandler = null as any;
 	}
 
-	/**
-	 * Sets the current game mode
-	 * @param mode The game mode to set
-	 */
-	public setGameMode(mode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
-		this.gameMode = mode;
-	}
-
 	// =========================================
 	// Resize Event Handling
 	// =========================================
@@ -120,7 +111,7 @@ export class ResizeManager {
 		// Set resizing state
 		this.isResizing = true;
 		
-		// Check if we're in background mode
+		// Check if we're in background mode - use GameScene
 		const isBackgroundMode = this.isInBackgroundDemo();
 		
 		// Check game state
@@ -321,6 +312,6 @@ export class ResizeManager {
 	 * Checks if we're in background demo mode
 	 */
 	private isInBackgroundDemo(): boolean {
-		return this.gameMode === 'background_demo';
+		return this.scene.isBackgroundDemo();
 	}
 }

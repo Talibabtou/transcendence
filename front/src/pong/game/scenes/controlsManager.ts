@@ -1,4 +1,5 @@
 import { Player, PlayerType } from '@pong/types';
+import { GameScene, GameModeType } from '@pong/game/scenes/GameScene';
 
 /**
  * Manages player controls and input handling based on game mode.
@@ -10,6 +11,7 @@ export class ControlsManager {
 	// =========================================
 	private readonly player1: Player;
 	private readonly player2: Player;
+	private gameScene: GameScene | null = null;
 
 	/**
 	 * Creates a new ControlsManager instance
@@ -21,6 +23,13 @@ export class ControlsManager {
 		this.player2 = player2;
 	}
 
+	/**
+	 * Sets the reference to the game scene
+	 */
+	public setGameScene(scene: GameScene): void {
+		this.gameScene = scene;
+	}
+
 	// =========================================
 	// Public Methods
 	// =========================================
@@ -29,14 +38,25 @@ export class ControlsManager {
 	 * Sets up player controls based on the game mode
 	 * @param gameMode The current game mode
 	 */
-	public setupControls(gameMode: 'single' | 'multi' | 'tournament' | 'background_demo'): void {
+	public setupControls(gameMode: GameModeType): void {
+		// If we have a GameScene reference, use its methods for consistency
+		if (this.gameScene) {
+			if (this.gameScene.isSinglePlayer()) {
+				this.setupSinglePlayerMode();
+			} else if (this.gameScene.isMultiPlayer() || this.gameScene.isTournament()) {
+				this.setupMultiPlayerMode();
+			} else if (this.gameScene.isBackgroundDemo()) {
+				this.setupBackgroundMode();
+			}
+			return;
+		}
+		
+		// Legacy fallback if no GameScene is available
 		switch (gameMode) {
 			case 'single':
 				this.setupSinglePlayerMode();
 				break;
 			case 'multi':
-				this.setupMultiPlayerMode();
-				break;
 			case 'tournament':
 				this.setupMultiPlayerMode();
 				break;
@@ -64,10 +84,9 @@ export class ControlsManager {
 	 * Sets up controls for single player mode
 	 * Player 1: Human, Player 2: AI
 	 */
-	//need to keep this bind for play again
 	private setupSinglePlayerMode(): void {
 		this.player1.setControlType(PlayerType.HUMAN);
-		this.player2.setControlType(PlayerType.BACKGROUND);
+		this.player2.setControlType(PlayerType.AI);
 		this.player1.bindControls();
 	}
 
@@ -87,7 +106,7 @@ export class ControlsManager {
 	 * Both players: AI
 	 */
 	private setupBackgroundMode(): void {
-		this.player1.setControlType(PlayerType.BACKGROUND);
-		this.player2.setControlType(PlayerType.BACKGROUND);
+		this.player1.setControlType(PlayerType.AI);
+		this.player2.setControlType(PlayerType.AI);
 	}
 }
