@@ -1,4 +1,4 @@
-import { GameContext, GameState, GameStateInfo } from '@pong/types';
+import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { GameScene, GameModeType } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
 import { DbService } from '@website/scripts/utils';
@@ -312,7 +312,7 @@ export class GameEngine {
 			}
 			
 			if (player2) {
-				if (this.gameMode === 'single' && player2.isAIControlled()) {
+				if (this.gameMode === 'single' && player2.getPlayerType() !== PlayerType.HUMAN) {
 					// For AI in single player mode, always use white
 					player2.setColor('#ffffff');
 					this.playerColors[1] = '#ffffff';

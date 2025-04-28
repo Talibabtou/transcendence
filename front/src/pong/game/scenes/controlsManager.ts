@@ -71,7 +71,7 @@ export class ControlsManager {
 	 */
 	public cleanup(): void {
 		this.player1.unbindControls();
-		if (!this.player2.isAIControlled()) {
+		if (this.player2.getPlayerType() !== PlayerType.HUMAN) {
 			this.player2.unbindControls();
 		}
 	}
@@ -85,8 +85,8 @@ export class ControlsManager {
 	 * Player 1: Human, Player 2: AI
 	 */
 	private setupSinglePlayerMode(): void {
-		this.player1.setControlType(PlayerType.HUMAN);
-		this.player2.setControlType(PlayerType.AI);
+		this.player1.setPlayerType(PlayerType.HUMAN);
+		this.player2.setPlayerType(PlayerType.AI);
 		this.player1.bindControls();
 	}
 
@@ -95,8 +95,8 @@ export class ControlsManager {
 	 * Both players: Human
 	 */
 	private setupMultiPlayerMode(): void {
-		this.player1.setControlType(PlayerType.HUMAN);
-		this.player2.setControlType(PlayerType.HUMAN);
+		this.player1.setPlayerType(PlayerType.HUMAN);
+		this.player2.setPlayerType(PlayerType.HUMAN);
 		this.player1.bindControls();
 		this.player2.bindControls();
 	}
@@ -106,7 +106,7 @@ export class ControlsManager {
 	 * Both players: AI
 	 */
 	private setupBackgroundMode(): void {
-		this.player1.setControlType(PlayerType.AI);
-		this.player2.setControlType(PlayerType.AI);
+		this.player1.setPlayerType(PlayerType.AI);
+		this.player2.setPlayerType(PlayerType.AI);
 	}
 }

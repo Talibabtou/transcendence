@@ -47,7 +47,8 @@ export enum PlayerPosition {
  */
 export enum PlayerType {
 	HUMAN = 'HUMAN',
-	AI = 'AI'
+	AI = 'AI',
+	BACKGROUND = 'BACKGROUND'
 }
 
 // =========================================
@@ -136,8 +137,10 @@ export interface Player extends GraphicalElement {
 	updateSizes(): void;
 	bindControls(): void;
 	unbindControls(): void;
-	isAIControlled(): boolean;
-	setControlType(type: PlayerType): void;
+	// isAIControlled(): boolean;
+	getPlayerType(): PlayerType;
+	setPlayerType(type: PlayerType): void;
+	// setControlType(type: PlayerType): void;
 }
 
 /**

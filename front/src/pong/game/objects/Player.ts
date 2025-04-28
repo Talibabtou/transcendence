@@ -21,7 +21,8 @@ export class Player implements GraphicalElement {
 	protected upPressed = false;
 	protected downPressed = false;
 	protected _name: string = 'Player';
-	protected _isAIControlled: boolean;
+	protected _type: PlayerType;
+	// protected _isAIControlled: boolean;
 	protected _position: PlayerPosition;
 	protected _upKey: string;
 	protected _downKey: string;
@@ -103,7 +104,8 @@ export class Player implements GraphicalElement {
 		this.y = this.startY;
 		
 		this._position = position;
-		this._isAIControlled = type === PlayerType.AI;
+		this._type = type;
+		// this._isAIControlled = type === PlayerType.AI;
 		
 		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
@@ -113,7 +115,8 @@ export class Player implements GraphicalElement {
 		} else {
 			this._upKey = KEYS.PLAYER_RIGHT_UP;
 			this._downKey = KEYS.PLAYER_RIGHT_DOWN;
-			this._name = this._isAIControlled ? 'Computer' : 'Player 2';
+			this._name = this._type === PlayerType.HUMAN ? 'Player 2' : 'Computer';
+			// this._name = this._isAIControlled ? 'Computer' : 'Player 2';
 		}
 		
 		// Initialize paddle first
@@ -171,10 +174,21 @@ export class Player implements GraphicalElement {
 	/**
 	 * Returns whether this player is AI controlled
 	 */
-	public isAIControlled(): boolean {
-		return this._isAIControlled;
-	}
+	// public isAIControlled(): boolean {
+	// 	return this._isAIControlled;
+	// }
 	
+	public setPlayerType(type: PlayerType): void {
+		this._type = type;
+	}
+
+	/**
+	 * Returns the player's type
+	 */
+	public getPlayerType(): PlayerType {
+		return this._type;
+	}
+
 	/**
 	 * Returns the player's position (left or right)
 	 */
@@ -216,7 +230,11 @@ export class Player implements GraphicalElement {
 		this.paddleHeight = sizes.PADDLE_HEIGHT;
 
 		// Update AI inputs if AI-controlled and playing or in background mode
-		if (this._isAIControlled && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
+		if (this._type === PlayerType.BACKGROUND && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
+			this.updateAIInputs(ctx);
+		}
+
+		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
 			this.updateAIInputs(ctx);
 		}
 		
@@ -243,7 +261,7 @@ export class Player implements GraphicalElement {
 	 * Sets up keyboard event listeners for player control
 	 */
 	public bindControls(): void {
-		if (this._isAIControlled) return;
+		// if (this._isAIControlled) return;
 		
 		window.addEventListener('keydown', this.handleKeydown, { passive: true });
 		window.addEventListener('keyup', this.handleKeyup, { passive: true });
@@ -268,29 +286,30 @@ export class Player implements GraphicalElement {
 	 * Sets whether this player is AI controlled or human controlled
 	 */
 	public setControlType(type: PlayerType): void {
-		const wasAI = this._isAIControlled;
-		this._isAIControlled = type === PlayerType.AI;
+		// const wasAI = this._type !== PlayerType.HUMAN;
+		// const isAI = type !== PlayerType.HUMAN;
+		this._type = type;
 		
-		// Reset inputs
-		this.upPressed = false;
-		this.downPressed = false;
-		this.direction = null;
+		// // Reset inputs
+		// this.upPressed = false;
+		// this.downPressed = false;
+		// this.direction = null;
 		
-		// Update name based on position and type
-		if (this._position === PlayerPosition.LEFT) {
-			this._name = 'Player 1';
-		} else {
-			this._name = this._isAIControlled ? 'Computer' : 'Player 2';
-		}
+		// // Update name based on position and type
+		// if (this._position === PlayerPosition.LEFT) {
+		// 	this._name = 'Player 1';
+		// } else {
+		// 	this._name = this._type === PlayerType.HUMAN ? 'Player 2' : 'Computer';
+		// }
 		
 		// Handle control binding/unbinding
-		if (wasAI && !this._isAIControlled) {
-			// Changed from AI to human
-			this.bindControls();
-		} else if (!wasAI && this._isAIControlled) {
-			// Changed from human to AI
-			this.unbindControls();
-		}
+		// if (wasAI && !isAI) {
+		// 	// Changed from AI to human
+		// 	this.bindControls();
+		// } else if (!wasAI && isAI) {
+		// 	// Changed from human to AI
+		// 	this.unbindControls();
+		// }
 	}
 
 	// =========================================
