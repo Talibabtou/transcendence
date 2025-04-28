@@ -262,7 +262,7 @@ export class GameScene {
 				this.ball,
 				this.context,
 				PlayerPosition.LEFT,
-				PlayerType.AI
+				PlayerType.BACKGROUND
 			);
 
 			this.player2 = new Player(
@@ -271,7 +271,7 @@ export class GameScene {
 				this.ball,
 				this.context,
 				PlayerPosition.RIGHT,
-				PlayerType.AI
+				PlayerType.BACKGROUND
 			);
 		} catch (error) {
 			console.error('Error in createPlayers:', error);

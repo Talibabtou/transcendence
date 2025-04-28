@@ -64,9 +64,10 @@ export class ControlsManager {
 	 * Sets up controls for single player mode
 	 * Player 1: Human, Player 2: AI
 	 */
+	//need to keep this bind for play again
 	private setupSinglePlayerMode(): void {
 		this.player1.setControlType(PlayerType.HUMAN);
-		this.player2.setControlType(PlayerType.AI);
+		this.player2.setControlType(PlayerType.BACKGROUND);
 		this.player1.bindControls();
 	}
 
@@ -86,7 +87,7 @@ export class ControlsManager {
 	 * Both players: AI
 	 */
 	private setupBackgroundMode(): void {
-		this.player1.setControlType(PlayerType.AI);
-		this.player2.setControlType(PlayerType.AI);
+		this.player1.setControlType(PlayerType.BACKGROUND);
+		this.player2.setControlType(PlayerType.BACKGROUND);
 	}
 }

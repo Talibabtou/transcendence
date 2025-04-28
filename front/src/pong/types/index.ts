@@ -47,7 +47,8 @@ export enum PlayerPosition {
  */
 export enum PlayerType {
 	HUMAN = 'HUMAN',
-	AI = 'AI'
+	AI = 'AI',
+	BACKGROUND = 'BACKGROUND'
 }
 
 // =========================================
