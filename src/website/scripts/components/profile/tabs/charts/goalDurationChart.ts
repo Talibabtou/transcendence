@@ -17,16 +17,24 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 		type: 'histogram',
 		name: 'Goal Duration',
 		marker: {
-			color: '#4CAF50',
+			color: 'rgb(255, 255, 255)',
 			line: {
-				color: '#388E3C',
+				color: 'rgb(255, 255, 255)',
 				width: 1
 			}
 		},
-		opacity: 0.8,
+		opacity: 0.9,
 		xbins: {
-			// Set appropriate bin sizes based on the data range
-			size: 2
+			size: 1,
+			start: 0,
+			end: Math.ceil(Math.max(...goalDurations))
+		},
+		hovertemplate: '%{x} second(s), %{y} goal(s)<extra></extra>',
+		hoverlabel: {
+			bgcolor: 'black',
+			font: {
+				color: 'white'
+			}
 		}
 	};
 	
@@ -41,7 +49,8 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 				}
 			},
 			showgrid: false,
-			color: '#eee'
+			color: '#eee',
+			fixedrange: true
 		},
 		yaxis: {
 			title: {
@@ -53,7 +62,8 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			},
 			showgrid: true,
 			gridcolor: '#333',
-			color: '#eee'
+			color: '#eee',
+			fixedrange: true
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
@@ -73,7 +83,8 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 	// Config options
 	const config = {
 		responsive: true,
-		displayModeBar: false
+		displayModeBar: false,
+		scrollZoom: false
 	};
 	
 	// Create the plot

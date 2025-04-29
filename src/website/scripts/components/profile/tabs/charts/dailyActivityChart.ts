@@ -23,7 +23,7 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 	// Create a full 4-week dataset with proper week/day structure
 	const currentDate = new Date();
 	const calendar = generateFixedCalendarGrid(dailyPerformance, currentDate);
-	
+
 	// Create the trace for the heatmap
 	const trace = {
 		z: calendar.values,
@@ -31,15 +31,24 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 		y: calendar.weeks,
 		type: 'heatmap',
 		colorscale: [
-			[0, '#0e1117'],      // No activity (dark background)
-			[0.1, '#0e4429'],    // Low activity (dark green)
-			[0.4, '#006d32'],    // Medium-low activity (medium green)
-			[0.7, '#26a641'],    // Medium activity (green)
-			[1, '#39d353']       // High activity (bright green)
+			[0, 'rgba(0,0,0,0)'],
+			[0.25, 'rgba(255,255,255,0.25)'],
+			[0.5, 'rgba(255,255,255,0.5)'],
+			[0.75, 'rgba(255,255,255,0.75)'],
+			[1, 'rgba(255,255,255,1)']
 		],
 		showscale: false,
 		hoverinfo: 'text',
-		text: calendar.hoverText
+		text: calendar.hoverText,
+		xgap: 3,
+		ygap: 3,
+		zmin: 0.01,
+		hoverlabel: {
+			bgcolor: 'black',
+			font: {
+				color: 'white'
+			}
+		}
 	};
 	
 	// Layout configuration
@@ -51,7 +60,10 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 			tickfont: {
 				color: '#eee',
 				size: 12
-			}
+			},
+			showline: false,
+			zeroline: false,
+			fixedrange: true
 		},
 		yaxis: {
 			showgrid: false,
@@ -61,7 +73,10 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 				color: '#eee',
 				size: 10
 			},
-			autorange: 'reversed' as 'reversed'
+			autorange: 'reversed' as 'reversed',
+			showline: false,
+			zeroline: false,
+			fixedrange: true
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
@@ -72,15 +87,17 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 			l: 40,
 			r: 10,
 			b: 30,
-			t: 60,
+			t: 10,
 			pad: 0
-		}
+		},
+		dragmode: false
 	};
 	
 	// Config options
 	const config = {
 		responsive: true,
-		displayModeBar: false
+		displayModeBar: false,
+		scrollZoom: false
 	};
 	
 	// Create the plot
@@ -90,6 +107,13 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 		layout,
 		config
 	);
+	
+	setTimeout(() => {
+		const cells = container.querySelectorAll('.hm') as NodeListOf<HTMLElement>;
+		cells.forEach(cell => {
+			cell.style.borderRadius = '3px';
+		});
+	}, 100);
 	
 	// Return a cleanup function
 	return () => {

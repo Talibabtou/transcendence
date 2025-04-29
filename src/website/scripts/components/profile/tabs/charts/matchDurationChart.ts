@@ -17,16 +17,22 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 		type: 'histogram',
 		name: 'Match Duration',
 		marker: {
-			color: '#4CAF50',
+			color: 'rgb(255, 255, 255)',
 			line: {
-				color: '#388E3C',
+				color: 'rgb(255, 255, 255)',
 				width: 1
 			}
 		},
-		opacity: 0.8,
+		opacity: 0.9,
 		xbins: {
-			// Set appropriate bin sizes based on the data range
-			size: 2
+			size: 1
+		},
+		hovertemplate: '%{x} second(s), %{y} match(es)<extra></extra>',
+		hoverlabel: {
+			bgcolor: 'black',
+			font: {
+				color: 'white'
+			}
 		}
 	};
 	

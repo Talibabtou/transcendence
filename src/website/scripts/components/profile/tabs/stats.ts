@@ -241,7 +241,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 								</div>
 								
 								<div class="chart-section">
-									<h3 class="chart-title">Daily Activity</h3>
+									<h3 class="chart-title activity-title">Daily Activity</h3>
 									<div id="daily-activity-chart" class="chart"></div>
 								</div>
 								

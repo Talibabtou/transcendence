@@ -14,6 +14,9 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 	// Create sequential x-axis values (1, 2, 3, ...) for each ELO data point
 	const xValues = Array.from({ length: eloHistory.length }, (_, i) => i + 1);
 	
+	// Create arrays for colors based on ELO values
+	const colors = eloHistory.map(elo => elo < 1000 ? 'rgba(255, 0, 0, 1)' : 'rgba(57, 211, 83, 1)');
+	
 	// Create the trace for the line plot with proper typing
 	const trace: Partial<ScatterData> = {
 		x: xValues,
@@ -22,13 +25,16 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 		mode: 'lines+markers',
 		name: 'ELO Rating',
 		line: {
-			color: '#7cf',
-			width: 2
+			color: 'rgb(255, 255, 255)',
+			width: 2,
+			shape: 'spline',
+			smoothing: 1.3
 		},
 		marker: {
-			color: '#48a',
-			size: 6
-		}
+			color: colors,
+			size: 8
+		},
+		hoverinfo: 'none'
 	};
 	
 	// Layout configuration
