@@ -1,5 +1,5 @@
 import { IId } from '../shared/types/api.types.js';
-import { IModifyUser, IAddUser, ILogin } from '../shared/types/auth.types.js';
+import { IModifyUser, IAddUser, ILogin, I2faCode } from '../shared/types/auth.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
@@ -11,10 +11,9 @@ import {
   login,
   logout,
   checkRevoked,
-  // twofaDisable,
-  // twofaEnable,
+  twofaDisable,
   twofaGenerate,
-  // twofaAuth,
+  twofaValidate,
 } from '../controllers/auth.controller.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -30,9 +29,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/revoked/:id', checkRevoked);
 
-  fastify.get<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
-
-  // fastify.post<{ Params: IId }>('/2fa/auth/:id', twofaAuth);
+  fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/validate/:id', twofaValidate);
 
   fastify.post<{ Body: IAddUser }>('/register', addUser);
 
@@ -42,9 +39,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
 
-  // fastify.patch<{ Params: IId }>('/2fa/enable/:id', twofaEnable); // Add route in gateway
+  fastify.patch<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
 
-  // fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable); // Add route in gateway
+  fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable);
 
   fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
 }

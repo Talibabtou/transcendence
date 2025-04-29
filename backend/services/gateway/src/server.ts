@@ -41,52 +41,6 @@ async function routes(server: FastifyInstance) {
   await server.register(friendsRoutes, { prefix: API_PREFIX });
 }
 
-// const swaggerParams = {
-//   openapi: {
-//     info: {
-//       title: 'Game Service API',
-//       description: 'API documentation for the Game microservice',
-//       version: '1.0.0',
-//     },
-//     servers: [
-//       {
-//         url: `http://localhost:${process.env.API_PORT || 8080}${API_PREFIX}`,
-//         description: 'Local development server',
-//       },
-//     ],
-//     components: {
-//       securitySchemes: {
-//         bearerAuth: {
-//           type: 'http', // Change to https later
-//           scheme: 'bearer',
-//         },
-//       },
-//     },
-//     tags: [
-//       { name: 'api', description: 'Main API endpoints' },
-//       {
-//         name: 'auth',
-//         description: 'Authentication and authorization endpoints',
-//       },
-//       {
-//         name: 'friends',
-//         description: 'Endpoints for managing friends and connections',
-//       },
-//       { name: 'matches', description: 'Match management endpoints' },
-//       { name: 'goals', description: 'Goal tracking endpoints' },
-//       { name: 'elos', description: 'Elo rating management endpoints' },
-//       {
-//         name: 'system',
-//         description: 'System and health check endpoints',
-//       },
-//       {
-//         name: 'profil',
-//         description: 'User profile management endpoints',
-//       },
-//     ],
-//   },
-// };
-
 const multipartParams = {
   limits: {
     fieldNameSize: 100, // Max field name size in bytes
@@ -160,6 +114,10 @@ export class Server {
               description: 'Authentication and authorization endpoints',
             },
             {
+              name: '2fa',
+              description: '2fa authentication endpoints',
+            },
+            {
               name: 'friends',
               description: 'Endpoints for managing friends and connections',
             },
@@ -182,6 +140,10 @@ export class Server {
             {
               name: 'profil',
               description: 'User profile management endpoints',
+            },
+            {
+              name: 'tournaments',
+              description: 'Tournament management endpoints',
             },
           ],
         },

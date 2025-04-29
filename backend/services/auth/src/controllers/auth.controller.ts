@@ -12,6 +12,7 @@ import {
   IReplyGetUser,
   IReplyGetUsers,
   IReplyLogin,
+  I2faCode,
 } from '../shared/types/auth.types.js';
 import path from 'path';
 
@@ -259,23 +260,23 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
 
 export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
+    const id = request.params.id;
+    const { two_factor_enabled } = await request.server.db.get(
+      'SELECT two_factor_enabled FROM users WHERE id = ?;',
+      [id]
+    );
+    if (two_factor_enabled) {
+      return reply.code(304).send();
+    }
     const secretCode = speakeasy.generateSecret({
-      name: 'TEST',
+      name: 'Transcendance',
     });
+    await request.server.db.run('UPDATE users SET two_factor_secret = ? WHERE id = ?', [
+      secretCode.base32,
+      id,
+    ]);
     const qrCodeImage = await qrcode.toDataURL(secretCode.otpauth_url as string);
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Two-Factor Authentication</title>
-        </head>
-        <body>
-          <h1>Scan this QR Code with your 2FA App</h1>
-          <img src="${qrCodeImage}" alt="QR Code" />
-        </body>
-      </html>
-    `;
-    return reply.code(200).type('text/html').send(htmlContent);
+    return reply.code(200).send(qrCodeImage);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -283,57 +284,61 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
   }
 }
 
-// export async function twofaAuth(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
-//   try {
+export async function twofaValidate(
+  request: FastifyRequest<{
+    Body: I2faCode;
+    Params: IId;
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const id = request.params.id;
+    const { twofaCode } = request.body;
+    const data = await request.server.db.get(
+      'SELECT two_factor_secret, two_factor_enabled FROM users WHERE id = ?;',
+      [id]
+    );
+    const verify = speakeasy.totp.verify({
+      secret: data.two_factor_secret,
+      encoding: 'base32',
+      token: twofaCode,
+    });
+    if (verify) {
+      if (!data.two_factor_enabled)
+        await request.server.db.run('UPDATE users SET two_factor_enabled = true WHERE id = ?', [id]);
+      return reply.code(200).send();
+    }
+    const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+    return reply.code(401).send(errorMessage);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
 
-//     return reply.code(200).send();
-//   } catch (err) {
-//     request.server.log.error(err);
-//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-//     return reply.code(500).send(errorMessage);
-//   }
-// }
+export async function twofaDisable(
+  request: FastifyRequest<{ Params: IId }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const id = request.params.id;
 
-// export async function twofaEnable(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
-//   try {
-//     const id = request.params.id;
-//     // const two_factor_enabled = await request.server.db.get(
-//     //   'SELECT two_factor_enabled FROM users WHERE id = ?;',
-//     //   [id]
-//     // );
-//     // if(two_factor_enabled === true)
-//     //   return reply.code(304).send();
-//     // await request.server.db.run(
-//     //   'UPDATE two_factor_enabled = true WHERE id = ?',
-//     //   [id]
-//     // );
-//     // //
-//     return reply.code(204).send();
-//   } catch (err) {
-//     request.server.log.error(err);
-//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-//     return reply.code(500).send(errorMessage);
-//   }
-// }
-
-// export async function twofaDisable(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
-//   try {
-//     const id = request.params.id;
-//     // const two_factor_enabled = await request.server.db.get(
-//     //   'SELECT two_factor_enabled FROM users WHERE id = ?;',
-//     //   [id]
-//     // );
-//     // if(two_factor_enabled === false)
-//     //   return reply.code(304).send();
-//     // await request.server.db.run(
-//     //   'UPDATE two_factor_enabled = false WHERE id = ?',
-//     //   [id]
-//     // );
-//     // //
-//     return reply.code(204).send();
-//   } catch (err) {
-//     request.server.log.error(err);
-//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-//     return reply.code(500).send(errorMessage);
-//   }
-// }
+    const two_factor_enabled = await request.server.db.get(
+      'SELECT two_factor_enabled FROM users WHERE id = ?;',
+      [id]
+    );
+    if (!two_factor_enabled) {
+      return reply.code(304).send();
+    }
+    await request.server.db.run(
+      'UPDATE users SET two_factor_enabled = false, two_factor_secret = null WHERE id = ?',
+      [id]
+    );
+    return reply.code(200).send();
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}

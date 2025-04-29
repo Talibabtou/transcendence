@@ -9,6 +9,7 @@ import {
   IReplyGetUser,
   IReplyGetUsers,
   IReplyLogin,
+  I2faCode,
 } from '../shared/types/auth.types.js';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
@@ -56,14 +57,15 @@ export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
 
 export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
   try {
-    // const id: string = (request.user as FastifyJWT['user']).id;
-    const tmp_id = '8a136f1f-798f-8436-42c3-6609d4f57268';
+    const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${tmp_id}`;
-    const response = await fetch(serviceUrl, { method: 'GET' });
-    const responseBody = await response.text();
-    console.log(responseBody);
-    return reply.code(response.status).type('text/html').send(responseBody);
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const response = await fetch(serviceUrl, { method: 'PATCH' });
+    if (response.status >= 400) {
+      const responseData = (await response.json()) as ErrorResponse;
+      return reply.code(response.status).send(responseData);
+    }
+    return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -71,7 +73,7 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
-export async function twofaAuth(request: FastifyRequest, reply: FastifyReply) {
+export async function twofaValidate(request: FastifyRequest<{ Body: I2faCode }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
@@ -80,12 +82,14 @@ export async function twofaAuth(request: FastifyRequest, reply: FastifyReply) {
       method: 'POST',
       headers: {
         'Content-Type': request.headers['content-type'] || 'application/json',
-        From: request.ip,
       },
       body: JSON.stringify(request.body),
     });
-    const data = await response.json(); // Add type
-    return reply.code(response.status).send(data);
+    if (response.status >= 400) {
+      const responseData = (await response.json()) as ErrorResponse;
+      return reply.code(response.status).send(responseData);
+    }
+    return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -127,6 +131,24 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
       },
       body: JSON.stringify(request.body),
     });
+    if (response.status >= 400) {
+      const responseData = (await response.json()) as ErrorResponse;
+      return reply.code(response.status).send(responseData);
+    }
+    return reply.code(response.status).send();
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
+  try {
+    const id: string = (request.user as FastifyJWT['user']).id;
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const response = await fetch(serviceUrl, { method: 'PATCH' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
       return reply.code(response.status).send(responseData);

@@ -49,6 +49,9 @@ export enum ErrorCodes {
   JWT_INSUFFICIENT_PERMISSIIONS = 'JWT_INSUFFICIENT_PERMISSIIONS',
   JWT_EXP_TOKEN = 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED',
   JWT_REVOKED = 'JWT_REVOKED',
+
+  //twofa
+  TWOFA_BAD_CODE = 'TWOFA_BAD_CODE',
 }
 
 // Create a map of error codes to their messages
@@ -107,6 +110,9 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS, 'JWT insufficient permissions'],
   [ErrorCodes.JWT_EXP_TOKEN, 'Token expired'],
   [ErrorCodes.JWT_REVOKED, 'Jwt revoked'],
+
+  //twofa
+  [ErrorCodes.TWOFA_BAD_CODE, 'Twofa bad code'],
 ]);
 
 // Helper function to create error response objects
@@ -266,6 +272,8 @@ export const ErrorExamples = {
     error: ErrorTypes.get(404),
     message: ErrorMessages.get(ErrorCodes.FRIENDS_NOTFOUND),
   },
+
+  // Jwt
   jwtBadHeader: {
     statusCode: 401,
     code: ErrorCodes.JWT_BAD_HEADER,
@@ -289,5 +297,13 @@ export const ErrorExamples = {
     code: ErrorCodes.JWT_REVOKED,
     error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.JWT_REVOKED),
+  },
+
+  //2fa
+  twofaBadCode: {
+    statusCode: 401,
+    code: ErrorCodes.TWOFA_BAD_CODE,
+    error: ErrorTypes.get(401),
+    message: ErrorMessages.get(ErrorCodes.TWOFA_BAD_CODE),
   },
 };

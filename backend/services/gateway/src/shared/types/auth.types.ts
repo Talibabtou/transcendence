@@ -31,3 +31,7 @@ export interface IReplyLogin {
   role: string;
   username: string;
 }
+
+export interface I2faCode {
+  twofaCode: string;
+}
