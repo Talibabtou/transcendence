@@ -5,7 +5,7 @@
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	z-index: 10;
+	z-index: var(--z-content);
 }
 
 /* Back button */
@@ -15,7 +15,7 @@
 	left: 5%;
 	cursor: pointer;
 	font-size: 1rem;
-	z-index: 2;
+	z-index: var(--z-ui);
 }
 
 /* ===== PLAYERS GRID ===== */
@@ -100,7 +100,7 @@
 /* ===== PLAYER COLOR SELECTION ===== */
 .player-color-selection {
 	position: relative;
-	z-index: 2;
+	z-index: var(--z-ui);
 	margin-bottom: 1rem;
 }
 
@@ -168,7 +168,7 @@
 	left: 0;
 	right: 0;
 	text-align: center;
-	z-index: 1;
+	z-index: var(--z-content);
 }
 
 .play-button {

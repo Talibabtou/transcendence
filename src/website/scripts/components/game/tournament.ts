@@ -147,7 +147,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				Cancel
 			</button>
 			
-			<div class="ascii-title-container">
+			<div class="ascii-title-container ascii-title-tournament">
 				<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
 			</div>
 			

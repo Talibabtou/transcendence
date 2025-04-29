@@ -32,13 +32,6 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 	
 	// Layout configuration
 	const layout = {
-		title: {
-			text: 'Match Duration Distribution',
-			font: {
-				color: '#eee',
-				size: 18
-			}
-		},
 		xaxis: {
 			title: {
 				text: 'Duration (secondes)',

@@ -1,20 +1,10 @@
-/* ==========================================================================
-	Leaderboard Component Styles
-	========================================================================== */
-
-/* Container Layout
-	========================================================================== */
-.ascii-container {
-	height: calc(100vh - var(--navbar-height) - var(--footer-height) - 4rem);
-}
-
 .leaderboard-container {
 	width: 55%;
-	margin: 0 auto;
-	padding: var(--spacing-md) 0;
-	background-color: var(--menu-bg);
-	border: 1px solid var(--border-color);
-	box-shadow: var(--shadow-normal);
+}
+
+.leaderboard-content {
+	position: relative;
+	z-index: auto;
 }
 
 /* Table Layout
@@ -95,6 +85,7 @@
 	padding-left: 1rem;
 	padding-right: 1rem;
 	max-width: 10rem;
+	z-index: var(--z-ui);
 }
 
 .elo-cell,
@@ -184,10 +175,6 @@
 }
 
 @media screen and (max-width: 768px) {
-	.ascii-container {
-			padding: 1rem;
-	}
-	
 	.leaderboard-table th,
 	.leaderboard-table td {
 			padding: 0.75rem 0.5rem;

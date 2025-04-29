@@ -336,7 +336,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		
 		const template = html`
-			<div class="profile-container">
+			<div class="component-container profile-container">
 				<div class="ascii-title-container">
 					<pre class="ascii-title">${ASCII_ART.PROFILE}</pre>
 				</div>
@@ -349,77 +349,86 @@ export class ProfileComponent extends Component<ProfileState> {
 							<button class="retry-button" onClick=${() => this.render()}>Retry</button>
 						` :
 						html`
-							<div class="profile-content">
-								<!-- Summary section always visible -->
-								${this.renderSummary()}
-								
-								<!-- Horizontal tabs -->
-								<div class="profile-tabs">
-									<ul class="tabs-list">
-										<li class="tab-item ${state.activeTab === 'stats' ? 'active' : ''}">
-											<button class="tab-button" onClick=${() => this.handleTabChange('stats')}>
-												<span class="tab-icon">📈</span> STATS
-											</button>
-										</li>
-										<li class="tab-item ${state.activeTab === 'history' ? 'active' : ''}">
-											<button class="tab-button" onClick=${() => this.handleTabChange('history')}>
-												<span class="tab-icon">🕒</span> HISTORY
-											</button>
-										</li>
-										<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}">
-											<button class="tab-button" onClick=${() => this.handleTabChange('friends')}>
-												<span class="tab-icon">👥</span> FRIENDS
-											</button>
-										</li>
-										<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}">
-											<button class="tab-button" onClick=${() => this.handleTabChange('settings')}>
-												<span class="tab-icon">⚙️</span> SETTINGS
-											</button>
-										</li>
-									</ul>
-								</div>
-								
-								<!-- Tab content area - this is just a container -->
-								<div class="tab-content"></div>
-							</div>
+							<div class="profile-content"></div>
 						`
 				}
 			</div>
 		`;
 		
 		render(template, this.container);
-	}
-
-	/**
-	 * Renders the summary section
-	 */
-	private renderSummary() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
 		
-		return html`
-				<div class="profile-hero">
-					<div class="profile-avatar-large">
+		// After render, manually add summary if profile exists
+		if (!state.isLoading && !state.errorMessage && state.profile) {
+			const profileContent = this.container.querySelector('.profile-content');
+			if (profileContent) {
+				// Clear any existing content
+				profileContent.innerHTML = '';
+				
+				// Render summary
+				const summaryElement = document.createElement('div');
+				summaryElement.className = 'profile-hero';
+				summaryElement.innerHTML = `
+					<div class="profile-avatar">
 						<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
 					</div>
-					<div class="profile-info-large">
-						<h2 class="username-large">${state.profile.username}</h2>
-						<div class="profile-stats-large">
-							<div class="stat-large">
-							<span class="stat-value-large elo-value">${state.profile.elo || 1000}</span>
-							<span class="stat-label-large">ELO</span>
+					<div class="profile-info">
+						<h2 class="username">${state.profile.username}</h2>
+						<div class="summary-stats">
+							<div class="stat">
+								<span class="stat-value elo-value">${state.profile.elo || 1000}</span>
+								<span class="stat-label">ELO</span>
 							</div>
-							<div class="stat-large">
-							<span class="stat-value-large wins-value">${state.profile.wins || 0}</span>
-								<span class="stat-label-large">WINS</span>
+							<div class="stat">
+								<span class="stat-value wins-value">${state.profile.wins || 0}</span>
+								<span class="stat-label">WINS</span>
 							</div>
-							<div class="stat-large">
-							<span class="stat-value-large losses-value">${state.profile.losses || 0}</span>
-								<span class="stat-label-large">LOSSES</span>
+							<div class="stat">
+								<span class="stat-value losses-value">${state.profile.losses || 0}</span>
+								<span class="stat-label">LOSSES</span>
+							</div>
 						</div>
 					</div>
-				</div>
-			</div>
-		`;
+				`;
+				
+				profileContent.appendChild(summaryElement);
+				
+				// Add tabs
+				const tabsHTML = `
+					<div class="profile-tabs">
+						<ul class="tabs-list">
+							<li class="tab-item ${state.activeTab === 'stats' ? 'active' : ''}">
+								<button class="tab-button">Statistics</button>
+							</li>
+							<li class="tab-item ${state.activeTab === 'history' ? 'active' : ''}">
+								<button class="tab-button">Match History</button>
+							</li>
+							<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}">
+								<button class="tab-button">Friends</button>
+							</li>
+							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}">
+								<button class="tab-button">Settings</button>
+							</li>
+						</ul>
+					</div>
+					<div class="tab-content"></div>
+				`;
+				
+				const tabsContainer = document.createElement('div');
+				tabsContainer.innerHTML = tabsHTML;
+				
+				// Add event listeners to tabs
+				Array.from(tabsContainer.querySelectorAll('.tab-button')).forEach((button, index) => {
+					button.addEventListener('click', () => {
+						const tabNames = ['stats', 'history', 'friends', 'settings'];
+						this.handleTabChange(tabNames[index]);
+					});
+				});
+				
+				// Add tabs to content
+				while (tabsContainer.firstChild) {
+					profileContent.appendChild(tabsContainer.firstChild);
+				}
+			}
+		}
 	}
 }

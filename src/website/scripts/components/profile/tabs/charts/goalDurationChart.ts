@@ -32,13 +32,6 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 	
 	// Layout configuration
 	const layout = {
-		title: {
-			text: 'Goal Duration Distribution',
-			font: {
-				color: '#eee',
-				size: 18
-			}
-		},
 		xaxis: {
 			title: {
 				text: 'Duration (seconds)',

@@ -33,13 +33,6 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 	
 	// Layout configuration
 	const layout = {
-		title: {
-			text: 'ELO Rating History',
-			font: {
-				color: '#eee',
-				size: 18
-			}
-		},
 		xaxis: {
 			title: {
 				text: 'Match Number',

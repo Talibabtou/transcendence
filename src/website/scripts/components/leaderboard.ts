@@ -130,7 +130,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		const state = this.getInternalState();
 		
 		const template = html`
-			<div class="leaderboard-container">
+			<div class="component-container leaderboard-container">
 				<div class="ascii-title-container">
 					<pre class="ascii-title">${ASCII_ART.LEADERBOARD}</pre>
 				</div>

@@ -10,7 +10,7 @@
 	align-items: center;
 }
 
-.ascii-title-container {
+.ascii-title-tournament {
 	margin-bottom: 4rem;
 }
 
@@ -32,7 +32,7 @@
 	border: 0.25rem solid white;
 	box-shadow: 0 0 1.5rem rgba(255, 255, 255, 0.7);
 	transform: scale(1.05);
-	z-index: 2;
+	z-index: var(--z-ui);
 }
 
 .tournament-match.match-pending-finals {
@@ -197,7 +197,7 @@
 	left: 5%;
 	cursor: pointer;
 	font-size: 1rem;
-	z-index: 2;
+	z-index: var(--z-ui);
 }
 
 .cancel-button {
@@ -206,7 +206,7 @@
 	right: 5%;
 	cursor: pointer;
 	font-size: 1rem;
-	z-index: 2;
+	z-index: var(--z-ui);
 	display: flex;
 	align-items: center;
 	justify-content: center;

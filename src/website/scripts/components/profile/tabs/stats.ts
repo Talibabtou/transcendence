@@ -230,17 +230,25 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 						html`<div class="error-message">${state.errorMessage}</div>` :
 						html`
 							<div class="chart-container">
-								<h3 class="chart-title">ELO Rating History</h3>
-								<div id="elo-chart" class="chart"></div>
+								<div class="chart-section">
+									<h3 class="chart-title first-chart-title">ELO Rating History</h3>
+									<div id="elo-chart" class="chart"></div>
+								</div>
 								
-								<h3 class="chart-title">Match Duration Distribution</h3>
-								<div id="match-duration-chart" class="chart"></div>
+								<div class="chart-section">
+									<h3 class="chart-title">Match Duration Distribution</h3>
+									<div id="match-duration-chart" class="chart"></div>
+								</div>
 								
-								<h3 class="chart-title">Daily Activity</h3>
-								<div id="daily-activity-chart" class="chart"></div>
+								<div class="chart-section">
+									<h3 class="chart-title">Daily Activity</h3>
+									<div id="daily-activity-chart" class="chart"></div>
+								</div>
 								
-								<h3 class="chart-title">Goal Time Distribution</h3>
-								<div id="goal-duration-chart" class="chart"></div>
+								<div class="chart-section">
+									<h3 class="chart-title">Goal Time Distribution</h3>
+									<div id="goal-duration-chart" class="chart"></div>
+								</div>
 							</div>
 						`
 				}
@@ -264,7 +272,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	destroy(): void {
 		super.destroy();
 		
-		// Run all cleanup functions
 		const state = this.getInternalState();
 		if (state.cleanup?.eloChart) {
 			state.cleanup.eloChart();

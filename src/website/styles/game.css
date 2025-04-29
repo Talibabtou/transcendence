@@ -13,7 +13,7 @@
 	margin: 0 auto 8vh auto;
 	font-weight: bold;
 	position: relative;
-	z-index: 1;
+	z-index: var(--z-content);
 }
 
 /* Game Menu */
@@ -29,7 +29,7 @@
 	align-items: center;
 	padding: 2rem 0;
 	overflow-y: auto;
-	z-index: 1;
+	z-index: var(--z-content);
 }
 
 .menu-buttons {
@@ -41,7 +41,7 @@
 	width: 100%;
 	margin: 0 auto;
 	max-height: 100%;
-	z-index: 1;
+	z-index: var(--z-content);
 }
 
 .menu-button {
@@ -91,7 +91,7 @@
 	left: 0;
 	width: 100%;
 	height: var(--main-canvas-height);
-	z-index: 1;
+	z-index: var(--z-background);
 	image-rendering: pixelated;
 	image-rendering: crisp-edges;
 	image-rendering: -moz-crisp-edges;
@@ -104,7 +104,7 @@
 	left: 0;
 	width: 100%;
 	height: var(--main-canvas-height);
-	z-index: 1;
+	z-index: var(--z-background);
 }
 
 .game-result {
@@ -127,7 +127,7 @@
 	flex-direction: column;
 	justify-content: center;
 	align-items: center;
-	z-index: 10;
+	z-index: var(--z-overlay);
 }
 
 .go-player-names {

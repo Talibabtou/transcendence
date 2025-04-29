@@ -111,9 +111,7 @@ export class GameOverComponent extends Component<GameOverState> {
 					</div>
 					
 					<div class="go-content">
-						<div class="go-ascii-container">
-							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
-						</div>
+						<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
 						<div class="go-winner">${state.winner} Wins!</div>
 						<div class="go-buttons">
 							${state.gameMode === GameMode.TOURNAMENT 

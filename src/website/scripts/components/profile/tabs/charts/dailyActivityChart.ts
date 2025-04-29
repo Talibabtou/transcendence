@@ -44,13 +44,6 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 	
 	// Layout configuration
 	const layout: Partial<Plotly.Layout> = {
-		title: {
-			text: 'Recent Activity (4 Weeks)',
-			font: {
-				color: '#eee',
-				size: 18
-			}
-		},
 		xaxis: {
 			showgrid: false,
 			tickvals: [0, 1, 2, 3, 4, 5, 6],
