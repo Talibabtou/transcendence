@@ -28,7 +28,7 @@ export class CollisionManager {
 		if (this.isStationary(ballVelocity) || !this.isApproachingPaddle(ballPos, ballVelocity, paddleBox)) {
 			return this.createNoCollisionResult();
 		}
-
+		
 		// Check for collision
 		const collision = this.detectCollision(ballHitbox, paddleBox);
 		if (!collision.collided) {

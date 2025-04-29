@@ -22,10 +22,14 @@ export class Player implements GraphicalElement {
 	protected downPressed = false;
 	protected _name: string = 'Player';
 	protected _type: PlayerType;
-	// protected _isAIControlled: boolean;
 	protected _position: PlayerPosition;
 	protected _upKey: string;
 	protected _downKey: string;
+	protected _targetY: number;
+	protected predictedBouncePoint1: { x: number; y: number } | null = null;
+	protected predictedBouncePoint2: { x: number; y: number } | null = null;
+	protected predictedBouncePoint3: { x: number; y: number } | null = null;
+	protected _lastCollisionTime: number;
 	private paddle: Paddle;
 	private paddleHitbox: PaddleHitbox;
 	private readonly CollisionManager: CollisionManager;
@@ -106,7 +110,8 @@ export class Player implements GraphicalElement {
 		this._position = position;
 		this._type = type;
 		// this._isAIControlled = type === PlayerType.AI;
-		
+		this._targetY = this.startY + 150;
+		this._lastCollisionTime = 2000;
 		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
@@ -237,7 +242,6 @@ export class Player implements GraphicalElement {
 		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
 			this.updateAIInputs(ctx);
 		}
-		
 		if (state === GameState.PLAYING) {
 			this.updateMovement(deltaTime);
 		}
@@ -252,6 +256,15 @@ export class Player implements GraphicalElement {
 	public draw(ctx: GameContext): void {
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
+
+		// Draw predicted bounce point for debugging
+		if (this.predictedBouncePoint1 && this._position === PlayerPosition.RIGHT) {
+			ctx.fillStyle = 'red';
+			ctx.beginPath();
+			ctx.arc(this.predictedBouncePoint1.x, this.predictedBouncePoint1.y, 5, 0, Math.PI * 2); // Draw a small red circle
+			ctx.fill();
+			ctx.closePath();
+		}
 	}
 
 	// =========================================
@@ -381,13 +394,102 @@ export class Player implements GraphicalElement {
 				ballHitbox,
 				this.paddleHitbox
 			);
-			
-			if (collision.collided) {
+			if (Date.now() - this._lastCollisionTime > 1000 && collision.collided) {
+				this._lastCollisionTime = Date.now();
 				this.ball.hit(collision.hitFace, collision.deflectionModifier);
+
+				// Predict next bounce after the hit
+				const postCollisionVelocity = this.ball.getVelocity();
+				if (collision.collisionPoint) {
+					this.predictBallBounce(collision.collisionPoint, postCollisionVelocity);
+				} else {
+					// Fallback if collisionPoint is somehow missing (shouldn't happen with current logic)
+					this.predictedBouncePoint1 = null;
+				}
 			}
 		} catch (error) {
 			console.error('Error in checkBallCollision:', error);
 		}
+	}
+
+	// =========================================
+	// Prediction Methods
+	// =========================================
+
+	/**
+	 * Predicts the ball's trajectory after a collision to determine the target Y.
+	 * Calculates the next bounce off a horizontal wall.
+	 */
+	protected predictBallBounce(
+		collisionPoint: { x: number; y: number },
+		postCollisionVelocity: { dx: number; dy: number }
+	): void {
+		const { width, height } = this.context.canvas;
+		const ballRadius = this.ball.getSize();
+		const sizes = calculateGameSizes(width, height);
+
+		let timeToWall = Infinity;
+		let bounceY = 0;
+
+		// Predict bounce off top/bottom wall
+		if (postCollisionVelocity.dy !== 0) {
+			if (postCollisionVelocity.dy < 0) { // Moving up
+				bounceY = ballRadius;
+				timeToWall = (bounceY - collisionPoint.y) / postCollisionVelocity.dy;
+			} else { // Moving down
+				bounceY = height - ballRadius;
+				timeToWall = (bounceY - collisionPoint.y) / postCollisionVelocity.dy;
+			}
+		}
+
+		if (timeToWall <= 0 || timeToWall === Infinity) {
+			// No wall bounce predicted or happens instantly/in the past, reset prediction
+			this.predictedBouncePoint1 = null;
+			return;
+		}
+
+		const bounceX = collisionPoint.x + postCollisionVelocity.dx * timeToWall;
+
+		// Check if bounce occurs within horizontal bounds
+		if (bounceX < 0 || bounceX > width) {
+			this.predictedBouncePoint1 = null; // Bounce happens off-screen horizontally
+		} else {
+			this.predictedBouncePoint1 = { x: bounceX, y: bounceY };
+		}
+
+
+		// Calculate trajectory after bounce
+		const postBounceVelocityX = postCollisionVelocity.dx;
+		const postBounceVelocityY = -postCollisionVelocity.dy; // Reverse Y velocity
+
+		// Determine the X coordinate of the opponent's paddle line
+		let opponentPaddleLineX: number;
+		if (this._position === PlayerPosition.LEFT) {
+			opponentPaddleLineX = width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH / 2); // Target center of opponent paddle
+		} else {
+			opponentPaddleLineX = sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH / 2; // Target center of opponent paddle
+		}
+
+		// Calculate time to reach the opponent's paddle line from the bounce point
+		let timeToOpponent = Infinity;
+		if (postBounceVelocityX !== 0) {
+			timeToOpponent = (opponentPaddleLineX - bounceX) / postBounceVelocityX;
+		}
+
+		if (timeToOpponent < 0 || timeToOpponent === Infinity) {
+			// Ball won't reach opponent after bounce (e.g., moving away)
+			// Keep the previous prediction or default to center? Let's default for now.
+			return;
+		}
+
+		// Calculate the Y position at the opponent's line
+		let finalPredictedY = bounceY + postBounceVelocityY * timeToOpponent;
+
+		// Clamp the predicted Y to stay within playable bounds (paddle center)
+		const paddleCenterMinY = this.paddleHeight / 2;
+		const paddleCenterMaxY = height - this.paddleHeight / 2;
+		finalPredictedY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedY));
+
 	}
 
 	// =========================================
@@ -398,26 +500,8 @@ export class Player implements GraphicalElement {
 	 */
 	protected updateAIInputs(ctx: GameContext): void {
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
-		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
-		
-		// Only update AI movement if the ball is actually moving
-		if (this.ball.dx === 0 && this.ball.dy === 0) {
-			// Slowly return to center when ball is not moving
-			this.moveTowardsCenter(paddleCenter, centerY);
-			return;
-		}
-
-		// Different behavior based on player position and ball direction
-		if (this._position === PlayerPosition.RIGHT) {
-			// Left player AI
-			if (this.ball.dx >= 0) {
-				// Ball moving away - return to center with smooth movement
-				this.moveTowardsCenter(paddleCenter, centerY);
-			} else {
-				// Ball coming towards - track with smooth movement
-				this.trackBallWithDelay(paddleCenter);
-			}
-		}
+		this.moveTowardsPredictedBallY(paddleCenter);
+		this.updateDirection();
 	}
 
 	protected updateBackgroundInputs(ctx: GameContext): void {
@@ -471,6 +555,24 @@ export class Player implements GraphicalElement {
 			this.downPressed = paddleCenter < targetY;
 		}
 		this.updateDirection();
+	}
+
+	/**
+	 * AI helper method to move paddle towards the predicted ball Y position
+	 */
+	private moveTowardsPredictedBallY(paddleCenter: number): void {
+		const deadzone = this.speed * 0.5; // Smaller deadzone for more precise targeting
+
+		if (Math.abs(paddleCenter - this._targetY) < deadzone) {
+			// Within deadzone - stop movement
+			this.upPressed = false;
+			this.downPressed = false;
+		} else {
+			// Move towards the predicted Y
+			this.upPressed = paddleCenter > this._targetY;
+			this.downPressed = paddleCenter < this._targetY;
+		}
+		// updateDirection() will be called by the caller (updateAIInputs)
 	}
 
 	/**
