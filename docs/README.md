@@ -30,11 +30,11 @@ npm init -y // generate .json files
 // GLOBAL (dev)
 npm i --save-dev @types/node @eslint/js eslint eslint-config-prettier globals prettier typescript-eslint eslint-plugin-prettier
 
-// API
-npm install typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/swagger-ui @fastify/swagger @fastify/helmet
+// GATEWAY
+npm install typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/swagger-ui @fastify/swagger @fastify/helmet @fastify/cors
 
 // AUTH
-npm install typescript fastify sqlite3 sqlite @fastify/jwt uuid
+npm install typescript fastify sqlite3 sqlite @fastify/jwt uuid speakeasy @types/speakeasy qrcode @types/qrcode
 
 // PROFIL
 npm install typescript fastify @fastify/jwt @fastify/static @fastify/multipart

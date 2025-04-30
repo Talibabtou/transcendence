@@ -1,5 +1,5 @@
 import { IId } from '../shared/types/api.types.js';
-import { IModifyUser, IAddUser, ILogin } from '../shared/types/auth.types.js';
+import { IModifyUser, IAddUser, ILogin, I2faCode } from '../shared/types/auth.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
@@ -11,6 +11,9 @@ import {
   login,
   logout,
   checkRevoked,
+  twofaDisable,
+  twofaGenerate,
+  twofaValidate,
 } from '../controllers/auth.controller.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -24,15 +27,21 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/user/me/:id', getUserMe);
 
-  fastify.get<{ Params: IId }>('/user/revoked/:id', checkRevoked);
+  fastify.get<{ Params: IId }>('/revoked/:id', checkRevoked);
 
-  fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
-
-  fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
+  fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/validate/:id', twofaValidate);
 
   fastify.post<{ Body: IAddUser }>('/register', addUser);
 
   fastify.post<{ Body: IId }>('/logout', logout);
 
   fastify.post<{ Body: ILogin }>('/login', login);
+
+  fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
+
+  fastify.patch<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
+
+  fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable);
+
+  fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
 }

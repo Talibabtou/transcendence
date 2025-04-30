@@ -1,5 +1,6 @@
 import path from 'path';
-import helmet from '@fastify/helmet';
+// import cors from '@fastify/cors';
+// import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
@@ -40,52 +41,6 @@ async function routes(server: FastifyInstance) {
   await server.register(friendsRoutes, { prefix: API_PREFIX });
 }
 
-// const swaggerParams = {
-//   openapi: {
-//     info: {
-//       title: 'Game Service API',
-//       description: 'API documentation for the Game microservice',
-//       version: '1.0.0',
-//     },
-//     servers: [
-//       {
-//         url: `http://localhost:${process.env.API_PORT || 8080}${API_PREFIX}`,
-//         description: 'Local development server',
-//       },
-//     ],
-//     components: {
-//       securitySchemes: {
-//         bearerAuth: {
-//           type: 'http', // Change to https later
-//           scheme: 'bearer',
-//         },
-//       },
-//     },
-//     tags: [
-//       { name: 'api', description: 'Main API endpoints' },
-//       {
-//         name: 'auth',
-//         description: 'Authentication and authorization endpoints',
-//       },
-//       {
-//         name: 'friends',
-//         description: 'Endpoints for managing friends and connections',
-//       },
-//       { name: 'matches', description: 'Match management endpoints' },
-//       { name: 'goals', description: 'Goal tracking endpoints' },
-//       { name: 'elos', description: 'Elo rating management endpoints' },
-//       {
-//         name: 'system',
-//         description: 'System and health check endpoints',
-//       },
-//       {
-//         name: 'profil',
-//         description: 'User profile management endpoints',
-//       },
-//     ],
-//   },
-// };
-
 const multipartParams = {
   limits: {
     fieldNameSize: 100, // Max field name size in bytes
@@ -107,6 +62,12 @@ const rateLimitParams = {
   max: 100,
   timeWindow: '1 minute',
 };
+
+// const corsConfig = {
+//   origin: '*', // Allow all origins (or specify your frontend's origin)
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allowed HTTP methods
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+// };
 
 export class Server {
   private static instance: FastifyInstance;
@@ -153,6 +114,10 @@ export class Server {
               description: 'Authentication and authorization endpoints',
             },
             {
+              name: '2fa',
+              description: '2fa authentication endpoints',
+            },
+            {
               name: 'friends',
               description: 'Endpoints for managing friends and connections',
             },
@@ -176,6 +141,10 @@ export class Server {
               name: 'profil',
               description: 'User profile management endpoints',
             },
+            {
+              name: 'tournaments',
+              description: 'Tournament management endpoints',
+            },
           ],
         },
       });
@@ -187,7 +156,8 @@ export class Server {
       await server.register(rateLimit, rateLimitParams);
       await server.register(fastifyMultipart, multipartParams);
       await server.register(fastifyStatic, staticParams);
-      await server.register(helmet, { global: true });
+      // await server.register(helmet, { global: true });
+      // server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);
       server.addHook('onRequest', jwtPluginHook);

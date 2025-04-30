@@ -302,3 +302,51 @@ export const modifyUserSchema = {
     },
   },
 };
+
+export const twofaDisableSchema = {
+  response: {
+    200: {},
+    304: {},
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
+
+export const twofaValidateSchema = {
+  body: {
+    type: 'object',
+    properties: {
+      twofaCode: {
+        type: 'string',
+        minLength: 6,
+        maxLength: 6,
+      },
+    },
+    additionalProperties: false,
+    required: ['twofaCode'],
+  },
+  response: {
+    200: {},
+    401: {
+      ...errorResponseSchema,
+      example: ErrorExamples.twofaBadCode,
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
+
+export const twofaGenerateSchema = {
+  response: {
+    200: {},
+    304: {},
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};

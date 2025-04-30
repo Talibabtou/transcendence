@@ -63,7 +63,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
 
     // check revoked
     const jwtId: string = (request.user as FastifyJWT['user']).jwtId;
-    const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/revoked/${jwtId}`;
+    const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/revoked/${jwtId}`;
     const revoked = await fetch(serviceRevokedUrl, { method: 'GET' });
     if (revoked.status >= 400) {
       const responseData = (await revoked.json()) as ErrorResponse;
