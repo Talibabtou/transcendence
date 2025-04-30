@@ -391,6 +391,23 @@ export class Player implements GraphicalElement {
 	// =========================================
 
 	/**
+	 * Public method to trigger an initial prediction calculation, usually at the start of a point.
+	 * Checks if the ball is moving before calling the internal prediction logic.
+	 */
+	public calculateInitialPrediction(): void {
+		// Ensure the ball object exists and has a non-zero velocity
+		if (!this.ball) return;
+		const ballVelocity = this.ball.getVelocity();
+		if (ballVelocity.dx !== 0 || ballVelocity.dy !== 0) {
+			this.predictBallTrajectory(this.ball.getPosition(), ballVelocity);
+		} else {
+			// If ball is not moving, clear predictions
+			this.predictedBouncePoints = [];
+			this.finalPredictedImpactPoint = null;
+		}
+	}
+
+	/**
 	 * Predicts the ball's trajectory through multiple bounces until it heads back
 	 * towards the player's paddle line. Updates `predictedBouncePoints` and `_targetY`.
 	 */

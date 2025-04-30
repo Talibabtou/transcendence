@@ -1,6 +1,7 @@
 import { Ball, Player } from '@pong/game/objects';
 import { GameState, GameSnapshot } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
+import { PlayerType } from '@pong/types';
 
 /**
  * Callback type for countdown events
@@ -394,11 +395,21 @@ export class PauseManager {
 					
 					// Call the completion function
 					onComplete();
-					
-					// Handle pending pause if needed
+
+					// >> ADDED: Trigger initial prediction for AI player after launch <<
+					// Check if player2 is the AI and trigger its prediction
+					if (
+						this.player2.getPlayerType() === PlayerType.AI
+					) {
+						// Call the new public method
+						this.player2.calculateInitialPrediction();
+					}
+					// >> END ADDED CODE <<
+
+					// Handle pending pause requests
 					if (this.pendingPauseRequest) {
 						this.pendingPauseRequest = false;
-						this.pause();
+						this.pause(); // Pause immediately after countdown if requested
 					}
 				}, 50);
 			}
