@@ -1,6 +1,8 @@
-import { v4 as uuid } from 'uuid';
-import { IId } from '../shared/types/api.types.js';
 import fs from 'fs';
+import path from 'path';
+import { v4 as uuid } from 'uuid';
+import { FastifyJWT } from '../plugins/jwtPlugin.js';
+import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import {
@@ -11,7 +13,6 @@ import {
   IReplyGetUsers,
   IReplyLogin,
 } from '../shared/types/auth.types.js';
-import path from 'path';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
@@ -229,6 +230,11 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     if (!data) {
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
       return reply.code(401).send(errorMessage);
+    } else if (data.two_factor_enabled && !(request.user as FastifyJWT['user']).jwtId) {
+      await request.jwtVerify();
+      if ((request.user as FastifyJWT['user']).twofa !== true) {
+        return reply.code(200).send({ status: 'NEED_2FA' });
+      }
     }
     await request.server.db.run(
       'UPDATE users SET last_login = (CURRENT_TIMESTAMP), last_ip = ? WHERE email = ? AND password = ?',
@@ -237,9 +243,9 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     const jti = uuid();
     const token: string = request.server.jwt.sign({
       id: data.id,
-      twofa: data.two_factor_enabled,
-      jwtId: jti,
       role: data.role,
+      jwtId: jti,
+      twofa: data.two_factor_enabled,
     });
     const user: IReplyLogin = {
       token: token,

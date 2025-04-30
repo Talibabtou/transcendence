@@ -12,9 +12,9 @@ declare module 'fastify' {
 export interface FastifyJWT {
   user: {
     id: string;
-    jwtId: string;
-    twofa: boolean;
     role: string;
+    jwtId?: string;
+    twofa?: boolean;
   };
 }
 
