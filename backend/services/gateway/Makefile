@@ -10,10 +10,14 @@ all:
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} start
 
-infos:
-	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix"
+test: clean
+	@${NPM} build || { echo "Build failed"; exit 1; }
+	@${NPM} test
 
-re: fclean all
+infos:
+	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix, test"
+
+re: fclean install all
 
 audit:
 	@${AUDIT}
@@ -36,6 +40,7 @@ clean:
 	clear
 
 fclean: clean
+	@${RM} node_modules/
 	@${RM} dist/
 
-.PHONY: all re clean fclean prettier linter format install audit audit-fix infos
+.PHONY: all re clean fclean prettier linter format install audit audit-fix infos test

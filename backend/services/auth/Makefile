@@ -17,7 +17,7 @@ all:
 infos:
 	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix"
 
-re: fclean all
+re: fclean install all
 
 audit:
 	@${AUDIT}
@@ -40,6 +40,7 @@ clean:
 	clear
 
 fclean: clean
+	@${RM} node_modules/
 	@${RM} dist/
 	@${RM} db/
 

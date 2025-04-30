@@ -53,8 +53,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
 
     // check user exist
     const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/auth')[1];
-    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);

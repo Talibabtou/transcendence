@@ -224,8 +224,12 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
 
 export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
   try {
-    if ((request.user as FastifyJWT['user']).jwtId) {
-      return reply.code(204).send();
+    const authHeader: string | undefined = request.headers['authorization'];
+    if (authHeader?.startsWith('Bearer ')) {
+      await request.jwtVerify();
+      if ((request.user as FastifyJWT['user']).jwtId) {
+        return reply.code(204).send();
+      }
     }
     const { email, password } = request.body;
     const ip = request.headers['from'];
@@ -238,7 +242,6 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       return reply.code(401).send(errorMessage);
     }
     if (data.two_factor_enabled) {
-      await request.jwtVerify();
       if ((request.user as FastifyJWT['user']).twofa !== true) {
         return reply.code(200).send({ status: 'NEED_2FA' });
       }
