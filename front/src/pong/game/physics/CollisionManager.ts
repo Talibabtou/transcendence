@@ -35,12 +35,15 @@ export class CollisionManager {
 			return this.createNoCollisionResult();
 		}
 
-		// Calculate deflection
-		const deflection = this.calculateDeflection(collision.collisionPoint!, paddleBox);
+		// Calculate deflection only if hitting the front face
+		let deflection = 0;
+		if (collision.hitFace === 'front') {
+			deflection = this.calculateDeflection(collision.collisionPoint!, paddleBox);
+		}
 
 		return {
 			collided: true,
-			hitFace: 'front',
+			hitFace: collision.hitFace!, // Assert non-null as collided is true
 			deflectionModifier: deflection,
 			collisionPoint: collision.collisionPoint
 		};
@@ -76,7 +79,7 @@ export class CollisionManager {
 	private detectCollision(
 		ballHitbox: Collidable,
 		paddleBox: BoundingBox
-	): { collided: boolean; collisionPoint?: { x: number; y: number } } {
+	): { collided: boolean; collisionPoint?: { x: number; y: number }; hitFace?: 'front' | 'top' | 'bottom' } {
 		return this.checkSweptCollision(
 			ballHitbox.getPreviousPosition(),
 			ballHitbox.getPosition(),
@@ -104,13 +107,13 @@ export class CollisionManager {
 		currentPos: { x: number; y: number },
 		ballBox: BoundingBox,
 		paddleBox: BoundingBox
-	): { collided: boolean; collisionPoint?: { x: number; y: number } } {
+	): { collided: boolean; collisionPoint?: { x: number; y: number }; hitFace?: 'front' | 'top' | 'bottom' } {
 		// Calculate movement vector
 		const moveX = currentPos.x - prevPos.x;
 		const moveY = currentPos.y - prevPos.y;
 
-		// Calculate time of collision (-1 if no collision)
-		const collisionTime = this.getCollisionTime(
+		// Calculate time and face of collision
+		const collisionInfo = this.getCollisionTimeAndFace(
 			prevPos,
 			moveX,
 			moveY,
@@ -118,30 +121,42 @@ export class CollisionManager {
 			paddleBox
 		);
 
-		if (collisionTime < 0 || collisionTime > 1) {
+		if (!collisionInfo.collided) {
 			return { collided: false };
 		}
 
 		// Calculate exact collision point
+		const collisionPoint = {
+			x: prevPos.x + moveX * collisionInfo.time!,
+			y: prevPos.y + moveY * collisionInfo.time!
+		};
+
+		// Determine hit face based on collision axis and movement direction
+		let hitFace: 'front' | 'top' | 'bottom';
+		if (collisionInfo.face === 'x') {
+			hitFace = 'front';
+		} else { // collisionInfo.face === 'y'
+			hitFace = moveY > 0 ? 'top' : 'bottom';
+		}
+
 		return {
 			collided: true,
-			collisionPoint: {
-				x: prevPos.x + moveX * collisionTime,
-				y: prevPos.y + moveY * collisionTime
-			}
+			collisionPoint: collisionPoint,
+			hitFace: hitFace
 		};
 	}
 
 	/**
 	 * Calculates the exact time of collision using ray-AABB intersection
+	 * and determines the collision face axis ('x' or 'y').
 	 */
-	private getCollisionTime(
+	private getCollisionTimeAndFace(
 		prevPos: { x: number; y: number },
 		moveX: number,
 		moveY: number,
 		ballBox: BoundingBox,
 		paddleBox: BoundingBox
-	): number {
+	): { collided: boolean; time?: number; face?: 'x' | 'y' } {
 		// Ray-AABB intersection algorithm
 		const ballRadius = (ballBox.right - ballBox.left) / 2;
 		
@@ -170,10 +185,25 @@ export class CollisionManager {
 			(expandedBox.bottom - prevPos.y) / moveY : 
 			(prevPos.y <= expandedBox.bottom && prevPos.y >= expandedBox.top ? 1 : -1);
 
-		const tMin = Math.max(Math.min(txMin, txMax), Math.min(tyMin, tyMax));
-		const tMax = Math.min(Math.max(txMin, txMax), Math.max(tyMin, tyMax));
+		// Calculate the time intervals for collision on each axis
+		const tEnterX = Math.min(txMin, txMax);
+		const tLeaveX = Math.max(txMin, txMax);
+		const tEnterY = Math.min(tyMin, tyMax);
+		const tLeaveY = Math.max(tyMin, tyMax);
 
-		return tMax >= tMin && tMin >= 0 && tMin <= 1 ? tMin : -1;
+		// Find the actual time of entry and exit from the intersection
+		const tEnter = Math.max(tEnterX, tEnterY);
+		const tLeave = Math.min(tLeaveX, tLeaveY);
+
+		// Check for valid collision within the movement interval [0, 1]
+		if (tEnter > tLeave || tEnter < 0 || tEnter > 1) {
+			return { collided: false }; // No collision within this frame
+		}
+
+		// Determine which axis caused the collision
+		const face = tEnter === tEnterX ? 'x' : 'y';
+
+		return { collided: true, time: tEnter, face: face };
 	}
 
 	// =========================================
@@ -194,11 +224,10 @@ export class CollisionManager {
 			return this.calculateTopZoneDeflection(relativeHitPoint, zoneSize);
 		}
 		
-		if (this.isInBottomZone(relativeHitPoint, zoneSize)) {
+		else if (this.isInBottomZone(relativeHitPoint, zoneSize)) {
 			return this.calculateBottomZoneDeflection(relativeHitPoint, zoneSize);
 		}
-		
-		return this.calculateMiddleZoneDeflection(relativeHitPoint, zoneSize);
+		return 0;
 	}
 
 	/**
@@ -237,13 +266,5 @@ export class CollisionManager {
 	 */
 	private calculateBottomZoneDeflection(relativeHitPoint: number, zoneSize: number): number {
 		return BALL_CONFIG.EDGES.MAX_DEFLECTION * (1 - (1 - relativeHitPoint)/zoneSize);
-	}
-
-	/**
-	 * Calculates deflection for hits in the middle zone
-	 */
-	private calculateMiddleZoneDeflection(relativeHitPoint: number, zoneSize: number): number {
-		const normalizedPos = (relativeHitPoint - zoneSize) / (1 - 2 * zoneSize);
-		return BALL_CONFIG.EDGES.MAX_DEFLECTION * (2 * normalizedPos - 1);
 	}
 }

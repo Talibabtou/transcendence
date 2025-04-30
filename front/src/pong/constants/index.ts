@@ -84,8 +84,8 @@ export const BALL_CONFIG = {
 		INITIAL: 1.0           // Initial speed multiplier
 	},
 	EDGES: {
-		ZONE_SIZE: 0.05,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.01  // 1% max deflection
+		ZONE_SIZE: 0.1,  // 5% edge detection zone
+		MAX_DEFLECTION: 0.05  // 1% max deflection
 	}
 } as const;
 
