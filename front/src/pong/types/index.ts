@@ -137,10 +137,8 @@ export interface Player extends GraphicalElement {
 	updateSizes(): void;
 	bindControls(): void;
 	unbindControls(): void;
-	// isAIControlled(): boolean;
 	getPlayerType(): PlayerType;
 	setPlayerType(type: PlayerType): void;
-	// setControlType(type: PlayerType): void;
 }
 
 /**

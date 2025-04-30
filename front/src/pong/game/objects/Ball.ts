@@ -202,7 +202,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		if (hitFace === 'front') {
 			// Reverse horizontal direction
 			this.dx = -this.dx;
-			
+			deflectionModifier = 0;
 			if (deflectionModifier !== 0) {
 				// Apply rotation matrix for deflection
 				const cos = Math.cos(deflectionModifier);
