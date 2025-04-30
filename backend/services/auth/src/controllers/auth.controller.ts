@@ -1,9 +1,9 @@
 import fs from 'fs';
-import qrcode from 'qrcode';
 import path from 'path';
+import qrcode from 'qrcode';
 import { v4 as uuid } from 'uuid';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import speakeasy from 'speakeasy';
+import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
@@ -224,6 +224,9 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
 
 export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
   try {
+    if ((request.user as FastifyJWT['user']).jwtId) {
+      return reply.code(204).send();
+    }
     const { email, password } = request.body;
     const ip = request.headers['from'];
     const data = await request.server.db.get(
@@ -233,7 +236,8 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     if (!data) {
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
       return reply.code(401).send(errorMessage);
-    } else if (data.two_factor_enabled && !(request.user as FastifyJWT['user']).jwtId) {
+    }
+    if (data.two_factor_enabled) {
       await request.jwtVerify();
       if ((request.user as FastifyJWT['user']).twofa !== true) {
         return reply.code(200).send({ status: 'NEED_2FA' });
@@ -272,7 +276,7 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
       [id]
     );
     if (two_factor_enabled) {
-      return reply.code(304).send();
+      return reply.code(204).send();
     }
     const secretCode = speakeasy.generateSecret({
       name: 'Transcendance',
@@ -310,9 +314,17 @@ export async function twofaValidate(
       token: twofaCode,
     });
     if (verify) {
+      const tmpToken = request.server.jwt.sign(
+        {
+          id: id,
+          twofa: true,
+          role: '2fa',
+        },
+        { expiresIn: '1m' }
+      );
       if (!data.two_factor_enabled)
         await request.server.db.run('UPDATE users SET two_factor_enabled = true WHERE id = ?', [id]);
-      return reply.code(200).send();
+      return reply.code(200).send(tmpToken);
     }
     const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
     return reply.code(401).send(errorMessage);
@@ -335,7 +347,7 @@ export async function twofaDisable(
       [id]
     );
     if (!two_factor_enabled) {
-      return reply.code(304).send();
+      return reply.code(204).send();
     }
     await request.server.db.run(
       'UPDATE users SET two_factor_enabled = false, two_factor_secret = null WHERE id = ?',

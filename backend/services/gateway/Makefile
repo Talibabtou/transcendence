@@ -1,5 +1,7 @@
 NPM = npm run
 RM = rm -rf
+INSTALL = npm install
+AUDIT = npm audit
 
 all:
 	@if [ ! -d "dist/" ]; then \
@@ -8,7 +10,19 @@ all:
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} start
 
+infos:
+	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix"
+
 re: fclean all
+
+audit:
+	@${AUDIT}
+
+audit-fix:
+	@${AUDIT} fix
+
+install:
+	@${INSTALL}
 
 prettier:
 	npx prettier . --write
@@ -16,7 +30,7 @@ prettier:
 linter:
 	npx eslint . --fix
 
-format: linter prettier
+format: install linter prettier
 
 clean:
 	clear
@@ -24,4 +38,4 @@ clean:
 fclean: clean
 	@${RM} dist/
 
-.PHONY: all re clean fclean prettier linter format
+.PHONY: all re clean fclean prettier linter format install audit audit-fix infos

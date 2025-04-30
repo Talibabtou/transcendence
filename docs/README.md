@@ -28,7 +28,7 @@ rm csr.pem
 npm init -y // generate .json files
 
 // GLOBAL (dev)
-npm i --save-dev @types/node @eslint/js eslint eslint-config-prettier globals prettier typescript-eslint eslint-plugin-prettier
+npm i --save-dev @types/node @eslint/js eslint eslint-config-prettier globals prettier typescript-eslint eslint-plugin-prettier vitest @vitest/ui supertest @types/supertest tsx
 
 // GATEWAY
 npm install typescript fastify @types/node-fetch@2 @fastify/jwt @fastify/static @fastify/multipart @fastify/rate-limit @fastify/swagger-ui @fastify/swagger @fastify/helmet @fastify/cors

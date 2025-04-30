@@ -181,7 +181,7 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
 
 export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const jwtId: string = (request.user as FastifyJWT['user']).jwtId;
+    const jwtId = (request.user as FastifyJWT['user']).jwtId;
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
     const response = await fetch(serviceUrl, {
@@ -215,6 +215,9 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
       },
       body: JSON.stringify(request.body),
     });
+    if (response.status === 204) {
+      return reply.code(response.status).send();
+    }
     const data = (await response.json()) as IReplyLogin | ErrorResponse;
     return reply.code(response.status).send(data);
   } catch (err) {

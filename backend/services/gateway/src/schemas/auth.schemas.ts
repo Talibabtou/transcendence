@@ -234,6 +234,7 @@ export const loginSchema = {
       required: ['token', 'id', 'role', 'username'],
       additionalProperties: false,
     },
+    204: {},
     401: {
       ...errorResponseSchema,
       example: ErrorExamples.loginFailure,
@@ -306,7 +307,7 @@ export const modifyUserSchema = {
 export const twofaDisableSchema = {
   response: {
     200: {},
-    304: {},
+    204: {},
     500: {
       ...errorResponseSchema,
       example: ErrorExamples.internalError,
@@ -328,7 +329,18 @@ export const twofaValidateSchema = {
     required: ['twofaCode'],
   },
   response: {
-    200: {},
+    200: {
+      type: 'object',
+      properties: {
+        token: {
+          type: 'string',
+          pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
+          description: 'JWT token for user authentication',
+        },
+      },
+      required: ['token'],
+      additionalProperties: false,
+    },
     401: {
       ...errorResponseSchema,
       example: ErrorExamples.twofaBadCode,
@@ -343,7 +355,7 @@ export const twofaValidateSchema = {
 export const twofaGenerateSchema = {
   response: {
     200: {},
-    304: {},
+    204: {},
     500: {
       ...errorResponseSchema,
       example: ErrorExamples.internalError,

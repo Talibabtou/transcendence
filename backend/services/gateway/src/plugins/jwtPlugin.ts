@@ -12,9 +12,9 @@ declare module 'fastify' {
 export interface FastifyJWT {
   user: {
     id: string;
-    jwtId: string;
-    twofa: boolean;
     role: string;
+    jwtId?: string;
+    twofa?: boolean;
   };
 }
 
@@ -53,8 +53,8 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
 
     // check user exist
     const id: string = (request.user as FastifyJWT['user']).id;
-
-    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/me/${id}`;
+    const subpath = request.url.split('/auth')[1];
+    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
@@ -62,7 +62,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
     }
 
     // check revoked
-    const jwtId: string = (request.user as FastifyJWT['user']).jwtId;
+    const jwtId = (request.user as FastifyJWT['user']).jwtId;
     const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/revoked/${jwtId}`;
     const revoked = await fetch(serviceRevokedUrl, { method: 'GET' });
     if (revoked.status >= 400) {
