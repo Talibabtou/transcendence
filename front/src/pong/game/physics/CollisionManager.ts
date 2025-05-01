@@ -139,12 +139,18 @@ export class CollisionManager {
 		const moveX = currentPos.x - prevPos.x;
 		const moveY = currentPos.y - prevPos.y;
 
+		// Determine if this is a left or right paddle based on position relative to game center
+		const paddleCenterX = (paddleBox.left + paddleBox.right) / 2;
+		const gameCenter = window.innerWidth / 2;
+		const isLeftPaddle = paddleCenterX < gameCenter;
+
 		// Use Minkowski difference (expand paddle by ball radius) for swept AABB
+		// Expand differently based on whether it's left or right paddle
 		const expandedPaddleBox = {
-			left: paddleBox.left - ballRadius,
-			right: paddleBox.right,
-			top: paddleBox.top,
-			bottom: paddleBox.bottom
+			left: isLeftPaddle ? paddleBox.left : paddleBox.left - ballRadius,
+			right: isLeftPaddle ? paddleBox.right + ballRadius : paddleBox.right,
+			top: paddleBox.top - ballRadius,
+			bottom: paddleBox.bottom + ballRadius
 		};
 
 		// Calculate time of intersection with expanded box edges
@@ -252,7 +258,7 @@ export class CollisionManager {
 		const zoneSize = BALL_CONFIG.EDGES.ZONE_SIZE; // e.g., 0.1 (10% from top/bottom)
 		const middleZoneStart = zoneSize;
 		const middleZoneEnd = 1.0 - zoneSize;
-		return 0;
+		
 		if (relativeHitPoint < middleZoneStart) { // Hit in top zone
 			// Map relativeHitPoint (0 to zoneSize) to deflection (-1 to 0)
 			// When hitPoint=0 (very top), deflection=-1. When hitPoint=zoneSize, deflection=0.
