@@ -29,6 +29,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/revoked/:id', checkRevoked);
 
+  fastify.get<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
+
   fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/validate/:id', twofaValidate);
 
   fastify.post<{ Body: IAddUser }>('/register', addUser);
@@ -38,8 +40,6 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.post<{ Body: ILogin }>('/login', login);
 
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
-
-  fastify.patch<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
 
   fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable);
 

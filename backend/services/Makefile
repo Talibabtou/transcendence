@@ -6,6 +6,7 @@ PROFIL = "./profil"
 CMD_FORMAT = format
 CMD_AUDIT = audit
 CMD_AUDIT_FIX = audit-fix
+CMD_INSTALL = install
 
 all: infos
 
@@ -32,4 +33,11 @@ audit-fix:
 	${MAKE} ${CMD_AUDIT_FIX} -C ${GATEWAY_PATH}
 	${MAKE} ${CMD_AUDIT_FIX} -C ${PROFIL}
 
-.PHONY: all infos format audit audit-fix
+install:
+	${MAKE} ${CMD_INSTALL} -C ${AUTH_PATH}
+	${MAKE} ${CMD_INSTALL} -C ${FRIENDS_PATH}
+	${MAKE} ${CMD_INSTALL} -C ${GAME_PATH}
+	${MAKE} ${CMD_INSTALL} -C ${GATEWAY_PATH}
+	${MAKE} ${CMD_INSTALL} -C ${PROFIL}
+
+.PHONY: all infos format audit audit-fix install

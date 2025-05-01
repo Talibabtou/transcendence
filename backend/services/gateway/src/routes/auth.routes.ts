@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { I2faCode, IAddUser, ILogin, IModifyUser } from '../shared/types/auth.types.js';
+import { IAddUser, ILogin, IModifyUser } from '../shared/types/auth.types.js';
 import {
   getUsers,
   getUser,
@@ -23,8 +23,8 @@ import {
   loginSchema,
   logoutSchema,
   twofaDisableSchema,
-  twofaValidateSchema,
-  twofaGenerateSchema,
+  // twofaValidateSchema,
+  // twofaGenerateSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
@@ -66,25 +66,25 @@ export default async function authRoutes(fastify: FastifyInstance) {
     getUserMe
   );
 
-  fastify.patch(
+  fastify.get(
     '/auth/2fa/generate',
     {
-      schema: {
-        ...twofaGenerateSchema,
-        tags: ['2fa'],
-      },
+      // schema: {
+      //   ...twofaGenerateSchema,
+      //   tags: ['2fa'],
+      // },
       config: auth,
     },
     twofaGenerate
   );
 
-  fastify.post<{ Body: I2faCode }>(
+  fastify.post(
     '/auth/2fa/validate',
     {
-      schema: {
-        ...twofaValidateSchema,
-        tags: ['2fa'],
-      },
+      // schema: {
+      //   ...twofaValidateSchema,
+      //   tags: ['2fa'],
+      // },
       config: auth,
     },
     twofaValidate

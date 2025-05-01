@@ -271,6 +271,11 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
   }
 }
 
+// interface IResponseQrCode {
+//   qrcode: string;
+//   otpauth: string;
+// }
+
 export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
@@ -289,7 +294,10 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
       id,
     ]);
     const qrCodeImage = await qrcode.toDataURL(secretCode.otpauth_url as string);
-    return reply.code(200).send(qrCodeImage);
+    return reply.code(200).send({
+      qrcode: qrCodeImage,
+      otpauth: secretCode.otpauth_url,
+    });
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -299,14 +307,14 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
 
 export async function twofaValidate(
   request: FastifyRequest<{
-    Body: I2faCode;
     Params: IId;
   }>,
   reply: FastifyReply
 ) {
   try {
     const id = request.params.id;
-    const { twofaCode } = request.body;
+    const rowCode = request.body as string;
+    const code = rowCode.match(/\d+/g)?.join('') || '';
     const data = await request.server.db.get(
       'SELECT two_factor_secret, two_factor_enabled FROM users WHERE id = ?;',
       [id]
@@ -314,7 +322,7 @@ export async function twofaValidate(
     const verify = speakeasy.totp.verify({
       secret: data.two_factor_secret,
       encoding: 'base32',
-      token: twofaCode,
+      token: code,
     });
     if (verify) {
       const tmpToken = request.server.jwt.sign(

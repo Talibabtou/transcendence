@@ -9,7 +9,6 @@ import {
   IReplyGetUser,
   IReplyGetUsers,
   IReplyLogin,
-  I2faCode,
 } from '../shared/types/auth.types.js';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
@@ -55,14 +54,22 @@ export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+// interface IResponseQrCode {
+//   qrcode: string;
+//   otpauth: string;
+// }
+
 export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
-    const response = await fetch(serviceUrl, { method: 'PATCH' });
+    const response = await fetch(serviceUrl, { method: 'GET' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
+      return reply.code(response.status).send(responseData);
+    } else if (response.status === 200) {
+      const responseData = await response.json();
       return reply.code(response.status).send(responseData);
     }
     return reply.code(response.status).send();
@@ -73,7 +80,7 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
-export async function twofaValidate(request: FastifyRequest<{ Body: I2faCode }>, reply: FastifyReply) {
+export async function twofaValidate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];

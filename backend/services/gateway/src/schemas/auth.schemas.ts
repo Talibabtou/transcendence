@@ -352,13 +352,25 @@ export const twofaValidateSchema = {
   },
 };
 
-export const twofaGenerateSchema = {
-  response: {
-    200: {},
-    204: {},
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
+// export const twofaGenerateSchema = {
+//   response: {
+//     200: {
+//       type: 'object',
+//       properties: {
+//         qrcode: {
+//           type: 'string',
+//         },
+//         otpcode: {
+//           type: 'string',
+//         },
+//       },
+//       required: ['qrcode', 'otpauth'],
+//       additionalProperties: false,
+//     },
+//     204: {},
+//     500: {
+//       ...errorResponseSchema,
+//       example: ErrorExamples.internalError,
+//     },
+//   },
+// };
