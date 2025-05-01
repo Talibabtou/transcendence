@@ -366,6 +366,21 @@ export class Player implements GraphicalElement {
 			);
 			if (Date.now() - this._lastCollisionTime > 1000 && collision.collided) {
 				this._lastCollisionTime = Date.now();
+				
+				// Apply position correction if available to ensure ball visually touches the paddle
+				if (collision.positionCorrection && collision.hitFace === 'front') {
+					// Get current ball position
+					const currentPos = this.ball.getPosition();
+					
+					// Use the collision point for position correction
+					const ballPos = this.ball as any; // Cast to any to access x and y directly
+					if (ballPos.x && ballPos.y) {
+						ballPos.x = collision.positionCorrection.x;
+						ballPos.y = collision.positionCorrection.y;
+					}
+				}
+				
+				// Process the collision physics
 				this.ball.hit(collision.hitFace, collision.deflectionModifier);
 
 				// Predict trajectory after the hit

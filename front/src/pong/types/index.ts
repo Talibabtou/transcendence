@@ -82,6 +82,7 @@ export interface CollisionResult {
 	hitFace: 'front' | 'top' | 'bottom';
 	deflectionModifier: number;
 	collisionPoint?: { x: number; y: number };
+	positionCorrection?: { x: number; y: number };
 }
 
 /**
@@ -108,6 +109,7 @@ export interface CollisionResult {
 	deflectionModifier: number;
 	collisionPoint?: { x: number; y: number };
 	hardBounce?: boolean;
+	positionCorrection?: { x: number; y: number };
 }
 
 // =========================================

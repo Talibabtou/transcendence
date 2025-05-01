@@ -75,7 +75,8 @@ export class CollisionManager {
 			collided: true,
 			hitFace: collision.hitFace!,
 			deflectionModifier: deflection,
-			collisionPoint: collision.collisionPoint
+			collisionPoint: collision.collisionPoint,
+			positionCorrection: collision.collisionPoint
 		};
 	}
 
