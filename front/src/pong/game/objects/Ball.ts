@@ -341,10 +341,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		const ballRadius = this.size;
 		// Vertical boundaries with position correction and acceleration
 		if (this.y - ballRadius <= 0) {
+			console.log("Ball hit top boundary");
 			this.y = ballRadius;
 			this.dy = Math.abs(this.dy); // Force positive
 			this.accelerate(); // Accelerate on wall hit
 		} else if (this.y + ballRadius >= this.context.canvas.height) {
+			console.log("Ball hit bottom boundary");
 			this.y = this.context.canvas.height - ballRadius;
 			this.dy = -Math.abs(this.dy); // Force negative
 			this.accelerate(); // Accelerate on wall hit

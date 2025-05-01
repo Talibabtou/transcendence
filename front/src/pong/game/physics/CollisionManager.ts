@@ -34,8 +34,8 @@ export class CollisionManager {
 		// Calculate movement vector
 		let moveX = ballCurrentPos.x - ballPrevPos.x;
 		let moveY = ballCurrentPos.y - ballPrevPos.y;
-		console.log('moveX', moveX);
-		console.log('moveY', moveY);
+		// console.log('moveX', moveX);
+		// console.log('moveY', moveY);
 		// If moveX and moveY are both 0 but velocity is non-zero, use velocity for projection
 		// This happens when previous position equals current position but ball is moving
 		if ((Math.abs(moveX) < 1e-6 && Math.abs(moveY) < 1e-6) && 
@@ -44,7 +44,7 @@ export class CollisionManager {
 			const timeStep = 1/60;
 			moveX = ballVelocity.dx * timeStep;
 			moveY = ballVelocity.dy * timeStep;
-			console.log("Using velocity for projection: ", moveX, moveY);
+			// console.log("Using velocity for projection: ", moveX, moveY);
 		}
 		
 		// If we still don't have movement, we can't detect a collision
@@ -67,6 +67,7 @@ export class CollisionManager {
 		// Calculate deflection only if hitting the front face
 		let deflection = 0;
 		if (collision.hitFace === 'front') {
+			console.log("Collision detected at:", collision.collisionPoint);
 			deflection = this.calculateDeflection(collision.collisionPoint!, paddleBox);
 		}
 
@@ -135,10 +136,10 @@ export class CollisionManager {
 
 		// Use Minkowski difference (expand paddle by ball radius) for swept AABB
 		const expandedPaddleBox = {
-			left: paddleBox.left - ballRadius,
-			right: paddleBox.right + ballRadius,
-			top: paddleBox.top - ballRadius,
-			bottom: paddleBox.bottom + ballRadius
+			left: paddleBox.left,
+			right: paddleBox.right,
+			top: paddleBox.top,
+			bottom: paddleBox.bottom
 		};
 
 		// Calculate time of intersection with expanded box edges
@@ -218,7 +219,7 @@ export class CollisionManager {
 			hitFace = (tEnterX > tEnterY) ? 'front' : (moveY > 0 ? 'top' : 'bottom'); 
 		}
 		// --- End Refined Hit Face Determination ---
-
+		console.log("Hit face:", hitFace);
 		return {
 			collided: true,
 			collisionPoint: collisionPoint,
