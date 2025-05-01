@@ -36,10 +36,10 @@ export class BallHitbox implements Collidable {
 		const radius = this.ball.getSize();
 		const pos = this.ball.getPosition();
 		return {
-			left: pos.x - radius,
-			right: pos.x + radius,
-			top: pos.y - radius,
-			bottom: pos.y + radius
+			left: pos.x,
+			right: pos.x,
+			top: pos.y,
+			bottom: pos.y
 		};
 	}
 

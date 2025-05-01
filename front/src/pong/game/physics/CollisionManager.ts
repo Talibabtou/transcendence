@@ -141,10 +141,10 @@ export class CollisionManager {
 
 		// Use Minkowski difference (expand paddle by ball radius) for swept AABB
 		const expandedPaddleBox = {
-			left: paddleBox.left,
-			right: paddleBox.right,
-			top: paddleBox.top,
-			bottom: paddleBox.bottom
+			left: paddleBox.left - ballRadius,
+			right: paddleBox.right + ballRadius,
+			top: paddleBox.top - ballRadius,
+			bottom: paddleBox.bottom + ballRadius
 		};
 
 		// Calculate time of intersection with expanded box edges
