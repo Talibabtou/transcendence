@@ -165,7 +165,7 @@ export const calculateGameSizes = (width: number, height: number): GameSizes => 
 	const paddleWidth = Math.floor(width * GAME_RATIOS.PADDLE.WIDTH);
 	
 	return {
-		PADDLE_WIDTH: paddleWidth,
+		PADDLE_WIDTH: paddleWidth*8,
 		PADDLE_HEIGHT: Math.floor(height * GAME_RATIOS.PADDLE.HEIGHT),
 		PADDLE_SPEED: Math.floor(height * GAME_RATIOS.PADDLE.SPEED),
 		PLAYER_PADDING: Math.floor(width * GAME_RATIOS.PADDLE.PADDING),

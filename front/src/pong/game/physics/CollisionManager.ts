@@ -21,16 +21,45 @@ export class CollisionManager {
 		paddleHitbox: Collidable
 	): CollisionResult {
 		const ballVelocity = ballHitbox.getVelocity();
-		const ballPos = ballHitbox.getPosition();
+		const ballCurrentPos = ballHitbox.getPosition();
+		const ballPrevPos = ballHitbox.getPreviousPosition();
+		const ballBox = ballHitbox.getBoundingBox();
 		const paddleBox = paddleHitbox.getBoundingBox();
 
 		// Early validations
-		if (this.isStationary(ballVelocity) || !this.isApproachingPaddle(ballPos, ballVelocity, paddleBox)) {
+		if (this.isStationary(ballVelocity) || !this.isApproachingPaddle(ballCurrentPos, ballVelocity, paddleBox)) {
 			return this.createNoCollisionResult();
 		}
 		
-		// Check for collision
-		const collision = this.detectCollision(ballHitbox, paddleBox);
+		// Calculate movement vector
+		let moveX = ballCurrentPos.x - ballPrevPos.x;
+		let moveY = ballCurrentPos.y - ballPrevPos.y;
+		console.log('moveX', moveX);
+		console.log('moveY', moveY);
+		// If moveX and moveY are both 0 but velocity is non-zero, use velocity for projection
+		// This happens when previous position equals current position but ball is moving
+		if ((Math.abs(moveX) < 1e-6 && Math.abs(moveY) < 1e-6) && 
+			(Math.abs(ballVelocity.dx) > 1e-6 || Math.abs(ballVelocity.dy) > 1e-6)) {
+			// Use a small time step for projection (e.g., 1/60 for 60fps)
+			const timeStep = 1/60;
+			moveX = ballVelocity.dx * timeStep;
+			moveY = ballVelocity.dy * timeStep;
+			console.log("Using velocity for projection: ", moveX, moveY);
+		}
+		
+		// If we still don't have movement, we can't detect a collision
+		if (Math.abs(moveX) < 1e-6 && Math.abs(moveY) < 1e-6) {
+			return this.createNoCollisionResult();
+		}
+
+		// Perform swept collision detection
+		const collision = this.detectSweptCollision(
+			ballPrevPos,
+			{ x: ballPrevPos.x + moveX, y: ballPrevPos.y + moveY },
+			ballBox,
+			paddleBox
+		);
+
 		if (!collision.collided) {
 			return this.createNoCollisionResult();
 		}
@@ -43,7 +72,7 @@ export class CollisionManager {
 
 		return {
 			collided: true,
-			hitFace: collision.hitFace!, // Assert non-null as collided is true
+			hitFace: collision.hitFace!,
 			deflectionModifier: deflection,
 			collisionPoint: collision.collisionPoint
 		};
@@ -57,141 +86,93 @@ export class CollisionManager {
 	 * Checks if an object is stationary
 	 */
 	private isStationary(velocity: { dx: number; dy: number }): boolean {
-		return velocity.dx === 0 && velocity.dy === 0;
+		// Add small epsilon for floating point comparison
+		return Math.abs(velocity.dx) < 1e-6 && Math.abs(velocity.dy) < 1e-6;
 	}
 
 	/**
 	 * Determines if ball is moving toward the paddle
+	 * Considers the side the paddle is on (simple check based on paddle center)
 	 */
 	private isApproachingPaddle(
 		ballPos: { x: number; y: number },
 		ballVelocity: { dx: number; dy: number },
 		paddleBox: BoundingBox
 	): boolean {
-		const isApproachingFromLeft = ballVelocity.dx > 0 && ballPos.x < paddleBox.left;
-		const isApproachingFromRight = ballVelocity.dx < 0 && ballPos.x > paddleBox.right;
-		return isApproachingFromLeft || isApproachingFromRight;
+		const paddleCenterX = (paddleBox.left + paddleBox.right) / 2;
+		// Approaching from left towards right-side paddle
+		if (ballVelocity.dx > 0 && ballPos.x < paddleCenterX) return true;
+		// Approaching from right towards left-side paddle
+		if (ballVelocity.dx < 0 && ballPos.x > paddleCenterX) return true;
+		return false;
 	}
-
-	/**
-	 * Detects if a collision occurred between ball and paddle
-	 */
-	private detectCollision(
-		ballHitbox: Collidable,
-		paddleBox: BoundingBox
-	): { collided: boolean; collisionPoint?: { x: number; y: number }; hitFace?: 'front' | 'top' | 'bottom' } {
-		return this.checkSweptCollision(
-			ballHitbox.getPreviousPosition(),
-			ballHitbox.getPosition(),
-			ballHitbox.getBoundingBox(),
-			paddleBox
-		);
-	}
-
+	
 	/**
 	 * Creates a default no-collision result
 	 */
 	private createNoCollisionResult(): CollisionResult {
-		return { collided: false, hitFace: 'front', deflectionModifier: 0 };
+		return { collided: false, hitFace: 'front', deflectionModifier: 0 }; // Default hitFace might not matter
 	}
 
 	// =========================================
-	// Swept Collision Detection
+	// Swept Collision Detection (Refined)
 	// =========================================
 	
 	/**
-	 * Performs swept collision detection between a moving ball and stationary paddle
+	 * Performs swept collision detection between a moving ball and stationary paddle.
+	 * Refined to better determine the actual hit face (front, top, bottom).
 	 */
-	private checkSweptCollision(
-		prevPos: { x: number; y: number },
-		currentPos: { x: number; y: number },
-		ballBox: BoundingBox,
-		paddleBox: BoundingBox
+	private detectSweptCollision(
+		prevPos: { x: number; y: number }, // Ball's previous center position
+		currentPos: { x: number; y: number }, // Ball's current or projected center position
+		ballBox: BoundingBox, // Ball's bounding box (to get radius)
+		paddleBox: BoundingBox // Paddle's bounding box
 	): { collided: boolean; collisionPoint?: { x: number; y: number }; hitFace?: 'front' | 'top' | 'bottom' } {
-		// Calculate movement vector
+		
+		const ballRadius = (ballBox.right - ballBox.left) / 2; // Assuming square hitbox for ball
 		const moveX = currentPos.x - prevPos.x;
 		const moveY = currentPos.y - prevPos.y;
 
-		// Calculate time and face of collision
-		const collisionInfo = this.getCollisionTimeAndFace(
-			prevPos,
-			moveX,
-			moveY,
-			ballBox,
-			paddleBox
-		);
-
-		if (!collisionInfo.collided) {
-			return { collided: false };
-		}
-
-		// Calculate exact collision point
-		const collisionPoint = {
-			x: prevPos.x + moveX * collisionInfo.time!,
-			y: prevPos.y + moveY * collisionInfo.time!
-		};
-
-		// Determine hit face based on collision axis and movement direction
-		let hitFace: 'front' | 'top' | 'bottom';
-		if (collisionInfo.face === 'x') {
-			hitFace = 'front';
-		} else { // collisionInfo.face === 'y'
-			hitFace = moveY > 0 ? 'top' : 'bottom';
-		}
-
-		return {
-			collided: true,
-			collisionPoint: collisionPoint,
-			hitFace: hitFace
-		};
-	}
-
-	/**
-	 * Calculates the exact time of collision using ray-AABB intersection
-	 * and determines the collision face axis ('x' or 'y').
-	 */
-	private getCollisionTimeAndFace(
-		prevPos: { x: number; y: number },
-		moveX: number,
-		moveY: number,
-		ballBox: BoundingBox,
-		paddleBox: BoundingBox
-	): { collided: boolean; time?: number; face?: 'x' | 'y' } {
-		// Ray-AABB intersection algorithm
-		const ballRadius = (ballBox.right - ballBox.left) / 2;
-		
-		// Expand paddle box by ball radius
-		const expandedBox = {
+		// Use Minkowski difference (expand paddle by ball radius) for swept AABB
+		const expandedPaddleBox = {
 			left: paddleBox.left - ballRadius,
 			right: paddleBox.right + ballRadius,
 			top: paddleBox.top - ballRadius,
 			bottom: paddleBox.bottom + ballRadius
 		};
 
-		// Calculate intersection
-		const txMin = moveX !== 0 ? 
-			(expandedBox.left - prevPos.x) / moveX : 
-			(prevPos.x <= expandedBox.right && prevPos.x >= expandedBox.left ? 0 : -1);
-		
-		const txMax = moveX !== 0 ? 
-			(expandedBox.right - prevPos.x) / moveX : 
-			(prevPos.x <= expandedBox.right && prevPos.x >= expandedBox.left ? 1 : -1);
+		// Calculate time of intersection with expanded box edges
+		let tEnterX: number, tLeaveX: number, tEnterY: number, tLeaveY: number;
 
-		const tyMin = moveY !== 0 ? 
-			(expandedBox.top - prevPos.y) / moveY : 
-			(prevPos.y <= expandedBox.bottom && prevPos.y >= expandedBox.top ? 0 : -1);
-		
-		const tyMax = moveY !== 0 ? 
-			(expandedBox.bottom - prevPos.y) / moveY : 
-			(prevPos.y <= expandedBox.bottom && prevPos.y >= expandedBox.top ? 1 : -1);
+		if (Math.abs(moveX) < 1e-6) {
+			// Handle vertical movement: collision only if already overlapping horizontally
+			if (prevPos.x > expandedPaddleBox.left && prevPos.x < expandedPaddleBox.right) {
+				tEnterX = -Infinity;
+				tLeaveX = Infinity;
+			} else {
+				return { collided: false }; // No horizontal overlap, no collision possible
+			}
+		} else {
+			tEnterX = (expandedPaddleBox.left - prevPos.x) / moveX;
+			tLeaveX = (expandedPaddleBox.right - prevPos.x) / moveX;
+			if (tEnterX > tLeaveX) [tEnterX, tLeaveX] = [tLeaveX, tEnterX]; // Ensure tEnterX <= tLeaveX
+		}
 
-		// Calculate the time intervals for collision on each axis
-		const tEnterX = Math.min(txMin, txMax);
-		const tLeaveX = Math.max(txMin, txMax);
-		const tEnterY = Math.min(tyMin, tyMax);
-		const tLeaveY = Math.max(tyMin, tyMax);
+		if (Math.abs(moveY) < 1e-6) {
+			// Handle horizontal movement: collision only if already overlapping vertically
+			if (prevPos.y > expandedPaddleBox.top && prevPos.y < expandedPaddleBox.bottom) {
+				tEnterY = -Infinity;
+				tLeaveY = Infinity;
+			} else {
+				return { collided: false }; // No vertical overlap, no collision possible
+			}
+		} else {
+			tEnterY = (expandedPaddleBox.top - prevPos.y) / moveY;
+			tLeaveY = (expandedPaddleBox.bottom - prevPos.y) / moveY;
+			if (tEnterY > tLeaveY) [tEnterY, tLeaveY] = [tLeaveY, tEnterY]; // Ensure tEnterY <= tLeaveY
+		}
 
-		// Find the actual time of entry and exit from the intersection
+		// Find the actual interval of overlap
 		const tEnter = Math.max(tEnterX, tEnterY);
 		const tLeave = Math.min(tLeaveX, tLeaveY);
 
@@ -200,71 +181,82 @@ export class CollisionManager {
 			return { collided: false }; // No collision within this frame
 		}
 
-		// Determine which axis caused the collision
-		const face = tEnter === tEnterX ? 'x' : 'y';
+		// Calculate exact collision point (center of the ball at time tEnter)
+		const collisionPoint = {
+			x: prevPos.x + moveX * tEnter,
+			y: prevPos.y + moveY * tEnter
+		};
 
-		return { collided: true, time: tEnter, face: face };
+		// --- Refined Hit Face Determination ---
+		let hitFace: 'front' | 'top' | 'bottom';
+
+		// Prioritize 'front' hit if the collision time corresponds to horizontal entry 
+		// AND the vertical position at collision is within the paddle's original height.
+		// A small tolerance might be needed for floating point comparisons.
+		const epsilon = 1e-6; 
+		
+		if (tEnter === tEnterX) { // Hit vertical slab first (potentially front)
+			// Check if ball's vertical center is within paddle's actual vertical bounds at collision time
+			if (collisionPoint.y >= paddleBox.top - epsilon && collisionPoint.y <= paddleBox.bottom + epsilon) {
+				hitFace = 'front';
+			} else { 
+				// If hit vertical slab first but outside paddle height, must be top/bottom edge contact
+				hitFace = moveY > 0 ? 'top' : 'bottom';
+			}
+		} else if (tEnter === tEnterY) { // Hit horizontal slab first (potentially top/bottom)
+		    // Check if ball's horizontal center is within paddle's actual horizontal bounds at collision time
+			if (collisionPoint.x >= paddleBox.left - epsilon && collisionPoint.x <= paddleBox.right + epsilon) {
+				hitFace = moveY > 0 ? 'top' : 'bottom'; // Moving down hits top, moving up hits bottom
+			} else {
+				// If hit horizontal slab first but outside paddle width, must be front face contact (side edge)
+				hitFace = 'front';
+			}
+		} else {
+			// Should not happen with Math.max if values are distinct numbers.
+			// Handle potential edge case or default (e.g., based on dominant velocity) if necessary.
+			// For now, default based on which interval entry time was larger (closer to equal)
+			hitFace = (tEnterX > tEnterY) ? 'front' : (moveY > 0 ? 'top' : 'bottom'); 
+		}
+		// --- End Refined Hit Face Determination ---
+
+		return {
+			collided: true,
+			collisionPoint: collisionPoint,
+			hitFace: hitFace
+		};
 	}
 
 	// =========================================
-	// Deflection Calculation
+	// Deflection Calculation (Remains the same)
 	// =========================================
 	
 	/**
 	 * Calculates the deflection angle modifier based on where the ball hit the paddle
 	 */
 	private calculateDeflection(
-		hitPoint: { x: number; y: number },
+		hitPoint: { x: number; y: number }, // This is the ball's center at collision
 		paddleBox: BoundingBox
 	): number {
-		const relativeHitPoint = this.getRelativeHitPoint(hitPoint, paddleBox);
-		const zoneSize = BALL_CONFIG.EDGES.ZONE_SIZE;
+		// Calculate hit position relative to the paddle's height (0 = top, 1 = bottom)
+		const paddleHeight = paddleBox.bottom - paddleBox.top;
+		// Clamp hitpoint y to paddle bounds before calculating relative position
+		const clampedHitY = Math.max(paddleBox.top, Math.min(hitPoint.y, paddleBox.bottom));
+		const relativeHitPoint = (clampedHitY - paddleBox.top) / paddleHeight;
 
-		if (this.isInTopZone(relativeHitPoint, zoneSize)) {
-			return this.calculateTopZoneDeflection(relativeHitPoint, zoneSize);
-		}
-		
-		else if (this.isInBottomZone(relativeHitPoint, zoneSize)) {
-			return this.calculateBottomZoneDeflection(relativeHitPoint, zoneSize);
-		}
+		const zoneSize = BALL_CONFIG.EDGES.ZONE_SIZE; // e.g., 0.1 (10% from top/bottom)
+		const middleZoneStart = zoneSize;
+		const middleZoneEnd = 1.0 - zoneSize;
 		return 0;
-	}
-
-	/**
-	 * Gets the relative hit position on the paddle (0 = top, 1 = bottom)
-	 */
-	private getRelativeHitPoint(
-		hitPoint: { x: number; y: number },
-		paddleBox: BoundingBox
-	): number {
-		return (hitPoint.y - paddleBox.top) / (paddleBox.bottom - paddleBox.top);
-	}
-
-	/**
-	 * Checks if the hit is in the top zone of the paddle
-	 */
-	private isInTopZone(relativeHitPoint: number, zoneSize: number): boolean {
-		return relativeHitPoint < zoneSize;
-	}
-
-	/**
-	 * Checks if the hit is in the bottom zone of the paddle
-	 */
-	private isInBottomZone(relativeHitPoint: number, zoneSize: number): boolean {
-		return relativeHitPoint > (1 - zoneSize);
-	}
-
-	/**
-	 * Calculates deflection for hits in the top zone
-	 */
-	private calculateTopZoneDeflection(relativeHitPoint: number, zoneSize: number): number {
-		return -BALL_CONFIG.EDGES.MAX_DEFLECTION * (1 - relativeHitPoint/zoneSize);
-	}
-
-	/**
-	 * Calculates deflection for hits in the bottom zone
-	 */
-	private calculateBottomZoneDeflection(relativeHitPoint: number, zoneSize: number): number {
-		return BALL_CONFIG.EDGES.MAX_DEFLECTION * (1 - (1 - relativeHitPoint)/zoneSize);
+		if (relativeHitPoint < middleZoneStart) { // Hit in top zone
+			// Map relativeHitPoint (0 to zoneSize) to deflection (-1 to 0)
+			// When hitPoint=0 (very top), deflection=-1. When hitPoint=zoneSize, deflection=0.
+			return -1.0 * (1.0 - (relativeHitPoint / zoneSize));
+		} else if (relativeHitPoint > middleZoneEnd) { // Hit in bottom zone
+			// Map relativeHitPoint (middleZoneEnd to 1.0) to deflection (0 to 1)
+			// When hitPoint=middleZoneEnd, deflection=0. When hitPoint=1.0 (very bottom), deflection=1.
+			return (relativeHitPoint - middleZoneEnd) / zoneSize;
+		} else { // Hit in middle zone
+			return 0; // No deflection modifier
+		}
 	}
 }
