@@ -101,11 +101,16 @@ export class CollisionManager {
 		paddleBox: BoundingBox
 	): boolean {
 		const paddleCenterX = (paddleBox.left + paddleBox.right) / 2;
-		// Approaching from left towards right-side paddle
-		if (ballVelocity.dx > 0 && ballPos.x < paddleCenterX) return true;
-		// Approaching from right towards left-side paddle
-		if (ballVelocity.dx < 0 && ballPos.x > paddleCenterX) return true;
-		return false;
+		const gameCenter = window.innerWidth / 2;
+		
+		// Left paddle (paddle is left of center)
+		if (paddleCenterX < gameCenter) {
+			return ballVelocity.dx < 0; // Ball moving left toward left paddle
+		} 
+		// Right paddle (paddle is right of center)
+		else {
+			return ballVelocity.dx > 0; // Ball moving right toward right paddle
+		}
 	}
 	
 	/**
