@@ -37,7 +37,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post<{ Body: IId }>('/logout', logout);
 
-  fastify.post<{ Body: ILogin }>('/login', login);
+  fastify.post<{ Body: ILogin; Querystring: { twofa: boolean } }>('/login', login);
 
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
 

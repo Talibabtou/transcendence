@@ -14,7 +14,6 @@ import {
   IReplyGetUser,
   IReplyGetUsers,
   IReplyLogin,
-  I2faCode,
 } from '../shared/types/auth.types.js';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
@@ -222,15 +221,13 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
   }
 }
 
-export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
+export async function login(
+  request: FastifyRequest<{ Body: ILogin; Querystring: { twofa: boolean } }>,
+  reply: FastifyReply
+): Promise<void> {
   try {
-    const authHeader: string | undefined = request.headers['authorization'];
-    if (authHeader?.startsWith('Bearer ')) {
-      await request.jwtVerify();
-      if ((request.user as FastifyJWT['user']).jwtId) {
-        return reply.code(204).send();
-      }
-    }
+    const twofa = request.query.twofa;
+    console.log({ twofa: twofa });
     const { email, password } = request.body;
     const ip = request.headers['from'];
     const data = await request.server.db.get(
@@ -241,10 +238,8 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
       return reply.code(401).send(errorMessage);
     }
-    if (data.two_factor_enabled) {
-      if ((request.user as FastifyJWT['user']).twofa !== true) {
-        return reply.code(200).send({ status: 'NEED_2FA' });
-      }
+    if (data.two_factor_enabled && twofa !== true) {
+      return reply.code(200).send({ status: 'NEED_2FA' });
     }
     await request.server.db.run(
       'UPDATE users SET last_login = (CURRENT_TIMESTAMP), last_ip = ? WHERE email = ? AND password = ?',
@@ -270,11 +265,6 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
     return reply.code(500).send(errorMessage);
   }
 }
-
-// interface IResponseQrCode {
-//   qrcode: string;
-//   otpauth: string;
-// }
 
 export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
@@ -325,7 +315,7 @@ export async function twofaValidate(
       token: code,
     });
     if (verify) {
-      const tmpToken = request.server.jwt.sign(
+      const tmpToken: string = request.server.jwt.sign(
         {
           id: id,
           twofa: true,
@@ -335,7 +325,7 @@ export async function twofaValidate(
       );
       if (!data.two_factor_enabled)
         await request.server.db.run('UPDATE users SET two_factor_enabled = true WHERE id = ?', [id]);
-      return reply.code(200).send(tmpToken);
+      return reply.code(200).send({ tmpToken: tmpToken });
     }
     const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
     return reply.code(401).send(errorMessage);

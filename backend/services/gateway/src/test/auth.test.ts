@@ -10,7 +10,7 @@ const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8080/api/v1/auth';
 let token: string = '';
-let tmp_token: string = '';
+let tmpToken: string = '';
 let id: string = '';
 let count: number = 0;
 let countFailed: number = 0;
@@ -463,51 +463,6 @@ try {
       );
   }
   // ----------------------------------------------------------------
-  //Logout success
-  {
-    const name = 'Logout success';
-    count += 1;
-    const method = 'POST';
-    const path = '/logout';
-    const response = await fetch(authUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 204) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      const user = {
-        email: 'test@test.fr',
-        password: 'Test123456789',
-      };
-      const response = await fetch(authUrl + '/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(user),
-      });
-      const responseData: any = await response.json();
-      token = responseData.token;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-      console.log(`       New token: ${token}`);
-    }
-  }
-  // ----------------------------------------------------------------
   //2FA generated success
   {
     const name = '2FA generated success';
@@ -546,13 +501,13 @@ try {
     count += 1;
     const method = 'POST';
     const path = '/2fa/validate';
-    const verifCode = readlineSync.question('Enter 2FA code: ') as string;
+    const code = readlineSync.question('Enter 2FA code: ') as string;
     const response = await fetch(authUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(verifCode),
+      body: JSON.stringify(code),
     });
     if (response.status === 500) {
       severalIssues += 1;
@@ -567,9 +522,85 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
     } else {
+      const responseData: any = await response.json();
+      tmpToken = responseData.tmpToken as string;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
+      console.log(`   Tmp token: ${tmpToken}`);
+    }
+  }
+  // ----------------------------------------------------------------
+  //Logout success
+  {
+    const name = 'Logout success';
+    count += 1;
+    const method = 'POST';
+    const path = '/logout';
+    const response = await fetch(authUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 204) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+      console.log(`       Revoked token: ${token}`);
+    }
+  }
+  //Login success with 2FA
+  {
+    const name = 'Login success with 2FA';
+    count += 1;
+    const user = {
+      email: 'test@test.fr',
+      password: 'Test123456789',
+    };
+    const method = 'POST';
+    const path = '/login';
+    const response = await fetch(authUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${tmpToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(user),
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      const responseData: any = await response.json();
+      console.log(responseData);
+      token = responseData.token;
+      id = responseData.id;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+      console.log(`       Token: ${token}`);
     }
   }
   // ----------------------------------------------------------------
@@ -640,5 +671,5 @@ try {
     }
   }
 } catch (err) {
-  console.log('Fatal error');
+  console.log('Fatal error', err);
 }

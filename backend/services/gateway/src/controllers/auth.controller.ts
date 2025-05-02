@@ -54,11 +54,6 @@ export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-// interface IResponseQrCode {
-//   qrcode: string;
-//   otpauth: string;
-// }
-
 export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -92,11 +87,9 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
       },
       body: JSON.stringify(request.body),
     });
-    if (response.status >= 400) {
-      const responseData = (await response.json()) as ErrorResponse;
-      return reply.code(response.status).send(responseData);
-    }
-    return reply.code(response.status).send();
+    const responseData = await response.json();
+    console.log(responseData);
+    return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -212,11 +205,13 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
 
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
+    const twofa = (request.user as FastifyJWT['user']).twofa || false;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}?twofa=${twofa}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
+        Authorization: request.headers['Authorization'] || '',
         'Content-Type': request.headers['content-type'] || 'application/json',
         From: request.ip,
       },
