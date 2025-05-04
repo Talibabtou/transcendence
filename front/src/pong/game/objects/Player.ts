@@ -1,7 +1,7 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
+import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/constants';
 
 /**
  * Represents a player in the game, managing paddle movement,
@@ -106,7 +106,7 @@ export class Player implements GraphicalElement {
 		this._position = position;
 		this._type = type;
 		this._targetY = this.startY - 175;
-		this._lastCollisionTime = 2000;
+		this._lastCollisionTime = 0;
 		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
@@ -240,6 +240,7 @@ export class Player implements GraphicalElement {
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
 
+		if (!DEBUG.enabled) return;
 		// DEBUG: draw top/bottom zone boundaries
 		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
 		const yTop = this.y + this.paddleHeight * zone;

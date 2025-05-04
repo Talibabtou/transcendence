@@ -84,7 +84,7 @@ export const BALL_CONFIG = {
 	},
 	EDGES: {
 		ZONE_SIZE: 0.3,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.025  // 1% max deflection
+		MAX_DEFLECTION: 0.04  // 1% max deflection
 	}
 } as const;
 
@@ -125,6 +125,7 @@ export const KEYS = {
 	PLAYER_LEFT_DOWN: 'KeyS',
 	PLAYER_RIGHT_UP: 'ArrowUp',
 	PLAYER_RIGHT_DOWN: 'ArrowDown',
+	DEBUG_TOGGLE: 'KeyD',
 	ENTER: 'Enter',
 	ESC: 'Escape'
 } as const;
@@ -171,3 +172,6 @@ export const calculateGameSizes = (width: number, height: number): GameSizes => 
 		BALL_SIZE: Math.max(paddleWidth * 0.5, GAME_CONFIG.MIN_SIZES.BALL_SIZE)
 	}
 };
+
+/** Toggles debug overlays like paddle zones and prediction dots */
+export const DEBUG = { enabled: false };

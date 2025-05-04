@@ -1,7 +1,7 @@
 import { Ball, Player } from '@pong/game/objects';
 import { PhysicsManager } from '@pong/game/physics';
 import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
-import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
+import { GAME_CONFIG, calculateGameSizes, KEYS, DEBUG } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 
@@ -38,6 +38,8 @@ export class GameScene {
 	private isFrozen: boolean = false;
 	private lastDrawTime: number | null = null;
 	private hasStateChanged: boolean = true;
+	/** local mirror of debug state */
+	private debugMode = DEBUG.enabled;
 
 	// =========================================
 	// Game Engine
@@ -56,6 +58,7 @@ export class GameScene {
 		this.setupScene();
 		this.controlsManager = new ControlsManager(this.player1, this.player2);
 		this.lastTime = performance.now();
+		window.addEventListener('keydown', this.onDebugToggle);
 	}
 
 	// =========================================
@@ -77,6 +80,7 @@ export class GameScene {
 		this.controlsManager.cleanup();
 		this.cleanupManagers();
 		this.cleanupGameObjects();
+		window.removeEventListener('keydown', this.onDebugToggle);
 	}
 
 	// =========================================
@@ -490,6 +494,13 @@ export class GameScene {
 		// Update pause manager if it exists
 		if (this.pauseManager && typeof this.pauseManager.setGameEngine === 'function') {
 			this.pauseManager.setGameEngine(engine);
+		}
+	}
+
+	private onDebugToggle = (evt: KeyboardEvent) => {
+		if (evt.code === KEYS.DEBUG_TOGGLE) {
+			DEBUG.enabled = !DEBUG.enabled;
+			this.debugMode = DEBUG.enabled;
 		}
 	}
 }
