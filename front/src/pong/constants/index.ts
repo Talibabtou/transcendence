@@ -6,8 +6,7 @@ import { GameSizes } from '@pong/types';
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
 	FPS: 240,
-	FIXED_TIMESTEP: 1000 / 240, // 4.16ms per update for 240Hz
-	PHYSICS_SUBSTEPS: 2, // Number of substeps for fast-moving objects
+	MAX_STEPS_PER_FRAME: 8,
 	MAX_DELTA_TIME: 200, // Maximum delta time to prevent spiral of death
 	MIN_SIZES: {
 		BALL_SIZE: 5
@@ -79,7 +78,7 @@ export const BALL_CONFIG = {
 		}
 	},
 	ACCELERATION: {
-		MAX_MULTIPLIER: 1.6,    // Maximum speed (4x initial speed)
+		MAX_MULTIPLIER: 4.0,    // Maximum speed (4x initial speed)
 		RATE: 0.05,             // 5% speed increase per hit
 		INITIAL: 1.0           // Initial speed multiplier
 	},

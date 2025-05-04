@@ -1,8 +1,8 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
-import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG} from '@pong/constants';
+import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG } from '@pong/constants';
 
 const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
-const MAX_STEPS_PER_FRAME = 4;
+const MAX_STEPS_PER_FRAME = GAME_CONFIG.MAX_STEPS_PER_FRAME;
 const MAX_DELTA_TIME = 1000 / 120;
 
 /**
@@ -34,6 +34,8 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	private accumulator: number = 0;
 
 	// Pool vector calculations to avoid creating new objects
+	// Position from previous physics step (for swept collision)
+	private prevPosition: { x: number; y: number } = { x: 0, y: 0 };
 	private readonly velocityCache = { dx: 0, dy: 0 };
 	private readonly positionCache = { x: 0, y: 0 };
 
@@ -53,6 +55,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	) {
 		this.context = context;
 		this.initializeSizes();
+		// Initialize previous position for continuous collision
+		this.prevPosition.x = this.x;
+		this.prevPosition.y = this.y;
 	}
 
 	// =========================================
@@ -135,6 +140,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * Updates ball physics for a fixed timestep
 	 */
 	public updatePhysics(deltaTime: number): void {
+		// Store previous position before moving
+		this.prevPosition.x = this.x;
+		this.prevPosition.y = this.y;
 		// Add speed cap for background mode
 		if (this.currentSpeed > this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
 				this.currentSpeed = this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER;
@@ -414,5 +422,10 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.positionCache.x = this.x;
 		this.positionCache.y = this.y;
 		return this.positionCache;
+	}
+
+	/** Returns the position from the last physics step for continuous collision tests */
+	public getPrevPosition(): { x: number; y: number } {
+		return { x: this.prevPosition.x, y: this.prevPosition.y };
 	}
 }
