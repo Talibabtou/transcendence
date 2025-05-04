@@ -55,7 +55,7 @@ export const UI_CONFIG = {
 // =========================================
 export const GAME_RATIOS = {
 	PADDLE: {
-		WIDTH: 0.01,    // % of screen width
+		WIDTH: 0.08,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
 		SPEED: 0.006,   // control speed
 		PADDING: 0.03   // % from edges

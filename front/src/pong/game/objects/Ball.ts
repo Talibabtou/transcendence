@@ -134,7 +134,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	/**
 	 * Updates ball physics for a fixed timestep
 	 */
-	private updatePhysics(deltaTime: number): void {
+	public updatePhysics(deltaTime: number): void {
 		// Add speed cap for background mode
 		if (this.currentSpeed > this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
 				this.currentSpeed = this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER;

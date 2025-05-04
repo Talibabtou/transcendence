@@ -237,7 +237,6 @@ export class Player implements GraphicalElement {
 		}
 		
 		this.updateHorizontalPosition();
-		this.checkBallCollision();
 	}
 
 	/**
@@ -344,60 +343,6 @@ export class Player implements GraphicalElement {
 			this.direction = Direction.DOWN;
 		} else {
 			this.direction = null;
-		}
-	}
-
-	/**
-	 * Checks for collision between this player's paddle and the ball
-	 */
-	protected checkBallCollision(): void {
-		if (!this.ball) {
-			console.warn('Ball is undefined in Player.checkBallCollision');
-			return;
-		}
-
-		try {
-			const ballHitbox = new BallHitbox(this.ball);
-			ballHitbox.updatePreviousPosition();
-			
-			const collision = this.CollisionManager.checkBallPaddleCollision(
-				ballHitbox,
-				this.paddleHitbox
-			);
-			if (Date.now() - this._lastCollisionTime > 1000 && collision.collided) {
-				this._lastCollisionTime = Date.now();
-				
-				// Apply position correction if available to ensure ball visually touches the paddle
-				if (collision.positionCorrection && collision.hitFace === 'front') {
-					// Get current ball position
-					const currentPos = this.ball.getPosition();
-					
-					// Use the collision point for position correction
-					const ballPos = this.ball as any; // Cast to any to access x and y directly
-					if (ballPos.x && ballPos.y) {
-						ballPos.x = collision.positionCorrection.x;
-						ballPos.y = collision.positionCorrection.y;
-					}
-				}
-				
-				// Process the collision physics
-				this.ball.hit(collision.hitFace, collision.deflectionModifier);
-
-				// Predict trajectory after the hit
-				const postCollisionVelocity = this.ball.getVelocity();
-				if (collision.collisionPoint) {
-					// Start prediction from the collision point
-					if (this._position === PlayerPosition.RIGHT) {
-						this.predictBallTrajectory(collision.collisionPoint, postCollisionVelocity);
-					}
-				} else {
-					this.predictedBouncePoints = []; // Clear predictions if no collision point
-				}
-			}
-		} catch (error) {
-			console.error('Error in checkBallCollision:', error);
-			// Clear predictions on error to avoid stale data
-			this.predictedBouncePoints = [];
 		}
 	}
 

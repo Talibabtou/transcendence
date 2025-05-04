@@ -1,4 +1,5 @@
 import { Ball, Player } from '@pong/game/objects';
+import { PhysicsManager } from '@pong/game/physics';
 import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
 import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
@@ -342,11 +343,23 @@ export class GameScene {
 	 * Updates the game state
 	 */
 	private updateGameState(deltaTime: number): void {
+		// 1) PHYSICS: move ball
+		this.ball.updatePhysics(deltaTime);
+
+		// 2) PADDLE MOVEMENT & AI
+		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : this.getCurrentGameState();
+		this.player1.update(this.context, deltaTime, updateState);
+		this.player2.update(this.context, deltaTime, updateState);
+
+		// 3) COLLISIONS: discrete ball-vs-paddle
+		PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+		PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+
+		// 4) GAME LOGIC: scoring, pause, etc.
+		this.handleBallDestruction();
 		if (!this.isBackgroundDemo()) {
 			this.pauseManager.update();
 		}
-		this.handleBallDestruction();
-		this.updateGameObjects(deltaTime);
 		this.hasStateChanged = true;
 	}
 
