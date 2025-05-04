@@ -352,8 +352,10 @@ export class GameScene {
 		this.player2.update(this.context, deltaTime, updateState);
 
 		// 3) COLLISIONS: discrete ball-vs-paddle
-		PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
-		PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+		const hitLeft  = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+		const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+		// only recalc trajectory when the ball bounces off a paddle
+		if (hitRight)  this.player2.calculateInitialPrediction();
 
 		// 4) GAME LOGIC: scoring, pause, etc.
 		this.handleBallDestruction();
