@@ -227,7 +227,7 @@ export class Player implements GraphicalElement {
 		}
 
 		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
-			this.updateAIInputs();
+			this.updateAIInputs(ctx);
 		}
 		if (state === GameState.PLAYING) {
 			this.updateMovement(deltaTime);
@@ -371,6 +371,7 @@ export class Player implements GraphicalElement {
 		const ballVelocity = this.ball.getVelocity();
 		if (ballVelocity.dx !== 0 || ballVelocity.dy !== 0) {
 			this.predictBallTrajectory(this.ball.getPosition(), ballVelocity);
+			this._lastCollisionTime = 0;
 		} else {
 			// If ball is not moving, clear predictions
 			this.predictedBouncePoints = [];
@@ -382,7 +383,7 @@ export class Player implements GraphicalElement {
 	 * Predicts the ball's trajectory through multiple bounces until it heads back
 	 * towards the player's paddle line. Updates `predictedBouncePoints` and `_targetY`.
 	 */
-	protected predictBallTrajectory(
+	public predictBallTrajectory(
 		startPoint: { x: number; y: number },
 		initialVelocity: { dx: number; dy: number }
 	): void {
@@ -541,15 +542,18 @@ export class Player implements GraphicalElement {
 	/**
 	 * Updates AI inputs based on ball position and game state
 	 */
-	protected updateAIInputs(): void {
-		if (Date.now() - this._lastCollisionTime < 500) {
-			console.log('AI disabled');
-			this.upPressed = false;
-			this.downPressed = false;
-			this.direction = null;
-			return;
-		}
+	protected updateAIInputs(ctx: GameContext): void {
+		// Compute time to cross half the canvas at current horizontal speed
+		const vx = Math.abs(this.ball.getVelocity().dx);
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
+		if (vx > 0) {
+			const Width = ctx.canvas.width;
+			const thresholdMs = (Width / vx) * 1.2 * 1000;
+			if (Date.now() - this._lastCollisionTime < thresholdMs) {
+				this.moveTowardsCenter(paddleCenter, ctx.canvas.height * 0.5);
+				return;
+			}
+		}
 		this.moveTowardsPredictedBallY(paddleCenter);
 		this.updateDirection();
 	}

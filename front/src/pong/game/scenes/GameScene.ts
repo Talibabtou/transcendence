@@ -357,7 +357,7 @@ export class GameScene {
 		PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
 		const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
 		// only recalc trajectory when the ball bounces off a paddle
-		if (hitRight)  this.player2.calculateInitialPrediction();
+		if (hitRight)  this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
 
 		// 4) GAME LOGIC: scoring, pause, etc.
 		this.handleBallDestruction();
