@@ -26,8 +26,11 @@ export class PhysicsManager {
       const ny  = dy / len;
       const v   = ball.getVelocity();
       const dot = v.dx*nx + v.dy*ny;
+      if (dot >= 0) return false;
       ball.dx = v.dx - 2*dot*nx;
       ball.dy = v.dy - 2*dot*ny;
+      ball.x = cx + nx * r;
+      ball.y = cy + ny * r;
       return true;
     }
     return false;
