@@ -384,7 +384,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 			BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
 		);
 		this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-		console.log("Current speed: ", this.currentSpeed);
 		// Apply new speed while maintaining direction
 		const normalized = this.getNormalizedVelocity();
 		this.dx = normalized.dx * this.currentSpeed;

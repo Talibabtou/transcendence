@@ -38,8 +38,6 @@ export class GameScene {
 	private isFrozen: boolean = false;
 	private lastDrawTime: number | null = null;
 	private hasStateChanged: boolean = true;
-	/** local mirror of debug state */
-	private debugMode = DEBUG.enabled;
 
 	// =========================================
 	// Game Engine
@@ -500,7 +498,6 @@ export class GameScene {
 	private onDebugToggle = (evt: KeyboardEvent) => {
 		if (evt.code === KEYS.DEBUG_TOGGLE) {
 			DEBUG.enabled = !DEBUG.enabled;
-			this.debugMode = DEBUG.enabled;
 		}
 	}
 }

@@ -105,8 +105,11 @@ export class Player implements GraphicalElement {
 		
 		this._position = position;
 		this._type = type;
-		this._targetY = this.startY - 175;
-		this._lastCollisionTime = 0;
+		this._targetY = this.startY;
+		this._lastCollisionTime = 1000;
+		this.upPressed = false;
+		this.downPressed = false;
+		this.direction = null;
 		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
@@ -383,6 +386,10 @@ export class Player implements GraphicalElement {
 		startPoint: { x: number; y: number },
 		initialVelocity: { dx: number; dy: number }
 	): void {
+		if (Date.now() - this._lastCollisionTime < 1000) {
+			return;
+		}
+		this._lastCollisionTime = Date.now();
 		this.predictedBouncePoints = []; // Reset points for new prediction
 		this.finalPredictedImpactPoint = null; // Reset final impact point
 		const { width, height } = this.context.canvas;
@@ -535,6 +542,13 @@ export class Player implements GraphicalElement {
 	 * Updates AI inputs based on ball position and game state
 	 */
 	protected updateAIInputs(): void {
+		if (Date.now() - this._lastCollisionTime < 500) {
+			console.log('AI disabled');
+			this.upPressed = false;
+			this.downPressed = false;
+			this.direction = null;
+			return;
+		}
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		this.moveTowardsPredictedBallY(paddleCenter);
 		this.updateDirection();

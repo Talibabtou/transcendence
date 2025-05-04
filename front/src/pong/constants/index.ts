@@ -84,7 +84,7 @@ export const BALL_CONFIG = {
 	},
 	EDGES: {
 		ZONE_SIZE: 0.3,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.04  // 1% max deflection
+		MAX_DEFLECTION: 0.03  // 1% max deflection
 	}
 } as const;
 
