@@ -1,7 +1,7 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/constants';
+import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG, GAME_CONFIG } from '@pong/constants';
 
 /**
  * Represents a player in the game, managing paddle movement,
@@ -29,6 +29,7 @@ export class Player implements GraphicalElement {
 	protected finalPredictedImpactPoint: { x: number; y: number } | null = null;
 	protected _lastCollisionTime: number;
 	private paddle: Paddle;
+	private movementFrozen: number = 0;
 
 	// =========================================
 	// Event Handlers
@@ -330,16 +331,23 @@ export class Player implements GraphicalElement {
 	 * Updates the paddle's position based on input direction
 	 */
 	protected updateMovement(deltaTime: number): void {
-		// Update paddle direction based on input
-		this.paddle.setDirection(this.direction);
-		
-		// Update paddle movement
-		this.paddle.updateMovement(deltaTime);
-		
-		// Sync position with paddle
-		const pos = this.paddle.getPosition();
-		this.x = pos.x;
-		this.y = pos.y;
+		// if frozen, decrement timer and skip moving
+		if (this.movementFrozen > 0) {
+			console.log('movementFrozen', this.movementFrozen);
+			this.direction = null;
+			this.movementFrozen -= deltaTime;
+			if (this.movementFrozen < 0) this.movementFrozen = 0;
+			return;
+		}
+		if (this.direction === null) return;
+
+		const frameSpeed = this.speed * GAME_CONFIG.FPS * deltaTime;
+		const newY = this.direction === Direction.UP 
+			? this.y - frameSpeed 
+			: this.y + frameSpeed;
+
+		const maxY = this.context.canvas.height - this.paddleHeight;
+		this.y = Math.min(Math.max(0, newY), maxY);
 	}
 
 	/**
@@ -663,5 +671,12 @@ export class Player implements GraphicalElement {
 	 */
 	public setColor(color: string): void {
 		(this as any).colour = color;
+	}
+
+	/**
+	 * Freeze this paddle's movement for a duration (in seconds).
+	 */
+	public freezeMovement(duration: number): void {
+		this.movementFrozen = duration;
 	}
 }

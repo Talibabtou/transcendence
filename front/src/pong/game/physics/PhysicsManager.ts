@@ -69,6 +69,10 @@ export class PhysicsManager {
       const hit = PhysicsManager.sweepCircleVsRect(p0, dir, ball.getSize(), cLeft, cRight, cTop, cBottom);
       if (hit) {
         const {t, normal} = hit;
+        // ── If sweep hit is on top/bottom face, freeze paddle for 0.1s
+        if (normal.ny !== 0) {
+          player.freezeMovement(0.2);
+        }
         const cx = p0.x + dir.dx * t;
         const cy = p0.y + dir.dy * t;
         const v = ball.getVelocity();
@@ -108,22 +112,64 @@ export class PhysicsManager {
       }
     }
     // 2) Fallback to discrete collision
-    const left = player.x;
-    const right = player.x + player.paddleWidth;
-    const top = player.y;
+    const left   = player.x;
+    const right  = player.x + player.paddleWidth;
+    const top    = player.y;
     const bottom = player.y + player.paddleHeight;
-    const pos = ball.getPosition();
-    const r   = ball.getSize();
+    const pos    = ball.getPosition();
+    const r      = ball.getSize();
+
+    // ── EARLY CORNER BOUNCE: check the 4 paddle corners first ──
+    const corners = [
+      { x: left,  y: top    },
+      { x: left,  y: bottom },
+      { x: right, y: top    },
+      { x: right, y: bottom }
+    ];
+    for (const corner of corners) {
+      const dxC = pos.x - corner.x;
+      const dyC = pos.y - corner.y;
+      if (dxC*dxC + dyC*dyC <= r*r) {
+        // ❄ freeze paddle briefly to prevent re-penetration
+        player.freezeMovement(0.2);
+        const lenC = Math.sqrt(dxC*dxC + dyC*dyC) || 1;
+        const nxC  = dxC / lenC;
+        const nyC  = dyC / lenC;
+        const v    = ball.getVelocity();
+        const dot  = v.dx * nxC + v.dy * nyC;
+        if (dot < 0) {
+          // reflect & nudge out
+          const newDx = v.dx - 2 * dot * nxC;
+          const newDy = v.dy - 2 * dot * nyC;
+          ball.dx = newDx;
+          ball.dy = newDy;
+          ball.x  = corner.x + nxC * r;
+          ball.y  = corner.y + nyC * r;
+          return true;
+        }
+      }
+    }
+
     // find closest point on paddle
-    const cx = Math.max(left, Math.min(pos.x, right));
-    const cy = Math.max(top,  Math.min(pos.y, bottom));
+    const cx = Math.max(left,  Math.min(pos.x, right));
+    const cy = Math.max(top,   Math.min(pos.y, bottom));
     const dx = pos.x - cx;
     const dy = pos.y - cy;
     if (dx*dx + dy*dy <= r*r) {
-      // reflect + deflection using CollisionManager logic
+      // ── If discrete hit is exactly on top/bottom edge, freeze for 0.1s
+      if (cy === top || cy === bottom) {
+        player.freezeMovement(0.2);
+      }
+      // compute collision normal
       const len = Math.sqrt(dx*dx + dy*dy) || 1;
       const nx  = dx / len;
       const ny  = dy / len;
+
+      // if we hit the paddle's horizontal face (top/bottom), freeze its movement
+      if (nx === 0) {
+        player.freezeMovement(0.2);
+      }
+
       const v   = ball.getVelocity();
       const dot = v.dx*nx + v.dy*ny;
       if (dot >= 0) return false;
