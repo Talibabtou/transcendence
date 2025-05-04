@@ -201,31 +201,31 @@ export class GameManager {
 	// Generic method to start game loop
 	private startGameLoop(instance: GameInstance): void {
 		if (!instance.engine) return;
-
-		// Setup update interval
-		instance.updateIntervalId = window.setInterval(() => {
-			if (instance.isActive && !instance.isPaused && instance.engine) {
-				try {
-					instance.engine.update();
-				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameInstanceType.MAIN ? 'main' : 'background');
-				}
-			}
-		}, 1000 / GAME_CONFIG.FPS);
-
-		// Setup render loop
-		const render = () => {
+		// cancel any previous loops
+		if (instance.animationFrameId !== null) {
+			cancelAnimationFrame(instance.animationFrameId);
+			instance.animationFrameId = null;
+		}
+		if (instance.updateIntervalId !== null) {
+			clearInterval(instance.updateIntervalId);
+			instance.updateIntervalId = null;
+		}
+		// unified update+render loop
+		const loop = () => {
 			if (instance.isActive && instance.engine) {
 				try {
+					instance.engine.update();  // internally skips when paused
 					instance.engine.draw();
 				} catch (error) {
-					this.handleGameEngineError(error as Error, instance.type === GameInstanceType.MAIN ? 'main' : 'background');
+					this.handleGameEngineError(
+						error as Error,
+						instance.type === GameInstanceType.MAIN ? 'main' : 'background'
+					);
 				}
+				instance.animationFrameId = requestAnimationFrame(loop);
 			}
-			instance.animationFrameId = requestAnimationFrame(render);
 		};
-		
-		instance.animationFrameId = requestAnimationFrame(render);
+		instance.animationFrameId = requestAnimationFrame(loop);
 	}
 
 	// Generic method to pause any game

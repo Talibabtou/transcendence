@@ -1,7 +1,7 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS } from '@pong/constants';
+import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
 import { CollisionManager, PaddleHitbox, BallHitbox } from '@pong/game/physics';
 
 /**
@@ -246,6 +246,19 @@ export class Player implements GraphicalElement {
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
 
+		// DEBUG: draw top/bottom zone boundaries
+		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
+		const yTop = this.y + this.paddleHeight * zone;
+		const yBot = this.y + this.paddleHeight * (1 - zone);
+		ctx.strokeStyle = 'red';
+		ctx.lineWidth = 2;
+		ctx.beginPath();
+		ctx.moveTo(this.x, yTop);
+		ctx.lineTo(this.x + this.paddleWidth, yTop);
+		ctx.moveTo(this.x, yBot);
+		ctx.lineTo(this.x + this.paddleWidth, yBot);
+		ctx.stroke();
+
 		// Draw predicted bounce points for debugging
 		const bounceColors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
 		this.predictedBouncePoints.forEach((point, index) => {
@@ -456,9 +469,9 @@ export class Player implements GraphicalElement {
 				collisionType = 'bottom';
 				currentVel.dy *= -1; // Reflect vertically
 			} else if (timeToCollision === timeToOpponent) {
+				// Opponent paddle: pure horizontal bounce, no vertical deflection
 				collisionType = 'opponent';
-				currentVel.dx *= -1; // Reflect horizontally (simple paddle bounce)
-				// Add slight random vertical deflection? - Optional enhancement
+				currentVel.dx = -currentVel.dx;
 			} else if (timeToCollision === timeToPlayer) {
 				// Ball is heading towards the player's line. This is our target.
 				// We don't add this point to bounces, but use it to calculate targetY.

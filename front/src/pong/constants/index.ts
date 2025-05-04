@@ -55,7 +55,7 @@ export const UI_CONFIG = {
 // =========================================
 export const GAME_RATIOS = {
 	PADDLE: {
-		WIDTH: 0.08,    // % of screen width
+		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
 		SPEED: 0.006,   // control speed
 		PADDING: 0.03   // % from edges
@@ -79,13 +79,13 @@ export const BALL_CONFIG = {
 		}
 	},
 	ACCELERATION: {
-		MAX_MULTIPLIER: 4.0,    // Maximum speed (4x initial speed)
+		MAX_MULTIPLIER: 1.6,    // Maximum speed (4x initial speed)
 		RATE: 0.05,             // 5% speed increase per hit
 		INITIAL: 1.0           // Initial speed multiplier
 	},
 	EDGES: {
-		ZONE_SIZE: 0.1,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.05  // 1% max deflection
+		ZONE_SIZE: 0.3,  // 5% edge detection zone
+		MAX_DEFLECTION: 0.025  // 1% max deflection
 	}
 } as const;
 
