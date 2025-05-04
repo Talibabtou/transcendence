@@ -352,7 +352,7 @@ export class GameScene {
 		this.player2.update(this.context, deltaTime, updateState);
 
 		// 3) COLLISIONS: discrete ball-vs-paddle
-		const hitLeft  = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+		PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
 		const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
 		// only recalc trajectory when the ball bounces off a paddle
 		if (hitRight)  this.player2.calculateInitialPrediction();
@@ -363,19 +363,6 @@ export class GameScene {
 			this.pauseManager.update();
 		}
 		this.hasStateChanged = true;
-	}
-
-	/**
-	 * Updates all game objects
-	 */
-	private updateGameObjects(deltaTime: number): void {
-		const updateState = this.isBackgroundDemo() 
-			? GameState.PLAYING 
-			: this.getCurrentGameState();
-
-		this.objectsInScene.forEach(object => 
-			object.update(this.context, deltaTime, updateState)
-		);
 	}
 
 	/**

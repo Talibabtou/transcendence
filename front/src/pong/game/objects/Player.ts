@@ -2,7 +2,6 @@ import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
 import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
-import { CollisionManager, PaddleHitbox, BallHitbox } from '@pong/game/physics';
 
 /**
  * Represents a player in the game, managing paddle movement,
@@ -30,8 +29,6 @@ export class Player implements GraphicalElement {
 	protected finalPredictedImpactPoint: { x: number; y: number } | null = null;
 	protected _lastCollisionTime: number;
 	private paddle: Paddle;
-	private paddleHitbox: PaddleHitbox;
-	private readonly CollisionManager: CollisionManager;
 
 	// =========================================
 	// Event Handlers
@@ -123,10 +120,7 @@ export class Player implements GraphicalElement {
 		
 		// Initialize paddle first
 		this.paddle = new Paddle(x, y, this.paddleWidth, this.paddleHeight, context);
-		
-		// Then initialize physics components
-		this.paddleHitbox = new PaddleHitbox(this.paddle);
-		this.CollisionManager = new CollisionManager();
+	
 		
 		// Finally update sizes
 		this.updateSizes();
@@ -230,7 +224,7 @@ export class Player implements GraphicalElement {
 		}
 
 		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
-			this.updateAIInputs(ctx);
+			this.updateAIInputs();
 		}
 		if (state === GameState.PLAYING) {
 			this.updateMovement(deltaTime);
@@ -531,15 +525,6 @@ export class Player implements GraphicalElement {
 				}
 			}
 		}
-
-		// If the loop finished early without setting target (e.g., error, no collision)
-		// if (collisionType !== 'player' && bounceCount < maxBounces) {
-		// 	// Default target and clear final point if prediction failed prematurely
-		// 	this.finalPredictedImpactPoint = null;
-		// 	this._targetY = this.y + this.paddleHeight / 2; // Default to current paddle center
-		// 	// Consider clearing bounce points too if prediction is incomplete/invalid
-		// 	// this.predictedBouncePoints = [];
-		// }
 	}
 
 	// =========================================
@@ -548,7 +533,7 @@ export class Player implements GraphicalElement {
 	/**
 	 * Updates AI inputs based on ball position and game state
 	 */
-	protected updateAIInputs(ctx: GameContext): void {
+	protected updateAIInputs(): void {
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		this.moveTowardsPredictedBallY(paddleCenter);
 		this.updateDirection();
