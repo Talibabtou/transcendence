@@ -66,19 +66,6 @@ export class UIManager {
 		}
 	}
 
-	/**
-	 * Updates UI elements based on game state (e.g., score displays)
-	 * Currently a placeholder, as most UI updates happen during drawing.
-	 * @param context The canvas rendering context
-	 * @param player1 The first player
-	 * @param player2 The second player
-	 */
-	public update(context: GameContext, player1: Player, player2: Player): void {
-		// Placeholder: Add logic here if UI elements need state updates
-		// independent of the draw cycle.
-		// For now, we mainly update UI during draw calls based on player scores etc.
-	}
-
 	// =========================================
 	// Private Drawing Methods
 	// =========================================

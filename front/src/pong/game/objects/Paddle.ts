@@ -1,5 +1,5 @@
 import { GameContext, MovableObject, Direction } from '@pong/types';
-import { COLORS, GAME_CONFIG, calculateGameSizes } from '@pong/constants';
+import { COLORS, calculateGameSizes } from '@pong/constants';
 
 /**
  * Represents a paddle in the game, handling its movement,

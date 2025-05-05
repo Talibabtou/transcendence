@@ -1,7 +1,7 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG, GAME_CONFIG } from '@pong/constants';
+import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/constants';
 
 /**
  * Represents a player in the game, managing paddle movement,

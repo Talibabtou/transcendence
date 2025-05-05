@@ -35,10 +35,7 @@ export class GameScene {
 	// =========================================
 	private readonly winningScore = GAME_CONFIG.WINNING_SCORE;
 	private gameMode: GameModeType = 'single';
-	private lastTime: number = 0;
 	private isFrozen: boolean = false;
-	private lastDrawTime: number | null = null;
-	private hasStateChanged: boolean = true;
 
 	// =========================================
 	// Game Engine
@@ -56,7 +53,6 @@ export class GameScene {
 		this.uiManager = new UIManager(this.context);
 		this.setupScene();
 		this.controlsManager = new ControlsManager(this.player1, this.player2);
-		this.lastTime = performance.now();
 		window.addEventListener('keydown', this.onDebugToggle);
 	}
 
@@ -106,9 +102,6 @@ export class GameScene {
 		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
 			this.gameEngine.checkWinCondition();
 		}
-		
-		// Update internal state for background demo rendering optimization
-		this.hasStateChanged = true;
 	}
 
 	/**
@@ -132,9 +125,6 @@ export class GameScene {
 			this.pauseManager.hasState(GameState.PAUSED),
 			this.isBackgroundDemo()
 		);
-		
-		this.lastDrawTime = performance.now();
-		this.hasStateChanged = false;
 	}
 
 	// =========================================
@@ -363,11 +353,8 @@ export class GameScene {
 		
 		// Update Physics (Ball movement, Collisions, Scoring)
 		if (gameState !== GameState.PAUSED && this.physicsManager) {
-			this.physicsManager.update(this.context, deltaTime, gameState);
+			this.physicsManager.update(deltaTime, gameState);
 		}
-		
-		// Update UI manager regardless of pause state
-		this.uiManager.update(this.context, this.player1, this.player2);
 	}
 
 	// =========================================
@@ -385,17 +372,6 @@ export class GameScene {
 		if (this.pauseManager.hasState(GameState.PLAYING)) return GameState.PLAYING;
 		if (this.pauseManager.hasState(GameState.PAUSED)) return GameState.PAUSED;
 		return GameState.COUNTDOWN;
-	}
-
-	/**
-	 * Calculates the time elapsed since the last update call
-	 * @returns Delta time in seconds
-	 */
-	private calculateDeltaTime(): number {
-		const now = performance.now();
-		const delta = (now - this.lastTime) / 1000; // Convert ms to seconds
-		this.lastTime = now;
-		return delta;
 	}
 
 	private shouldSkipUpdate(): boolean {

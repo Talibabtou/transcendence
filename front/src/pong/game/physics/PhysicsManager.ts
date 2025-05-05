@@ -1,6 +1,6 @@
 import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
-import { GameContext, GameState, PlayerType } from '@pong/types';
+import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
 
 // =========================================
@@ -39,7 +39,7 @@ export class PhysicsManager {
    * @param deltaTime Fixed time step duration in seconds.
    * @param gameState Current game state.
    */
-  public update(context: GameContext, deltaTime: number, gameState: GameState): void {
+  public update(deltaTime: number, gameState: GameState): void {
     // Only run physics if playing
     if (gameState !== GameState.PLAYING) {
       return;
@@ -53,7 +53,7 @@ export class PhysicsManager {
 
     // 3) COLLISIONS: ball vs paddles
     // Note: We might need access to GameScene or GameEngine to trigger score/reset 
-    const hitLeft = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+    PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
     const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
 
     // // Trigger prediction for the opponent after a hit

@@ -1,6 +1,7 @@
 import { GameEngine } from '@pong/game/engine';
 import { MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
+import { GAME_CONFIG } from '@pong/constants';
 
 declare global {
 	interface Window {
@@ -45,10 +46,6 @@ interface GameInstance {
 	};
 	cleanupScheduled?: boolean;
 }
-
-// Constant for fixed timestep (e.g., 60 updates per second)
-const FIXED_DELTA_TIME_MS = 1000 / 60; 
-const MAX_DELTA_TIME_MS = 200; // Prevent spiral of death if frames lag too much
 
 export class GameManager {
 	private static instance: GameManager;
@@ -222,21 +219,22 @@ export class GameManager {
 			if (instance.isActive && instance.engine) {
 				let deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
-
+				console.log("deltaTime", deltaTime);
 				// Prevent spiral of death by capping delta time
-				if (deltaTime > MAX_DELTA_TIME_MS) {
-					deltaTime = MAX_DELTA_TIME_MS; 
+				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) {
+					deltaTime = GAME_CONFIG.MAX_DELTA_TIME; 
+					console.log("above");
 				}
 
 				accumulator += deltaTime;
 
 				try {
 					// Perform fixed updates
-					while (accumulator >= FIXED_DELTA_TIME_MS) {
+					while (accumulator >= GAME_CONFIG.FRAME_TIME) {
 						// Pass the fixed delta time (in seconds) to the update function
 						// TODO: Update GameEngine.update signature to accept deltaTime
-						instance.engine.update(FIXED_DELTA_TIME_MS / 1000); 
-						accumulator -= FIXED_DELTA_TIME_MS;
+						instance.engine.update(GAME_CONFIG.FRAME_TIME / 1000); 
+						accumulator -= GAME_CONFIG.FRAME_TIME;
 					}
 
 					// Render the latest state

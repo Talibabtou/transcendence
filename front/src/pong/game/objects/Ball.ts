@@ -1,8 +1,7 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
-import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG } from '@pong/constants';
+import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
 // const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // Removed: Fixed timestep now handled by GameManager
-const MAX_STEPS_PER_FRAME = GAME_CONFIG.MAX_STEPS_PER_FRAME; // Keep if used elsewhere, otherwise remove
 const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call
 
 /**
@@ -31,7 +30,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// =========================================
 	public dx = 0;
 	public dy = 0;
-	private accumulator: number = 0;
 
 	// Pool vector calculations to avoid creating new objects
 	// Position from previous physics step (for swept collision)
