@@ -21,6 +21,11 @@ export const eloSchema = {
 };
 
 export const getEloSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -57,6 +62,8 @@ export const getElosSchema = {
       limit: { type: 'integer', minimum: 1, default: 10 },
       offset: { type: 'integer', minimum: 0, default: 0 },
     },
+    required: ['player', 'limit', 'offset'],
+    additionalProperties: false,
   },
   response: {
     200: {
@@ -71,6 +78,11 @@ export const getElosSchema = {
 };
 
 export const createEloSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     201: eloSchema,
     404: {
@@ -85,6 +97,11 @@ export const createEloSchema = {
 };
 
 export const updatePlayerEloSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {

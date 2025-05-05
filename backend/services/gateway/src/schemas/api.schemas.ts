@@ -2,6 +2,11 @@ import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
 export const getPicSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -38,6 +43,11 @@ export const getPicSchema = {
 };
 
 export const getPicsSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {
       type: 'object',
@@ -65,6 +75,11 @@ export const getPicsSchema = {
 };
 
 export const getHealthSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {
       type: 'object',

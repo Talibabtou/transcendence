@@ -10,7 +10,6 @@ const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8080/api/v1/auth';
 let token: string = '';
-let tmpToken: string = '';
 let id: string = '';
 let count: number = 0;
 let countFailed: number = 0;
@@ -225,12 +224,19 @@ try {
       );
     } else {
       const responseData: any = await response.json();
-      token = responseData.token;
-      id = responseData.id;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-      console.log(`       Token: ${token}`);
+      const status = responseData.status;
+      if (status) {
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected a jwt ❌${RESET}`
+        );
+      } else {
+        token = responseData.token;
+        id = responseData.id;
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+        );
+        console.log(`       Token: ${token}`);
+      }
     }
   }
   // ----------------------------------------------------------------
@@ -462,7 +468,6 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
-  // ----------------------------------------------------------------
   //2FA generated success
   {
     const name = '2FA generated success';
@@ -482,17 +487,19 @@ try {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
       );
-    } else if (response.status !== 200) {
+    } else if (response.status !== 200 && response.status !== 204) {
       countFailed += 1;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
     } else {
-      const responseData: any = await response.json();
+      if (response.status === 200) {
+        const responseData: any = await response.json();
+        qrcode.generate(responseData.otpauth, { small: true });
+      }
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
-      qrcode.generate(responseData.otpauth, { small: true });
     }
   }
   //2FA validate
@@ -501,13 +508,14 @@ try {
     count += 1;
     const method = 'POST';
     const path = '/2fa/validate';
-    const code = readlineSync.question('Enter 2FA code: ') as string;
+    const twofaCode = readlineSync.question('Enter 2FA code: ') as string;
     const response = await fetch(authUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify(code),
+      body: JSON.stringify({ twofaCode }),
     });
     if (response.status === 500) {
       severalIssues += 1;
@@ -522,12 +530,9 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
     } else {
-      const responseData: any = await response.json();
-      tmpToken = responseData.tmpToken as string;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
-      console.log(`   Tmp token: ${tmpToken}`);
     }
   }
   // ----------------------------------------------------------------
@@ -575,7 +580,6 @@ try {
     const response = await fetch(authUrl + path, {
       method: method,
       headers: {
-        Authorization: `Bearer ${tmpToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(user),
@@ -594,15 +598,102 @@ try {
       );
     } else {
       const responseData: any = await response.json();
-      console.log(responseData);
-      token = responseData.token;
-      id = responseData.id;
+      const status = responseData.status;
+      if (!status) {
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected a status "NEED_2FA"❌${RESET}`
+        );
+      } else {
+        token = responseData.token;
+        id = responseData.id;
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+        );
+        console.log(`       2FA token: ${token}`);
+      }
+    }
+  }
+  // ----------------------------------------------------------------
+  //2FA validate
+  {
+    const name = '2FA validate';
+    count += 1;
+    const method = 'POST';
+    const path = '/2fa/validate';
+    const twofaCode = readlineSync.question('Enter 2FA code: ') as string;
+    const response = await fetch(authUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ twofaCode }),
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
-      console.log(`       Token: ${token}`);
     }
   }
+  // ----------------------------------------------------------------
+    //Login success with 2FA
+    {
+      const name = 'Login success with 2FA';
+      count += 1;
+      const user = {
+        email: 'test@test.fr',
+        password: 'Test123456789',
+      };
+      const method = 'POST';
+      const path = '/login';
+      const response = await fetch(authUrl + path, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(user),
+      });
+      if (response.status === 500) {
+        severalIssues += 1;
+        countFailed += 1;
+        issuesList.push(name);
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+        );
+      } else if (response.status !== 200) {
+        countFailed += 1;
+        console.log(
+          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+        );
+      } else {
+        const responseData: any = await response.json();
+        const status = responseData.status;
+        if (status) {
+          console.log(
+            `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected a jwt ❌${RESET}`
+          );
+        } else {
+          token = responseData.token;
+          id = responseData.id;
+          console.log(
+            `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+          );
+          console.log(`       Token: ${token}`);
+        }
+      }
+    }
   // ----------------------------------------------------------------
   //Delete failed
   {

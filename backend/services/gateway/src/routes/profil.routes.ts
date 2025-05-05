@@ -9,10 +9,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: IUpload }>(
     '/profil/uploads',
     {
-      schema: {
-        ...uploadSchema,
-        tags: ['profil'],
-      },
+      // schema: {
+      //   ...uploadSchema,
+      //   tags: ['profil'],
+      // },
       config: auth,
     },
     upload

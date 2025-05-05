@@ -20,6 +20,11 @@ export const matchSchema = {
 };
 
 export const getMatchSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -49,6 +54,8 @@ export const getMatchesSchema = {
       limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
       offset: { type: 'integer', minimum: 0, default: 0 },
     },
+    required: ['player_id', 'active', 'limit', 'offset'],
+    additionalProperties: false,
   },
   response: {
     200: {
@@ -63,6 +70,11 @@ export const getMatchesSchema = {
 };
 
 export const createMatchSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -86,6 +98,11 @@ export const createMatchSchema = {
 };
 
 export const updateMatchSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -120,6 +137,11 @@ export const updateMatchSchema = {
 };
 
 export const matchTimelineSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -156,6 +178,11 @@ export const matchTimelineSchema = {
 };
 
 export const matchSummarySchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -183,6 +210,11 @@ export const matchSummarySchema = {
 };
 
 export const matchStatsSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {

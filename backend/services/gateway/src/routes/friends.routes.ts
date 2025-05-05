@@ -12,7 +12,7 @@ import { IId } from '../shared/types/api.types.js';
 import {
   getFriends,
   getFriendsMe,
-  getFriend,
+  getFriendStatus,
   postFriend,
   patchFriend,
   deleteFriend,
@@ -55,7 +55,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
       },
       config: auth,
     },
-    getFriend
+    getFriendStatus
   );
 
   fastify.post<{ Body: IId }>(
@@ -94,8 +94,8 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
     deleteFriends
   );
 
-  fastify.delete<{ Querystring: IId }>(
-    '/friends/delete',
+  fastify.delete<{ Params: IId }>(
+    '/friends/delete/:id',
     {
       schema: {
         ...deleteFriendSchema,

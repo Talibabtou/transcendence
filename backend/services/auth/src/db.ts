@@ -33,6 +33,7 @@ export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.State
         password VARCHAR(255) NOT NULL,
         two_factor_enabled BOOLEAN NOT NULL DEFAULT 0,
         two_factor_secret TEXT,
+        verified BOOLEAN NOT NULL DEFAULT 0,
         last_ip VARCHAR(255) NOT NULL,
         last_login DATETIME NULL,
         updated_at DATETIME NULL,

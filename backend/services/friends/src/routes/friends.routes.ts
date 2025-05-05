@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   getFriends,
-  getFriend,
+  getFriendStatus,
   getFriendsMe,
   postFriend,
   patchFriend,
@@ -15,7 +15,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/all/me/:id', getFriendsMe);
 
-  fastify.get<{ Querystring: IId; Params: IId }>('/check/:id', getFriend);
+  fastify.get<{ Querystring: IId; Params: IId }>('/check/:id', getFriendStatus);
 
   fastify.post<{ Body: IId; Params: IId }>('/create/:id', postFriend);
 

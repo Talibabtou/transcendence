@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js'
-import { IAddUser, ILogin, IModifyUser, IReplyGetUser, IReplyGetUsers, IReplyLogin } from '../shared/types/auth.types.js';
+import { IAddUser, ILogin, IModifyUser, IReplyUser, IReplyLogin } from '../shared/types/auth.types.js';
 
 export async function getUser(request: FastifyRequest<{ Params: { id: string }}>, reply: FastifyReply) {
     try {
@@ -13,7 +13,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string }}>
             'Authorization': request.headers.authorization || 'no token'
           },
         });
-        const user = await response.json() as IReplyGetUser | ErrorResponse;
+        const user = await response.json() as IReplyUser | ErrorResponse;
         return reply.code(response.status).send(user);
       } catch (err) {
         request.server.log.error(err);
@@ -32,7 +32,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
             'Authorization': request.headers.authorization || 'no token'
           },
         });
-        const users = await response.json() as IReplyGetUsers | ErrorResponse;
+        const users = await response.json() as IReplyUser[] | ErrorResponse;
         return reply.code(response.status).send(users);
       } catch (err) {
         request.server.log.error(err);
@@ -55,7 +55,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
           body: JSON.stringify(request.body)
 
         });
-        const user = await response.json() as IReplyGetUsers | ErrorResponse;
+        const user = await response.json() as IReplyUser[] | ErrorResponse;
         return reply.code(response.status).send(user);
       } catch (err) {
         request.server.log.error(err);

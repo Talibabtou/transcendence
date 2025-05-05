@@ -2,14 +2,19 @@ import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
 export const uploadSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   consumes: ['multipart/form-data'],
   body: {
     type: 'object',
-    required: ['file'],
     properties: {
-      file: { type: 'string' },
+      file: { type: 'string', format: 'binary' },
       description: { type: 'string' },
     },
+    required: ['file'],
   },
   response: {
     201: {},
@@ -25,6 +30,11 @@ export const uploadSchema = {
 };
 
 export const deleteSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     204: {},
     404: {

@@ -2,6 +2,11 @@ import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
 
 export const getUserSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -45,6 +50,11 @@ export const getUserSchema = {
 };
 
 export const getUserMeSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {
       type: 'object',
@@ -76,6 +86,11 @@ export const getUserMeSchema = {
 };
 
 export const getUsersSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {
       type: 'array',
@@ -106,6 +121,11 @@ export const getUsersSchema = {
 };
 
 export const deleteUserSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     204: {},
     400: {
@@ -124,6 +144,11 @@ export const deleteUserSchema = {
 };
 
 export const createUserSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -183,6 +208,11 @@ export const createUserSchema = {
 };
 
 export const logoutSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     204: {},
     500: {
@@ -193,6 +223,11 @@ export const logoutSchema = {
 };
 
 export const loginSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -230,11 +265,11 @@ export const loginSchema = {
         },
         role: { type: 'string' },
         username: { type: 'string' },
+        status: { type: 'string' },
       },
-      required: ['token', 'id', 'role', 'username'],
+      required: ['token'],
       additionalProperties: false,
     },
-    204: {},
     401: {
       ...errorResponseSchema,
       example: ErrorExamples.loginFailure,
@@ -247,6 +282,11 @@ export const loginSchema = {
 };
 
 export const modifyUserSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -305,6 +345,11 @@ export const modifyUserSchema = {
 };
 
 export const twofaDisableSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {},
     204: {},
@@ -316,6 +361,11 @@ export const twofaDisableSchema = {
 };
 
 export const twofaValidateSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -329,18 +379,7 @@ export const twofaValidateSchema = {
     required: ['twofaCode'],
   },
   response: {
-    200: {
-      type: 'object',
-      properties: {
-        token: {
-          type: 'string',
-          pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
-          description: 'JWT token for user authentication',
-        },
-      },
-      required: ['token'],
-      additionalProperties: false,
-    },
+    200: {},
     401: {
       ...errorResponseSchema,
       example: ErrorExamples.twofaBadCode,
@@ -352,25 +391,30 @@ export const twofaValidateSchema = {
   },
 };
 
-// export const twofaGenerateSchema = {
-//   response: {
-//     200: {
-//       type: 'object',
-//       properties: {
-//         qrcode: {
-//           type: 'string',
-//         },
-//         otpcode: {
-//           type: 'string',
-//         },
-//       },
-//       required: ['qrcode', 'otpauth'],
-//       additionalProperties: false,
-//     },
-//     204: {},
-//     500: {
-//       ...errorResponseSchema,
-//       example: ErrorExamples.internalError,
-//     },
-//   },
-// };
+export const twofaGenerateSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        qrcode: {
+          type: 'string',
+        },
+        otpauth: {
+          type: 'string',
+        },
+      },
+      required: ['qrcode', 'otpauth'],
+      additionalProperties: false,
+    },
+    204: {},
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};

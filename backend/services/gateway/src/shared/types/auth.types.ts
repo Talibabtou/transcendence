@@ -15,23 +15,34 @@ export interface IModifyUser {
   password?: string;
 }
 
-export interface IReplyGetUser {
+export interface IReplyUser {
   id: string;
   username: string;
   email: string;
 }
 
-export interface IReplyGetUsers {
-  users: Array<IReplyGetUser>;
-}
 
 export interface IReplyLogin {
   token: string;
-  id: string;
-  role: string;
-  username: string;
+  id?: string;
+  role?: string;
+  username?: string;
+  status?: string;
 }
 
 export interface I2faCode {
   twofaCode: string;
+}
+
+export interface IJwtId {
+  id: string;
+}
+
+export interface IId {
+  id: string;
+}
+
+export interface IReplyQrCode {
+  qrcode: string,
+  otpauth: string | undefined,
 }

@@ -17,6 +17,11 @@ const friendsSchema = {
 };
 
 export const getFriendsSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -46,6 +51,11 @@ export const getFriendsSchema = {
 };
 
 export const getFriendsMeSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     200: {
       type: 'array',
@@ -63,6 +73,11 @@ export const getFriendsMeSchema = {
 };
 
 export const getCheckSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -76,7 +91,15 @@ export const getCheckSchema = {
     additionalProperties: false,
   },
   response: {
-    204: {},
+    200: {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'boolean',
+        },
+      },
+      required: ['status'],
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.friendshipNotFound,
@@ -93,6 +116,11 @@ export const getCheckSchema = {
 };
 
 export const postCreateSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -102,8 +130,8 @@ export const postCreateSchema = {
         pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
       },
     },
-    required: ['id'],
     additionalProperties: false,
+    required: ['id'],
   },
   response: {
     201: {},
@@ -123,6 +151,11 @@ export const postCreateSchema = {
 };
 
 export const patchAcceptSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {
@@ -153,6 +186,11 @@ export const patchAcceptSchema = {
 };
 
 export const deleteAllSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   response: {
     204: {},
     404: {
@@ -168,6 +206,11 @@ export const deleteAllSchema = {
 
 export const deleteFriendSchema = {
   querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
+  params: {
     type: 'object',
     properties: {
       id: {

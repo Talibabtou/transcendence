@@ -15,14 +15,10 @@ export interface IModifyUser {
   password?: string
 }
 
-export interface IReplyGetUser {
+export interface IReplyUser {
   id: string;
   username: string;
   email: string;
-}
-
-export interface IReplyGetUsers {
-  users: Array<IReplyGetUser>
 }
 
 export interface IReplyLogin {

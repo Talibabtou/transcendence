@@ -11,7 +11,7 @@ import goalRoutes from './routes/goal.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import fastifyMultipart from '@fastify/multipart';
 import matchRoutes from './routes/match.routes.js';
-import { fastify, FastifyInstance } from 'fastify';
+import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import profilRoutes from './routes/profil.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
@@ -63,6 +63,31 @@ const rateLimitParams = {
   timeWindow: '1 minute',
 };
 
+const loggerParams = {
+  logger: {
+    prettyPrint: true,
+    serializers: {
+      res(reply: FastifyReply) {
+        // The default
+        return {
+          statusCode: reply.statusCode
+        }
+      },
+      req(request: FastifyRequest) {
+        return {
+          method: request.method,
+          url: request.url,
+          ip: request.ip,
+          path: request.originalUrl,
+          parameters: request.params,
+
+          headers: request.headers
+        };
+      }
+    }
+  }
+}
+
 // const corsConfig = {
 //   origin: '*', // Allow all origins (or specify your frontend's origin)
 //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allowed HTTP methods
@@ -76,7 +101,18 @@ export class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) Server.instance = fastify({ logger: true });
+    if (!Server.instance) Server.instance = fastify({
+      logger: {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          }
+        }
+      }
+    });
     return Server.instance;
   }
 

@@ -3,22 +3,23 @@ import path from 'path';
 import qrcode from 'qrcode';
 import { v4 as uuid } from 'uuid';
 import speakeasy from 'speakeasy';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
-import { IId } from '../shared/types/api.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import {
   IAddUser,
   ILogin,
   IModifyUser,
-  IReplyGetUser,
-  IReplyGetUsers,
+  IReplyUser,
   IReplyLogin,
+  IId,
+  IJwtId,
+  I2faCode,
+  IReplyQrCode,
 } from '../shared/types/auth.types.js';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
-    const users: IReplyGetUsers[] = await request.server.db.all('SELECT username, email, id FROM users');
+    const users: IReplyUser[] = await request.server.db.all('SELECT username, email, id FROM users');
     if (!users) {
       const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
       return reply.code(404).send(errorMessage);
@@ -34,7 +35,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply): Pr
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const id = request.params.id;
-    const user: IReplyGetUser | undefined = await request.server.db.get(
+    const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE id = ?',
       [id]
     );
@@ -60,7 +61,7 @@ export async function getUserMe(
 ): Promise<void> {
   try {
     const id = request.params.id;
-    const user: IReplyGetUser | undefined = await request.server.db.get(
+    const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE id = ?',
       [id]
     );
@@ -91,7 +92,7 @@ export async function addUser(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
       [username, password, email, ip]
     );
-    const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [
+    const user: IReplyUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [
       username,
     ]);
     return reply.code(201).send(user);
@@ -118,7 +119,7 @@ export async function modifyUser(
   try {
     const id = request.params.id;
     const { username, password, email } = request.body;
-    const result = await request.server.db.get('SELECT id, username FROM users WHERE id = ?', [id]);
+    const result = await request.server.db.run('SELECT id FROM users WHERE id = ?', [id]);
     if (!result) {
       const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
       return reply.code(404).send(errorMessage);
@@ -203,9 +204,17 @@ export async function checkRevoked(
   }
 }
 
-export async function logout(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function logout(
+  request: FastifyRequest<{
+    Body: IJwtId;
+    Params: IId;
+  }>,
+  reply: FastifyReply
+): Promise<void> {
   try {
     const jwtId = request.body;
+    const id = request.params.id;
+    await request.server.db.run('UPDATE users SET verified = false WHERE id = ?', [id]);
     const revokedPath = path.join(path.resolve(), 'db/revoked.json');
     const fd = fs.openSync(revokedPath, 'a+');
     const existingData = fs.readFileSync(fd, 'utf-8');
@@ -221,32 +230,41 @@ export async function logout(request: FastifyRequest, reply: FastifyReply): Prom
   }
 }
 
-export async function login(
-  request: FastifyRequest<{ Body: ILogin; Querystring: { twofa: boolean } }>,
-  reply: FastifyReply
-): Promise<void> {
+export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
   try {
-    const twofa = request.query.twofa;
-    console.log({ twofa: twofa });
     const { email, password } = request.body;
     const ip = request.headers['from'];
     const data = await request.server.db.get(
-      'SELECT id, role, username, two_factor_enabled FROM users WHERE email = ? AND password = ?;',
+      'SELECT id, role, username, two_factor_enabled, verified FROM users WHERE email = ? AND password = ?;',
       [email, password]
     );
     if (!data) {
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
       return reply.code(401).send(errorMessage);
     }
-    if (data.two_factor_enabled && twofa !== true) {
-      return reply.code(200).send({ status: 'NEED_2FA' });
+    if (data.two_factor_enabled && !data.verified) {
+      const token: string = request.server.jwt.sign(
+        {
+          id: data.id,
+          role: '2fa',
+        },
+        { expiresIn: '1m' }
+      );
+      const user: IReplyLogin = {
+        token: token,
+        id: data.id,
+        role: '2fa',
+        username: data.username,
+        status: 'NEED_2FA',
+      };
+      return reply.code(200).send(user);
     }
     await request.server.db.run(
       'UPDATE users SET last_login = (CURRENT_TIMESTAMP), last_ip = ? WHERE email = ? AND password = ?',
       [ip, email, password]
     );
     const jti = uuid();
-    const token: string = request.server.jwt.sign({
+    const token = request.server.jwt.sign({
       id: data.id,
       role: data.role,
       jwtId: jti,
@@ -284,10 +302,11 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
       id,
     ]);
     const qrCodeImage = await qrcode.toDataURL(secretCode.otpauth_url as string);
-    return reply.code(200).send({
+    const qrCodeReponse: IReplyQrCode = {
       qrcode: qrCodeImage,
       otpauth: secretCode.otpauth_url,
-    });
+    }
+    return reply.code(200).send(qrCodeReponse);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -297,14 +316,14 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
 
 export async function twofaValidate(
   request: FastifyRequest<{
+    Body: I2faCode;
     Params: IId;
   }>,
   reply: FastifyReply
 ) {
   try {
     const id = request.params.id;
-    const rowCode = request.body as string;
-    const code = rowCode.match(/\d+/g)?.join('') || '';
+    const { twofaCode } = request.body;
     const data = await request.server.db.get(
       'SELECT two_factor_secret, two_factor_enabled FROM users WHERE id = ?;',
       [id]
@@ -312,20 +331,14 @@ export async function twofaValidate(
     const verify = speakeasy.totp.verify({
       secret: data.two_factor_secret,
       encoding: 'base32',
-      token: code,
+      token: twofaCode,
     });
     if (verify) {
-      const tmpToken: string = request.server.jwt.sign(
-        {
-          id: id,
-          twofa: true,
-          role: '2fa',
-        },
-        { expiresIn: '1m' }
+      await request.server.db.run(
+        'UPDATE users SET verified = true, two_factor_enabled = true WHERE id = ?',
+        [id]
       );
-      if (!data.two_factor_enabled)
-        await request.server.db.run('UPDATE users SET two_factor_enabled = true WHERE id = ?', [id]);
-      return reply.code(200).send({ tmpToken: tmpToken });
+      return reply.code(200).send();
     }
     const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
     return reply.code(401).send(errorMessage);

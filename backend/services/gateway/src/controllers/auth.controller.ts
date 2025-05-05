@@ -6,9 +6,9 @@ import {
   IAddUser,
   ILogin,
   IModifyUser,
-  IReplyGetUser,
-  IReplyGetUsers,
+  IReplyUser,
   IReplyLogin,
+  IReplyQrCode,
 } from '../shared/types/auth.types.js';
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
@@ -16,7 +16,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    const users = (await response.json()) as IReplyGetUsers[] | ErrorResponse;
+    const users = (await response.json()) as IReplyUser[] | ErrorResponse;
     return reply.code(response.status).send(users);
   } catch (err) {
     request.server.log.error(err);
@@ -30,7 +30,7 @@ export async function getUser(request: FastifyRequest<{ Params: { id: string } }
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    const user = (await response.json()) as IReplyGetUser | ErrorResponse;
+    const user = (await response.json()) as IReplyUser | ErrorResponse;
     return reply.code(response.status).send(user);
   } catch (err) {
     request.server.log.error(err);
@@ -45,7 +45,7 @@ export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    const user = (await response.json()) as IReplyGetUser | ErrorResponse;
+    const user = (await response.json()) as IReplyUser | ErrorResponse;
     return reply.code(response.status).send(user);
   } catch (err) {
     request.server.log.error(err);
@@ -60,11 +60,8 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    if (response.status >= 400) {
-      const responseData = (await response.json()) as ErrorResponse;
-      return reply.code(response.status).send(responseData);
-    } else if (response.status === 200) {
-      const responseData = await response.json();
+    if (response.status != 204) {
+      const responseData = await response.json() as IReplyQrCode | ErrorResponse;
       return reply.code(response.status).send(responseData);
     }
     return reply.code(response.status).send();
@@ -83,12 +80,14 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': request.headers['content-type'] || 'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(request.body),
     });
-    const responseData = await response.json();
-    console.log(responseData);
+    if (response.status == 200) {
+      return reply.code(response.status).send();
+    }
+    const responseData = await response.json() as ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
@@ -104,12 +103,12 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': request.headers['content-type'] || 'application/json',
+        'Content-Type': 'application/json',
         From: request.ip,
       },
       body: JSON.stringify(request.body),
     });
-    const user = (await response.json()) as IReplyGetUsers | ErrorResponse;
+    const user = (await response.json()) as IReplyUser[] | ErrorResponse;
     return reply.code(response.status).send(user);
   } catch (err) {
     request.server.log.error(err);
@@ -127,7 +126,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
     const response = await fetch(serviceUrl, {
       method: 'PATCH',
       headers: {
-        'Content-Type': request.headers['content-type'] || 'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(request.body),
     });
@@ -182,12 +181,13 @@ export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
 export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   try {
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
+    const id = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': request.headers['content-type'] || 'application/json',
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(jwtId),
     });
@@ -205,14 +205,12 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
 
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
-    const twofa = (request.user as FastifyJWT['user']).twofa || false;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}?twofa=${twofa}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
-        Authorization: request.headers['Authorization'] || '',
-        'Content-Type': request.headers['content-type'] || 'application/json',
+        'Content-Type': 'application/json',
         From: request.ip,
       },
       body: JSON.stringify(request.body),

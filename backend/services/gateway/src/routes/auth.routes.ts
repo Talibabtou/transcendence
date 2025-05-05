@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { IAddUser, ILogin, IModifyUser } from '../shared/types/auth.types.js';
+import { IAddUser, ILogin, IModifyUser, IId } from '../shared/types/auth.types.js';
 import {
   getUsers,
   getUser,
@@ -23,11 +23,12 @@ import {
   loginSchema,
   logoutSchema,
   twofaDisableSchema,
-  // twofaValidateSchema,
-  // twofaGenerateSchema,
+  twofaValidateSchema,
+  twofaGenerateSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
+const twofa = { auth: true, roles: ['user', 'admin', '2fa'] };
 
 export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -42,7 +43,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
     getUsers
   );
 
-  fastify.get<{ Params: { id: string } }>(
+  fastify.get<{ Params: IId }>(
     '/auth/user/:id',
     {
       schema: {
@@ -69,10 +70,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/auth/2fa/generate',
     {
-      // schema: {
-      //   ...twofaGenerateSchema,
-      //   tags: ['2fa'],
-      // },
+      schema: {
+        ...twofaGenerateSchema,
+        tags: ['2fa'],
+      },
       config: auth,
     },
     twofaGenerate
@@ -81,11 +82,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/auth/2fa/validate',
     {
-      // schema: {
-      //   ...twofaValidateSchema,
-      //   tags: ['2fa'],
-      // },
-      config: auth,
+      schema: {
+        ...twofaValidateSchema,
+        tags: ['2fa'],
+      },
+      config: twofa,
     },
     twofaValidate
   );

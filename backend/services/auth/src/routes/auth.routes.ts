@@ -1,5 +1,4 @@
-import { IId } from '../shared/types/api.types.js';
-import { IModifyUser, IAddUser, ILogin, I2faCode } from '../shared/types/auth.types.js';
+import { IModifyUser, IAddUser, ILogin, IId, IJwtId, I2faCode } from '../shared/types/auth.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
@@ -35,9 +34,9 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.post<{ Body: IAddUser }>('/register', addUser);
 
-  fastify.post<{ Body: IId }>('/logout', logout);
+  fastify.post<{ Body: IJwtId; Params: IId }>('/logout/:id', logout);
 
-  fastify.post<{ Body: ILogin; Querystring: { twofa: boolean } }>('/login', login);
+  fastify.post<{ Body: ILogin }>('/login', login);
 
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
 

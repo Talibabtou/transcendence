@@ -1,9 +1,9 @@
-interface IFriend {
+export interface IReplyGetFriend {
   id: string;
   accepted: boolean;
-  date: string;
+  created_at: string;
 }
 
-export interface IReplyGetFriends {
-  ids: Array<IFriend>;
+export interface IReplyGetFriendStatus {
+  status: boolean | undefined;
 }

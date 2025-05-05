@@ -26,6 +26,11 @@ export const goalSchema = {
 };
 
 export const getGoalSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -67,6 +72,8 @@ export const getGoalsSchema = {
       limit: { type: 'integer', minimum: 1, default: 10 },
       offset: { type: 'integer', minimum: 0, default: 0 },
     },
+    required: ['player', 'limit', 'offset'],
+    additionalProperties: false,
   },
   response: {
     200: {
@@ -81,6 +88,11 @@ export const getGoalsSchema = {
 };
 
 export const createGoalSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   body: {
     type: 'object',
     properties: {

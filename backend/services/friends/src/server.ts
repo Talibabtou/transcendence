@@ -8,7 +8,18 @@ class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) Server.instance = fastify({ logger: true });
+    if (!Server.instance) Server.instance = fastify({
+      logger: {
+        transport: {
+          target: 'pino-pretty',
+          options: {
+            colorize: true,
+            translateTime: 'SYS:standard',
+            ignore: 'pid,hostname',
+          }
+        }
+      }
+    });
     return Server.instance;
   }
 

@@ -3,6 +3,11 @@ import { ErrorExamples } from '../shared/constants/error.const.js';
 import { matchSchema } from './match.schemas.js';
 
 export const getTournamentSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
@@ -27,6 +32,11 @@ export const getTournamentSchema = {
 };
 
 export const getFinalMatchesSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {}
+  },
   params: {
     type: 'object',
     properties: {
