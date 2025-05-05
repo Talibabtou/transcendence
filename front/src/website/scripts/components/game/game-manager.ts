@@ -46,6 +46,10 @@ interface GameInstance {
 	cleanupScheduled?: boolean;
 }
 
+// Constant for fixed timestep (e.g., 60 updates per second)
+const FIXED_DELTA_TIME_MS = 1000 / 60; 
+const MAX_DELTA_TIME_MS = 200; // Prevent spiral of death if frames lag too much
+
 export class GameManager {
 	private static instance: GameManager;
 	private static isInitialized: boolean = false;
@@ -209,21 +213,54 @@ export class GameManager {
 			clearInterval(instance.updateIntervalId);
 			instance.updateIntervalId = null;
 		}
-		// unified update+render loop
-		const loop = () => {
+
+		let lastTime = performance.now();
+		let accumulator = 0;
+
+		// unified update+render loop with fixed timestep for updates
+		const loop = (currentTime: number) => {
 			if (instance.isActive && instance.engine) {
+				let deltaTime = currentTime - lastTime;
+				lastTime = currentTime;
+
+				// Prevent spiral of death by capping delta time
+				if (deltaTime > MAX_DELTA_TIME_MS) {
+					deltaTime = MAX_DELTA_TIME_MS; 
+				}
+
+				accumulator += deltaTime;
+
 				try {
-					instance.engine.update();  // internally skips when paused
+					// Perform fixed updates
+					while (accumulator >= FIXED_DELTA_TIME_MS) {
+						// Pass the fixed delta time (in seconds) to the update function
+						// TODO: Update GameEngine.update signature to accept deltaTime
+						instance.engine.update(FIXED_DELTA_TIME_MS / 1000); 
+						accumulator -= FIXED_DELTA_TIME_MS;
+					}
+
+					// Render the latest state
 					instance.engine.draw();
+
 				} catch (error) {
 					this.handleGameEngineError(
 						error as Error,
 						instance.type === GameInstanceType.MAIN ? 'main' : 'background'
 					);
+					// Stop the loop on error to prevent spamming
+					instance.isActive = false; 
+					return; 
 				}
 				instance.animationFrameId = requestAnimationFrame(loop);
+			} else {
+				// Ensure cleanup if instance becomes inactive
+				if (instance.animationFrameId !== null) {
+					cancelAnimationFrame(instance.animationFrameId);
+					instance.animationFrameId = null;
+				}
 			}
 		};
+		// Start the loop
 		instance.animationFrameId = requestAnimationFrame(loop);
 	}
 

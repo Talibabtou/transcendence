@@ -5,7 +5,6 @@ import { GameSizes } from '@pong/types';
 // =========================================
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
-	FPS: 240,
 	MAX_STEPS_PER_FRAME: 8,
 	MAX_DELTA_TIME: 200, // Maximum delta time to prevent spiral of death
 	MIN_SIZES: {
@@ -56,7 +55,7 @@ export const GAME_RATIOS = {
 	PADDLE: {
 		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
-		SPEED: 0.006,   // control speed
+		SPEED: 1.5,     // control speed (fraction of screen height per second)
 		PADDING: 0.03   // % from edges
 	},
 	BALL: {

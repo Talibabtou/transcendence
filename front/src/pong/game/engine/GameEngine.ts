@@ -132,8 +132,9 @@ export class GameEngine {
 
 	/**
 	 * Updates the game state for the current frame
+	 * @param deltaTime Time elapsed since the last update in seconds
 	 */
-	public update(): void {
+	public update(deltaTime: number): void {
 		if (this.scene) {
 			// Only update if the game is active
 			if (this.scene.isBackgroundDemo()) {
@@ -142,7 +143,7 @@ export class GameEngine {
 			}
 			
 			try {
-				this.scene.update();
+				this.scene.update(deltaTime);
 			} catch (error) {
 				console.error('Error updating game scene:', error);
 			}

@@ -28,6 +28,7 @@ export class GameScene {
 	private readonly controlsManager: ControlsManager;
 	private pauseManager!: PauseManager;
 	private resizeManager: ResizeManager | null = null;
+	private physicsManager!: PhysicsManager;
 
 	// =========================================
 	// Game State
@@ -87,26 +88,37 @@ export class GameScene {
 
 	/**
 	 * Updates game logic
+	 * @param deltaTime Time elapsed since the last update in seconds
 	 */
-	public update(): void {
+	public update(deltaTime: number): void {
 		if (this.shouldSkipUpdate()) return;
 		
-		const deltaTime = this.calculateDeltaTime();
+		// Player updates (input handling, AI)
+		// TODO: Move player updates potentially into PhysicsManager or keep here?
+		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : this.getCurrentGameState();
+		this.player1.update(this.context, deltaTime, updateState);
+		this.player2.update(this.context, deltaTime, updateState);
+
+		// Physics and UI updates
 		this.updateGameState(deltaTime);
 		
-		// Instead of calling local checkWinCondition, let the engine handle it
+		// Win condition check (delegated to GameEngine)
 		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
 			this.gameEngine.checkWinCondition();
 		}
+		
+		// Update internal state for background demo rendering optimization
+		this.hasStateChanged = true;
 	}
 
 	/**
 	 * Renders the game scene
 	 */
 	public draw(): void {
-		if (this.isBackgroundDemo() && this.lastDrawTime && !this.hasStateChanged) {
-			return;
-		}
+		// Removed optimization check that might cause flickering in background mode
+		// if (this.isBackgroundDemo() && this.lastDrawTime && !this.hasStateChanged) {
+		// 	return;
+		// }
 		
 		if (!this.isBackgroundDemo()) {
 			this.uiManager.drawBackground(this.player1, this.player2);
@@ -220,6 +232,7 @@ export class GameScene {
 		this.createGameObjects(width, height);
 		this.objectsInScene = [this.player1, this.player2, this.ball];
 		this.initializeManagers();
+		this.physicsManager = new PhysicsManager(this.ball, this.player1, this.player2, this.gameEngine, this);
 	}
 
 	/**
@@ -343,76 +356,29 @@ export class GameScene {
 
 	/**
 	 * Updates the game state
+	 * @param deltaTime The time delta since the last update in seconds.
 	 */
 	private updateGameState(deltaTime: number): void {
-		// 1) PHYSICS: move ball
-		this.ball.updatePhysics(deltaTime);
-
-		// 2) PADDLE MOVEMENT & AI
-		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : this.getCurrentGameState();
-		this.player1.update(this.context, deltaTime, updateState);
-		this.player2.update(this.context, deltaTime, updateState);
-
-		// 3) COLLISIONS: discrete ball-vs-paddle
-		PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
-		const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
-		// only recalc trajectory when the ball bounces off a paddle
-		if (hitRight)  this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
-
-		// 4) GAME LOGIC: scoring, pause, etc.
-		this.handleBallDestruction();
-		if (!this.isBackgroundDemo()) {
-			this.pauseManager.update();
-		}
-		this.hasStateChanged = true;
-	}
-
-	/**
-	 * Handles ball destruction and point scoring
-	 */
-	private handleBallDestruction(): void {
-		if (!this.ball.isDestroyed()) return;
-
-		let scoringPlayerIndex: number;
+		const gameState = this.getCurrentGameState();
 		
-		if (this.ball.isHitLeftBorder()) {
-			// Player 2 scored (right side)
-			this.player2.givePoint();
-			scoringPlayerIndex = 1;
-		} else {
-			// Player 1 scored (left side)
-			this.player1.givePoint();
-			scoringPlayerIndex = 0;
+		// Update Physics (Ball movement, Collisions, Scoring)
+		if (gameState !== GameState.PAUSED && this.physicsManager) {
+			this.physicsManager.update(this.context, deltaTime, gameState);
 		}
-
-		// Skip DB operations for background demo
-		if (!this.isBackgroundDemo()) {
-			// Get the game engine reference
-			const gameEngine = this.getGameEngine();
-			
-			// Record the goal if we have access to the game engine
-			if (gameEngine && typeof gameEngine.recordGoal === 'function') {
-				gameEngine.recordGoal(scoringPlayerIndex);
-			}
-
-			// Reset goal timer for the next point
-			if (gameEngine && typeof gameEngine.resetGoalTimer === 'function') {
-				gameEngine.resetGoalTimer();
-			}
-		}
-
-		this.resetPositions();
-		this.pauseManager.handlePointScored();
+		
+		// Update UI manager regardless of pause state
+		this.uiManager.update(this.context, this.player1, this.player2);
 	}
 
 	// =========================================
 	// Helper Methods
 	// =========================================
 
-	private resetPositions(): void {
-		this.ball.restart();
+	/** Reset positions of players and ball */
+	public resetPositions(): void {
 		this.player1.resetPosition();
 		this.player2.resetPosition();
+		this.ball.restart();
 	}
 
 	private getCurrentGameState(): GameState {
@@ -421,11 +387,15 @@ export class GameScene {
 		return GameState.COUNTDOWN;
 	}
 
+	/**
+	 * Calculates the time elapsed since the last update call
+	 * @returns Delta time in seconds
+	 */
 	private calculateDeltaTime(): number {
-		const currentTime = performance.now();
-		const deltaTime = (currentTime - this.lastTime) / 1000;
-		this.lastTime = currentTime;
-		return deltaTime;
+		const now = performance.now();
+		const delta = (now - this.lastTime) / 1000; // Convert ms to seconds
+		this.lastTime = now;
+		return delta;
 	}
 
 	private shouldSkipUpdate(): boolean {
@@ -488,10 +458,9 @@ export class GameScene {
 
 	public setGameEngine(engine: any): void {
 		this.gameEngine = engine;
-		
-		// Update pause manager if it exists
-		if (this.pauseManager && typeof this.pauseManager.setGameEngine === 'function') {
-			this.pauseManager.setGameEngine(engine);
+		// Pass engine to PhysicsManager if it's already initialized
+		if (this.physicsManager && typeof (this.physicsManager as any).setGameEngine === 'function') {
+			(this.physicsManager as any).setGameEngine(engine);
 		}
 	}
 

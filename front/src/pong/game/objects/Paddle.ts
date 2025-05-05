@@ -113,7 +113,7 @@ export class Paddle implements MovableObject {
 	public updateMovement(deltaTime: number): void {
 		if (this.direction === null) return;
 
-		const frameSpeed = this.speed * GAME_CONFIG.FPS * deltaTime;
+		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 
 			? this.y - frameSpeed 
 			: this.y + frameSpeed;

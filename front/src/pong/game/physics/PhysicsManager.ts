@@ -1,4 +1,7 @@
 import { BALL_CONFIG } from '@pong/constants';
+import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
+import { GameContext, GameState, PlayerType } from '@pong/types';
+import { GameScene } from '../scenes'; // Need GameScene for resetPositions
 
 // =========================================
 // PHYSICS MANAGER
@@ -11,6 +14,102 @@ import { BALL_CONFIG } from '@pong/constants';
 // – Then do a quick AABB or shape-vs-shape test on the final position to catch any remaining penetration (and correct it)
 // =========================================
 export class PhysicsManager {
+  private ball: Ball;
+  private player1: Player;
+  private player2: Player;
+  private gameEngine: any; // Store game engine reference
+  private gameScene: GameScene; // Need reference for resetPositions and pauseManager
+
+  constructor(ball: Ball, player1: Player, player2: Player, gameEngine: any, gameScene: GameScene) {
+    this.ball = ball;
+    this.player1 = player1;
+    this.player2 = player2;
+    this.gameEngine = gameEngine; // Store engine
+    this.gameScene = gameScene;   // Store scene
+  }
+
+  // Add method to update gameEngine if set later
+  public setGameEngine(engine: any): void {
+    this.gameEngine = engine;
+  }
+
+  /**
+   * Updates physics simulation for one fixed timestep.
+   * @param context Game context (unused for now, but good practice)
+   * @param deltaTime Fixed time step duration in seconds.
+   * @param gameState Current game state.
+   */
+  public update(context: GameContext, deltaTime: number, gameState: GameState): void {
+    // Only run physics if playing
+    if (gameState !== GameState.PLAYING) {
+      return;
+    }
+
+    // 1) BALL MOVEMENT (using deltaTime)
+    this.ball.updatePhysics(deltaTime);
+
+    // 2) PADDLE MOVEMENT & AI (player updates happen in GameScene/Player currently)
+    //    We might move player updates here later if needed.
+
+    // 3) COLLISIONS: ball vs paddles
+    // Note: We might need access to GameScene or GameEngine to trigger score/reset 
+    const hitLeft = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+    const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+
+    // // Trigger prediction for the opponent after a hit
+    // if (hitLeft && this.player2.getPlayerType() !== PlayerType.HUMAN) { // Player 1 hit, Player 2 (AI) predicts
+    //   this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
+    // }
+    if (hitRight) { // Player 2 hit, Player 1 (AI) predicts
+      this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
+		}
+    // Accelerate ball on paddle hit
+    // Acceleration is handled within Ball class based on BALL_CONFIG
+    // if (hitLeft || hitRight) {
+    //   this.ball.increaseSpeed();
+    // } 
+
+    // Handle scoring/ball reset
+    this.handleBallDestruction();
+  }
+
+  /**
+   * Handles ball destruction and point scoring
+   * Moved from GameScene
+   */
+  private handleBallDestruction(): void {
+    if (!this.ball.isDestroyed()) return;
+
+    let scoringPlayerIndex: number;
+    
+    if (this.ball.isHitLeftBorder()) {
+      // Player 2 scored (right side)
+      this.player2.givePoint();
+      scoringPlayerIndex = 1;
+    } else {
+      // Player 1 scored (left side)
+      this.player1.givePoint();
+      scoringPlayerIndex = 0;
+    }
+
+    // Skip DB operations for background demo
+    if (!this.gameScene.isBackgroundDemo()) { // Check background demo via gameScene
+      // Record the goal if we have access to the game engine
+      if (this.gameEngine && typeof this.gameEngine.recordGoal === 'function') {
+        this.gameEngine.recordGoal(scoringPlayerIndex);
+      }
+
+      // Reset goal timer for the next point
+      if (this.gameEngine && typeof this.gameEngine.resetGoalTimer === 'function') {
+        this.gameEngine.resetGoalTimer();
+      }
+    }
+
+    // Use gameScene reference to reset positions and handle pause state
+    this.gameScene.resetPositions(); 
+    this.gameScene.getPauseManager().handlePointScored();
+  }
+
   // Continuous sweep vs AABB helper; returns {t,normal} or null on miss
   private static sweepCircleVsRect(
     p0: {x: number; y: number},

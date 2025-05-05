@@ -341,7 +341,7 @@ export class Player implements GraphicalElement {
 		}
 		if (this.direction === null) return;
 
-		const frameSpeed = this.speed * GAME_CONFIG.FPS * deltaTime;
+		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 
 			? this.y - frameSpeed 
 			: this.y + frameSpeed;
@@ -604,7 +604,8 @@ export class Player implements GraphicalElement {
 	 */
 	private moveTowardsCenter(paddleCenter: number, centerY: number): void {
 		// Create a moderate deadzone for center position to prevent jitter
-		const deadzone = this.speed * 1.0;
+		// Use a fraction of paddle height instead of speed
+		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
 		const targetY = centerY + (this.paddleHeight * 0.5);
 
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
@@ -623,7 +624,8 @@ export class Player implements GraphicalElement {
 	 * AI helper method to move paddle towards the predicted ball Y position
 	 */
 	private moveTowardsPredictedBallY(paddleCenter: number): void {
-		const deadzone = this.speed * 0.5; // Smaller deadzone for more precise targeting
+		// Use a fraction of paddle height instead of speed
+		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
 
 		if (Math.abs(paddleCenter - this._targetY) < deadzone) {
 			// Within deadzone - stop movement
@@ -645,7 +647,8 @@ export class Player implements GraphicalElement {
 		const targetY = this.ball.y;
 		
 		// Keep a small deadzone to prevent jitter
-		const deadzone = this.speed * 0.5; // Reduced from 0.6 for more precise tracking
+		// Use a fraction of paddle height instead of speed
+		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
 		
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
 			this.upPressed = false;

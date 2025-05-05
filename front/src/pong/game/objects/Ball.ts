@@ -1,9 +1,9 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG, GAME_CONFIG } from '@pong/constants';
 
-const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS;
-const MAX_STEPS_PER_FRAME = GAME_CONFIG.MAX_STEPS_PER_FRAME;
-const MAX_DELTA_TIME = 1000 / 120;
+// const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // Removed: Fixed timestep now handled by GameManager
+const MAX_STEPS_PER_FRAME = GAME_CONFIG.MAX_STEPS_PER_FRAME; // Keep if used elsewhere, otherwise remove
+const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call
 
 /**
  * Represents the ball in the game, handling its movement,
@@ -104,33 +104,16 @@ export class Ball implements GraphicalElement, PhysicsObject {
 
 	/**
 	 * Updates the ball's position and state
+	 * Note: The fixed timestep logic is now handled by the main game loop (GameManager).
+	 * This method now directly calls updatePhysics with the provided deltaTime.
 	 */
 	public update(_context: GameContext, deltaTime: number, state: GameState): void {
 		if (state !== GameState.PLAYING) return;
-		// Convert deltaTime to milliseconds and clamp it
-		const dt = Math.min(deltaTime * 1000, MAX_DELTA_TIME);
-		// Reset accumulator if it's too large (tab was inactive)
-		if (this.accumulator > MAX_DELTA_TIME * 2) {
-				this.accumulator = 0;
-		}
-		// Accumulate time since last frame
-		this.accumulator += dt;
-		// Run physics updates at fixed timesteps
-		let steps = 0;
-		while (this.accumulator >= PHYSICS_TIMESTEP && steps < MAX_STEPS_PER_FRAME) {
-				this.updatePhysics(PHYSICS_TIMESTEP / 1000);
-				this.accumulator -= PHYSICS_TIMESTEP;
-				steps++;
-		}
-		// If we still have accumulated time but not too much, do one last update
-		if (this.accumulator > 0 && this.accumulator < PHYSICS_TIMESTEP * 2 && steps < MAX_STEPS_PER_FRAME) {
-				const remainingTime = this.accumulator / 1000;
-				this.updatePhysics(remainingTime);
-				this.accumulator = 0;
-		} else {
-				// If we have too much accumulated time, just drop it
-				this.accumulator = Math.min(this.accumulator, PHYSICS_TIMESTEP * 2);
-		}
+
+		// Directly update physics using the delta time from the main loop
+		// Clamp deltaTime to prevent extreme jumps if needed (optional, but safer)
+		const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME / 1000); // MAX_DELTA_TIME is in ms
+		this.updatePhysics(clampedDeltaTime); 
 	}
 
 	// =========================================
