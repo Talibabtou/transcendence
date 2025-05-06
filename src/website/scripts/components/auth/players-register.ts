@@ -52,6 +52,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Listen for authentication events - use guest-authenticated instead of user-authenticated
 		document.addEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this));
+		
+		// Listen for theme updates to keep UI in sync with settings changes
+		window.addEventListener('user:theme-updated', this.handleUserThemeUpdated.bind(this));
 	}
 	
 	/**
@@ -74,15 +77,19 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				hostId = Number(currentUser.id);
 			}
 			
-			// Fetch the user's ELO from the database if possible
+			// Fetch the user's ELO and latest data from the database
 			DbService.getUser(hostId)
 				.then(user => {
-					const hostTheme = currentUser.theme || user.theme || '#ffffff';
+					// Get theme from app state first (most up-to-date), then user object, then DB
+					const hostTheme = appState.getPlayerAccentColor(1) || currentUser.theme || user.theme || '#ffffff';
+					
+					// Get profile picture - try from currentUser first, then from DB
+					const profilePicture = currentUser.profilePicture || user.pfp || '/images/default-avatar.svg';
 					
 					const host: PlayerData = {
 						id: hostId,
-						username: currentUser.username,
-						pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+						username: currentUser.username || user.pseudo,
+						pfp: profilePicture,
 						isConnected: true,
 						theme: hostTheme,
 						elo: user.elo
@@ -98,7 +105,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				})
 				.catch(_ => {
 					// If we can't fetch from DB, use current user data
-					const hostTheme = currentUser.theme || '#ffffff';
+					const hostTheme = appState.getPlayerAccentColor(1) || currentUser.theme || '#ffffff';
 					
 					const host: PlayerData = {
 						id: hostId,
@@ -238,6 +245,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		// Remove event listeners
 		document.removeEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
 		document.removeEventListener('auth-cancelled', this.handleAuthCancelled.bind(this));
+		window.removeEventListener('user:theme-updated', this.handleUserThemeUpdated.bind(this));
 		
 		// Destroy all auth managers
 		this.authManagers.forEach(manager => manager.destroy());
@@ -260,7 +268,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const availableColors = Object.entries(appState.getAvailableColors());
 		
 		// Get host's current color directly from appState
-		const currentColor = appState.getAccentColorHex();
+		const currentColor = host.theme || appState.getPlayerAccentColor(1);
 		
 		// Split colors into two rows (6 in first row, 5 in second row)
 		const firstRowColors = availableColors.slice(0, 6);
@@ -514,6 +522,65 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			this.handleGuestAuthenticated(guestData);
 		}
 	};
+	
+	/**
+	 * Handle user theme updates from other components (like settings)
+	 */
+	private handleUserThemeUpdated(event: Event): void {
+		const customEvent = event as CustomEvent<{ userId: number, theme: string }>;
+		if (customEvent.detail) {
+			const { userId, theme } = customEvent.detail;
+			
+			const state = this.getInternalState();
+			
+			// Check if this is the host
+			if (state.host && state.host.id === userId) {
+				// Update host theme in local state
+				this.updateInternalState({
+					host: {
+						...state.host,
+						theme: theme
+					}
+				});
+				
+				// Update app state
+				appState.setPlayerAccentColor(1, theme);
+				
+				// Apply directly to CSS
+				document.documentElement.style.setProperty('--accent1-color', theme);
+				
+				// Re-render to show updated color selection
+				this.renderComponent();
+			} 
+			// Check if this is one of the guests
+			else {
+				const guestIndex = state.guests.findIndex(g => g && g.id === userId);
+				if (guestIndex >= 0) {
+					// Update guest theme
+					const updatedGuests = [...state.guests];
+					updatedGuests[guestIndex] = {
+						...updatedGuests[guestIndex],
+						theme: theme
+					};
+					
+					// Update player accent color
+					const playerPosition = guestIndex + 2;
+					appState.setPlayerAccentColor(playerPosition, theme);
+					
+					// Update state and re-render
+					this.updateInternalState({ guests: updatedGuests });
+					
+					// Update CSS variable
+					document.documentElement.style.setProperty(
+						`--accent${playerPosition}-color`, 
+						theme
+					);
+					
+					this.renderComponent();
+				}
+			}
+		}
+	}
 	
 	/**
 	 * Handle guest authenticated - receives data directly from GuestAuthComponent

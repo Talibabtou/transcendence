@@ -279,9 +279,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					// Simulate server-side upload success
 					setTimeout(() => {
 						// Update user profile in database
-						DbService.updateUser(parseInt(state.profile!.id), {
-							pfp: newAvatarUrl
-						})
+						DbService.updateProfilePicture(parseInt(state.profile!.id), newAvatarUrl)
 						.then(() => {
 							// Update local state
 							this.updateInternalState({
@@ -297,6 +295,12 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							appState.updateUserData({
 								profilePicture: newAvatarUrl
 							});
+							
+							// Update global game state for player avatars
+							appState.setPlayerAvatar(parseInt(state.profile!.id), newAvatarUrl);
+							
+							// Trigger profile summary refresh
+							this.triggerProfileRefresh();
 							
 							this.render();
 						})
@@ -327,7 +331,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (!state.profile) return;
 		
 		// Update user theme in database
-		DbService.updateUserTheme(state.profile.id, colorHex)
+		DbService.updateUserTheme(parseInt(state.profile.id), colorHex)
 			.then(() => {
 				// Update local state
 				const updatedProfile = {
@@ -342,11 +346,18 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					profile: updatedProfile
 				});
 				
-				// Also update global app state for immediate visual feedback
+				// Update global app state for immediate visual feedback
 				appState.setPlayerAccentColor(parseInt(state.profile!.id), colorHex);
 				
 				// Apply directly to CSS for immediate effect
 				document.documentElement.style.setProperty('--accent1-color', colorHex);
+				
+				// Update global game state for player colors
+				const userId = parseInt(state.profile!.id);
+				appState.updatePlayerTheme(userId, colorHex);
+				
+				// Trigger profile summary refresh
+				this.triggerProfileRefresh();
 				
 				this.render();
 			})
@@ -460,6 +471,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					email: updatedUser.email
 				});
 				
+				// Update global game state for player names
+				appState.setPlayerName(parseInt(state.profile!.id), updatedUser.pseudo);
+				
+				// Update auth user in localStorage/sessionStorage
+				this.updateAuthUserInStorage(updatedUser);
+				
+				// Trigger profile summary refresh
+				this.triggerProfileRefresh();
+				
 				// Set timeout to hide success indicator after 2 seconds
 				setTimeout(() => {
 					this.updateInternalState({
@@ -477,5 +497,46 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					}
 				});
 			});
+	}
+	
+	// Helper method to update auth user in storage
+	private updateAuthUserInStorage(updatedUser: any): void {
+		// Get current auth user from storage
+		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		if (authUserJson) {
+			try {
+				const authUser = JSON.parse(authUserJson);
+				// Update relevant fields
+				const updatedAuthUser = {
+					...authUser,
+					pseudo: updatedUser.pseudo,
+					email: updatedUser.email || authUser.email
+				};
+				
+				// Save back to the same storage
+				if (localStorage.getItem('auth_user')) {
+					localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+				} else if (sessionStorage.getItem('auth_user')) {
+					sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+				}
+			} catch (error) {
+				console.error('Error updating auth user in storage:', error);
+			}
+		}
+	}
+	
+	// Helper method to trigger profile summary refresh
+	private triggerProfileRefresh(): void {
+		// Dispatch a custom event that the profile component can listen for
+		const event = new CustomEvent('profile-data-updated');
+		document.dispatchEvent(event);
+		
+		// Also try to find and refresh the profile component directly
+		const profileComponent = document.querySelector('.profile-component');
+		if (profileComponent && profileComponent.parentElement) {
+			// This assumes the profile component has a refresh or reload method
+			const event = new CustomEvent('refresh-profile-data');
+			profileComponent.dispatchEvent(event);
+		}
 	}
 }

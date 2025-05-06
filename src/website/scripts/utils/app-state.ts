@@ -22,6 +22,12 @@ export interface AppState {
 		accent3: string; // Guest 2 accent - for tournament
 		accent4: string; // Guest 3 accent - for tournament
 	};
+	players: {
+		[playerId: string]: {
+			name: string;
+			avatar?: string;
+		}
+	};
 }
 
 // Define state change listener type
@@ -59,7 +65,8 @@ export class AppStateManager {
 			accent2: '#ffffff', // Guest 1 accent (default white)
 			accent3: '#ffffff', // Guest 2 accent (default white)
 			accent4: '#ffffff'  // Guest 3 accent (default white)
-		}
+		},
+		players: {}
 	};
 	
 	// Listeners for state changes
@@ -213,7 +220,8 @@ export class AppStateManager {
 			...newState,
 			// Handle nested objects
 			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
-			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors
+			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors,
+			players: newState.players ? { ...this.state.players, ...newState.players } : this.state.players
 		};
 		
 		// Notify listeners
@@ -503,7 +511,10 @@ export class AppStateManager {
 		}
 	}
 	
-	updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
+	/**
+	 * Update user data in the app state
+	 */
+	public updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
 		const currentUser = this.getCurrentUser();
 		if (currentUser) {
 			this.setState({
@@ -514,6 +525,57 @@ export class AppStateManager {
 						...userData
 					}
 				}
+			});
+		}
+	}
+	
+	/**
+	 * Set player name in the app state
+	 */
+	public setPlayerName(playerId: number, name: string): void {
+		const playerIdStr = playerId.toString();
+		this.setState({
+			players: {
+				...this.state.players,
+				[playerIdStr]: {
+					...this.state.players[playerIdStr],
+					name
+				}
+			}
+		});
+	}
+	
+	/**
+	 * Set player avatar in the app state
+	 */
+	public setPlayerAvatar(playerId: number, avatarUrl: string): void {
+		const playerIdStr = playerId.toString();
+		this.setState({
+			players: {
+				...this.state.players,
+				[playerIdStr]: {
+					...this.state.players[playerIdStr],
+					avatar: avatarUrl
+				}
+			}
+		});
+	}
+	
+	/**
+	 * Update player theme in the app state and database
+	 */
+	public updatePlayerTheme(playerId: number, colorHex: string): void {
+		// Update player accent color
+		this.setPlayerAccentColor(playerId, colorHex);
+		
+		// If this is the current user, also update in database
+		const currentUser = this.getCurrentUser();
+		if (currentUser && parseInt(currentUser.id) === playerId) {
+			import('./db').then(({ DbService }) => {
+				DbService.updateUserTheme(playerId, colorHex)
+					.catch(error => {
+						console.error('Failed to update user theme in database:', error);
+					});
 			});
 		}
 	}

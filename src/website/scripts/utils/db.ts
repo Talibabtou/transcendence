@@ -338,9 +338,10 @@ export class DbService {
 	}
 
 	/**
-	 * Updates user information including theme
+	 * Updates user information
 	 * @param userId - The user's ID
 	 * @param userData - Object containing user data to update
+	 * @returns Promise with updated user data
 	 */
 	static updateUser(userId: number, userData: Partial<User>): Promise<User> {
 		this.logRequest('PUT', `/api/users/${userId}`, userData);
@@ -351,7 +352,7 @@ export class DbService {
 				const userIndex = db.users.findIndex(u => u.id === userId);
 				
 				if (userIndex !== -1) {
-					// Update user
+					// Update user with new data
 					db.users[userIndex] = {
 						...db.users[userIndex],
 						...userData
@@ -362,6 +363,12 @@ export class DbService {
 					
 					// Sync to legacy storage
 					this.syncLegacyStorage();
+					
+					// Notify app of user data changes
+					const event = new CustomEvent('user:updated', {
+						detail: { userId, userData }
+					});
+					window.dispatchEvent(event);
 					
 					// Return updated user
 					resolve({
@@ -741,7 +748,7 @@ export class DbService {
 	}
 
 	/**
-	 * Specialized method for updating user theme/paddle color
+	 * Updates user theme/paddle color and synchronizes app state
 	 * @param userId - The user's ID
 	 * @param theme - Color value for the theme/paddle
 	 */
@@ -766,6 +773,12 @@ export class DbService {
 					
 					// Sync to legacy storage
 					this.syncLegacyStorage();
+					
+					// Dispatch theme update event for app state synchronization
+					const event = new CustomEvent('user:theme-updated', {
+						detail: { userId: numericId, theme }
+					});
+					window.dispatchEvent(event);
 					
 					resolve();
 				} else {
