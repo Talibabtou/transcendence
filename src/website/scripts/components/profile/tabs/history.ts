@@ -5,7 +5,6 @@
 import { Component } from '@website/scripts/components';
 import { html, render, DbService } from '@website/scripts/utils';
 import { UserProfile } from '@shared/types';
-
 interface ProfileHistoryState {
 	profile: UserProfile | null;
 	historyPage: number;
@@ -17,13 +16,11 @@ interface ProfileHistoryState {
 		onPlayerClick: (username: string) => void;
 	};
 }
-
 export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
-	private scrollObserver: IntersectionObserver | null = null;
-	private loadingElement: HTMLElement | null = null;
+	// @ts-ignore - Used for DOM references
 	private contentElement: HTMLElement | null = null;
-	private scrollTimeout: number | null = null;
-	private lastScrollPosition: number = 0;
+	// @ts-ignore - Used for DOM references
+	private loadMoreButton: HTMLElement | null = null;
 
 	constructor(container: HTMLElement) {
 		super(container, {
@@ -37,48 +34,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				onPlayerClick: () => {}
 			}
 		});
-		
-		// Setup manual scroll handling as fallback
-		this.setupScrollListener();
-	}
-	
-	private setupScrollListener(): void {
-		// Use event delegation to capture scroll events from window
-		window.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
-	}
-	
-	private handleScroll(): void {
-		// Debounce the scroll event to avoid excessive processing
-		if (this.scrollTimeout) {
-			window.clearTimeout(this.scrollTimeout);
-		}
-		
-		this.scrollTimeout = window.setTimeout(() => {
-			const state = this.getInternalState();
-			
-			// Skip if already loading or no more matches
-			if (state.isLoading || !state.hasMoreMatches) {
-				return;
-			}
-			
-			// Standard detection for end of page scroll
-			const scrollPosition = window.scrollY;
-			const windowHeight = window.innerHeight;
-			const documentHeight = Math.max(
-				document.body.scrollHeight,
-				document.body.offsetHeight,
-				document.documentElement.clientHeight,
-				document.documentElement.scrollHeight,
-				document.documentElement.offsetHeight
-			);
-			
-			// If we're near the bottom (within 200px of the end)
-			if (scrollPosition + windowHeight >= documentHeight - 200) {
-				console.log('Bottom of page detected, loading more matches');
-				this.lastScrollPosition = scrollPosition;
-				this.loadMoreMatches();
-			}
-		}, 100); // 100ms debounce for faster response
 	}
 	
 	public setProfile(profile: UserProfile): void {
@@ -102,9 +57,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			// Exit early if already loading
 			if (state.isLoading) return;
 			
-			const previousHeight = isLoadingMore && this.contentElement ? 
-				this.contentElement.getBoundingClientRect().height : 0;
-			
+			// Update loading state
 			if (!isLoadingMore) {
 				this.updateInternalState({ 
 					isLoading: true,
@@ -120,13 +73,11 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			const pageToLoad = isLoadingMore ? state.historyPage + 1 : 0;
 			console.log(`History component loading matches for user ID: ${numericId}, page: ${pageToLoad}`);
 			
-			const newMatches = await DbService.getUserMatches(numericId, pageToLoad, state.historyPageSize);
+			// Request more matches than needed to account for filtering out incomplete matches
+			const newMatches = await DbService.getUserMatches(numericId, pageToLoad, state.historyPageSize * 2);
 			console.log(`Found ${newMatches.length} matches for history`);
 			
-			// If we received fewer matches than page size, we've reached the end
-			const hasMoreMatches = newMatches.length === state.historyPageSize;
-			
-			// Process matches to get opponent names and scores
+			// Process matches
 			const processedMatches = await Promise.all(newMatches.map(async (match) => {
 				const isPlayer1 = match.player_1 === numericId;
 				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
@@ -157,6 +108,11 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 					}
 				}
 				
+				// Skip incomplete matches (neither player has reached 3 points)
+				if (playerScore < 3 && opponentScore < 3) {
+					return null;
+				}
+				
 				// Determine result
 				const result = playerScore > opponentScore ? 'win' : 'loss';
 				
@@ -171,16 +127,24 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				};
 			}));
 			
-			// Sort by most recent first
-			const sortedMatches = processedMatches.sort((a, b) => 
+			// Filter out null matches (incomplete matches) and sort by most recent first
+			const validMatches = processedMatches.filter(match => match !== null);
+			const sortedMatches = validMatches.sort((a, b) => 
 				b.date.getTime() - a.date.getTime()
 			);
 			
+			// Take only the first historyPageSize matches
+			const trimmedMatches = sortedMatches.slice(0, state.historyPageSize);
+			
+			// If we received fewer matches than requested, we've reached the end
+			const hasMoreMatches = newMatches.length === state.historyPageSize * 2;
+			
 			// Combine with existing matches if loading more
 			const combinedMatches = isLoadingMore 
-				? [...state.matches, ...sortedMatches]
-				: sortedMatches;
+				? [...state.matches, ...trimmedMatches]
+				: trimmedMatches;
 			
+			// Update state with new matches
 			this.updateInternalState({ 
 				matches: combinedMatches,
 				isLoading: false,
@@ -188,69 +152,22 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				historyPage: pageToLoad
 			});
 			
+			// Render the updated UI
 			this.render();
 			
-			// Setup scroll observer after rendering only if we have more matches
-			if (hasMoreMatches) {
-				setTimeout(() => {
-					this.setupScrollObserver();
-					
-					// If loading more, restore the scroll position to maintain context
-					if (isLoadingMore && this.lastScrollPosition > 0) {
-						setTimeout(() => {
-							window.scrollTo({
-								top: this.lastScrollPosition,
-								behavior: 'auto'
-							});
-							console.log('Restored scroll position to:', this.lastScrollPosition);
-						}, 100);
-					}
-				}, 100);
-			}
 		} catch (error) {
 			console.error('Error loading match history:', error);
 			this.updateInternalState({ isLoading: false });
 		}
 	}
 	
-	private setupScrollObserver(): void {
-		// Find the loading element in case it wasn't set
-		if (!this.loadingElement) {
-			this.loadingElement = this.container.querySelector('.loading-indicator');
-		}
-		
-		// Only setup observer if we have a loading element
-		if (this.loadingElement) {
-			// Clean up existing observer
-			if (this.scrollObserver) {
-				this.scrollObserver.disconnect();
-			}
-			
-			// Create new observer
-			this.scrollObserver = new IntersectionObserver((entries) => {
-				const state = this.getInternalState();
-				// Check if we should load more
-				if (!state.isLoading && state.hasMoreMatches && entries[0].isIntersecting) {
-					// Save current scroll position before loading more
-					this.lastScrollPosition = window.scrollY;
-					this.loadMoreMatches();
-				}
-			}, {
-				threshold: 0.9, // Element must be 90% visible
-				rootMargin: '10px' // Very small margin
-			});
-			
-			this.scrollObserver.observe(this.loadingElement);
-		}
-	}
-	
-	private loadMoreMatches(): void {
+	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
 		if (state.isLoading || !state.hasMoreMatches || !state.profile) {
 			return;
 		}
 		
-		console.log('Loading more matches, current page:', state.historyPage);
+		console.log(`Loading more matches, current page: ${state.historyPage}`);
 		this.loadMatchHistory(state.profile.id, true);
 	}
 	
@@ -298,17 +215,25 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 						</table>
 						
 						${state.hasMoreMatches ? html`
-							<div 
-								class="loading-indicator" 
-								ref=${(el: HTMLElement) => { 
-									this.loadingElement = el;
-								}}
-							>
-								${state.isLoading ? html`<p>Loading more matches...</p>` : html`<p>Scroll to load more matches</p>`}
+							<div class="profile-tabs" style="margin-top: 2rem; display: flex; justify-content: center;">
+								<ul class="tabs-list" style="list-style: none; padding: 0;">
+									<li class="tab-item">
+										${state.isLoading ? 
+											html`<button class="tab-button" disabled>Loading matches...</button>` : 
+											html`<button 
+												class="tab-button" 
+												onClick=${this.loadMoreMatches}
+												ref=${(el: HTMLElement) => this.loadMoreButton = el}
+											>
+												Load More Matches (Page ${state.historyPage + 2})
+											</button>`
+										}
+									</li>
+								</ul>
 							</div>
 						` : html`
-							<div class="debug-info">
-								All matches loaded (${filteredMatches.length} total)
+							<div class="history-end" style="margin: 2rem 0; text-align: center; color: #666;">
+								End of match history (${filteredMatches.length} total matches)
 							</div>
 						`}
 					`
@@ -317,10 +242,5 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		`;
 		
 		render(template, this.container);
-		
-		// Setup scroll observer after render
-		setTimeout(() => {
-			this.setupScrollObserver();
-		}, 100);
 	}
 }
