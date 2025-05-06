@@ -10,7 +10,7 @@ export type GameContext = CanvasRenderingContext2D;
  * Base interface for all drawable and updatable game elements
  */
 export interface GraphicalElement {
-	draw(ctx: GameContext): void;
+	draw(ctx: GameContext, alpha?: number): void;
 	update(ctx: GameContext, deltaTime: number, state: GameState): void;
 }
 

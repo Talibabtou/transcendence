@@ -106,19 +106,23 @@ export class GameScene {
 
 	/**
 	 * Renders the game scene
+	 * @param alpha Interpolation factor (0 to 1)
 	 */
-	public draw(): void {
-		// Removed optimization check that might cause flickering in background mode
-		// if (this.isBackgroundDemo() && this.lastDrawTime && !this.hasStateChanged) {
-		// 	return;
-		// }
-		
+	public draw(alpha: number): void {
 		if (!this.isBackgroundDemo()) {
 			this.uiManager.drawBackground(this.player1, this.player2);
 		}
 		
 		if (!this.isFrozen) {
-			this.uiManager.drawGameElements(this.objectsInScene);
+			this.objectsInScene.forEach(obj => {
+				if (typeof (obj as any).draw === 'function') {
+					if ((obj as any).draw.length >= 1) {
+						(obj as any).draw(this.context, alpha);
+					} else {
+						(obj as any).draw();
+					}
+				}
+			});
 		}
 		
 		this.uiManager.drawUI(

@@ -124,10 +124,11 @@ export class GameEngine {
 	// =========================================
 	/**
 	 * Renders the current game scene
+	 * @param alpha Interpolation factor (0 to 1)
 	 */
-	public draw(): void {
+	public draw(alpha: number): void {
 		this.clearScreen();
-		this.scene.draw();
+		this.scene.draw(alpha);
 	}
 
 	/**
@@ -218,7 +219,7 @@ export class GameEngine {
 		}
 		
 		// Redraw the scene
-		this.draw();
+		this.draw(0);
 	}
 
 	// =========================================

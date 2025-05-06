@@ -30,6 +30,8 @@ export class Player implements GraphicalElement {
 	protected _lastCollisionTime: number;
 	private paddle: Paddle;
 	private movementFrozen: number = 0;
+	protected prevRenderX: number = 0; // For rendering interpolation
+	protected prevRenderY: number = 0; // For rendering interpolation
 
 	// =========================================
 	// Event Handlers
@@ -218,6 +220,10 @@ export class Player implements GraphicalElement {
 	 * Updates player state for the current frame
 	 */
 	public update(ctx: GameContext, deltaTime: number, state: GameState): void {
+		// Store position for rendering interpolation BEFORE moving
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
+
 		const { width, height } = ctx.canvas;
 		const sizes = calculateGameSizes(width, height);
 		this.paddleHeight = sizes.PADDLE_HEIGHT;
@@ -234,28 +240,34 @@ export class Player implements GraphicalElement {
 			this.updateMovement(deltaTime);
 		}
 		
+		// Update horizontal position AFTER potential y movement
 		this.updateHorizontalPosition();
 	}
 
 	/**
-	 * Draws the player's paddle
+	 * Draws the player's paddle using interpolation
+	 * @param alpha Interpolation factor (0 to 1)
 	 */
-	public draw(ctx: GameContext): void {
+	public draw(ctx: GameContext, alpha: number): void {
+		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
+		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
+
 		ctx.fillStyle = this.colour;
-		ctx.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
+		ctx.fillRect(interpolatedX, interpolatedY, this.paddleWidth, this.paddleHeight);
 
 		if (!DEBUG.enabled) return;
-		// DEBUG: draw top/bottom zone boundaries
+
+		// Draw debug info relative to interpolated position
 		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
-		const yTop = this.y + this.paddleHeight * zone;
-		const yBot = this.y + this.paddleHeight * (1 - zone);
+		const yTop = interpolatedY + this.paddleHeight * zone;
+		const yBot = interpolatedY + this.paddleHeight * (1 - zone);
 		ctx.strokeStyle = 'red';
 		ctx.lineWidth = 2;
 		ctx.beginPath();
-		ctx.moveTo(this.x, yTop);
-		ctx.lineTo(this.x + this.paddleWidth, yTop);
-		ctx.moveTo(this.x, yBot);
-		ctx.lineTo(this.x + this.paddleWidth, yBot);
+		ctx.moveTo(interpolatedX, yTop);
+		ctx.lineTo(interpolatedX + this.paddleWidth, yTop);
+		ctx.moveTo(interpolatedX, yBot);
+		ctx.lineTo(interpolatedX + this.paddleWidth, yBot);
 		ctx.stroke();
 
 		// Draw predicted bounce points for debugging

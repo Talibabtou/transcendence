@@ -34,6 +34,8 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// Pool vector calculations to avoid creating new objects
 	// Position from previous physics step (for swept collision)
 	private prevPosition: { x: number; y: number } = { x: 0, y: 0 };
+	private prevRenderX: number = 0; // For rendering interpolation
+	private prevRenderY: number = 0; // For rendering interpolation
 	private readonly velocityCache = { dx: 0, dy: 0 };
 	private readonly positionCache = { x: 0, y: 0 };
 
@@ -90,14 +92,18 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	}
 
 	/**
-	 * Draws the ball on the canvas
+	 * Draws the ball on the canvas using interpolation
+	 * @param alpha Interpolation factor (0 to 1)
 	 */
-	public draw(): void {
-		this.context.beginPath();
-		this.context.fillStyle = this.colour;
-		this.context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-		this.context.fill();
-		this.context.closePath();
+	public draw(ctx: GameContext, alpha: number): void {
+		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
+		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
+
+		ctx.beginPath();
+		ctx.fillStyle = this.colour;
+		ctx.arc(interpolatedX, interpolatedY, this.size, 0, Math.PI * 2);
+		ctx.fill();
+		ctx.closePath();
 	}
 
 	/**
@@ -121,9 +127,14 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * Updates ball physics for a fixed timestep
 	 */
 	public updatePhysics(deltaTime: number): void {
-		// Store previous position before moving
+		// Store previous position for sweep collision BEFORE interpolation state
 		this.prevPosition.x = this.x;
 		this.prevPosition.y = this.y;
+
+		// Store position for rendering interpolation BEFORE moving
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
+
 		// Add speed cap for background mode
 		if (this.currentSpeed > this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
 				this.currentSpeed = this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER;

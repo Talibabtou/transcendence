@@ -1,6 +1,6 @@
 import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
-import {GameState, PlayerType } from '@pong/types';
+import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
 
 // =========================================
@@ -45,7 +45,7 @@ export class PhysicsManager {
       return;
     }
     this.ball.updatePhysics(deltaTime);
-    const hitLeft = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+    PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
     const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
     if (hitRight) { // Player 2 hit, Player 1 (AI) predicts (or any hit for AI?)
       this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
@@ -192,7 +192,7 @@ export class PhysicsManager {
   }
 
   // Helper to correct position after sweep collision
-  private static _correctPositionSweep(
+  private static _correctPosition(
     ball: Ball,
     contactX: number, contactY: number,
     nx: number, ny: number,
@@ -204,7 +204,7 @@ export class PhysicsManager {
   }
 
   // Helper to correct position after discrete collision (corner or edge)
-  private static _correctPositionDiscrete(
+  private static _correctPositionCorner(
     ball: Ball,
     pointX: number, pointY: number, // The point to push away from (corner or closest edge point)
     nx: number, ny: number, // Normal pointing away from the point
@@ -225,7 +225,7 @@ export class PhysicsManager {
     const cTop = player.y;
     const cBottom = player.y + player.paddleHeight;
     const ballRadius = ball.getSize();
-    const epsilon = ballRadius * 0.05; // 5% bias for separation
+    const epsilon = 0.05; // 5% bias for separation
     const velocity = ball.getVelocity(); // Get velocity once
 
     // 1) Continuous Sweep Test
@@ -259,7 +259,7 @@ export class PhysicsManager {
               ball.dy = finalVel.dy;
 
               // Correct position
-              PhysicsManager._correctPositionSweep(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
+              PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
 
               return true; // Collision handled by sweep
             }
@@ -267,72 +267,79 @@ export class PhysicsManager {
       }
     }
 
-    // 2) Discrete Collision Test (Fallback)
+    // 2) Discrete Collision Test (Fallback - Merged Corner/Edge Logic)
     const pos = ball.getPosition();
     const r = ballRadius;
 
-    // Corner Check
-    const corners = [
-      { x: cLeft,  y: cTop    }, { x: cLeft,  y: cBottom },
-      { x: cRight, y: cTop    }, { x: cRight, y: cBottom }
-    ];
-    for (const corner of corners) {
-      const dxC = pos.x - corner.x;
-      const dyC = pos.y - corner.y;
-      const distSq = dxC * dxC + dyC * dyC;
+    // Find closest point on paddle rectangle to ball center
+    const cx = Math.max(cLeft, Math.min(pos.x, cRight));
+    const cy = Math.max(cTop, Math.min(pos.y, cBottom));
 
-      if (distSq <= r * r) {
-        player.freezeMovement(0.2);
-        const lenC = Math.sqrt(distSq) || 1;
-        const nxC = dxC / lenC;
-        const nyC = dyC / lenC;
-        const dot = velocity.dx * nxC + velocity.dy * nyC;
+    // Calculate squared distance from ball center to closest point
+    const dx = pos.x - cx;
+    const dy = pos.y - cy;
+    const distSq = dx * dx + dy * dy;
+
+    // Check for overlap (ball is within radius of the closest point)
+    if (distSq <= r * r) {
+      // Determine if the closest point is a corner
+      const isCorner = (cx === cLeft || cx === cRight) && (cy === cTop || cy === cBottom);
+      let nx: number, ny: number;
+      let len: number;
+
+      if (isCorner) {
+				console.log('corner');
+        // --- Corner Collision --- 
+        player.freezeMovement(0.5); // Freeze on corner hit
+        // Normal is from corner to ball center
+        len = Math.sqrt(distSq) || 1;
+        nx = dx / len;
+        ny = dy / len;
+        const dot = velocity.dx * nx + velocity.dy * ny;
 
         if (dot < 0) {
-          // Reflect velocity (no deflection for corners)
-          const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nxC, nyC, dot);
+          // Reflect velocity using corner normal (no deflection)
+          const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
           ball.dx = reflectedVel.dx;
           ball.dy = reflectedVel.dy;
-          // Correct position
-          PhysicsManager._correctPositionDiscrete(ball, corner.x, corner.y, nxC, nyC, r, epsilon);
-          return true; // Handled by corner check
+          // Correct position pushing away from the corner
+          PhysicsManager._correctPositionCorner(ball, cx, cy, nx, ny, r, epsilon);
+          return true;
+        }
+      } else {
+        // --- Edge Collision --- 
+        // Freeze only if hitting top/bottom edge explicitly
+        if (Math.abs(pos.x - cx) < 1e-6 && (cy === cTop || cy === cBottom)) {
+            player.freezeMovement(0.5);
+        }
+        // Normal is from closest point on edge to ball center
+        len = Math.sqrt(distSq) || 1;
+        nx = dx / len;
+        ny = dy / len;
+        const dot = velocity.dx * nx + velocity.dy * ny;
+
+        if (dot < 0) {
+          // Reflect velocity using edge normal
+          const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
+          // Apply deflection based on hit position relative to the edge
+          const finalVel = PhysicsManager._applyPaddleDeflection(
+             pos, // Use current ball position for deflection calc on edge
+             reflectedVel,
+             cTop,
+             cBottom
+           );
+          ball.dx = finalVel.dx;
+          ball.dy = finalVel.dy;
+          // Correct position pushing away from the edge
+          // Note: _correctPosition and _correctPositionCorner now do the same thing,
+          // maybe rename/merge the helper if desired, but functionally using either is fine here
+          // Let's keep distinct names for clarity for now.
+          PhysicsManager._correctPosition(ball, cx, cy, nx, ny, epsilon);
+          return true;
         }
       }
     }
 
-    // Edge Check
-    const cx = Math.max(cLeft, Math.min(pos.x, cRight));
-    const cy = Math.max(cTop, Math.min(pos.y, cBottom));
-    const dx = pos.x - cx;
-    const dy = pos.y - cy;
-    const distSqEdge = dx * dx + dy * dy;
-
-    if (distSqEdge <= r * r) {
-      if (Math.abs(pos.x - cx) < 1e-6 && (cy === cTop || cy === cBottom)) {
-         player.freezeMovement(0.2);
-      }
-      const len = Math.sqrt(distSqEdge) || 1;
-      const nx = dx / len;
-      const ny = dy / len;
-      const dot = velocity.dx * nx + velocity.dy * ny;
-
-      if (dot < 0) {
-        // Reflect velocity
-        const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
-        // Apply deflection
-        const finalVel = PhysicsManager._applyPaddleDeflection(
-           pos,
-           reflectedVel,
-           cTop,
-           cBottom
-         );
-        ball.dx = finalVel.dx;
-        ball.dy = finalVel.dy;
-        // Correct position
-        PhysicsManager._correctPositionDiscrete(ball, cx, cy, nx, ny, r, epsilon);
-        return true; // Handled by discrete edge check
-      }
-    }
     return false; // No collision detected
   }
 } 

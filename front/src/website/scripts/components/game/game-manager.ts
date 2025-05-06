@@ -232,13 +232,15 @@ export class GameManager {
 					// Perform fixed updates
 					while (accumulator >= GAME_CONFIG.FRAME_TIME) {
 						// Pass the fixed delta time (in seconds) to the update function
-						// TODO: Update GameEngine.update signature to accept deltaTime
-						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000); 
+						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000);
 						accumulator -= GAME_CONFIG.FRAME_TIME;
 					}
 
-					// Render the latest state
-					instance.engine.draw();
+					// Calculate interpolation alpha
+					const alpha = accumulator / GAME_CONFIG.FRAME_TIME;
+
+					// Render the latest state with interpolation
+					instance.engine.draw(alpha);
 
 				} catch (error) {
 					this.handleGameEngineError(
@@ -630,7 +632,7 @@ export class GameManager {
 				
 				// Force a redraw of the background game
 				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.draw();
+					this.backgroundGameInstance.engine.draw(0);
 				}
 			}
 		} catch (error) {
