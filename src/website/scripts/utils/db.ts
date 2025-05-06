@@ -481,11 +481,16 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Retrieves match history for a specific user
+	 * Gets all matches for a user
 	 * @param userId - The user's ID
+	 * @param page - The page number to fetch (0-indexed)
+	 * @param pageSize - The number of items per page
 	 */
-	static getUserMatches(userId: number): Promise<Match[]> {
-		this.logRequest('GET', `/api/users/${userId}/matches`);
+	static getUserMatches(userId: number, page?: number, pageSize?: number): Promise<Match[]> {
+		const pageQuery = page !== undefined && pageSize !== undefined 
+			? `?page=${page}&pageSize=${pageSize}` 
+			: '';
+		this.logRequest('GET', `/api/users/${userId}/matches${pageQuery}`);
 		
 		return new Promise((resolve, reject) => {
 			try {
@@ -494,8 +499,15 @@ export class DbService {
 					match.player_1 === userId || match.player_2 === userId
 				);
 				
+				// Apply pagination if requested
+				let paginatedMatches = userMatches;
+				if (page !== undefined && pageSize !== undefined) {
+					const start = page * pageSize;
+					paginatedMatches = userMatches.slice(start, start + pageSize);
+				}
+				
 				// Return match data with properly formatted dates
-				const matches = userMatches.map(match => ({
+				const matches = paginatedMatches.map(match => ({
 					...match,
 					created_at: new Date(match.created_at)
 				}));
@@ -1072,6 +1084,110 @@ export class DbService {
 			}));
 			
 			resolve(matches);
+		});
+	}
+
+	/**
+	 * Updates user profile picture
+	 * @param userId - The user's ID
+	 * @param imageUrl - The URL of the new profile picture
+	 */
+	static updateProfilePicture(userId: number, imageUrl: string): Promise<void> {
+		this.logRequest('PUT', `/api/users/${userId}/profile-picture`, { imageUrl });
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find user by ID
+				const userIndex = db.users.findIndex(u => u.id === userId);
+				
+				if (userIndex !== -1) {
+					// Update pfp
+					db.users[userIndex].pfp = imageUrl;
+					
+					// Persist changes
+					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
+					resolve();
+				} else {
+					reject(new Error(`User with ID ${userId} not found`));
+				}
+			} catch (error) {
+				reject(error);
+			}
+		});
+	}
+
+	/**
+	 * Updates user email
+	 * @param userId - The user's ID
+	 * @param email - The new email
+	 */
+	static updateUserEmail(userId: number, email: string): Promise<void> {
+		this.logRequest('PUT', `/api/users/${userId}/email`, { email });
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Check if email is already taken
+				const emailExists = db.users.some(u => u.email === email && u.id !== userId);
+				
+				if (emailExists) {
+					reject(new Error('Email already in use by another account'));
+					return;
+				}
+				
+				// Find user by ID
+				const userIndex = db.users.findIndex(u => u.id === userId);
+				
+				if (userIndex !== -1) {
+					// Update email
+					db.users[userIndex].email = email;
+					
+					// Persist changes
+					persistDb();
+					
+					// Sync to legacy storage
+					this.syncLegacyStorage();
+					
+					resolve();
+				} else {
+					reject(new Error(`User with ID ${userId} not found`));
+				}
+			} catch (error) {
+				reject(error);
+			}
+		});
+	}
+
+	/**
+	 * Updates user password
+	 * @param userId - The user's ID
+	 * @param password - The new password
+	 */
+	static updateUserPassword(userId: number, password: string): Promise<void> {
+		this.logRequest('PUT', `/api/users/${userId}/password`, { password: '********' });
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find user by ID
+				const userIndex = db.users.findIndex(u => u.id === userId);
+				
+				if (userIndex !== -1) {
+					// Update password
+					db.users[userIndex].password = password;
+					
+					// Persist changes
+					persistDb();
+					
+					resolve();
+				} else {
+					reject(new Error(`User with ID ${userId} not found`));
+				}
+			} catch (error) {
+				reject(error);
+			}
 		});
 	}
 }

@@ -176,8 +176,32 @@ export class ProfileComponent extends Component<ProfileState> {
 	private async fetchProfileData(): Promise<void> {
 		try {
 			const url = new URL(window.location.href);
-			const userId = url.searchParams.get('id') || 'current';
-			const numericId = userId === 'current' ? 1 : parseInt(userId, 10);
+			let userId = url.searchParams.get('id');
+			
+			// If no ID parameter is provided, use the current logged-in user
+			if (!userId || userId === 'current') {
+				// Get the current user from localStorage or sessionStorage
+				const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+				if (currentUserJson) {
+					try {
+						const currentUser = JSON.parse(currentUserJson);
+						if (currentUser && currentUser.id) {
+							userId = currentUser.id.toString();
+						}
+					} catch (error) {
+						console.error('Error parsing current user data:', error);
+					}
+				}
+				
+				// If still no user ID, fall back to the default
+				if (!userId) {
+					userId = '1'; // Default user
+				}
+			}
+			
+			// Convert to numeric ID
+			const numericId = parseInt(userId, 10);
+			console.log(`Loading profile for user ID: ${numericId}`);
 			
 			try {
 				// Fetch core user data
@@ -225,47 +249,38 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	private async loadSummaryData(userId: number, profile: UserProfile): Promise<void> {
 		try {
+			console.log(`Loading summary for user ID: ${userId}`);
+			
+			// Get user from DB to ensure we have latest data
+			const user = await DbService.getUser(userId);
+			
+			// Update profile with user data
+			profile.username = user.pseudo;
+			profile.avatarUrl = user.pfp || '/images/default-avatar.svg';
+			profile.elo = user.elo || 1000;
+			profile.preferences.accentColor = user.theme || '#ffffff';
+			
 			// Fetch match history to calculate wins/losses
 			const matches = await DbService.getUserMatches(userId);
+			console.log(`Found ${matches.length} matches for user ID: ${userId}`);
 			
-			// Calculate wins and losses without loading all goals
+			// Process matches to calculate wins/losses
 			let wins = 0;
 			let losses = 0;
+			let totalGames = 0; // Only count "completed" matches (3 points or more)
 			
-			// Get 3 most recent matches for the summary
-			const recentMatches = [...matches].sort((a, b) => 
-				b.created_at.getTime() - a.created_at.getTime()
-			).slice(0, 3);
-			
-			// Process recent matches for display
-			const recentGameHistory = await Promise.all(recentMatches.map(async (match) => {
-				// Check if already cached
-				if (this.getInternalState().matchesCache.has(match.id)) {
-					return this.getInternalState().matchesCache.get(match.id);
-				}
-				
-				// Get opponent details
-				const isPlayer1 = match.player_1 === userId;
-				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
-				let opponentName = `Player ${opponentId}`;
-				
-				try {
-					const opponent = await DbService.getUser(opponentId);
-					if (opponent) {
-						opponentName = opponent.pseudo;
-					}
-				} catch {
-					console.log(`Could not fetch opponent data for ID ${opponentId}`);
-				}
-				
+			for (const match of matches) {
 				// Get goals for this match
-				const allMatchGoals = await DbService.getMatchGoals(match.id);
+				const goals = await DbService.getMatchGoals(match.id);
 				
 				// Calculate scores
+				const isPlayer1 = match.player_1 === userId;
+				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
+				
 				let playerScore = 0;
 				let opponentScore = 0;
 				
-				for (const goal of allMatchGoals) {
+				for (const goal of goals) {
 					if (goal.player === userId) {
 						playerScore++;
 					} else if (goal.player === opponentId) {
@@ -273,37 +288,35 @@ export class ProfileComponent extends Component<ProfileState> {
 					}
 				}
 				
-				// Determine result
-				const result = playerScore > opponentScore ? 'win' : 'loss';
-				if (result === 'win') wins++;
-				else losses++;
-				
-				// Create game history entry
-				const historyEntry = {
-					id: match.id,
-					date: new Date(match.created_at),
-					opponent: opponentName,
-					playerScore,
-					opponentScore,
-					result
-				};
-				
-				// Cache the result
-				this.getInternalState().matchesCache.set(match.id, historyEntry);
-				
-				return historyEntry;
-			}));
+				// Only count matches where at least one player has 3+ points
+				if (playerScore >= 3 || opponentScore >= 3) {
+					totalGames++;
+					
+					if (playerScore > opponentScore) {
+						wins++;
+					} else if (opponentScore > playerScore) {
+						losses++;
+					}
+					// Ties don't count for either
+					
+					console.log(`Match ${match.id}: ${playerScore}-${opponentScore} (counted)`);
+				} else {
+					console.log(`Match ${match.id}: ${playerScore}-${opponentScore} (not counted - under 3 points)`);
+				}
+			}
 			
-			// Update profile with summary data
-			const updatedProfile = {
-				...profile,
-				totalGames: matches.length,
-				wins,
-				losses,
-				gameHistory: recentGameHistory
-			};
+			console.log(`Final stats: ${wins} wins, ${losses} losses out of ${totalGames} completed games`);
 			
-			this.updateInternalState({ profile: updatedProfile });
+			// Update profile with calculated stats
+			profile.totalGames = totalGames;
+			profile.wins = wins;
+			profile.losses = losses;
+			
+			// Update profile state with a new object to ensure reactivity
+			this.updateInternalState({ profile: {...profile} });
+			
+			// Update UI
+			this.renderView();
 		} catch (error) {
 			console.error('Error loading summary data:', error);
 		}
@@ -326,7 +339,23 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Handle player profile clicks with callback
 	 */
 	private handlePlayerClick = (username: string): void => {
-		navigate(`/profile?${username}`);
+		// Find user by username to get ID
+		const dbData = localStorage.getItem('pong_db');
+		if (!dbData) {
+			console.error('DB not found in localStorage');
+			return;
+		}
+		
+		const users = JSON.parse(dbData).users;
+		const user = users.find((u: any) => u.pseudo === username);
+		
+		if (user) {
+			navigate(`/profile?id=${user.id}`);
+		} else {
+			console.error(`Could not find user with username: ${username}`);
+			// Navigate by username as fallback
+			navigate(`/profile?id=${username}`);
+		}
 	}
 	
 	/**
@@ -361,7 +390,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (!state.isLoading && !state.errorMessage && state.profile) {
 			const profileContent = this.container.querySelector('.profile-content');
 			if (profileContent) {
-				// Clear any existing content
 				profileContent.innerHTML = '';
 				
 				// Render summary
@@ -392,7 +420,10 @@ export class ProfileComponent extends Component<ProfileState> {
 				
 				profileContent.appendChild(summaryElement);
 				
-				// Add tabs
+				// Check if this is the current user's profile
+				const isCurrentUserProfile = this.isCurrentUserProfile(state.profile.id);
+				
+				// Add tabs - only show settings for current user
 				const tabsHTML = `
 					<div class="profile-tabs">
 						<ul class="tabs-list">
@@ -405,9 +436,11 @@ export class ProfileComponent extends Component<ProfileState> {
 							<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}">
 								<button class="tab-button">Friends</button>
 							</li>
-							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}">
-								<button class="tab-button">Settings</button>
-							</li>
+							${isCurrentUserProfile ? `
+								<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}">
+									<button class="tab-button">Settings</button>
+								</li>
+							` : ''}
 						</ul>
 					</div>
 					<div class="tab-content"></div>
@@ -416,11 +449,17 @@ export class ProfileComponent extends Component<ProfileState> {
 				const tabsContainer = document.createElement('div');
 				tabsContainer.innerHTML = tabsHTML;
 				
-				// Add event listeners to tabs
-				Array.from(tabsContainer.querySelectorAll('.tab-button')).forEach((button, index) => {
+				// Add event listeners to tabs - adjust for possible missing settings tab
+				const tabButtons = tabsContainer.querySelectorAll('.tab-button');
+				Array.from(tabButtons).forEach((button, index) => {
 					button.addEventListener('click', () => {
-						const tabNames = ['stats', 'history', 'friends', 'settings'];
-						this.handleTabChange(tabNames[index]);
+						const tabNames = ['stats', 'history', 'friends'];
+						if (isCurrentUserProfile) {
+							tabNames.push('settings');
+						}
+						if (index < tabNames.length) {
+							this.handleTabChange(tabNames[index]);
+						}
 					});
 				});
 				
@@ -429,6 +468,23 @@ export class ProfileComponent extends Component<ProfileState> {
 					profileContent.appendChild(tabsContainer.firstChild);
 				}
 			}
+		}
+	}
+
+	/**
+	 * Checks if the profile being viewed belongs to the current user
+	 */
+	private isCurrentUserProfile(profileId: string): boolean {
+		// Get the current user from local storage
+		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		if (!currentUserJson) return false;
+		
+		try {
+			const currentUser = JSON.parse(currentUserJson);
+			return currentUser && currentUser.id && currentUser.id.toString() === profileId;
+		} catch (error) {
+			console.error('Error parsing current user data:', error);
+			return false;
 		}
 	}
 }

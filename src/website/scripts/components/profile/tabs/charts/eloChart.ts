@@ -15,7 +15,7 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 	const xValues = Array.from({ length: eloHistory.length }, (_, i) => i + 1);
 	
 	// Create arrays for colors based on ELO values
-	const colors = eloHistory.map(elo => elo < 1000 ? 'rgba(255, 0, 0, 1)' : 'rgba(57, 211, 83, 1)');
+	const colors = eloHistory.map(elo => elo < 1000 ? '#ff7a7a' : '#98FB98');
 	
 	// Create the trace for the line plot with proper typing
 	const trace: Partial<ScatterData> = {
@@ -68,7 +68,7 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 			color: '#eee'
 		},
 		margin: {
-			l: 50,
+			l: 100,
 			r: 30,
 			b: 50,
 			t: 80,

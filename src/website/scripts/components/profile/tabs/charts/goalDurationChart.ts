@@ -71,7 +71,7 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			color: '#eee'
 		},
 		margin: {
-			l: 50,
+			l: 100,
 			r: 30,
 			b: 50,
 			t: 80,

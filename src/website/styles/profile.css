@@ -149,40 +149,95 @@
 	display: block;
 }
 
-/* Game History Table */
+/* Game History Table - Updated to match leaderboard style */
 .game-history-table {
 	width: 100%;
 	border-collapse: collapse;
-	font-family: var(--font-family);
+	margin-top: 1rem;
+	font-size: var(--font-size-medium);
+	table-layout: fixed;
+	padding: 0 1.5rem;
 }
 
 .game-history-table th {
-	text-align: left;
-	padding: 0.75rem;
-	color: var(--text-color);
+	text-align: center;
+	padding: var(--spacing-sm) 0;
+	background-color: var(--menu-bg);
+	border-bottom: 2px solid var(--border-color);
 	font-weight: bold;
+	color: var(--text-color);
+	font-size: var(--font-size-medium);
+	letter-spacing: 1px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .game-history-table td {
-	padding: 0.75rem;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	padding: 0.75rem 0;
+	border-bottom: 1px solid #333;
+	text-align: center;
 }
 
-.game-win { background-color: rgba(152, 251, 152, 0.1); }
-.game-loss { background-color: rgba(255, 160, 122, 0.1); }
+/* Keep alternate row styling but use with win/loss color */
+.game-win {
+	background-color: rgba(152, 251, 152, 0.1);
+}
 
-.result-cell-win { color: var(--win-color); }
-.result-cell-loss { color: var(--loss-color); }
+.game-loss {
+	background-color: rgba(255, 160, 122, 0.1);
+}
 
-.opponent-cell {
-	cursor: pointer;
-	transition: color 0.2s;
+.result-cell-win {
+	color: var(--win-color);
+	font-weight: bold;
+}
+
+.result-cell-loss {
+	color: var(--loss-color);
+	font-weight: bold;
+}
+
+/* Match player cell to leaderboard style */
+.player-cell {
 	position: relative;
+	cursor: pointer;
+	transition: transform 0.2s ease, color 0.2s ease;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-left: 1rem;
+	padding-right: 1rem;
+	max-width: 10rem;
 	z-index: var(--z-ui);
+	font-weight: bold;
 }
 
-.opponent-cell:hover {
-	color: var(--accent1-color);
+/* Player Cell Hover Effects - Match leaderboard */
+.player-cell:hover {
+	transform: scale(1.05);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	z-index: 1;
+}
+
+.player-cell:hover:before {
+	content: '>';
+	position: static;
+	margin-right: 5px;
+}
+
+.player-cell:hover:after {
+	content: '<';
+	position: static;
+	margin-left: 5px;
+}
+
+.history-content {
+	width: 70%;
+	margin: 0 auto;
 }
 
 /* Friends List */
@@ -265,8 +320,10 @@
 
 .form-actions {
 	display: flex;
-	gap: 1rem;
-	margin-top: 2rem;
+	justify-content: center;
+	align-items: center;
+	margin-top: 1rem;
+	position: relative;
 }
 
 .edit-profile-button, .save-settings-button {
@@ -286,19 +343,7 @@
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	align-items: center;
-}
-
-.chart-container {
-	width: 95%;
-	max-width: 95%;
-	margin: 0 auto;
-}
-
-.chart {
-	width: 95% !important;
-	border: none !important;
-	background: none !important;
+	
 }
 
 .chart-title {
@@ -384,4 +429,236 @@
 
 .js-plotly-plot {
 	width: 95% !important;
+}
+
+/* Settings Styles */
+.settings-content {
+	width: 70%;
+	margin: 0 auto;
+	padding: 1rem 0;
+}
+
+.settings-section {
+	margin-bottom: 2rem;
+	padding: 1.5rem;
+	background: rgba(0, 0, 0, 0.2);
+	border: 1px solid var(--border-color);
+	min-height: 15rem;
+	display: flex;
+	flex-direction: column;
+}
+
+.section-title {
+	font-size: 1.2rem;
+	color: var(--text-color);
+	margin-bottom: 1.5rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border-color);
+}
+
+/* Profile Picture Upload */
+.profile-picture-container {
+	display: flex;
+	align-items: center;
+	gap: 2rem;
+	flex: 1;
+	justify-content: center;
+}
+
+.current-picture {
+	width: 100px;
+	height: 100px;
+	border-radius: 50%;
+	overflow: hidden;
+	border: 2px solid var(--border-color);
+}
+
+.current-picture img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.upload-controls {
+	flex: 1;
+}
+
+.upload-label {
+	display: inline-block;
+	padding: 0.5rem 1rem;
+	background: var(--menu-bg);
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.upload-label:hover {
+	border-color: var(--text-color);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.upload-label input[type="file"] {
+	display: none;
+}
+
+.upload-info {
+	margin-top: 1rem;
+}
+
+.uploading, .upload-success, .upload-error, .upload-hint {
+	display: block;
+	margin-top: 0.5rem;
+	font-size: 0.85rem;
+}
+
+.uploading {
+	color: var(--text-color);
+}
+
+.upload-success {
+	color: var(--win-color);
+}
+
+.upload-error {
+	color: var(--loss-color);
+}
+
+.upload-hint {
+	color: rgba(255, 255, 255, 0.6);
+	font-style: italic;
+}
+
+/* Color Selection - Reuse classes from player-register.css */
+.settings-color-selection {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex: 1;
+}
+
+/* Form Styling */
+.settings-form {
+	width: 100%;
+}
+
+.form-group label {
+	display: block;
+	color: var(--text-color);
+}
+
+.form-group input {
+	width: 100%;
+	padding: 0.75rem;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	font-size: 1rem;
+}
+
+.form-error {
+	color: var(--loss-color);
+	font-size: 0.85rem;
+	margin-top: 0.5rem;
+}
+
+.form-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 1rem;
+	position: relative;
+}
+
+.save-settings-button {
+	color: var(--text-color);
+	text-decoration: none;
+	padding: 0.8rem 1.5rem;
+	transition: all 0.3s ease;
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: relative;
+	overflow: hidden;
+}
+
+.save-settings-button:hover {
+	text-shadow: 0 0 10px var(--win-color);
+	border-color: var(--win-color);
+	color: var(--win-color);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+	background-color: var(--menu-bg);
+}
+
+/* Two-column layout for settings */
+.settings-columns {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 2rem;
+	margin-bottom: 2rem;
+}
+
+.settings-column {
+	flex: 1;
+	min-width: 45%;
+}
+
+.accent-color-section {
+	margin-top: 2rem;
+}
+
+.subsection-title {
+	font-size: 1rem;
+	color: var(--text-color);
+	margin-bottom: 1rem;
+}
+
+/* Success icon */
+.save-success-icon {
+	color: var(--win-color);
+	font-size: 1.5rem;
+	animation: fadeOut 2s forwards;
+	position: absolute;
+	left: calc(50% + 6rem);
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+@keyframes fadeOut {
+	0% { opacity: 1; }
+	70% { opacity: 1; }
+	100% { opacity: 0; }
+}
+
+.save-error {
+	margin-left: 1rem;
+}
+
+/* Grid layout for settings */
+.settings-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	grid-template-rows: repeat(2, auto);
+	gap: 1.5rem;
+	margin-bottom: 1.5rem;
+}
+
+/* Make all sections have minimum consistent height */
+.settings-section {
+	min-height: 15rem;
+}
+
+/* Center the form actions */
+.form-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 1rem;
+	position: relative;
+}
+
+.loading-indicator {
+	margin-top: 1rem;
+	text-align: center;
+	font-style: italic;
 }

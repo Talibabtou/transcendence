@@ -75,6 +75,8 @@ body {
 	overflow: auto;
 	display: flex;
 	flex-direction: column;
+	position: relative;
+	z-index: 0;
 }
 
 body::before {
@@ -82,8 +84,10 @@ body::before {
 	position: fixed;
 	top: 0;
 	left: 0;
-	width: 100%;
-	height: 100%;
+	right: 0;
+	bottom: 0;
+	z-index: -1;
+	pointer-events: none;
 	background: linear-gradient(
 		rgba(255, 255, 255, 0.03) 50%,
 		rgba(0, 0, 0, 0.1) 50%
@@ -102,6 +106,8 @@ body::before {
 	box-shadow: var(--shadow-normal);
 	position: relative;
 	z-index: var(--z-content);
+	overflow-y: visible;
+	pointer-events: auto;
 }
 
 /* ASCII */
@@ -245,16 +251,11 @@ body::before {
 }
 
 .content-wrapper {
-	flex: 1;
+	min-height: 100%;
 	width: 100%;
-	height: calc(100vh - var(--navbar-height) - var(--footer-height));
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	padding: var(--spacing-md);
-	overflow-y: auto;
+	pointer-events: auto;
 	position: relative;
+	z-index: 0;
 }
 
 /* Footer */
@@ -508,4 +509,13 @@ body::before {
 		padding: 0.5rem 0.25rem;
 		font-size: 0.9rem;
 	}
+}
+
+/* Ensure the entire HTML and BODY are scrollable */
+html, body {
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+	pointer-events: auto;
 }

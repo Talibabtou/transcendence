@@ -3,24 +3,75 @@
  * Allows users to update their profile settings
  */
 import { Component } from '@website/scripts/components';
-import { html, render, appState, AccentColor } from '@website/scripts/utils';
+import { html, render, DbService, appState } from '@website/scripts/utils';
 import { UserProfile } from '@shared/types';
 
 interface ProfileSettingsState {
 	profile: UserProfile | null;
-	isEditing: boolean;
+	isUploading: boolean;
+	uploadSuccess: boolean;
+	uploadError: string | null;
+	saveSuccess: boolean;
+	formData: {
+		username: string;
+		email: string;
+		password: string;
+		confirmPassword: string;
+	};
+	formErrors: {
+		username?: string;
+		email?: string;
+		password?: string;
+		confirmPassword?: string;
+		form?: string;
+	};
 }
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	constructor(container: HTMLElement) {
 		super(container, {
 			profile: null,
-			isEditing: false
+			isUploading: false,
+			uploadSuccess: false,
+			uploadError: null,
+			saveSuccess: false,
+			formData: {
+				username: '',
+				email: '',
+				password: '',
+				confirmPassword: '',
+			},
+			formErrors: {}
 		});
 	}
 	
 	public setProfile(profile: UserProfile): void {
-		this.updateInternalState({ profile });
+		// Initialize form data with profile data
+		const formData = {
+			username: profile.username || '',
+			email: '', // Email may need to be fetched separately
+			password: '',
+			confirmPassword: '',
+		};
+		
+		// Get email from DB if not in profile
+		DbService.getUser(parseInt(profile.id))
+			.then(user => {
+				if (user && user.email) {
+					this.updateInternalState({
+						profile,
+						formData: {
+							...formData,
+							email: user.email
+						}
+					});
+				} else {
+					this.updateInternalState({ profile, formData });
+				}
+			})
+			.catch(() => {
+				this.updateInternalState({ profile, formData });
+			});
 	}
 	
 	render(): void {
@@ -28,57 +79,148 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (!state.profile) return;
 		
 		// Get available colors from app state
-		const availableColors = appState.getAvailableColors();
-		const currentColor = appState.getAccentColor();
+		const availableColors = Object.entries(appState.getAvailableColors());
+		
+		// Split colors into two rows
+		const firstRowColors = availableColors.slice(0, 6);
+		const secondRowColors = availableColors.slice(6);
+		
+		// Get current color from profile
+		const currentColor = state.profile.preferences.accentColor;
 		
 		const template = html`
 			<div class="settings-content">
-				<h4>Account Settings</h4>
-				<form class="settings-form">
-					<div class="form-group">
-						<label for="username">Username</label>
-						<input type="text" id="username" name="username" 
-							value="${state.profile.username}" 
-							disabled=${!state.isEditing}>
-					</div>
-					<div class="form-group">
-						<label for="avatar">Avatar URL</label>
-						<input type="text" id="avatar" name="avatar" 
-							value="${state.profile.avatarUrl}" 
-							disabled=${!state.isEditing}>
-					</div>
-					<div class="form-group">
-						<label for="password">Change Password</label>
-						<input type="password" id="password" name="password" 
-							placeholder="New password" 
-							disabled=${!state.isEditing}>
-					</div>
-					<div class="form-group">
-						<label>Accent Color</label>
-						<div class="color-picker">
-							${Object.entries(availableColors).map(([colorName, colorHex]) => html`
-								<div 
-									class="color-option ${colorName === currentColor ? 'selected' : ''}"
-									style="background-color: ${colorHex}"
-									onClick=${() => this.handleColorSelect(colorName as AccentColor)}
-									title="${colorName}"
-								></div>
-							`)}
+				<!-- Grid layout with 4 equal sections -->
+				<div class="settings-grid">
+					<!-- Section 1: Profile Picture -->
+					<div class="settings-section">
+						<h3 class="section-title">Profile Picture</h3>
+						<div class="profile-picture-container">
+							<div class="current-picture">
+								<img src="${state.profile.avatarUrl}" alt="${state.profile.username}" />
+							</div>
+							<div class="upload-controls">
+								<label for="profile-picture-upload" class="upload-label">
+									Choose File
+									<input 
+										type="file" 
+										id="profile-picture-upload" 
+										accept=".jpg,.jpeg,.png,.svg"
+										onchange=${(e: Event) => this.handleFileChange(e)}
+									/>
+								</label>
+								<div class="upload-info">
+									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
+									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
+									${state.uploadError ? html`<span class="upload-error">${state.uploadError}</span>` : ''}
+									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, SVG</p>
+								</div>
+							</div>
 						</div>
 					</div>
 					
+					<!-- Section 2: Accent Color -->
+					<div class="settings-section">
+						<h3 class="section-title">Accent Color</h3>
+						<div class="player-color-selection settings-color-selection">
+							<div class="color-picker">
+								<div class="color-row">
+									${firstRowColors.map(([colorName, colorHex]) => html`
+										<div 
+											class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+											style="background-color: ${colorHex}"
+											onClick=${() => this.handleColorSelect(colorHex)}
+											title="${colorName}"
+										></div>
+									`)}
+								</div>
+								<div class="color-row">
+									${secondRowColors.map(([colorName, colorHex]) => html`
+										<div 
+											class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+											style="background-color: ${colorHex}"
+											onClick=${() => this.handleColorSelect(colorHex)}
+											title="${colorName}"
+										></div>
+									`)}
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					<!-- Section 3: Account Information -->
+					<div class="settings-section">
+						<h3 class="section-title">Account Information</h3>
+						<!-- Username -->
+						<div class="form-group">
+							<label for="username">Username</label>
+							<input 
+								type="text" 
+								id="username" 
+								name="username" 
+								value=${state.formData.username}
+								onchange=${(e: Event) => this.handleInputChange(e)}
+							/>
+							${state.formErrors.username ? 
+								html`<div class="form-error">${state.formErrors.username}</div>` : ''}
+						</div>
+						
+						<!-- Email -->
+						<div class="form-group">
+							<label for="email">Email</label>
+							<input 
+								type="email" 
+								id="email" 
+								name="email" 
+								value=${state.formData.email}
+								onchange=${(e: Event) => this.handleInputChange(e)}
+							/>
+							${state.formErrors.email ? 
+								html`<div class="form-error">${state.formErrors.email}</div>` : ''}
+						</div>
+					</div>
+					
+					<!-- Section 4: Change Password -->
+					<div class="settings-section">
+						<h3 class="section-title">Change Password</h3>
+						<!-- New Password -->
+						<div class="form-group">
+							<label for="password">New Password</label>
+							<input 
+								type="password" 
+								id="password" 
+								name="password" 
+								value=${state.formData.password}
+								onchange=${(e: Event) => this.handleInputChange(e)}
+							/>
+							${state.formErrors.password ? 
+								html`<div class="form-error">${state.formErrors.password}</div>` : ''}
+						</div>
+						
+						<!-- Confirm Password -->
+						<div class="form-group">
+							<label for="confirmPassword">Confirm Password</label>
+							<input 
+								type="password" 
+								id="confirmPassword" 
+								name="confirmPassword" 
+								value=${state.formData.confirmPassword}
+								onchange=${(e: Event) => this.handleInputChange(e)}
+							/>
+							${state.formErrors.confirmPassword ? 
+								html`<div class="form-error">${state.formErrors.confirmPassword}</div>` : ''}
+						</div>
+					</div>
+				</div>
+				
+				<!-- Save Button - Centered Below All Sections -->
+				<form class="settings-form" onsubmit=${(e: Event) => this.handleSubmit(e)}>
 					<div class="form-actions">
-						<button type="button" class="edit-profile-button" 
-							onClick=${() => this.toggleEditMode()}>
-							${state.isEditing ? 'Cancel' : 'Edit Profile'}
+						<button type="submit" class="save-settings-button">
+							Save Changes
 						</button>
-						${state.isEditing ? 
-							html`<button type="button" class="save-settings-button" 
-								onClick=${() => this.saveProfileChanges()}>
-								Save Changes
-							</button>` : 
-							html``
-						}
+						${state.saveSuccess ? html`<span class="save-success-icon">✓</span>` : ''}
+						${state.formErrors.form ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
 					</div>
 				</form>
 			</div>
@@ -87,38 +229,253 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		render(template, this.container);
 	}
 	
-	private toggleEditMode(): void {
-		this.updateInternalState({ isEditing: !this.getInternalState().isEditing });
-		this.render();
-	}
-	
-	private handleColorSelect(color: AccentColor): void {
-		// Update app state
-		appState.setAccentColor(color);
-		// Re-render to show the selection
-		this.render();
-	}
-	
-	private saveProfileChanges(): void {
-		const state = this.getInternalState();
-		// Get form data
-		const form = this.container.querySelector('.settings-form') as HTMLFormElement;
-		if (!form || !state.profile) return;
+	// Handle file upload for profile picture
+	private handleFileChange(event: Event): void {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
 		
-		// Example of getting form values
-		const username = (form.querySelector('[name="username"]') as HTMLInputElement)?.value;
-		
-		// Update state and exit edit mode
-		if (username) {
-			const updatedProfile = {
-				...state.profile,
-				username
+		if (file) {
+			const state = this.getInternalState();
+			
+			// Validate file type
+			const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
+			if (!validTypes.includes(file.type)) {
+				this.updateInternalState({
+					uploadError: 'Invalid file type. Please use JPG, PNG, or SVG.',
+					uploadSuccess: false
+				});
+				return;
+			}
+			
+			// Validate file size (max 2MB)
+			if (file.size > 2 * 1024 * 1024) {
+				this.updateInternalState({
+					uploadError: 'File too large. Maximum size is 2MB.',
+					uploadSuccess: false
+				});
+				return;
+			}
+			
+			// Start upload
+			this.updateInternalState({
+				isUploading: true,
+				uploadError: null,
+				uploadSuccess: false
+			});
+			
+			// Create a new file with user ID as the name
+			const fileExtension = file.name.split('.').pop();
+			const newFileName = `${state.profile?.id}.${fileExtension}`;
+			
+			// In a real implementation, we would use FormData to upload to server
+			// For our mock, we'll use FileReader to simulate upload
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const result = e.target?.result;
+				if (result && state.profile) {
+					// Update db with new profile picture URL
+					const newAvatarUrl = `/images/${newFileName}`;
+					
+					// Simulate server-side upload success
+					setTimeout(() => {
+						// Update user profile in database
+						DbService.updateUser(parseInt(state.profile!.id), {
+							pfp: newAvatarUrl
+						})
+						.then(() => {
+							// Update local state
+							this.updateInternalState({
+								isUploading: false,
+								uploadSuccess: true,
+								profile: {
+									...state.profile!,
+									avatarUrl: newAvatarUrl
+								}
+							});
+							
+							// Update AppState to propagate changes to all components
+							appState.updateUserData({
+								profilePicture: newAvatarUrl
+							});
+							
+							this.render();
+						})
+						.catch(error => {
+							this.updateInternalState({
+								isUploading: false,
+								uploadError: `Upload failed: ${error.message}`
+							});
+						});
+					}, 1000); // Simulate upload delay
+				}
 			};
 			
-			this.updateInternalState({ 
-				profile: updatedProfile,
-				isEditing: false 
-			});
+			reader.onerror = () => {
+				this.updateInternalState({
+					isUploading: false,
+					uploadError: 'Error reading file.'
+				});
+			};
+			
+			reader.readAsDataURL(file);
 		}
 	}
-} 
+	
+	// Handle color selection
+	private handleColorSelect(colorHex: string): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		// Update user theme in database
+		DbService.updateUserTheme(state.profile.id, colorHex)
+			.then(() => {
+				// Update local state
+				const updatedProfile = {
+					...state.profile!,
+					preferences: {
+						...state.profile!.preferences,
+						accentColor: colorHex
+					}
+				};
+				
+				this.updateInternalState({
+					profile: updatedProfile
+				});
+				
+				// Also update global app state for immediate visual feedback
+				appState.setPlayerAccentColor(parseInt(state.profile!.id), colorHex);
+				
+				// Apply directly to CSS for immediate effect
+				document.documentElement.style.setProperty('--accent1-color', colorHex);
+				
+				this.render();
+			})
+			.catch(error => {
+				console.error('Failed to update color:', error);
+			});
+	}
+	
+	// Handle form input changes
+	private handleInputChange(event: Event): void {
+		const input = event.target as HTMLInputElement;
+		const { name, value } = input;
+		
+		// Update form data
+		this.updateInternalState({
+			formData: {
+				...this.getInternalState().formData,
+				[name]: value
+			}
+		});
+	}
+	
+	// Handle form submission
+	private handleSubmit(event: Event): void {
+		event.preventDefault();
+		
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		// Validate form
+		const errors: { [key: string]: string } = {};
+		
+		// Username validation
+		if (!state.formData.username) {
+			errors.username = 'Username is required';
+		} else if (state.formData.username.length < 3) {
+			errors.username = 'Username must be at least 3 characters';
+		}
+		
+		// Email validation
+		if (state.formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.formData.email)) {
+			errors.email = 'Please enter a valid email address';
+		}
+		
+		// Password validation
+		if (state.formData.password || state.formData.confirmPassword) {
+			if (state.formData.password.length < 6) {
+				errors.password = 'Password must be at least 6 characters';
+			}
+			
+			if (state.formData.password !== state.formData.confirmPassword) {
+				errors.confirmPassword = 'Passwords do not match';
+			}
+		}
+		
+		// If there are errors, update state and stop
+		if (Object.keys(errors).length > 0) {
+			this.updateInternalState({ formErrors: errors });
+			return;
+		}
+		
+		// Clear any previous errors
+		this.updateInternalState({ formErrors: {} });
+		
+		// Prepare update data
+		const updateData: any = {};
+		
+		// Only include fields that have changed
+		if (state.formData.username !== state.profile.username) {
+			updateData.pseudo = state.formData.username;
+		}
+		
+		if (state.formData.email) {
+			updateData.email = state.formData.email;
+		}
+		
+		if (state.formData.password) {
+			updateData.password = state.formData.password;
+		}
+		
+		// If nothing has changed, don't make an API call
+		if (Object.keys(updateData).length === 0) {
+			// Show success message or just return
+			return;
+		}
+		
+		// Update user data in database
+		DbService.updateUser(parseInt(state.profile.id), updateData)
+			.then((updatedUser) => {
+				// Update local state with new user data
+				const updatedProfile = {
+					...state.profile!,
+					username: updatedUser.pseudo
+				};
+				
+				this.updateInternalState({
+					profile: updatedProfile,
+					formData: {
+						...state.formData,
+						username: updatedUser.pseudo,
+						email: updatedUser.email || state.formData.email,
+						password: '',
+						confirmPassword: ''
+					},
+					saveSuccess: true
+				});
+				
+				// Update AppState
+				appState.updateUserData({
+					username: updatedUser.pseudo,
+					email: updatedUser.email
+				});
+				
+				// Set timeout to hide success indicator after 2 seconds
+				setTimeout(() => {
+					this.updateInternalState({
+						saveSuccess: false
+					});
+				}, 2000);
+				
+				this.render();
+			})
+			.catch(error => {
+				this.updateInternalState({
+					formErrors: {
+						...state.formErrors,
+						form: `Failed to update profile: ${error.message}`
+					}
+				});
+			});
+	}
+}

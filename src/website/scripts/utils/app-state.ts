@@ -502,6 +502,21 @@ export class AppStateManager {
 			sessionStorage.removeItem('auth_token');
 		}
 	}
+	
+	updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
+		const currentUser = this.getCurrentUser();
+		if (currentUser) {
+			this.setState({
+				auth: {
+					...this.state.auth,
+					user: {
+						...currentUser,
+						...userData
+					}
+				}
+			});
+		}
+	}
 }
 
 // Export a singleton instance

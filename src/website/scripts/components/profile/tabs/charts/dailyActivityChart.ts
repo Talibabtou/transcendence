@@ -84,8 +84,8 @@ export function renderDailyActivityChart(container: HTMLElement, dailyPerformanc
 			color: '#eee'
 		},
 		margin: {
-			l: 40,
-			r: 10,
+			l: 100,
+			r: 30,
 			b: 30,
 			t: 10,
 			pad: 0
