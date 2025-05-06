@@ -219,7 +219,7 @@ export class GameManager {
 			if (instance.isActive && instance.engine) {
 				let deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
-				console.log("deltaTime", deltaTime);
+				// console.log("deltaTime", deltaTime);
 				// Prevent spiral of death by capping delta time
 				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) {
 					deltaTime = GAME_CONFIG.MAX_DELTA_TIME; 
@@ -233,7 +233,7 @@ export class GameManager {
 					while (accumulator >= GAME_CONFIG.FRAME_TIME) {
 						// Pass the fixed delta time (in seconds) to the update function
 						// TODO: Update GameEngine.update signature to accept deltaTime
-						instance.engine.update(GAME_CONFIG.FRAME_TIME / 1000); 
+						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000); 
 						accumulator -= GAME_CONFIG.FRAME_TIME;
 					}
 
