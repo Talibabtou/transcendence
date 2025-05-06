@@ -1,4 +1,4 @@
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { Match, GetTournamentsQuery, FinalResultObject } from '../shared/types/match.type.js';
@@ -6,7 +6,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 
 export async function getTournament(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Match[] | null | ErrorResponse;
@@ -23,7 +23,7 @@ export async function getTournaments(
   reply: FastifyReply
 ) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Match[] | ErrorResponse;
@@ -37,7 +37,7 @@ export async function getTournaments(
 
 export async function getFinalMatches(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as FinalResultObject | ErrorResponse;

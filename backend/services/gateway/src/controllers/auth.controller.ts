@@ -61,7 +61,7 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     if (response.status != 204) {
-      const responseData = await response.json() as IReplyQrCode | ErrorResponse;
+      const responseData = (await response.json()) as IReplyQrCode | ErrorResponse;
       return reply.code(response.status).send(responseData);
     }
     return reply.code(response.status).send();
@@ -87,7 +87,7 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
     if (response.status == 200) {
       return reply.code(response.status).send();
     }
-    const responseData = await response.json() as ErrorResponse;
+    const responseData = (await response.json()) as ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

@@ -5,14 +5,14 @@ import { IUpload } from '../shared/types/profil.type.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
 
-export default async function authRoutes(fastify: FastifyInstance) {
+export default async function profilRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: IUpload }>(
     '/profil/uploads',
     {
-      // schema: {
-      //   ...uploadSchema,
-      //   tags: ['profil'],
-      // },
+      schema: {
+        ...uploadSchema,
+        tags: ['profil'],
+      },
       config: auth,
     },
     upload

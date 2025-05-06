@@ -20,7 +20,7 @@ export const getFriendsSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -54,7 +54,7 @@ export const getFriendsMeSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {
@@ -76,7 +76,7 @@ export const getCheckSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -119,7 +119,7 @@ export const postCreateSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -154,7 +154,7 @@ export const patchAcceptSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -189,7 +189,7 @@ export const deleteAllSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     204: {},
@@ -208,7 +208,7 @@ export const deleteFriendSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',

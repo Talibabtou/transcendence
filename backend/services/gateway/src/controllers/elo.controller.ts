@@ -1,4 +1,4 @@
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
@@ -7,7 +7,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 
 export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuery }>, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Elo[] | ErrorResponse;
@@ -21,7 +21,7 @@ export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuer
 
 export async function getElo(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Elo | ErrorResponse;
@@ -35,7 +35,7 @@ export async function getElo(request: FastifyRequest<{ Params: IId }>, reply: Fa
 
 export async function getLeaderboard(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as LeaderboardEntry[] | ErrorResponse;
@@ -50,15 +50,9 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
 export async function createElo(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/v1')[1];
+    const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
-    const response = await fetch(serviceUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': request.headers['content-type'] || 'application/json',
-      },
-      body: JSON.stringify(request.body),
-    });
+    const response = await fetch(serviceUrl, { method: 'POST' });
     const responseData = (await response.json()) as Elo | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {

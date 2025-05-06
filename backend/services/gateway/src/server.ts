@@ -5,22 +5,19 @@ import fastifyJwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import fastifySwagger from '@fastify/swagger';
-import apiRoutes from './routes/api.routes.js';
+import gatewayRoutes from './routes/gateway.routes.js';
 import eloRoutes from './routes/elo.routes.js';
 import goalRoutes from './routes/goal.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import fastifyMultipart from '@fastify/multipart';
 import matchRoutes from './routes/match.routes.js';
-import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import { fastify, FastifyInstance } from 'fastify';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import profilRoutes from './routes/profil.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
 import { API_PREFIX } from './shared/constants/path.const.js';
 import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
-import {
-  // checkMicroservices,
-  checkMicroservicesHook,
-} from './controllers/api.controller.js';
+import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 
 // const server = fastify({
 // 	logger: true,
@@ -33,7 +30,7 @@ import {
 
 async function routes(server: FastifyInstance) {
   await server.register(eloRoutes, { prefix: API_PREFIX });
-  await server.register(apiRoutes, { prefix: API_PREFIX });
+  await server.register(gatewayRoutes, { prefix: API_PREFIX });
   await server.register(authRoutes, { prefix: API_PREFIX });
   await server.register(goalRoutes, { prefix: API_PREFIX });
   await server.register(matchRoutes, { prefix: API_PREFIX });
@@ -63,31 +60,6 @@ const rateLimitParams = {
   timeWindow: '1 minute',
 };
 
-const loggerParams = {
-  logger: {
-    prettyPrint: true,
-    serializers: {
-      res(reply: FastifyReply) {
-        // The default
-        return {
-          statusCode: reply.statusCode
-        }
-      },
-      req(request: FastifyRequest) {
-        return {
-          method: request.method,
-          url: request.url,
-          ip: request.ip,
-          path: request.originalUrl,
-          parameters: request.params,
-
-          headers: request.headers
-        };
-      }
-    }
-  }
-}
-
 // const corsConfig = {
 //   origin: '*', // Allow all origins (or specify your frontend's origin)
 //   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Allowed HTTP methods
@@ -101,18 +73,19 @@ export class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) Server.instance = fastify({
-      logger: {
-        transport: {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            translateTime: 'SYS:standard',
-            ignore: 'pid,hostname',
-          }
-        }
-      }
-    });
+    if (!Server.instance)
+      Server.instance = fastify({
+        logger: {
+          transport: {
+            target: 'pino-pretty',
+            options: {
+              colorize: true,
+              translateTime: 'SYS:standard',
+              ignore: 'pid,hostname',
+            },
+          },
+        },
+      });
     return Server.instance;
   }
 
@@ -144,7 +117,7 @@ export class Server {
           },
           security: [{ bearerAuth: [] }],
           tags: [
-            { name: 'api', description: 'Main API endpoints' },
+            { name: 'gateway', description: 'Main API endpoints' },
             {
               name: 'auth',
               description: 'Authentication and authorization endpoints',

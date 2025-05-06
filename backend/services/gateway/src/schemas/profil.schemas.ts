@@ -5,7 +5,7 @@ export const uploadSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   consumes: ['multipart/form-data'],
   body: {
@@ -33,7 +33,7 @@ export const deleteSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     204: {},

@@ -21,7 +21,6 @@ export interface IReplyUser {
   email: string;
 }
 
-
 export interface IReplyLogin {
   token: string;
   id?: string;
@@ -43,6 +42,6 @@ export interface IId {
 }
 
 export interface IReplyQrCode {
-  qrcode: string,
-  otpauth: string | undefined,
+  qrcode: string;
+  otpauth: string | undefined;
 }

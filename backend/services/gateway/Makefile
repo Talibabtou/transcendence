@@ -26,6 +26,14 @@ test_profil: clean
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} test_profil
 
+test_gateway: clean
+	@${NPM} build || { echo "Build failed"; exit 1; }
+	@${NPM} test_gateway
+
+test_elo: clean
+	@${NPM} build || { echo "Build failed"; exit 1; }
+	@${NPM} test_elo
+
 infos:
 	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix, test"
 
@@ -55,4 +63,4 @@ fclean: clean
 	@${RM} node_modules/
 	@${RM} dist/
 
-.PHONY: all re clean fclean prettier linter format install audit audit-fix infos test_auth test_auth2fa test_friends test_profil
+.PHONY: all re clean fclean prettier linter format install audit audit-fix infos test_auth test_auth2fa test_friends test_profil test_gateway

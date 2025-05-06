@@ -23,7 +23,7 @@ export const getMatchSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -73,7 +73,7 @@ export const createMatchSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -101,7 +101,7 @@ export const updateMatchSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -140,7 +140,7 @@ export const matchTimelineSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -181,7 +181,7 @@ export const matchSummarySchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -213,7 +213,7 @@ export const matchStatsSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',

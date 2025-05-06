@@ -108,12 +108,10 @@ export async function getElos(
   try {
     let query = 'SELECT * FROM elo WHERE 1=1';
     const params = [];
-
     if (player !== undefined) {
       query += ' AND player = ?';
       params.push(player);
     }
-
     query += ' ORDER BY created_at ASC LIMIT ? OFFSET ?';
     params.push(limit, offset);
 
@@ -200,7 +198,7 @@ export async function getLeaderboard(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { limit, offset } = request.query;
+  const { limit = 10, offset = 0 } = request.query;
   try {
     const startTime = performance.now();
     const leaderboard = (await request.server.db.all(

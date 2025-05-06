@@ -1,16 +1,16 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { getPicSchema, getPicsSchema, getHealthSchema, getCheckSchema } from '../schemas/api.schemas.js';
-import { getPic, getPics, getHealth } from '../controllers/api.controller.js';
+import { getPicSchema, getPicsSchema, getHealthSchema, getCheckSchema } from '../schemas/gateway.schemas.js';
+import { getPic, getPics, getHealth } from '../controllers/gateway.controller.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
 
-export default async function apiRoutes(fastify: FastifyInstance) {
+export default async function gatewayRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/pics',
     {
       schema: {
         ...getPicsSchema,
-        tags: ['api'],
+        tags: ['gateway'],
       },
       config: auth,
     },
@@ -22,7 +22,7 @@ export default async function apiRoutes(fastify: FastifyInstance) {
     {
       schema: {
         ...getPicSchema,
-        tags: ['api'],
+        tags: ['gateway'],
       },
       config: auth,
     },

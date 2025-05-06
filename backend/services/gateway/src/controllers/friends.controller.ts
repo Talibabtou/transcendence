@@ -1,4 +1,4 @@
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
@@ -41,7 +41,7 @@ export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, 
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    const responseData = await response.json() as IReplyGetFriendStatus | ErrorResponse;
+    const responseData = (await response.json()) as IReplyGetFriendStatus | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

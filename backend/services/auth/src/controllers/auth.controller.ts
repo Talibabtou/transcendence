@@ -92,9 +92,10 @@ export async function addUser(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
       [username, password, email, ip]
     );
-    const user: IReplyUser | undefined = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [
-      username,
-    ]);
+    const user: IReplyUser | undefined = await request.server.db.get(
+      'SELECT username, email, id FROM users WHERE username = ?',
+      [username]
+    );
     return reply.code(201).send(user);
   } catch (err) {
     if (err instanceof Error) {
@@ -305,7 +306,7 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
     const qrCodeReponse: IReplyQrCode = {
       qrcode: qrCodeImage,
       otpauth: secretCode.otpauth_url,
-    }
+    };
     return reply.code(200).send(qrCodeReponse);
   } catch (err) {
     request.server.log.error(err);

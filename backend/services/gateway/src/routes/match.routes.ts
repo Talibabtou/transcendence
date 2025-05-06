@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { GetMatchesQuery, CreateMatchRequest } from '../shared/types/match.type.js';
 import {
   getMatch,
@@ -22,7 +22,7 @@ const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Querystring: GetMatchesQuery }>(
-    '/matches',
+    '/game/matches',
     {
       schema: {
         ...getMatchesSchema,
@@ -34,7 +34,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   fastify.get<{ Params: IId }>(
-    '/match/:id',
+    '/game/match/:id',
     {
       schema: {
         ...getMatchSchema,
@@ -46,7 +46,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   fastify.get<{ Params: IId }>(
-    '/match/:id/stats',
+    '/game/match/:id/stats',
     {
       schema: {
         ...matchTimelineSchema,
@@ -58,7 +58,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   fastify.get<{ Params: IId }>(
-    '/match/stats/:id',
+    '/game/match/stats/:id',
     {
       schema: {
         ...matchStatsSchema,
@@ -70,7 +70,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   fastify.get<{ Params: IId }>(
-    '/match/summary/:id',
+    '/game/match/summary/:id',
     {
       schema: {
         ...matchSummarySchema,
@@ -82,7 +82,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   );
 
   fastify.post<{ Body: CreateMatchRequest }>(
-    '/match',
+    '/game/match',
     {
       schema: {
         ...createMatchSchema,

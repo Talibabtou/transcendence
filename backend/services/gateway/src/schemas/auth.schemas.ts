@@ -5,7 +5,7 @@ export const getUserSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -53,7 +53,7 @@ export const getUserMeSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {
@@ -89,7 +89,7 @@ export const getUsersSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {
@@ -124,7 +124,7 @@ export const deleteUserSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     204: {},
@@ -147,7 +147,7 @@ export const createUserSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -211,7 +211,7 @@ export const logoutSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     204: {},
@@ -226,7 +226,7 @@ export const loginSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -285,7 +285,7 @@ export const modifyUserSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -348,7 +348,7 @@ export const twofaDisableSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {},
@@ -364,7 +364,7 @@ export const twofaValidateSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -395,7 +395,7 @@ export const twofaGenerateSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {

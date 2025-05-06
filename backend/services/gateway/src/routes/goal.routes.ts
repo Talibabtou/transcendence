@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { CreateGoalRequest, GetGoalsQuery } from '../shared/types/goal.type.js';
 import { getGoal, getGoals, createGoal } from '../controllers/goal.controller.js';
 import { getGoalSchema, getGoalsSchema, createGoalSchema } from '../schemas/goal.schemas.js';
@@ -8,7 +8,7 @@ const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetGoalsQuery }>(
-    '/goal',
+    '/game/goal',
     {
       schema: {
         ...getGoalsSchema,
@@ -20,7 +20,7 @@ export default async function goalRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get<{ Params: IId }>(
-    '/goal/:id',
+    '/game/goal/:id',
     {
       schema: {
         ...getGoalSchema,
@@ -32,7 +32,7 @@ export default async function goalRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post<{ Body: CreateGoalRequest }>(
-    '/goal',
+    '/game/goal',
     {
       schema: {
         ...createGoalSchema,

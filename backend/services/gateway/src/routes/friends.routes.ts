@@ -8,7 +8,7 @@ import {
   deleteAllSchema,
   deleteFriendSchema,
 } from '../schemas/friends.schemas.js';
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import {
   getFriends,
   getFriendsMe,

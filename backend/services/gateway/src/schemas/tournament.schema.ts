@@ -6,7 +6,7 @@ export const getTournamentSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -35,7 +35,7 @@ export const getFinalMatchesSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',

@@ -29,7 +29,7 @@ export const getGoalSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -91,7 +91,7 @@ export const createGoalSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',

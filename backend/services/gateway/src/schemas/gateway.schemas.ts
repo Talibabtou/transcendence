@@ -5,7 +5,7 @@ export const getPicSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -46,7 +46,7 @@ export const getPicsSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {
@@ -78,7 +78,7 @@ export const getHealthSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     200: {

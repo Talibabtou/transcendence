@@ -20,11 +20,21 @@ export const eloSchema = {
   required: ['id', 'player', 'elo', 'created_at'],
 };
 
+const LeaderboardSchema = {
+  type: 'object',
+  properties: {
+    victories: { type: 'number' },
+    defeats: { type: 'number' },
+    total_matches: { type: 'number' },
+  },
+  required: ['victories', 'defeats', 'total_matches'],
+};
+
 export const getEloSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   params: {
     type: 'object',
@@ -62,7 +72,7 @@ export const getElosSchema = {
       limit: { type: 'integer', minimum: 1, default: 10 },
       offset: { type: 'integer', minimum: 0, default: 0 },
     },
-    required: ['player', 'limit', 'offset'],
+    required: ['player'],
     additionalProperties: false,
   },
   response: {
@@ -81,7 +91,7 @@ export const createEloSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   response: {
     201: eloSchema,
@@ -100,7 +110,7 @@ export const updatePlayerEloSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {}
+    properties: {},
   },
   body: {
     type: 'object',
@@ -134,6 +144,24 @@ export const updatePlayerEloSchema = {
     500: {
       ...errorResponseSchema,
       example: ErrorExamples.internalError,
+    },
+  },
+};
+
+export const getLeaderboardSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      limit: { type: 'integer', minimum: 1, default: 10 },
+      offset: { type: 'integer', minimum: 0, default: 0 },
+    },
+    required: [],
+    additionalProperties: false,
+  },
+  response: {
+    200: {
+      type: 'array',
+      items: LeaderboardSchema,
     },
   },
 };

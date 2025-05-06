@@ -1,6 +1,4 @@
 import fetch from 'node-fetch';
-import readlineSync from 'readline-sync';
-import qrcode from 'qrcode-terminal';
 
 const RED: string = '\x1b[31m';
 const GREEN: string = '\x1b[32m';
@@ -9,8 +7,14 @@ const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8080/api/v1/auth';
+const gameUrl: string = 'http://localhost:8080/api/v1/game';
 let token: string = '';
-let id = '';
+let userId: string = '';
+const user = {
+  username: 'test',
+  email: 'test@test.fr',
+  password: 'Test123456789',
+};
 let count: number = 0;
 let countFailed: number = 0;
 let severalIssues: number = 0;
@@ -18,15 +22,10 @@ let issuesList = [];
 
 console.log(`${BOLD}Test begin for path ${UNDERLINE}${authUrl}${RESET}`);
 try {
-  //Register success
+  //Register user success
   {
-    const name = 'Register success';
+    const name = 'Register user success';
     count += 1;
-    const user = {
-      username: 'test',
-      email: 'test@test.fr',
-      password: 'Test123456789',
-    };
     const method = 'POST';
     const path = '/register';
     const response = await fetch(authUrl + path, {
@@ -53,14 +52,10 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
-  //Login success
+  //Login user success
   {
-    const name = 'Login success';
+    const name = 'Login user success';
     count += 1;
-    const user = {
-      email: 'test@test.fr',
-      password: 'Test123456789',
-    };
     const method = 'POST';
     const path = '/login';
     const response = await fetch(authUrl + path, {
@@ -91,7 +86,7 @@ try {
         );
       } else {
         token = responseData.token;
-        id = responseData.id;
+        userId = responseData.id;
         console.log(
           `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
         );
@@ -99,13 +94,14 @@ try {
       }
     }
   }
-  //2FA generated success
+  // ----------------------------------------------------------------
+  //Create elo success
   {
-    const name = '2FA generated success';
+    const name = 'Create elo success';
     count += 1;
-    const method = 'GET';
-    const path = '/2fa/generate';
-    const response = await fetch(authUrl + path, {
+    const method = 'POST';
+    const path = '/elo';
+    const response = await fetch(gameUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -118,65 +114,111 @@ try {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
       );
-    } else if (response.status !== 200 && response.status !== 204) {
+    } else if (response.status !== 201) {
       countFailed += 1;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
     } else {
-      if (response.status === 200) {
-        const responseData: any = await response.json();
-        qrcode.generate(responseData.otpauth, { small: true });
-      }
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get elos success
+  {
+    const name = 'Get elos success';
+    count += 1;
+    const method = 'GET';
+    const path = `/elos?player=${userId}&offset=50&limit=22`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get elo with id success
+  {
+    const name = 'Get elo with id success';
+    count += 1;
+    const method = 'GET';
+    const path = `/elo/${userId}`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+ //Get leaderboard success
+  {
+    const name = 'Get leaderboard success';
+    count += 1;
+    const method = 'GET';
+    const path = `/leaderboard`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
     }
   }
   // ----------------------------------------------------------------
-  //2FA validate loop
+  //Delete user success
   {
-    let twofaCode = '';
-    while (1) {
-      const name = '2FA validate loop';
-      count += 1;
-      const method = 'POST';
-      const path = '/2fa/validate';
-      twofaCode = readlineSync.question('Enter 2FA code (enter skip to break the loop): ') as string;
-      if (twofaCode === 'skip') {
-        break;
-      }
-      const response = await fetch(authUrl + path, {
-        method: method,
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ twofaCode }),
-      });
-      if (response.status === 500) {
-        severalIssues += 1;
-        countFailed += 1;
-        issuesList.push(name);
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-        );
-      } else if (response.status !== 200) {
-        countFailed += 1;
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-        );
-      } else {
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-        );
-      }
-    }
-  }
-  // ----------------------------------------------------------------
-  //Delete success
-  {
-    const name = 'Delete success';
+    const name = 'Delete user success';
     count += 1;
     const method = 'DELETE';
     const path = '/user';
@@ -203,6 +245,8 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
+  // ----------------------------------------------------------------
+
   console.log('');
   console.log(`Total test: ${count - countFailed}/${count}`);
   if (severalIssues > 0) {
