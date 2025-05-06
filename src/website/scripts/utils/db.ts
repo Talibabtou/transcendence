@@ -675,31 +675,30 @@ export class DbService {
 					};
 				});
 				
-				// Now calculate wins and losses from completed matches
-				db.matches.forEach(match => {
-					if (!match.completed) return; // Skip incomplete matches
+				// Process all matches to calculate wins and losses
+				for (const match of db.matches) {
+					// Get goals for this match
+					const goals = db.goals.filter(goal => goal.match_id === match.id);
 					
-					// Count goals for each player
-					const player1Goals = db.goals.filter(goal => 
-						goal.match_id === match.id && goal.player === match.player_1
-					).length;
+					// Calculate scores for each player
+					const player1Goals = goals.filter(goal => goal.player === match.player_1).length;
+					const player2Goals = goals.filter(goal => goal.player === match.player_2).length;
 					
-					const player2Goals = db.goals.filter(goal => 
-						goal.match_id === match.id && goal.player === match.player_2
-					).length;
-					
-					// Determine winner
-					if (player1Goals > player2Goals) {
-						// Player 1 won
-						if (userStats[match.player_1]) userStats[match.player_1].wins++;
-						if (userStats[match.player_2]) userStats[match.player_2].losses++;
-					} else if (player2Goals > player1Goals) {
-						// Player 2 won
-						if (userStats[match.player_2]) userStats[match.player_2].wins++;
-						if (userStats[match.player_1]) userStats[match.player_1].losses++;
+					// Only count matches where at least one player has 3+ points
+					if (player1Goals >= 3 || player2Goals >= 3) {
+						// Determine winner
+						if (player1Goals > player2Goals) {
+							// Player 1 won
+							if (userStats[match.player_1]) userStats[match.player_1].wins++;
+							if (userStats[match.player_2]) userStats[match.player_2].losses++;
+						} else if (player2Goals > player1Goals) {
+							// Player 2 won
+							if (userStats[match.player_2]) userStats[match.player_2].wins++;
+							if (userStats[match.player_1]) userStats[match.player_1].losses++;
+						}
+						// Ties don't count for either
 					}
-					// If tied, no wins/losses counted
-				});
+				}
 				
 				// Convert to array and sort by ELO (descending)
 				const leaderboardData = Object.values(userStats)

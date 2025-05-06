@@ -693,3 +693,11 @@ class TournamentCacheSingleton {
 
 // Export the singleton instance
 export const TournamentCache = TournamentCacheSingleton.getInstance();
+
+/**
+ * Checks if a user ID is part of the current tournament players
+ */
+export function isUserInCurrentTournament(userId: number): boolean {
+	const players = TournamentCache.getTournamentPlayers();
+	return players.some(player => player.id === userId);
+}

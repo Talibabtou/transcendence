@@ -6,7 +6,7 @@
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
 import { GameMode, GameMenuState } from '@shared/types';
-import { TournamentCache } from '@website/scripts/utils';
+import { TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils/tournament-cache';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
@@ -179,18 +179,38 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	private handleModeSelection(mode: GameMode): void {
 		// Special handling for tournament mode
 		if (mode === GameMode.TOURNAMENT) {
-			// Try to restore tournament state
 			const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
-			
+
 			if (hasRestoredTournament) {
-				// Skip the player registration completely
-				console.log("Restored tournament from localStorage");
-				this.onShowTournamentSchedule();
-				this.onTournamentRestored();
-				return;
+				const localUser = localStorage.getItem('auth_user');
+				const sessionUser = sessionStorage.getItem('auth_user');
+				const storedUser = localUser || sessionUser;
+				let currentUserId: number | null = null;
+				if (storedUser) {
+					const user = JSON.parse(storedUser);
+					if (typeof user.id === 'string' && user.id.includes('_')) {
+						const parts = user.id.split('_');
+						currentUserId = parseInt(parts[parts.length - 1], 10);
+					} else if (typeof user.id === 'string') {
+						currentUserId = parseInt(user.id, 10);
+					} else {
+						currentUserId = Number(user.id);
+					}
+				}
+
+				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
+					console.log("Restored tournament from localStorage");
+					this.onShowTournamentSchedule();
+					this.onTournamentRestored();
+					return;
+				} else {
+					// Not a participant: just show registration, but DO NOT clear tournament
+					this.onModeSelected(mode); // This will show the registration page
+					return;
+				}
 			}
 		}
-		
+
 		// Normal flow for other modes or new tournament
 		this.onModeSelected(mode);
 	}

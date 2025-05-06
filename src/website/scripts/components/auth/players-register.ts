@@ -4,7 +4,7 @@
  * Provides a split interface showing host and registering guests
  */
 import { Component, GuestAuthComponent } from '@website/scripts/components';
-import { html, render, ASCII_ART, DbService, appState } from '@website/scripts/utils';
+import { html, render, ASCII_ART, DbService, appState, TournamentCache } from '@website/scripts/utils';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@shared/types';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
@@ -288,7 +288,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick="${() => this.handleHostColorSelect(colorName, colorHex)}"
+								onclick="${() => this.handleHostColorSelect(colorHex)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -298,7 +298,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 							<div 
 								class="color-option ${colorHex === currentColor ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
-								onclick="${() => this.handleHostColorSelect(colorName, colorHex)}"
+								onclick="${() => this.handleHostColorSelect(colorHex)}"
 								title="${colorName}"
 							></div>
 						`)}
@@ -532,9 +532,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const { userId, theme } = customEvent.detail;
 			
 			const state = this.getInternalState();
+			const currentUser = appState.getCurrentUser();
+			const currentUserId = currentUser ? Number(currentUser.id) : null;
 			
-			// Check if this is the host
-			if (state.host && state.host.id === userId) {
+			// Only update the host's theme if the event is for the current user (host)
+			if (state.host && state.host.id === userId && currentUserId === userId) {
 				// Update host theme in local state
 				this.updateInternalState({
 					host: {
@@ -552,7 +554,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				// Re-render to show updated color selection
 				this.renderComponent();
 			} 
-			// Check if this is one of the guests
+			// Check if this is one of the guests and only update if they changed their own theme
 			else {
 				const guestIndex = state.guests.findIndex(g => g && g.id === userId);
 				if (guestIndex >= 0) {
@@ -774,6 +776,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				return;
 			}
 			
+			// Clear any existing tournament data when starting a new one
+			if (typeof TournamentCache !== 'undefined' && TournamentCache.getTournamentData()) {
+				TournamentCache.clearTournament();
+			}
+			
 			const playerIds = [state.host.id, ...connectedGuests.map(g => g.id)];
 			const playerNames = [
 				state.host.username || 'Player 1',
@@ -800,12 +807,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	/**
 	 * Handle host color selection
 	 */
-	private handleHostColorSelect(colorName: string, colorHex: string): void {
+	private handleHostColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
 		if (!state.host) return;
-		
-		// Update app accent color for the host (current user)
-		appState.setAccentColor(colorName as any);
 		
 		// Update host's theme in the local state to trigger re-render
 		this.updateInternalState({
@@ -814,6 +818,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				theme: colorHex
 			}
 		});
+		
+		// Update theme in database for persistence
+		DbService.updateUserTheme(state.host.id, colorHex);
+		
+		// Update app state
+		appState.setPlayerAccentColor(1, colorHex);
 		
 		// Apply directly to CSS for immediate effect
 		document.documentElement.style.setProperty('--accent1-color', colorHex);

@@ -1,5 +1,5 @@
 import { Component } from '@website/scripts/components';
-import { html, render, ASCII_ART, TournamentCache, TournamentPhase } from '@website/scripts/utils';
+import { html, render, ASCII_ART, TournamentCache, TournamentPhase, appState } from '@website/scripts/utils';
 
 export interface TournamentTransitionsState {
 	visible: boolean;
@@ -349,5 +349,50 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		
 		// Proceed to next match
 		this.proceedToNextMatch();
+	}
+	
+	/**
+	 * Checks if the current user is a registered player in the tournament
+	 * @returns boolean indicating if current user can access tournament
+	 */
+	public isCurrentUserInTournament(): boolean {
+		const currentUser = appState.getCurrentUser();
+		if (!currentUser) return false;
+		
+		// Get current user ID (numeric format)
+		let currentUserId: number;
+		if (typeof currentUser.id === 'string' && currentUser.id.includes('_')) {
+			const parts = currentUser.id.split('_');
+			currentUserId = parseInt(parts[parts.length - 1], 10);
+		} else if (typeof currentUser.id === 'string') {
+			currentUserId = parseInt(currentUser.id, 10);
+		} else {
+			currentUserId = Number(currentUser.id);
+		}
+		
+		// Get tournament players
+		const tournamentData = TournamentCache.getTournamentData();
+		if (!tournamentData || !tournamentData.players || !tournamentData.players.length) {
+			return false;
+		}
+		
+		// Check if current user is one of the tournament players
+		return tournamentData.players.some(player => player.id === currentUserId);
+	}
+	
+	/**
+	 * Show tournament screen if user has access, otherwise redirect to player registration
+	 * @param onRedirectToRegistration Callback to show registration screen
+	 * @returns true if tournament shown, false if redirected
+	 */
+	public showTournamentIfAuthorized(onRedirectToRegistration: () => void): boolean {
+		if (this.isCurrentUserInTournament()) {
+			this.showTournamentSchedule();
+			return true;
+		} else {
+			// User is not part of this tournament, redirect to registration
+			onRedirectToRegistration();
+			return false;
+		}
 	}
 }
