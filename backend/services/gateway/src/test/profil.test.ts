@@ -18,7 +18,7 @@ let countFailed: number = 0;
 let severalIssues: number = 0;
 let issuesList = [];
 
-console.log(`${BOLD}Test begin for path ${UNDERLINE}${authUrl}${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}profil${RESET}`);
 try {
   //Register success
   {

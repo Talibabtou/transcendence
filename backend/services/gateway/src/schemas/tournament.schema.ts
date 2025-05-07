@@ -31,6 +31,30 @@ export const getTournamentSchema = {
   },
 };
 
+export const getTournamentsSchema = {
+  querystring: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid' },
+    },
+    required: ['id'],
+  },
+  response: {
+    200: {
+      type: 'array',
+      items: matchSchema,
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.tournamentNotFound,
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
+
 export const getFinalMatchesSchema = {
   querystring: {
     type: 'object',

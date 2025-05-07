@@ -24,7 +24,7 @@ let countFailed: number = 0;
 let severalIssues: number = 0;
 let issuesList = [];
 
-console.log(`${BOLD}Test begin for path ${UNDERLINE}${authUrl}${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}gateway${RESET}`);
 try {
   //Register user success
   {
@@ -99,44 +99,6 @@ try {
     }
   }
   // ----------------------------------------------------------------
-  //Upload image success
-  {
-    const name = 'Upload image success';
-    count += 1;
-    const method = 'POST';
-    const path = '/uploads';
-    const form = new FormData();
-    const imgPath = p.join(p.resolve(), '/uploads/mario.jpg');
-    if (!fs.existsSync(imgPath)) {
-      throw new Error(`File not found: ${imgPath}`);
-    }
-    form.append('image', fs.createReadStream(imgPath));
-    const response = await fetch(profilUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: form,
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 201) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
-  // ----------------------------------------------------------------
   //Get pic
   {
     const name = 'Get pic';
@@ -195,17 +157,17 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
-  //Delete image success
+  //Check microservices success
   {
-    const name = 'Delete image success';
+    const name = 'Check microservices success';
     count += 1;
-    const method = 'DELETE';
-    const path = '/uploads';
-    const response = await fetch(profilUrl + path, {
+    const method = 'GET';
+    const path = `/health`;
+    const response = await fetch(gatewayUrl + path, {
+      method: method,
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      method: method,
     });
     if (response.status === 500) {
       severalIssues += 1;
@@ -214,46 +176,16 @@ try {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
       );
-    } else if (response.status !== 204) {
+    } else if (response.status !== 200) {
       countFailed += 1;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
-    } else {
+    } else
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
-    }
   }
-  // //Check microservices success
-  // {
-  //   const name = 'Check microservices success';
-  //   count += 1;
-  //   const method = 'GET';
-  //   const path = `/health`;
-  //   const response = await fetch(gatewayUrl + path, {
-  //     method: method,
-  //     headers: {
-  //       Authorization: `Bearer ${token}`,
-  //     },
-  //   });
-  //   if (response.status === 500) {
-  //     severalIssues += 1;
-  //     countFailed += 1;
-  //     issuesList.push(name);
-  //     console.log(
-  //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-  //     );
-  //   } else if (response.status !== 200) {
-  //     countFailed += 1;
-  //     console.log(
-  //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-  //     );
-  //   } else
-  //     console.log(
-  //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-  //     );
-  // }
   //Check gateway success
   {
     const name = 'Check gateway success';

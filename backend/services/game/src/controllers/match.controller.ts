@@ -1,4 +1,4 @@
-import { IId } from '../shared/types/match.type.js';
+import { IId, IMatchId } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { MatchGoals } from '../shared/types/goal.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
@@ -22,7 +22,7 @@ import {
 // Get a single match by ID
 export async function getMatch(
   request: FastifyRequest<{
-    Params: { id: string };
+    Params: IMatchId;
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -149,7 +149,7 @@ export async function createMatch(
 
 export async function matchTimeline(
   request: FastifyRequest<{
-    Params: IId;
+    Params: IMatchId;
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -220,7 +220,7 @@ export async function matchStats(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { id } = request.params;
+  const id = request.params.id;
   try {
     // Get daily performance for line plot
     let startTime = performance.now();
@@ -275,7 +275,7 @@ export async function matchStats(
     // Combine all statistics into a comprehensive response
     const player_id = id;
     const playerStats: PlayerStats = {
-      player_id,
+      player_id: player_id,
       goal_stats: {
         fastest_goal_duration: longestGoalDuration,
         average_goal_duration: averageGoalDuration,
@@ -286,7 +286,6 @@ export async function matchStats(
       match_durations: matchDurations,
       elo_history: eloRatings,
     };
-
     return reply.code(200).send(playerStats);
   } catch (error) {
     request.log.error({

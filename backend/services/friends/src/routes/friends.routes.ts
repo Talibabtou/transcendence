@@ -8,7 +8,7 @@ import {
   deleteFriend,
   deleteFriends,
 } from '../controllers/friends.controller.js';
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>('/all/:id', getFriends);

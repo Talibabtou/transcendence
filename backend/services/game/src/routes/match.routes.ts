@@ -10,7 +10,7 @@ import {
 } from '../controllers/match.controller.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Querystring: GetMatchesQuery }>('/matches/', getMatches);
+  fastify.get<{ Querystring: GetMatchesQuery }>('/matches', getMatches);
 
   fastify.get<{ Params: IId }>('/match/:id', getMatch);
 
@@ -18,7 +18,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
 
   fastify.get<{ Params: IId }>('/match/:id/stats', matchTimeline);
 
-  fastify.get<{ Params: IId }>('/match/stats/:player_id', matchStats);
+  fastify.get<{ Params: IId }>('/match/stats/:id', matchStats);
 
   fastify.get<{ Params: IId }>('/match/summary/:id', matchSummary);
 }

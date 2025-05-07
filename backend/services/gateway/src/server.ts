@@ -9,6 +9,7 @@ import gatewayRoutes from './routes/gateway.routes.js';
 import eloRoutes from './routes/elo.routes.js';
 import goalRoutes from './routes/goal.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import tournamentRoutes from './routes/tournament.routes.js';
 import fastifyMultipart from '@fastify/multipart';
 import matchRoutes from './routes/match.routes.js';
 import { fastify, FastifyInstance } from 'fastify';
@@ -36,6 +37,7 @@ async function routes(server: FastifyInstance) {
   await server.register(matchRoutes, { prefix: API_PREFIX });
   await server.register(profilRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });
+  await server.register(tournamentRoutes, { prefix: API_PREFIX });
 }
 
 const multipartParams = {
@@ -186,7 +188,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      // setInterval(checkMicroservices, 2000);
+      setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error('Fatal error', err);
       process.exit(1);

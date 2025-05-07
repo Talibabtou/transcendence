@@ -3,7 +3,7 @@ import { getGoal, getGoals, createGoal } from '../controllers/goal.controller.js
 import { IId, CreateGoalRequest } from '../shared/types/goal.type.js';
 
 export default async function goalRoutes(fastify: FastifyInstance) {
-  fastify.get('/goal', getGoals);
+  fastify.get('/goals', getGoals);
 
   fastify.get('/goal/:id', getGoal);
 

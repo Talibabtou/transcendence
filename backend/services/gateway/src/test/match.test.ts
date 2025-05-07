@@ -7,7 +7,8 @@ const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8080/api/v1/auth';
-const friendsUrl: string = 'http://localhost:8080/api/v1/friends';
+const gameUrl: string = 'http://localhost:8080/api/v1/game';
+let matchId = '';
 let token1: string = '';
 let userId1: string = '';
 const user1 = {
@@ -27,7 +28,7 @@ let countFailed: number = 0;
 let severalIssues: number = 0;
 let issuesList = [];
 
-console.log(`${BOLD}Test begin for ${UNDERLINE}friends${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}match${RESET}`);
 try {
   //Register user1 success
   {
@@ -101,8 +102,7 @@ try {
       }
     }
   }
-  // ----------------------------------------------------------------
-  //Register user2 success
+  //Register user1 success
   {
     const name = 'Register user2 success';
     count += 1;
@@ -174,21 +174,23 @@ try {
       }
     }
   }
-  //-----------------------------------------------------------------
-  //Create relation success
+  // ----------------------------------------------------------------
+  //Create match success
   {
-    const name = 'Create relation success';
+    const name = 'Create match success';
     count += 1;
     const method = 'POST';
-    const path = '/create';
-    const id = userId2;
-    const response = await fetch(friendsUrl + path, {
+    const path = '/match';
+    const match = {
+      player_2: userId2,
+    };
+    const response = await fetch(gameUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token1}`,
-        'Content-Type': 'application/json',
+        'Content-type': 'application/json',
       },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify(match),
     });
     if (response.status === 500) {
       severalIssues += 1;
@@ -202,19 +204,52 @@ try {
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
-    } else
+    } else {
+      const responseData: any = await response.json();
+      matchId = responseData.id;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
+      console.log(`       matchId: ${matchId}`);
+    }
   }
-  // ----------------------------------------------------------------
-  //Check relation false
+  //Get matches user1 success
   {
-    const name = 'Check relation false';
+    const name = 'Get matches user1 success';
     count += 1;
     const method = 'GET';
-    const path = `/check/${userId1}`;
-    const response = await fetch(friendsUrl + path, {
+    const path = `/matches?player_id=${userId1}&active=false`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token1}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get matches user2 success
+  {
+    const name = 'Get matches user2 success';
+    count += 1;
+    const method = 'GET';
+    const path = `/matches?player_id=${userId2}&active=false`;
+    const response = await fetch(gameUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token2}`,
@@ -233,64 +268,111 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
       );
     } else {
-      const responseData: any = await response.json();
-      if (!responseData.status) {
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-        );
-      } else {
-        countFailed += 1;
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected false ❌${RESET}`
-        );
-      }
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
     }
   }
-  // ----------------------------------------------------------------
-  //Accept relation success
+  //Get specific match success
   {
-    const name = 'Accept relation success';
+    const name = 'Get specific match success';
     count += 1;
-    const method = 'PATCH';
-    const path = '/accept';
-    const id = userId1;
-    const response = await fetch(friendsUrl + path, {
+    const method = 'GET';
+    const path = `/match/${matchId}`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token1}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get specific match matchTimeline success
+  {
+    const name = 'Get specific match matchTimeline success';
+    count += 1;
+    const method = 'GET';
+    const path = `/match/${matchId}/stats`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token1}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get match statistics for a player success
+  {
+    const name = 'Get match statistics for a player success';
+    count += 1;
+    const method = 'GET';
+    const path = `/match/stats/${userId1}`;
+    const response = await fetch(gameUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token1}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get match summary for a player success
+  {
+    const name = 'Get match summary for a player success';
+    count += 1;
+    const method = 'GET';
+    const path = `/match/summary/${userId2}`;
+    const response = await fetch(gameUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token2}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ id }),
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 204) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
-  // ----------------------------------------------------------------
-  //Check relation true
-  {
-    const name = 'Check relation true';
-    count += 1;
-    const method = 'GET';
-    const path = `/check/${userId2}`;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
       },
     });
     if (response.status === 500) {
@@ -304,138 +386,6 @@ try {
       countFailed += 1;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      const responseData: any = await response.json();
-      const status = responseData.status;
-      if (status) {
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-        );
-      } else {
-        countFailed += 1;
-        console.log(
-          `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected false ❌${RESET}`
-        );
-      }
-    }
-  }
-  // ----------------------------------------------------------------
-  //Get all relations with id success
-  {
-    const name = 'Get all relations with id success';
-    count += 1;
-    const method = 'GET';
-    const path = `/all/${userId2}`;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 200) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
-  //Get all relations me success
-  {
-    const name = 'Get all relations me success';
-    count += 1;
-    const method = 'GET';
-    const path = `/all/me`;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 200) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
-  // ----------------------------------------------------------------
-  //Delete relation success
-  {
-    const name = 'Delete all relations user1 success';
-    count += 1;
-    const method = 'DELETE';
-    const path = `/delete/${userId2}`;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 204) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
-  //Delete all relations user1 failed
-  {
-    const name = 'Delete all relations user1 failed';
-    count += 1;
-    const method = 'DELETE';
-    const path = '/delete/all';
-    const id = userId1;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status === 204) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) expected 404 NOT_FOUND❌${RESET}`
       );
     } else {
       console.log(

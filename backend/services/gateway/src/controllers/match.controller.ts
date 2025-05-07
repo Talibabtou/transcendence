@@ -1,4 +1,3 @@
-import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { MatchGoals } from '../shared/types/goal.type.js';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
@@ -10,6 +9,8 @@ import {
   PlayerStats,
   GetMatchesQuery,
   CreateMatchRequest,
+  IId,
+  IMatchId,
 } from '../shared/types/match.type.js';
 
 export async function getMatches(
@@ -29,7 +30,7 @@ export async function getMatches(
   }
 }
 
-export async function getMatch(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+export async function getMatch(request: FastifyRequest<{ Params: IMatchId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
@@ -43,7 +44,7 @@ export async function getMatch(request: FastifyRequest<{ Params: IId }>, reply: 
   }
 }
 
-export async function matchTimeline(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+export async function matchTimeline(request: FastifyRequest<{ Params: IMatchId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;

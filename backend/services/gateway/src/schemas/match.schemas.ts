@@ -54,7 +54,7 @@ export const getMatchesSchema = {
       limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
       offset: { type: 'integer', minimum: 0, default: 0 },
     },
-    required: ['player_id', 'active', 'limit', 'offset'],
+    required: ['player_id', 'active'],
     additionalProperties: false,
   },
   response: {
@@ -86,7 +86,7 @@ export const createMatchSchema = {
       },
       duration: { type: ['integer', 'null'], minimum: 0, default: null },
     },
-    required: ['player_1', 'player_2'],
+    required: ['player_2'],
   },
   response: {
     201: matchSchema,

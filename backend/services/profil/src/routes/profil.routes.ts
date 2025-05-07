@@ -1,4 +1,4 @@
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { upload, deletePic } from '../controllers/profil.controller.js';
 

@@ -72,6 +72,10 @@ export interface IId {
   id: string;
 }
 
+export interface IMatchId {
+  id: string;
+}
+
 export interface GetLeaderboardQuery {
   limit?: number;
   offset?: number;

@@ -8,7 +8,7 @@ const auth = { auth: true, roles: ['user', 'admin'] };
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetGoalsQuery }>(
-    '/game/goal',
+    '/game/goals',
     {
       schema: {
         ...getGoalsSchema,

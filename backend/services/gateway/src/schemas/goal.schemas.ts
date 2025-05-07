@@ -103,7 +103,7 @@ export const createGoalSchema = {
       },
       duration: { type: ['integer'], minimum: 0 },
     },
-    required: ['match_id', 'player', 'duration'],
+    required: ['match_id', 'duration'],
   },
   response: {
     201: goalSchema,

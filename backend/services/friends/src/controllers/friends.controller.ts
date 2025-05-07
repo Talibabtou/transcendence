@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IId } from '../shared/types/api.types.js';
+import { IId } from '../shared/types/gateway.types.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import { IReplyGetFriend, IReplyGetFriendStatus } from '../shared/types/friends.types.js';
 
