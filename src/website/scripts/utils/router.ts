@@ -129,15 +129,13 @@ export class Router {
 			this.components.set(route, new ComponentClass(section));
 			this.components.get(route).render();
 
-			if (route === Route.PROFILE) {
-				// Call onMount for ProfileComponent
-				setTimeout(() => {
-					const profileComponent = this.components.get(route) as ProfileComponent;
-					if (profileComponent && typeof profileComponent.onMount === 'function') {
-						profileComponent.onMount();
-					}
-				}, 0);
-			}
+			// Setup event listeners after render for all components
+			setTimeout(() => {
+				const component = this.components.get(route);
+				if (component && typeof component.setupEventListeners === 'function') {
+					component.setupEventListeners();
+				}
+			}, 0);
 		}
 
 		this.currentRoute = route;

@@ -640,7 +640,13 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
+			this.gameOverComponent.destroy();
+			this.gameOverComponent = null;
+		}
+		
+		if (this.TournamentComponent) {
+			this.TournamentComponent.destroy();
+			this.TournamentComponent = null;
 		}
 		
 		// Recreate the menu component from scratch
@@ -670,6 +676,9 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.menuComponent) {
 			this.menuComponent.show();
 		}
+		
+		// Reset transition flag explicitly
+		this.isTransitioning = false;
 	}
 
 	// =========================================

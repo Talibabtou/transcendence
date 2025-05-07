@@ -238,13 +238,21 @@ export class GameOverComponent extends Component<GameOverState> {
 	private handleShowTournamentSchedule(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
+			
+			// Hide this component
 			this.hide();
-			if (this.onShowTournamentSchedule) {
-				this.onShowTournamentSchedule();
-			}
+			
+			// First go to menu (internally only, not visually) then to tournament
+			// to follow the same flow that works from the menu
+			this.onBackToMenu();
+			
+			// Then immediately show tournament - use setTimeout to ensure proper sequence
 			setTimeout(() => {
+				if (this.onShowTournamentSchedule) {
+					this.onShowTournamentSchedule();
+				}
 				this.inTransition = false;
-			}, 100);
+			}, 50);
 		}
 	}
 	
