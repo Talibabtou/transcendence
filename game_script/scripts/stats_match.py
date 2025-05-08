@@ -4,7 +4,7 @@ import requests
 import json
 
 # Configuration
-API_BASE_URL = "http://localhost:8082/api/v1"
+API_BASE_URL = "http://localhost:8083"
 MATCH_ID = "9a996480-e8dc-1502-6242-a75d8ee6a043"
 MATCH_STATS_ENDPOINT = f"{API_BASE_URL}/matches/{MATCH_ID}/stats"
 

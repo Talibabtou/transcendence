@@ -105,7 +105,7 @@ export class Server {
           },
           servers: [
             {
-              url: `http://localhost:${process.env.API_PORT || 8080}${API_PREFIX}`,
+              url: `http://localhost:${process.env.API_PORT || 8085}${API_PREFIX}`,
               description: 'Local development server',
             },
           ],
@@ -175,7 +175,7 @@ export class Server {
       server.addHook('preValidation', checkMicroservicesHook);
       server.listen(
         {
-          port: Number(process.env.API_PORT) || 8080,
+          port: Number(process.env.API_PORT) || 8085,
           host: process.env.API_ADDR || '0.0.0.0',
         },
         (err, address) => {
@@ -188,7 +188,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error('Fatal error', err);
       process.exit(1);

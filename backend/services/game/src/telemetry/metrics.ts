@@ -15,7 +15,7 @@ export let eloHistogram: Histogram;
  */
 export function initializeMetrics() {
   const meter = metrics.getMeter('game-service'); // Get the meter *after* SDK start
-
+  
   fastQueryDurationHistogram = meter.createHistogram('fast_query_duration', {
     description: 'Duration of fast queries in ms',
     advice: {
@@ -43,7 +43,7 @@ export function initializeMetrics() {
       ],
     },
   });
-
+  
   // Match-specific metrics
   matchCreationCounter = meter.createCounter('match_creation_total', {
     description: 'Total number of matches created',
@@ -54,7 +54,7 @@ export function initializeMetrics() {
   matchDurationHistogram = meter.createHistogram('match_duration_seconds', {
     description: 'Duration of matches in seconds',
   });
-
+  
   goalDurationHistogram = meter.createHistogram('goal_duration_seconds', {
     description: 'Duration of goals in seconds',
     advice: {
@@ -81,6 +81,7 @@ export function getMeter(name = 'game-service') {
 }
 
 export function recordFastDatabaseMetrics(operation: string, table: string, duration: number) {
+  console.log({ message: 'start metrics' });
   fastQueryDurationHistogram.record(duration, {
     operation,
     table,

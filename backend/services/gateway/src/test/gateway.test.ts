@@ -9,9 +9,9 @@ const BOLD: string = '\x1b[1m';
 const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
-const authUrl: string = 'http://localhost:8080/api/v1/auth';
-const profilUrl: string = 'http://localhost:8080/api/v1/profil';
-const gatewayUrl: string = 'http://localhost:8080/api/v1';
+const authUrl: string = 'http://localhost:8085/api/v1/auth';
+const profilUrl: string = 'http://localhost:8085/api/v1/profil';
+const gatewayUrl: string = 'http://localhost:8085/api/v1';
 let token: string = '';
 let userId: string = '';
 const user = {

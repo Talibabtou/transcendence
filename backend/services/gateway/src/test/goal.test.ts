@@ -6,8 +6,8 @@ const BOLD: string = '\x1b[1m';
 const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
-const authUrl: string = 'http://localhost:8080/api/v1/auth';
-const gameUrl: string = 'http://localhost:8080/api/v1/game';
+const authUrl: string = 'http://localhost:8085/api/v1/auth';
+const gameUrl: string = 'http://localhost:8085/api/v1/game';
 let matchId = '';
 let goalId = '';
 let token1: string = '';

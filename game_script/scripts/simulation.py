@@ -8,11 +8,11 @@ from pandas import DataFrame as df
 from datetime import datetime
 import re
 
-base_url = 'http://localhost:8082/api/v1'
+base_url = 'http://0.0.0.0:8083'
    
 
 async def get_elo(session,player):
-    async with session.get(f"{base_url}/elos/{player}") as response:
+    async with session.get(f"{base_url}/elo/{player}") as response:
         return await response.json()
 
 async def create_elo(session,player, elo):
@@ -20,11 +20,11 @@ async def create_elo(session,player, elo):
         "player": player,
         "elo": elo
     }
-    async with session.post(f"{base_url}/elos", json=elo_data) as response:
+    async with session.post(f"{base_url}/elo/{player}", json=elo_data) as response:
         return await response.json()
 
 async def get_match(session,match_id):
-    async with session.get(f"{base_url}/matches/{match_id}") as response:
+    async with session.get(f"{base_url}/match/{match_id}") as response:
         return await response.json()
 
 async def update_match(session,match_id, duration, timeout, completed):
@@ -33,24 +33,22 @@ async def update_match(session,match_id, duration, timeout, completed):
         "timeout": timeout,
         "completed": completed
     }
-    async with session.put(f"{base_url}/matches/{match_id}", json=match_data) as response:
+    async with session.put(f"{base_url}/match/{match_id}", json=match_data) as response:
         return await response.json()
 async def create_match(session,player_1, player_2):
     match_data = {
-        "player_1": player_1,
         "player_2": player_2
     }
     
-    async with session.post(f"{base_url}/matches", json=match_data) as response:
+    async with session.post(f"{base_url}/match/{player_1}", json=match_data) as response:
         return await response.json()
 
 async def create_goal(session,match_id,player,duration):
     goal_data = {
         "match_id": match_id,
-        "player": player,
         "duration": duration
     }
-    async with session.post(f"{base_url}/goals", json=goal_data) as response:
+    async with session.post(f"{base_url}/goal/{player}", json=goal_data) as response:
         return await response.json()
 
 def create_users(player_list):

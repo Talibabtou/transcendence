@@ -6,7 +6,7 @@ import itertools
 import json
 import os
 
-base_url = 'http://localhost:8082/api/v1'
+base_url = 'http://localhost:8083'
 
 async def create_match(session, player_1, player_2, tournament_id):
     match_data = {
@@ -14,7 +14,7 @@ async def create_match(session, player_1, player_2, tournament_id):
         "player_2": player_2,
         "tournament_id": tournament_id
     }
-    async with session.post(f"{base_url}/matches", json=match_data) as response:
+    async with session.post(f"{base_url}/matches/", json=match_data) as response:
         response.raise_for_status()
         return await response.json()
 

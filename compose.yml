@@ -20,7 +20,7 @@ services:
       - '--web.console.templates=/usr/share/prometheus/consoles'
     depends_on:
       - cadvisor
-      - tempo
+      # - tempo
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
@@ -50,21 +50,21 @@ services:
     labels:
       - "container_name=cadvisor"
       
-  tempo:
-    image: grafana/tempo:2.3.1
-    container_name: tempo
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./monitoring/tempo.yaml:/etc/tempo.yaml
-      - tempo_data:/tmp/tempo
-    ports:
-      - "3200:3200"   # Tempo UI & API port
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    networks:
-      - backend
-    labels:
-      - "container_name=tempo"
+  # tempo:
+  #   image: grafana/tempo:2.3.1
+  #   container_name: tempo
+  #   command: ["-config.file=/etc/tempo.yaml"]
+  #   volumes:
+  #     - ./monitoring/tempo.yaml:/etc/tempo.yaml
+  #     - tempo_data:/tmp/tempo
+  #   ports:
+  #     - "3200:3200"   # Tempo UI & API port
+  #     - "4317:4317"   # OTLP gRPC
+  #     - "4318:4318"   # OTLP HTTP
+  #   networks:
+  #     - backend
+  #   labels:
+  #     - "container_name=tempo"
 
   grafana:
     image: grafana/grafana:10.3.1
@@ -82,7 +82,7 @@ services:
       - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
     depends_on:
       - prometheus
-      - tempo
+      # - tempo
     restart: unless-stopped
     networks:
       - backend
