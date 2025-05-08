@@ -2,6 +2,7 @@ import { initDb } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
 import { fastify, FastifyInstance } from 'fastify';
+import { startTelemetry } from './telemetry/telemetry.js';
 import { jwtPluginRegister } from './plugins/jwtPlugin.js';
 
 class Server {
@@ -28,6 +29,7 @@ class Server {
 
   public static async start(): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
+    const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
     try {
       process.on('SIGINT', () => Server.shutdown('SIGINT'));
       process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
@@ -47,6 +49,7 @@ class Server {
             process.exit(1);
           }
           server.log.info(`Server listening at ${address}`);
+          server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
         }
       );
     } catch (err) {
@@ -64,4 +67,5 @@ class Server {
   }
 }
 
+await startTelemetry();
 Server.start();
