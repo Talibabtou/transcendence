@@ -164,13 +164,10 @@ export const createUserSchema = {
         maxLength: 255,
         description: 'Valid email address for the user, maximum 255 characters',
       },
-      password: {
+      passwordHash: {
         type: 'string',
-        minLength: 8,
-        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
-        maxLength: 255,
-        description:
-          'Secure password with minimum 8 characters, at least one uppercase letter, one lowercase letter, and one digit',
+        pattern: '^[a-f0-9]{64}$',
+        description: 'Hash SHA-256',
       },
     },
     required: ['username', 'password', 'email'],
@@ -237,12 +234,10 @@ export const loginSchema = {
         maxLength: 255,
         description: 'Registered email address for login',
       },
-      password: {
+      passwordHash: {
         type: 'string',
-        minLength: 8,
-        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
-        maxLength: 255,
-        description: "User's password for authentication",
+        pattern: '^[a-f0-9]{64}$',
+        description: 'Hash SHA-256',
       },
     },
     required: ['password', 'email'],

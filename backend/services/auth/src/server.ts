@@ -39,7 +39,7 @@ class Server {
       server.listen(
         {
           port: Number(process.env.AUTH_PORT) || 8082,
-          host: process.env.AUTH_ADDR || '0.0.0.0',
+          host: process.env.AUTH_ADDR || 'localhost',
         },
         (err, address) => {
           if (err) {

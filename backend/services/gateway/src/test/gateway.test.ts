@@ -1,7 +1,4 @@
 import fetch from 'node-fetch';
-import FormData from 'form-data';
-import p from 'path';
-import fs from 'fs';
 
 const RED: string = '\x1b[31m';
 const GREEN: string = '\x1b[32m';
@@ -10,7 +7,6 @@ const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8085/api/v1/auth';
-const profilUrl: string = 'http://localhost:8085/api/v1/profil';
 const gatewayUrl: string = 'http://localhost:8085/api/v1';
 let token: string = '';
 let userId: string = '';
@@ -56,9 +52,9 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
-  //Login user1 success
+  //Login user success
   {
-    const name = 'Login user1 success';
+    const name = 'Login user success';
     count += 1;
     const method = 'POST';
     const path = '/login';

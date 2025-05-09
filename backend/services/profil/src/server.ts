@@ -46,7 +46,7 @@ class Server {
       server.listen(
         {
           port: Number(process.env.PROFIL_PORT) || 8081,
-          host: process.env.PROFIL_ADDR || '0.0.0.0',
+          host: process.env.PROFIL_ADDR || 'localhost',
         },
         (err, address) => {
           if (err) {
