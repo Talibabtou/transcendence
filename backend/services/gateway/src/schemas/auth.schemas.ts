@@ -164,7 +164,7 @@ export const createUserSchema = {
         maxLength: 255,
         description: 'Valid email address for the user, maximum 255 characters',
       },
-      passwordHash: {
+      password: {
         type: 'string',
         pattern: '^[a-f0-9]{64}$',
         description: 'Hash SHA-256',
@@ -234,7 +234,7 @@ export const loginSchema = {
         maxLength: 255,
         description: 'Registered email address for login',
       },
-      passwordHash: {
+      password: {
         type: 'string',
         pattern: '^[a-f0-9]{64}$',
         description: 'Hash SHA-256',
@@ -293,10 +293,8 @@ export const modifyUserSchema = {
       },
       password: {
         type: 'string',
-        minLength: 8,
-        pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[A-Za-z\\d]{8,}$',
-        maxLength: 255,
-        description: 'New secure password to update, must meet complexity requirements',
+        pattern: '^[a-f0-9]{64}$',
+        description: 'Hash SHA-256',
       },
       email: {
         type: 'string',

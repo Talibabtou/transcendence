@@ -1,16 +1,11 @@
 # transcendance (Back)
 ## Features
-- Prettier (configurer pour formater les fichiers du projet rapidement et de la même manière pour rentre le code simple à lire, avec un fichier de configuration par service)
-- ESLint (avec la configuration recommandé pour afficher les fautes de syntaxes sur l'IDE, avec un fichier de configuration par service)
-- Typescript (plus sécure avec le typage)
-- Gateway (Permet de centraliser les vérifications pour alléger les autres services)
-- Rate limite (Protege du DDOS)
-- Origine protection avec CORS.
-- XSS Protections avec helmet (Prévient des attaques XSS)
-- JWT + Revocation (Permet la vérification d'un token générer à l'auth pour accéder aux routes Gateway, systeme de revocation au logout)
-- 2FA QRCODE (Permet de rajouter une couche de sécurité si l'utilisateur le veut)
+- Prettier (configurer pour formater les fichiers du projet rapidement et de la même manière pour rentre le code simple à lire, avec un fichier de configuration par service).
+- ESLint (avec la configuration recommandé pour afficher les fautes de syntaxes sur l'IDE, avec un fichier de configuration par service).
+- Typescript (plus sécure avec le typage).
+- Gateway (Permet de rediriger vers le bon microservice service et de centraliser les vérifications pour alléger les services).
+- Securites (voir fichier SECURITY_CHECK.md)
 - Swagger (Permet d'avoir une interface avec les routes disponible sur l'API, le type de réponse attendu et le type de retour renvoyé pour chaque route).
-- HTTPS (Permet une communication sécurisé avec le client de bout en bout).
 ## Install
 ### Necessary tools
 ```bash
@@ -137,5 +132,3 @@ volumes:
       type: none
       device: /home/${USER}/Documents/db
 ```
-## Ressources
-  - https://securityheaders.com/

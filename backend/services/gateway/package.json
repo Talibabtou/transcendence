@@ -18,7 +18,8 @@
     "test_elo": "node dist/test/elo.test.js",
     "test_match": "node dist/test/match.test.js",
     "test_goal": "node dist/test/goal.test.js",
-    "test_tournament": "node dist/test/tournament.test.js"
+    "test_tournament": "node dist/test/tournament.test.js",
+    "test_security": "node dist/test/security.test.js"
   },
   "keywords": [],
   "author": "",

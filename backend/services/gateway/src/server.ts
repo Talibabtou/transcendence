@@ -12,7 +12,7 @@ import goalRoutes from './routes/goal.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import fastifyMultipart from '@fastify/multipart';
 import matchRoutes from './routes/match.routes.js';
-import { fastify, FastifyInstance } from 'fastify';
+import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import profilRoutes from './routes/profil.routes.js';
 import gatewayRoutes from './routes/gateway.routes.js';
@@ -119,11 +119,11 @@ const helmetConfig = {
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", 'https://fonts.googleapis.com', "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'", 'https://api.amazingstuff.io'],
+      connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"], // anti clickjacking
       upgradeInsecureRequests: [], // force https
@@ -152,8 +152,8 @@ const helmetConfig = {
 };
 
 const corsConfig = {
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  origin: 'https://localhost:3000',
+  methods: ['GET', 'POST', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 };
@@ -177,6 +177,23 @@ const fastifyConfig = {
   //   cert: fs.readFileSync(path.join(path.resolve(), '/certs/cert.pem')),
   // },
 };
+
+async function addHeaders(request: FastifyRequest, reply: FastifyReply) {
+  reply.header(
+    'Permissions-Policy',
+    'geolocation=(), camera=(), microphone=(), fullscreen=(self), payment=(), usb=()'
+  );
+  reply.header('Cache-Control', 'no-store');
+  reply.header('Vary', 'Origin');
+}
+
+async function blockHeaders(request: FastifyRequest, reply: FastifyReply) {
+  const forbiddenMethods = ['TRACE', 'TRACK', 'CONNECT', 'PUT'];
+
+  if (forbiddenMethods.includes(request.raw.method || '')) {
+    reply.code(405).send({ error: 'Method Not Allowed' });
+  }
+}
 
 export class Server {
   // FastifyInstance<Http2SecureServer> for https
@@ -210,7 +227,9 @@ export class Server {
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);
       server.addHook('onRequest', jwtPluginHook);
+      server.addHook('onRequest', blockHeaders);
       server.addHook('preValidation', checkMicroservicesHook);
+      server.addHook('onSend', addHeaders);
       server.listen(
         {
           port: Number(process.env.GATEWAY_PORT) || 8085,
