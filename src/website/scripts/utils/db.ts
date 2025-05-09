@@ -4,8 +4,10 @@
  * Handles data retrieval, updates, and API communication for persistent storage.
  */
 
-import { User, Friend, Match, Goal, AuthCredentials, RegisterData, AuthResponse, OAuthRequest, LeaderboardEntry } from '@shared/types';
+import { User, Match, Goal, AuthCredentials, RegisterData, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 import dbTemplate from '@shared/db.json';
+import { ApiError, ErrorResponse, createErrorResponse } from '@website/scripts/utils';
 
 // =========================================
 // DATABASE INITIALIZATION
@@ -18,7 +20,7 @@ const DB_STORAGE_KEY = 'pong_db';
 // const API_BASE_URL = '/api'; // or process.env.API_URL if using environment variables
 
 // Set up the initial database structure
-let db: {
+interface DbStructure {
 	users: Array<any>;
 	matches: Array<any>;
 	goals: Array<any>;
@@ -28,10 +30,13 @@ let db: {
 		match_id_sequence: number;
 		goal_id_sequence: number;
 	};
-};
+}
+
+// Initialize the database with a defined type
+let db: DbStructure;
 
 // Function to load the database from localStorage or initialize from template
-const loadDb = () => {
+const loadDb = (): DbStructure => {
 	// Try to load from localStorage first
 	const storedDb = localStorage.getItem(DB_STORAGE_KEY);
 	
@@ -55,7 +60,7 @@ const loadDb = () => {
 db = loadDb();
 
 // Function to persist the database to localStorage
-const persistDb = () => {
+const persistDb = (): void => {
 	try {
 		// Store the current database state to localStorage
 		localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(db));
@@ -82,7 +87,7 @@ const persistDb = () => {
 export class DbService {
 	// Helper method for API requests - will be used with real backend
 	/*
-	private static async fetchApi(endpoint: string, options: RequestInit = {}): Promise<any> {
+	private static async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 		const url = `${API_BASE_URL}${endpoint}`;
 		const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
 		
@@ -97,12 +102,14 @@ export class DbService {
 			headers
 		});
 
-		// Handle non-200 responses
-		if (!response.ok) {
-			const error = await response.json();
-			throw new Error(error.message || 'An error occurred');
-		}
+		return this.handleApiResponse<T>(response);
+	}
 
+	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (!response.ok) {
+			const errorData: ErrorResponse = await response.json();
+			throw new ApiError(errorData);
+		}
 		return response.json();
 	}
 	*/
@@ -146,7 +153,7 @@ export class DbService {
 					
 					resolve(userResponse);
 				} else {
-					reject(new Error('Wrong email or password'));
+					reject(new ApiError(createErrorResponse(401, ErrorCodes.LOGIN_FAILURE, 'Wrong email or password')));
 				}
 			} catch (error) {
 				reject(error);
@@ -154,10 +161,12 @@ export class DbService {
 		});
 		
 		/* Real backend implementation:
-		return this.fetchApi('/auth/login', {
+		return this.fetchApi<AuthResponse>('/auth/login', {
 			method: 'POST',
 			body: JSON.stringify(credentials)
 		});
+
+		Don't forget that there is the 2FA response case
 		*/
 	}
 
@@ -241,7 +250,7 @@ export class DbService {
 	static oauthLogin(oauthData: OAuthRequest): Promise<AuthResponse> {
 		this.logRequest('POST', '/api/auth/oauth', {
 			provider: oauthData.provider,
-			code: oauthData.code.substring(0, 10) + '...', // Don't log full code
+			code: oauthData.code.substring(0, 10) + '...',
 			redirectUri: oauthData.redirectUri
 		});
 		
@@ -1025,10 +1034,8 @@ export class DbService {
 		}
 	}
 
-	// Call this in the constructor or as a static initialization
 	static {
 		DbService.initializeAuthUsers();
-		// Ensure initial sync
 		DbService.syncLegacyStorage();
 	}
 
@@ -1063,5 +1070,294 @@ export class DbService {
 		sessionStorage.removeItem('auth_user');
 		localStorage.removeItem('auth_token');
 		sessionStorage.removeItem('auth_token');
+	}
+
+	/**
+	 * ADDITIONAL METHODS TO MATCH BACKEND API
+	 */
+
+
+	/**
+	 * Gets tournament information
+	 * @param tournamentId - Tournament UUID
+	 */
+	static getTournament(tournamentId: string): Promise<any> {
+		this.logRequest('GET', `/api/tournaments/${tournamentId}`);
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find all matches with this tournament ID
+				const matches = db.matches.filter(m => m.tournament_id === tournamentId);
+				
+				if (matches.length === 0) {
+					// Format error like the backend would
+					const error: ErrorResponse = {
+						statusCode: 404,
+						code: ErrorCodes.TOURNAMENT_NOT_FOUND,
+						error: 'Not Found',
+						message: 'Tournament not found'
+					};
+					reject(error);
+					return;
+				}
+				
+				// Get unique player IDs from matches
+				const playerIds = Array.from(new Set(
+					matches.flatMap(m => [m.player_1, m.player_2])
+				));
+				
+				resolve({
+					id: tournamentId,
+					players: playerIds,
+					matches: matches.map(m => m.id),
+					created_at: matches[0].created_at
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		return this.fetchApi(`/tournaments/${tournamentId}`);
+		*/
+	}
+
+	/**
+	 * Gets a player's ELO rating
+	 * @param playerId - Player's UUID
+	 */
+	static getPlayerElo(playerId: number | string): Promise<any> {
+		this.logRequest('GET', `/api/elo?player=${playerId}`);
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find user
+				const user = db.users.find(u => u.id === playerId);
+				
+				if (!user) {
+					const error: ErrorResponse = {
+						statusCode: 404,
+						code: ErrorCodes.PLAYER_NOT_FOUND,
+						error: 'Not Found',
+						message: 'Player not found'
+					};
+					reject(error);
+					return;
+				}
+				
+				resolve({
+					player: playerId,
+					elo: user.elo || 1000, // Default ELO
+					created_at: new Date().toISOString()
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		return this.fetchApi(`/elo?player=${playerId}`);
+		*/
+	}
+
+	/**
+	 * Get user profile
+	 * @param userId - The UUID of the user
+	 */
+	static getUserProfile(userId: number | string): Promise<any> {
+		this.logRequest('GET', `/api/profile/${userId}`);
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find user
+				const user = db.users.find(u => u.id === userId);
+				
+				if (!user) {
+					const error: ErrorResponse = {
+						statusCode: 404,
+						code: ErrorCodes.PLAYER_NOT_FOUND,
+						error: 'Not Found', 
+						message: 'Player not found'
+					};
+					reject(error);
+					return;
+				}
+				
+				// Get user matches
+				const matches = db.matches.filter(
+					m => m.player_1 === userId || m.player_2 === userId
+				);
+				
+				// Get user stats
+				const wins = matches.filter(m => {
+					const goals = db.goals.filter(g => g.match_id === m.id);
+					const userGoals = goals.filter(g => g.player === userId).length;
+					const opponentGoals = goals.filter(g => g.player !== userId).length;
+					return userGoals > opponentGoals;
+				}).length;
+				
+				// Create profile response
+				resolve({
+					id: user.id,
+					pseudo: user.pseudo,
+					email: user.email,
+					pfp: user.pfp || `https://ui-avatars.com/api/?name=${user.pseudo}`,
+					theme: user.theme || '#ffffff',
+					elo: user.elo || 1000,
+					matches_played: matches.length,
+					matches_won: wins
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		return this.fetchApi(`/profile/${userId}`);
+		*/
+	}
+
+	/**
+	 * Update user profile picture
+	 * @param userId - The UUID of the user
+	 * @param imageData - Base64 encoded image data
+	 */
+	static updateProfilePicture(userId: number | string, imageData: string): Promise<any> {
+		this.logRequest('PUT', `/api/profile/${userId}/picture`, { imageData: '...[truncated]' });
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find user
+				const userIndex = db.users.findIndex(u => u.id === userId);
+				
+				if (userIndex === -1) {
+					const error: ErrorResponse = {
+						statusCode: 404,
+						code: ErrorCodes.PLAYER_NOT_FOUND,
+						error: 'Not Found',
+						message: 'Player not found'
+					};
+					reject(error);
+					return;
+				}
+				
+				// Update profile picture
+				db.users[userIndex].pfp = imageData;
+				
+				// Persist changes
+				persistDb();
+				
+				resolve({ success: true });
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		// This would likely use FormData for the image upload
+		const formData = new FormData();
+		formData.append('image', imageData);
+		
+		return this.fetchApi(`/profile/${userId}/picture`, {
+			method: 'PUT',
+			body: formData,
+			headers: {} // Let browser set proper content-type for form data
+		});
+		*/
+	}
+
+	/**
+	 * Get friendship status
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+	static getFriendship(userId: number | string, friendId: number | string): Promise<any> {
+		this.logRequest('GET', `/api/friends/${userId}/${friendId}`);
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Find friendship
+				const friendship = db.friends.find(f => 
+					(f.user_id === userId && f.friend_id === friendId) ||
+					(f.user_id === friendId && f.friend_id === userId)
+				);
+				
+				if (!friendship) {
+					resolve({ exists: false });
+					return;
+				}
+				
+				resolve({
+					exists: true,
+					created_at: new Date(friendship.created_at),
+					user_id: friendship.user_id,
+					friend_id: friendship.friend_id
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		return this.fetchApi(`/friends/${userId}/${friendId}`);
+		*/
+	}
+
+	/**
+	 * Add a friend
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+	static addFriend(userId: number | string, friendId: number | string): Promise<any> {
+		this.logRequest('POST', `/api/friends`, { user_id: userId, friend_id: friendId });
+		
+		return new Promise((resolve, reject) => {
+			try {
+				// Check if friendship already exists
+				const existingFriendship = db.friends.find(f => 
+					(f.user_id === userId && f.friend_id === friendId) ||
+					(f.user_id === friendId && f.friend_id === userId)
+				);
+				
+				if (existingFriendship) {
+					const error: ErrorResponse = {
+						statusCode: 409,
+						code: ErrorCodes.FRIENDSHIP_EXISTS,
+						error: 'Conflict',
+						message: 'Friendship already exists'
+					};
+					reject(error);
+					return;
+				}
+				
+				// Create new friendship
+				const friendship = {
+					user_id: userId,
+					friend_id: friendId,
+					created_at: new Date().toISOString()
+				};
+				
+				// Add to database
+				db.friends.push(friendship);
+				
+				// Persist changes
+				persistDb();
+				
+				resolve({
+					user_id: userId,
+					friend_id: friendId,
+					created_at: new Date(friendship.created_at)
+				});
+			} catch (error) {
+				reject(error);
+			}
+		});
+		
+		/* Real backend implementation:
+		return this.fetchApi('/friends', {
+			method: 'POST',
+			body: JSON.stringify({ user_id: userId, friend_id: friendId })
+		});
+		*/
 	}
 }

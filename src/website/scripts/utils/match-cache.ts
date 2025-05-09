@@ -3,8 +3,8 @@
  * Singleton class that provides global caching for match data
  * to prevent duplicate DB requests across components
  */
-import { Match } from '@shared/types';
-import { GameMode } from '@shared/types';
+import { Match } from '@website/types';
+import { GameMode } from '@website/types';
 
 /**
  * Extended match data returned by DB service

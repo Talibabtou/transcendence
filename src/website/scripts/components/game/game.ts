@@ -4,8 +4,9 @@
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
 import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
-import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
-import { GameMode } from '@shared/types';
+import { appState, MatchCache, TournamentCache, ApiError } from '@website/scripts/utils';
+import { GameMode } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -887,24 +888,43 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleTournamentContinue(): void {
 		if (!this.TournamentComponent) return;
 		
-		// Use the tournament component's method to get player info
-		const playerInfo = this.TournamentComponent.handleContinue();
-		
-		if (!playerInfo) {
-			// No more matches, go back to menu
-			this.handleBackToMenu();
-			return;
+		try {
+			// Use the tournament component's method to get player info
+			const playerInfo = this.TournamentComponent.handleContinue();
+			
+			if (!playerInfo) {
+				// No more matches, go back to menu
+				this.handleBackToMenu();
+				return;
+			}
+			
+			// Update state with player info for the current match
+			this.updateInternalState({
+				playerIds: playerInfo.playerIds,
+				playerNames: playerInfo.playerNames,
+				playerColors: playerInfo.playerColors
+			});
+			
+			// Start the actual game
+			this.updateGameState(GameState.PLAYING);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
+					console.error('Tournament not found:', error.message);
+					// Show error to user or handle gracefully
+					this.handleBackToMenu();
+				} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
+					console.error('Match not found:', error.message);
+					this.handleBackToMenu();
+				} else {
+					console.error('Tournament error:', error.message);
+					this.handleBackToMenu();
+				}
+			} else {
+				console.error('Error continuing tournament:', error);
+				this.handleBackToMenu();
+			}
 		}
-		
-		// Update state with player info for the current match
-		this.updateInternalState({
-			playerIds: playerInfo.playerIds,
-			playerNames: playerInfo.playerNames,
-			playerColors: playerInfo.playerColors
-		});
-		
-		// Start the actual game
-		this.updateGameState(GameState.PLAYING);
 	}
 
 	// Add this method if you don't have it

@@ -2,8 +2,9 @@
  * Login Module
  * Handles email/password login functionality
  */
-import { html, ASCII_ART, DbService } from '@website/scripts/utils';
-import { AuthMethod, UserData } from '@shared/types';
+import { html, ASCII_ART, DbService, ApiError } from '@website/scripts/utils';
+import { AuthMethod, UserData } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class LoginHandler {
 	constructor(
@@ -128,10 +129,20 @@ export class LoginHandler {
 				this.updateState({ error: 'Invalid username or password' });
 			}
 		} catch (error) {
-			console.error('Auth: Login error', error);
-			this.updateState({ 
-				error: error instanceof Error ? error.message : 'Authentication failed'
-			});
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
+					this.updateState({ error: 'Invalid username or password' });
+				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
+					this.updateState({ error: 'Invalid two-factor authentication code' });
+				} else {
+					this.updateState({ error: error.message });
+				}
+			} else {
+				console.error('Auth: Login error', error);
+				this.updateState({ 
+					error: error instanceof Error ? error.message : 'Authentication failed'
+				});
+			}
 		}
 	}
 }

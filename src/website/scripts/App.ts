@@ -127,4 +127,9 @@ Deployment & DevOps:
 // - Vite configurations
 - Set up proper environment-specific builds
 - Implement full error managing and tracking
+
+- clean le db.ts post plug
+- verify app-state.ts that is compatible to plug (ask with jwt)
+- 
+
 */

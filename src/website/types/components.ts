@@ -1,4 +1,4 @@
-import { UserProfile, LeaderboardEntry } from '@shared/types';
+import { UserProfile, LeaderboardEntry } from '@website/types';
 
 /**
  * Profile component state interface

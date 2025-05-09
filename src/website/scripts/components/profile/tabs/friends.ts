@@ -4,7 +4,7 @@
  */
 import { Component } from '@website/scripts/components';
 import { html, render } from '@website/scripts/utils';
-import { UserProfile } from '@shared/types';
+import { UserProfile } from '@website/types';
 
 interface ProfileFriendsState {
 	profile: UserProfile | null;

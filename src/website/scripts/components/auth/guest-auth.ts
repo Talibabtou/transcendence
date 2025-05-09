@@ -3,8 +3,9 @@
  * A standalone component for guest player authentication without affecting the main app state
  */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService } from '@website/scripts/utils';
-import { IAuthComponent, GuestAuthState } from '@shared/types';
+import { html, render, DbService, ApiError } from '@website/scripts/utils';
+import { IAuthComponent, GuestAuthState } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	constructor(container: HTMLElement) {
@@ -182,18 +183,16 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.updateInternalState({ error: null });
 		
 		try {
-			const response = await DbService.verifyUser(email, password);
+			const response = await DbService.login({ email, password });
 			
 			if (response.success && response.user) {
 				const userData = {
 					id: response.user.id,
-					username: response.user.username,
+					username: response.user.pseudo,
 					email: response.user.email || '',
-					profilePicture: response.user.profilePicture,
+					avatar: response.user.pfp || `/images/default-avatar.svg`,
 					theme: response.user.theme || '#ffffff'
 				};
-				
-				await DbService.updateUserLastConnection(String(response.user.id));
 				
 				const position = this.getPositionFromContainerId();
 				
@@ -211,8 +210,18 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				this.showError('Invalid email or password');
 			}
 		} catch (error) {
-			console.error('Guest authentication error:', error);
-			this.showError('Authentication failed. Please try again.');
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
+					this.showError('Invalid email or password');
+				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
+					this.showError('Invalid two-factor authentication code');
+				} else {
+					this.showError(error.message);
+				}
+			} else {
+				console.error('Guest authentication error:', error);
+				this.showError('Authentication failed. Please try again.');
+			}
 		}
 	}
 	
@@ -249,8 +258,16 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				this.hide();
 			}
 		} catch (error) {
-			console.error('Guest registration error:', error);
-			this.showError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
+					this.showError('Email already in use');
+				} else {
+					this.showError(error.message);
+				}
+			} else {
+				console.error('Guest registration error:', error);
+				this.showError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+			}
 		}
 	}
 	

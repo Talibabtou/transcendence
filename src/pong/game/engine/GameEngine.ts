@@ -1,8 +1,9 @@
 import { GameContext, GameState, GameStateInfo } from '@pong/types';
 import { GameScene, GameModeType } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
-import { DbService } from '@website/scripts/utils';
-import { GameMode } from '@shared/types';
+import { DbService, ApiError } from '@website/scripts/utils';
+import { GameMode } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 
 /**
@@ -389,7 +390,17 @@ export class GameEngine {
 				localStorage.setItem('current_match_start_time', Date.now().toString());
 			})
 			.catch(error => {
-				console.error('Failed to create match:', error);
+				if (error instanceof ApiError) {
+					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+						console.error('Player not found when creating match');
+					} else if (error.isErrorCode(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
+						console.error('Tournament not found when creating match');
+					} else {
+						console.error(`Failed to create match: ${error.message}`);
+					}
+				} else {
+					console.error('Failed to create match:', error);
+				}
 				// Reset flag to allow retry
 				this.matchCreated = false;
 			});
@@ -579,17 +590,25 @@ export class GameEngine {
 		// Record the goal in the database
 		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
 			.then(() => {
-				// Reset the goal timer for the next goal
 				this.resetGoalTimer();
 			})
 			.catch((error: any) => {
-				// Don't log errors for completed matches as these are expected
-				if (!(error && error.message && error.message.includes('already completed'))) {
+				if (error instanceof ApiError) {
+					if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
+						console.error('Cannot record goal: Match no longer exists');
+					} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_ACTIVE)) {
+						// Expected when match is completed, can ignore
+					} else if (error.isErrorCode(ErrorCodes.PLAYER_NOT_IN_MATCH)) {
+						console.error('Cannot record goal: Player not in match');
+					} else {
+						console.error(`Failed to record goal: ${error.message}`);
+					}
+				} else if (!(error && error.message && error.message.includes('already completed'))) {
 					console.error('Failed to record goal:', error);
 				}
 			});
 	}
-	
+
 	/**
 	 * Resets the goal timer for a new point
 	 * Called after a goal is scored or at point start

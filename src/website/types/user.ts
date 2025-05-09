@@ -1,4 +1,4 @@
-import { GameHistoryEntry } from '@shared/types';
+import { GameHistoryEntry } from '@website/types';
 
 /**
  * User-related data models

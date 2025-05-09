@@ -4,8 +4,8 @@
  * Handles data fetching, sorting, and user interaction with the leaderboard.
  */
 import { Component } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
-import { LeaderboardState } from '@shared/types';
+import { DbService, html, render, navigate, ASCII_ART, ApiError } from '@website/scripts/utils';
+import { LeaderboardState } from '@website/types';
 
 /**
  * Component that displays the global leaderboard
@@ -92,7 +92,11 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			const leaderboardData = await DbService.getLeaderboard();
 			this.updateInternalState({ leaderboardData });
 		} catch (error) {
-			console.error('Error fetching leaderboard data:', error);
+			if (error instanceof ApiError) {
+				console.error(`Error fetching leaderboard data: ${error.message}`);
+			} else {
+				console.error('Error fetching leaderboard data:', error);
+			}
 			throw new Error('Failed to fetch leaderboard data.');
 		}
 	}

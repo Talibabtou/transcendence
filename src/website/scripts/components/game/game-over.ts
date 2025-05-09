@@ -5,7 +5,7 @@
  */
 import { Component, GameManager } from '@website/scripts/components';
 import { html, render, ASCII_ART, calculateUIPositions, MatchCache } from '@website/scripts/utils';
-import { GameMode, GameOverState } from '@shared/types';
+import { GameMode, GameOverState } from '@website/types';
 
 export class GameOverComponent extends Component<GameOverState> {
 	// =========================================

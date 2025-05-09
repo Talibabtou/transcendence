@@ -3,8 +3,9 @@
  * Allows users to update their profile settings
  */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, appState } from '@website/scripts/utils';
-import { UserProfile } from '@shared/types';
+import { html, render, DbService, appState, ApiError } from '@website/scripts/utils';
+import { UserProfile } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 interface ProfileSettingsState {
 	profile: UserProfile | null;
@@ -305,10 +306,29 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							this.render();
 						})
 						.catch(error => {
-							this.updateInternalState({
-								isUploading: false,
-								uploadError: `Upload failed: ${error.message}`
-							});
+							if (error instanceof ApiError) {
+								if (error.isErrorCode(ErrorCodes.INVALID_TYPE)) {
+									this.updateInternalState({
+										isUploading: false,
+										uploadError: 'Invalid image format'
+									});
+								} else if (error.isErrorCode(ErrorCodes.NO_FILE_PROVIDED)) {
+									this.updateInternalState({
+										isUploading: false,
+										uploadError: 'No file provided'
+									});
+								} else {
+									this.updateInternalState({
+										isUploading: false,
+										uploadError: `Upload failed: ${error.message}`
+									});
+								}
+							} else {
+								this.updateInternalState({
+									isUploading: false,
+									uploadError: `Upload failed: ${error.message}`
+								});
+							}
 						});
 					}, 1000); // Simulate upload delay
 				}
@@ -362,7 +382,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.render();
 			})
 			.catch(error => {
-				console.error('Failed to update color:', error);
+				if (error instanceof ApiError) {
+					console.error(`Failed to update color: ${error.message}`);
+				} else {
+					console.error('Failed to update color:', error);
+				}
 			});
 	}
 	
@@ -490,12 +514,48 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.render();
 			})
 			.catch(error => {
-				this.updateInternalState({
-					formErrors: {
-						...state.formErrors,
-						form: `Failed to update profile: ${error.message}`
+				if (error instanceof ApiError) {
+					switch(error.code) {
+						case ErrorCodes.SQLITE_CONSTRAINT:
+							this.updateInternalState({
+								formErrors: {
+									...state.formErrors,
+									form: 'Username or email already in use'
+								}
+							});
+							break;
+						case ErrorCodes.INVALID_FIELDS:
+							this.updateInternalState({
+								formErrors: {
+									...state.formErrors,
+									form: 'Invalid user information provided'
+								}
+							});
+							break;
+						case ErrorCodes.PLAYER_NOT_FOUND:
+							this.updateInternalState({
+								formErrors: {
+									...state.formErrors,
+									form: 'User not found'
+								}
+							});
+							break;
+						default:
+							this.updateInternalState({
+								formErrors: {
+									...state.formErrors,
+									form: `Failed to update profile: ${error.message}`
+								}
+							});
 					}
-				});
+				} else {
+					this.updateInternalState({
+						formErrors: {
+							...state.formErrors,
+							form: `Failed to update profile: ${error.message}`
+						}
+					});
+				}
 			});
 	}
 	

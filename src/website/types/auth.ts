@@ -3,7 +3,7 @@
  * Shared types and constants for the authentication system
  */
 
-import { User } from '@shared/types';
+import { User } from '@website/types';
 
 /**
  * Authentication-related types

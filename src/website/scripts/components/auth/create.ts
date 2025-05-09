@@ -2,8 +2,9 @@
  * Create Account Module
  * Handles user registration functionality
  */
-import { html, ASCII_ART, DbService } from '@website/scripts/utils';
-import { AuthMethod, UserData } from '@shared/types';
+import { html, ASCII_ART, DbService, ApiError } from '@website/scripts/utils';
+import { AuthMethod, UserData } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
 	constructor(
@@ -120,10 +121,31 @@ export class RegistrationHandler {
 			})
 			.catch(error => {
 				console.error('Auth: Registration error', error);
-				this.updateState({
-					isLoading: false,
-					error: error.message || 'Registration failed. Please try again.'
-				});
+				
+				if (error instanceof ApiError) {
+					// Handle specific API errors
+					if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
+						this.updateState({
+							isLoading: false,
+							error: 'Email or username already in use'
+						});
+					} else if (error.isErrorCode(ErrorCodes.INVALID_FIELDS)) {
+						this.updateState({
+							isLoading: false,
+							error: 'Invalid registration information provided'
+						});
+					} else {
+						this.updateState({
+							isLoading: false,
+							error: error.message || 'Registration failed. Please try again.'
+						});
+					}
+				} else {
+					this.updateState({
+						isLoading: false,
+						error: error.message || 'Registration failed. Please try again.'
+					});
+				}
 			});
 	}
 }

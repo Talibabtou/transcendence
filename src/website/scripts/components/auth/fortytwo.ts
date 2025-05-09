@@ -3,7 +3,7 @@
  * Handles 42 OAuth authentication
  */
 import { DbService } from '@website/scripts/utils';
-import { AuthMethod, OAUTH_CONFIG, UserData } from '@shared/types';
+import { AuthMethod, OAUTH_CONFIG, UserData } from '@website/types';
 
 export class FortyTwoAuthHandler {
 	constructor(

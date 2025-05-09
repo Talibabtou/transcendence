@@ -4,7 +4,7 @@
  */
 import { Component, LoginHandler, RegistrationHandler, GoogleAuthHandler, FortyTwoAuthHandler } from '@website/scripts/components';
 import { html, render, navigate } from '@website/scripts/utils';
-import { AuthState, AuthMethod, AuthComponentState, UserData, IAuthComponent } from '@shared/types';
+import { AuthState, AuthMethod, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {

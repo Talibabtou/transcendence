@@ -5,7 +5,7 @@
  */
 import { Component, GuestAuthComponent } from '@website/scripts/components';
 import { html, render, ASCII_ART, DbService, appState, TournamentCache } from '@website/scripts/utils';
-import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@shared/types';
+import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManagers: Map<string, IAuthComponent> = new Map();

@@ -6,7 +6,7 @@
 import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
 import { html, render } from '@website/scripts/utils';
 import playerStatsData from '../player_stats.json';
-import { UserProfile } from '@shared/types';
+import { UserProfile } from '@website/types';
 
 // Define the stats component state interface
 interface ProfileStatsState {

@@ -3,8 +3,10 @@
  * Displays user match history in a paginated table
  */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService } from '@website/scripts/utils';
-import { UserProfile } from '@shared/types';
+import { html, render, DbService, ApiError } from '@website/scripts/utils';
+import { UserProfile } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
+
 interface ProfileHistoryState {
 	profile: UserProfile | null;
 	historyPage: number;
@@ -89,8 +91,12 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 					if (opponent) {
 						opponentName = opponent.pseudo;
 					}
-				} catch {
-					console.log(`Could not fetch opponent data for ID ${opponentId}`);
+				} catch (error) {
+					if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+						console.log(`Player ID ${opponentId} not found`);
+					} else {
+						console.log(`Could not fetch opponent data for ID ${opponentId}`);
+					}
 				}
 				
 				// Get goals for this match
@@ -156,7 +162,15 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			this.render();
 			
 		} catch (error) {
-			console.error('Error loading match history:', error);
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+					console.error(`Player ID ${parseInt(userId)} not found when loading match history`);
+				} else {
+					console.error(`Error loading match history: ${error.message}`);
+				}
+			} else {
+				console.error('Error loading match history:', error);
+			}
 			this.updateInternalState({ isLoading: false });
 		}
 	}

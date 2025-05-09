@@ -4,6 +4,8 @@
  */
 
 import { Router } from './router';
+import { ApiError } from '@website/scripts/utils';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 // Define available accent colors
 export type AccentColor = 'white' | 'blue' | 'green' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cyan' | 'teal' | 'lime' | 'red';
@@ -138,9 +140,20 @@ export class AppStateManager {
 								}
 							})
 							.catch(err => {
-								console.warn('Could not fetch user theme from database, using stored value', err);
-								// Fallback to stored theme
-								this.applyStoredTheme(user);
+								if (err instanceof ApiError) {
+									if (err.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+										console.warn('User not found in database, using stored value');
+										// Fallback to stored theme
+										this.applyStoredTheme(user);
+									} else {
+										console.warn(`API error when fetching user theme: ${err.message}`);
+										this.applyStoredTheme(user);
+									}
+								} else {
+									console.warn('Could not fetch user theme from database, using stored value', err);
+									// Fallback to stored theme
+									this.applyStoredTheme(user);
+								}
 							});
 					});
 				} else {
@@ -424,7 +437,15 @@ export class AppStateManager {
 							this.state.auth.user.theme = colorHex;
 						})
 						.catch(error => {
-							console.error('Failed to update user theme in database:', error);
+							if (error instanceof ApiError) {
+								if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+									console.error('User not found when updating theme');
+								} else {
+									console.error(`Failed to update user theme: ${error.message}`);
+								}
+							} else {
+								console.error('Failed to update user theme in database:', error);
+							}
 						});
 				});
 			}

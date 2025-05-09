@@ -5,7 +5,7 @@
  */
 import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
-import { GameMode } from '@shared/types';
+import { GameMode } from '@website/types';
 
 // =========================================
 // TYPES & CONSTANTS

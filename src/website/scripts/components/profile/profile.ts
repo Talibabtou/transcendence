@@ -3,8 +3,9 @@
  * Parent component that manages tab navigation and profile summary
  */
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART } from '@website/scripts/utils';
-import { UserProfile, ProfileState } from '@shared/types';
+import { DbService, html, render, navigate, ASCII_ART, ApiError } from '@website/scripts/utils';
+import { UserProfile, ProfileState } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 /**
  * Component that displays and manages user profiles
@@ -232,11 +233,23 @@ export class ProfileComponent extends Component<ProfileState> {
 				// Load initial summary data
 				await this.loadSummaryData(numericId, userProfile);
 				
-			} catch (err) {
-				console.error('Error fetching user data from DB:', err);
-				this.updateInternalState({ 
-					errorMessage: `Error loading user profile: ${err instanceof Error ? err.message : 'Unknown error'}`
-				});
+			} catch (error) {
+				if (error instanceof ApiError) {
+					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+						this.updateInternalState({ 
+							errorMessage: `User with ID ${numericId} not found`
+						});
+					} else {
+						this.updateInternalState({ 
+							errorMessage: error.message
+						});
+					}
+				} else {
+					console.error('Error fetching user data from DB:', error);
+					this.updateInternalState({ 
+						errorMessage: `Error loading user profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+					});
+				}
 			}
 		} catch (error) {
 			console.error('Error in fetchProfileData:', error);

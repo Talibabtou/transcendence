@@ -5,7 +5,7 @@
  */
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
-import { GameMode, GameMenuState } from '@shared/types';
+import { GameMode, GameMenuState } from '@website/types';
 import { TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils/tournament-cache';
 
 export class GameMenuComponent extends Component<GameMenuState> {
