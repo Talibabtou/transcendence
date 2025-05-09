@@ -1,12 +1,8 @@
 import { GameHistoryEntry } from '@website/types';
 
-/**
- * User-related data models
- */
-
 // Main user model
 export interface User {
-	id: number;
+	id: string;
 	theme?: string;
 	pfp?: string;
 	pseudo: string;
@@ -20,12 +16,12 @@ export interface User {
 
 // Friendship relationship
 export interface Friend {
-	user_id: number;
-	friend_id: number;
+	user_id: string;
+	friend_id: string;
 	created_at: Date;
 }
 
-// User profile for frontend display (can extend User if needed)
+// User profile for frontend display
 export interface UserProfile {
 	id: string;
 	username: string;
@@ -43,7 +39,7 @@ export interface UserProfile {
 
 // Friend display for UI
 export interface FriendProfile {
-	id: number;
+	id: string;
 	username: string;
 	avatarUrl: string;
 	lastLogin?: Date;

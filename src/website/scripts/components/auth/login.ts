@@ -2,7 +2,7 @@
  * Login Module
  * Handles email/password login functionality
  */
-import { html, ASCII_ART, DbService, ApiError } from '@website/scripts/utils';
+import { html, ASCII_ART, DbService, ApiError, hashPassword } from '@website/scripts/utils';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -97,7 +97,7 @@ export class LoginHandler {
 		this.lastLoginAttempt = new Date();
 		
 		if (this.loginAttempts > 5) {
-			const fiveMinutesAgo = new Date(Date.now() - 60 * 1000);
+			const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
 				this.updateState({ error: 'Too many login attempts. Please try again later.' });
 				return;
@@ -107,7 +107,15 @@ export class LoginHandler {
 		}
 		
 		try {
-			const response = await DbService.login({ email, password });
+			this.updateState({ isLoading: true, error: null });
+			
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
+			
+			const response = await DbService.login({ 
+				email, 
+				password: hashedPassword 
+			});
 			
 			if (response.success && response.user) {
 				const user = response.user;
@@ -115,7 +123,7 @@ export class LoginHandler {
 				const isPersistent = rememberMe ? rememberMe.checked : false;
 				
 				const userData: UserData = {
-					id: String(user.id),
+					id: user.id,
 					username: user.pseudo,
 					email: user.email || '',
 					authMethod: AuthMethod.EMAIL,
@@ -125,21 +133,41 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData);
 				this.switchToSuccessState();
+				this.updateState({ isLoading: false });
+			} else if (response.requires2FA) {
+				// Handle 2FA flow if implemented
+				this.updateState({ 
+					isLoading: false,
+					requires2FA: true 
+				});
 			} else {
-				this.updateState({ error: 'Invalid username or password' });
+				this.updateState({ 
+					isLoading: false,
+					error: 'Invalid username or password' 
+				});
 			}
 		} catch (error) {
 			if (error instanceof ApiError) {
 				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
-					this.updateState({ error: 'Invalid username or password' });
+					this.updateState({ 
+						isLoading: false,
+						error: 'Invalid username or password' 
+					});
 				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
-					this.updateState({ error: 'Invalid two-factor authentication code' });
+					this.updateState({ 
+						isLoading: false,
+						error: 'Invalid two-factor authentication code' 
+					});
 				} else {
-					this.updateState({ error: error.message });
+					this.updateState({ 
+						isLoading: false,
+						error: error.message 
+					});
 				}
 			} else {
 				console.error('Auth: Login error', error);
 				this.updateState({ 
+					isLoading: false,
 					error: error instanceof Error ? error.message : 'Authentication failed'
 				});
 			}

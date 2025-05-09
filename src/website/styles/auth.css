@@ -310,3 +310,53 @@
 		padding: 0.5rem;
 	}
 }
+
+/* Password strength indicator styling */
+.password-strength {
+	margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+	height: 0.5rem;
+	background-color: rgba(0, 0, 0, 0.2);
+	border: 1px solid var(--border-color);
+	margin-bottom: 0.75rem;
+}
+
+.password-strength-fill {
+	height: 100%;
+	transition: width 0.3s ease;
+}
+
+.password-strength-fill.very-weak { background-color: #ff4d4d; }
+.password-strength-fill.weak { background-color: #ff9933; }
+.password-strength-fill.medium { background-color: #ffcc00; }
+.password-strength-fill.strong { background-color: #99cc33; }
+.password-strength-fill.very-strong { background-color: #33cc33; }
+
+.password-requirements {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+}
+
+.password-requirements li {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.25rem;
+	font-size: 0.85rem;
+	color: var(--text-color);
+}
+
+.password-requirements li span {
+	margin-right: 0.5rem;
+	font-weight: bold;
+}
+
+.password-requirements li.valid {
+	opacity: 0.9;
+}
+
+.password-requirements li.invalid {
+	opacity: 0.7;
+}

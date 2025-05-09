@@ -2,11 +2,13 @@
  * Create Account Module
  * Handles user registration functionality
  */
-import { html, ASCII_ART, DbService, ApiError } from '@website/scripts/utils';
+import { html, ASCII_ART, DbService, ApiError, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
+	private passwordStrength: PasswordStrengthComponent | null = null;
+
 	constructor(
 		private updateState: (state: any) => void,
 		private setCurrentUser: (user: UserData | null) => void,
@@ -39,7 +41,9 @@ export class RegistrationHandler {
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required />
+					<input type="password" id="password" name="password" required 
+						   onInput=${(e: Event) => this.handlePasswordInput(e)} />
+					<div id="password-strength-container"></div>
 				</div>
 				
 				<button type="submit" class="menu-button">Create Account</button>
@@ -71,9 +75,30 @@ export class RegistrationHandler {
 	}
 
 	/**
+	 * Handle password input to update strength indicator
+	 */
+	handlePasswordInput(e: Event): void {
+		const input = e.target as HTMLInputElement;
+		const password = input.value;
+		
+		// Initialize password strength component if needed
+		if (!this.passwordStrength) {
+			const container = document.getElementById('password-strength-container');
+			if (container) {
+				this.passwordStrength = new PasswordStrengthComponent(container);
+			}
+		}
+		
+		// Update password strength indicator
+		if (this.passwordStrength) {
+			this.passwordStrength.updatePassword(password);
+		}
+	}
+
+	/**
 	 * Handles user registration
 	 */
-	handleRegister(form: HTMLFormElement): void {
+	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
 		const username = formData.get('username') as string;
 		const email = formData.get('email') as string;
@@ -86,66 +111,82 @@ export class RegistrationHandler {
 			return;
 		}
 		
+		// Validate password requirements
+		const passwordValidation = validatePassword(password);
+		if (!passwordValidation.valid) {
+			this.updateState({
+				error: passwordValidation.message
+			});
+			return;
+		}
+		
 		this.updateState({ isLoading: true, error: null });
 		
-		// Use DbService to simulate API call
-		DbService.register({ username, email, password })
-			.then((response) => {
-				if (response.success && response.user) {
-					const user = response.user;
-					
-					// Set current user without password
-					const userData: UserData = {
-						id: String(user.id),
-						username: user.pseudo, 
-						email: user.email || email,
-						authMethod: AuthMethod.EMAIL,
-						lastLogin: user.last_login ? new Date(user.last_login) : new Date()
-					};
-					
-					this.setCurrentUser(userData);
-					
-					// Update component state
-					this.updateState({
-						isLoading: false
-					});
-					
-					// Switch to success state
-					this.switchToSuccessState();
-				} else {
+		try {
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
+			
+			// Use DbService with hashed password
+			const response = await DbService.register({ 
+				username, 
+				email, 
+				password: hashedPassword 
+			});
+			
+			if (response.success && response.user) {
+				const user = response.user;
+				
+				// Set current user without password
+				const userData: UserData = {
+					id: user.id,
+					username: user.pseudo, 
+					email: user.email || email,
+					authMethod: AuthMethod.EMAIL,
+					lastLogin: user.last_login ? new Date(user.last_login) : new Date()
+				};
+				
+				this.setCurrentUser(userData);
+				
+				// Update component state
+				this.updateState({
+					isLoading: false
+				});
+				
+				// Switch to success state
+				this.switchToSuccessState();
+			} else {
+				this.updateState({
+					isLoading: false,
+					error: 'Registration failed. Please try again.'
+				});
+			}
+		} catch (error: unknown) {
+			console.error('Auth: Registration error', error);
+			
+			if (error instanceof ApiError) {
+				// Handle specific API errors
+				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
 					this.updateState({
 						isLoading: false,
-						error: 'Registration failed. Please try again.'
+						error: 'Email or username already in use'
 					});
-				}
-			})
-			.catch(error => {
-				console.error('Auth: Registration error', error);
-				
-				if (error instanceof ApiError) {
-					// Handle specific API errors
-					if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
-						this.updateState({
-							isLoading: false,
-							error: 'Email or username already in use'
-						});
-					} else if (error.isErrorCode(ErrorCodes.INVALID_FIELDS)) {
-						this.updateState({
-							isLoading: false,
-							error: 'Invalid registration information provided'
-						});
-					} else {
-						this.updateState({
-							isLoading: false,
-							error: error.message || 'Registration failed. Please try again.'
-						});
-					}
+				} else if (error.isErrorCode(ErrorCodes.INVALID_FIELDS)) {
+					this.updateState({
+						isLoading: false,
+						error: 'Invalid registration information provided'
+					});
 				} else {
 					this.updateState({
 						isLoading: false,
 						error: error.message || 'Registration failed. Please try again.'
 					});
 				}
-			});
+			} else {
+				this.updateState({
+					isLoading: false,
+					error: 'Registration failed. Please try again.'
+				});
+			}
+		}
 	}
 }

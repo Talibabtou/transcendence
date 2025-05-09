@@ -1,11 +1,7 @@
-/**
- * AppState Manager
- * Centralized state management for the application
- */
-
 import { Router } from './router';
 import { ApiError } from '@website/scripts/utils';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { PlayerData } from '@website/types';
 
 // Define available accent colors
 export type AccentColor = 'white' | 'blue' | 'green' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cyan' | 'teal' | 'lime' | 'red';
@@ -19,16 +15,13 @@ export interface AppState {
 	};
 	accentColor: AccentColor;
 	accentColors: {
-		accent1: string; // Host accent (same as accentColor but in hex)
-		accent2: string; // Guest 1 accent
-		accent3: string; // Guest 2 accent - for tournament
-		accent4: string; // Guest 3 accent - for tournament
+		accent1: string;
+		accent2: string;
+		accent3: string;
+		accent4: string;
 	};
 	players: {
-		[playerId: string]: {
-			name: string;
-			avatar?: string;
-		}
+		[playerId: string]: PlayerData;
 	};
 }
 
@@ -553,13 +546,12 @@ export class AppStateManager {
 	/**
 	 * Set player name in the app state
 	 */
-	public setPlayerName(playerId: number, name: string): void {
-		const playerIdStr = playerId.toString();
+	public setPlayerName(playerId: string, name: string): void {
 		this.setState({
 			players: {
 				...this.state.players,
-				[playerIdStr]: {
-					...this.state.players[playerIdStr],
+				[playerId]: {
+					...this.state.players[playerId],
 					name
 				}
 			}
@@ -569,13 +561,12 @@ export class AppStateManager {
 	/**
 	 * Set player avatar in the app state
 	 */
-	public setPlayerAvatar(playerId: number, avatarUrl: string): void {
-		const playerIdStr = playerId.toString();
+	public setPlayerAvatar(playerId: string, avatarUrl: string): void {
 		this.setState({
 			players: {
 				...this.state.players,
-				[playerIdStr]: {
-					...this.state.players[playerIdStr],
+				[playerId]: {
+					...this.state.players[playerId],
 					avatar: avatarUrl
 				}
 			}
@@ -585,13 +576,16 @@ export class AppStateManager {
 	/**
 	 * Update player theme in the app state and database
 	 */
-	public updatePlayerTheme(playerId: number, colorHex: string): void {
-		// Update player accent color
-		this.setPlayerAccentColor(playerId, colorHex);
+	public updatePlayerTheme(playerId: string, colorHex: string): void {
+		// Update player accent color based on position (1-4)
+		const position = this.getPlayerPosition(playerId);
+		if (position > 0) {
+			this.setPlayerAccentColor(position, colorHex);
+		}
 		
 		// If this is the current user, also update in database
 		const currentUser = this.getCurrentUser();
-		if (currentUser && parseInt(currentUser.id) === playerId) {
+		if (currentUser && currentUser.id === playerId) {
 			import('./db').then(({ DbService }) => {
 				DbService.updateUserTheme(playerId, colorHex)
 					.catch(error => {
@@ -600,7 +594,12 @@ export class AppStateManager {
 			});
 		}
 	}
+	
+// Helper method to get player position from ID
+	private getPlayerPosition(playerId: string): number {
+		const playerData = this.state.players[playerId];
+		return playerData?.position || 0;
+	}
 }
 
-// Export a singleton instance
 export const appState = AppStateManager.getInstance();

@@ -65,11 +65,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	render(): void {
 		const state = this.getInternalState();
 		this.renderView(state.errorMessage);
-		
-		// Always set up event listeners after rendering
-		setTimeout(() => {
-			this.setupEventListeners();
-		}, 0);
 	}
 	
 	/**
@@ -110,7 +105,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Navigates to the clicked player's profile
 	 * @param playerId - The ID of the clicked player
 	 */
-	private handlePlayerClick(playerId: number): void {
+	private handlePlayerClick(playerId: string): void {
 		navigate(`/profile?id=${playerId}`);
 	}
 	
@@ -165,7 +160,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 													<td class="rank-cell">${entry.rank.toString()}</td>
 													<td 
 														class="player-cell" 
-														data-player-id=${entry.id}
 														onClick=${() => this.handlePlayerClick(entry.id)}
 													>
 														${entry.username}
@@ -185,20 +179,5 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			</div>
 		`;
 		render(template, this.container);
-	}
-
-	/**
-	 * Sets up event listeners after rendering
-	 */
-	public setupEventListeners(): void {
-		// Set up player name click handlers
-		this.container.querySelectorAll('.player-cell').forEach(cell => {
-			cell.addEventListener('click', () => {
-				const playerId = parseInt((cell as HTMLElement).getAttribute('data-player-id') || '0', 10);
-				if (playerId) {
-					this.handlePlayerClick(playerId);
-				}
-			});
-		});
 	}
 }

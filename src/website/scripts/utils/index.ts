@@ -8,3 +8,4 @@ export * from './ui-positioning';
 export * from './match-cache';
 export * from './tournament-cache';
 export * from './error';
+export * from './crypto';

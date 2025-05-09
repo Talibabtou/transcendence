@@ -367,7 +367,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				});
 				
 				// Update global app state for immediate visual feedback
-				appState.setPlayerAccentColor(parseInt(state.profile!.id), colorHex);
+				appState.setPlayerAccentColor(state.profile!.id, colorHex);
 				
 				// Apply directly to CSS for immediate effect
 				document.documentElement.style.setProperty('--accent1-color', colorHex);

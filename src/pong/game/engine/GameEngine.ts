@@ -19,9 +19,9 @@ export class GameEngine {
 	private gameMode: GameModeType = 'single';
 	private keyboardEventListener: ((evt: KeyboardEvent) => void) | null = null;
 	private matchStartTime: number = 0;
-	private playerIds: number[] = [];
+	private playerIds: string[] = [];
 	private playerColors: string[] = [];
-	private matchId: number | null = null;
+	private matchId: string | null = null;
 	private goalStartTime: number = 0;
 	private isPaused: boolean = false;
 	private pauseStartTime: number = 0;
@@ -336,8 +336,8 @@ export class GameEngine {
 	 * @param ids - Array of player IDs
 	 * @param tournamentId - Optional tournament ID
 	 */
-	public setPlayerIds(ids: number[], tournamentId?: string): void {
-		this.playerIds = ids.map(id => Number(id));
+	public setPlayerIds(ids: string[], tournamentId?: string): void {
+		this.playerIds = ids;
 		
 		// Create match with the optional tournament ID
 		this.createMatch(tournamentId);
@@ -575,7 +575,7 @@ export class GameEngine {
 		
 		// Special handling for AI in single player mode
 		if (scoringPlayerIndex === 1 && this.scene.isSinglePlayer()) {
-			scoringPlayerId = 0; // Use ID 0 for AI
+			scoringPlayerId = 0;
 		} else if (scoringPlayerIndex >= 0 && scoringPlayerIndex < this.playerIds.length) {
 			scoringPlayerId = this.playerIds[scoringPlayerIndex];
 		} else {

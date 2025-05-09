@@ -1,12 +1,8 @@
-/**
- * Game-related data models
- */
-
 // Match record in database
 export interface Match {
-	id: number;
-	player_1: number;
-	player_2: number;
+	id: string;
+	player_1: string;
+	player_2: string;
 	completed?: boolean;
 	duration?: number;
 	timeout?: boolean;
@@ -17,9 +13,9 @@ export interface Match {
 
 // Goal record in database
 export interface Goal {
-	id: number;
-	match_id: number;
-	player: number;
+	id: string;
+	match_id: string;
+	player: string;
 	duration: number;
 	created_at: Date;
 	hash: string;
@@ -41,7 +37,7 @@ export interface GameHistoryEntry {
  * Leaderboard entry for a player's ranking
  */
 export interface LeaderboardEntry {
-	id: number;
+	id: string;
 	rank: number;
 	username: string;
 	elo: number;
@@ -71,7 +67,7 @@ export interface GameMenuState {
  * Player data interface
  */
 export interface PlayerData {
-	id: number;
+	id: string;
 	username: string;
 	pfp: string;
 	isConnected: boolean;
@@ -98,7 +94,7 @@ export interface GameOverState {
 	visible: boolean;
 	winner: string;
 	gameMode: GameMode;
-	matchId: number | null;
+	matchId: string | null;
 	player1Name: string;
 	player2Name: string;
 	player1Score: number;

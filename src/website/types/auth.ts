@@ -1,13 +1,4 @@
-/**
- * Auth Component Types
- * Shared types and constants for the authentication system
- */
-
-import { User } from '@website/types';
-
-/**
- * Authentication-related types
- */
+import { User } from './user';
 
 /**
  * Define the possible authentication states
@@ -34,7 +25,7 @@ export interface AuthComponentState {
 	currentState: AuthState;
 	isLoading: boolean;
 	error: string | null;
-	redirectTarget: string | null; // Where to redirect after successful auth
+	redirectTarget: string | null;
 }
 
 /**
@@ -45,7 +36,7 @@ export interface UserData {
 	username: string;
 	email: string;
 	avatar?: string;
-	authMethod?: AuthMethod; // Track how the user authenticated
+	authMethod?: AuthMethod;
 	lastLogin?: Date;
 	persistent?: boolean;
 }
@@ -62,25 +53,13 @@ export interface OAuthConfig {
 	responseType: string;
 }
 
-// Login credentials
-export interface AuthCredentials {
-	email: string;
-	password: string;
-}
-
-// Registration data
-export interface RegisterData {
-	username: string;
-	email: string;
-	password: string;
-}
-
 // Auth API response
 export interface AuthResponse {
 	success: boolean;
 	user: User;
 	token: string;
 	refreshToken?: string;
+	requires2FA?: boolean;
 }
 
 // OAuth request parameters
