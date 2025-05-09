@@ -71,9 +71,41 @@ export function validatePassword(password: string): {valid: boolean, message: st
 export class PasswordStrengthComponent {
 	private container: HTMLElement;
 	private password: string = '';
+	private strengthBar: HTMLDivElement | null = null;
+	private requirementsList: HTMLUListElement | null = null;
 	
 	constructor(container: HTMLElement) {
 		this.container = container;
+		this.initializeDOM();
+	}
+	
+	/**
+	 * Creates the initial DOM structure
+	 */
+	private initializeDOM(): void {
+		// Create the basic structure once
+		const strengthContainer = document.createElement('div');
+		strengthContainer.className = 'password-strength';
+		
+		const barContainer = document.createElement('div');
+		barContainer.className = 'password-strength-bar';
+		
+		this.strengthBar = document.createElement('div');
+		this.strengthBar.className = 'password-strength-fill';
+		barContainer.appendChild(this.strengthBar);
+		
+		this.requirementsList = document.createElement('ul');
+		this.requirementsList.className = 'password-requirements';
+		
+		strengthContainer.appendChild(barContainer);
+		strengthContainer.appendChild(this.requirementsList);
+		
+		// Clear and add to container
+		this.container.innerHTML = '';
+		this.container.appendChild(strengthContainer);
+		
+		// Initial render
+		this.updateUI();
 	}
 	
 	/**
@@ -81,13 +113,15 @@ export class PasswordStrengthComponent {
 	 */
 	updatePassword(password: string): void {
 		this.password = password;
-		this.render();
+		this.updateUI();
 	}
 	
 	/**
-	 * Renders the password strength indicator
+	 * Updates just the UI components without replacing the entire DOM
 	 */
-	render(): void {
+	private updateUI(): void {
+		if (!this.strengthBar || !this.requirementsList) return;
+		
 		const validations = [
 			{
 				label: 'At least 8 characters',
@@ -117,25 +151,29 @@ export class PasswordStrengthComponent {
 			strengthPercentage < 75 ? 'medium' :
 			strengthPercentage < 100 ? 'strong' : 'very-strong';
 		
-		const template = html`
-			<div class="password-strength">
-				<div class="password-strength-bar">
-					<div class="password-strength-fill ${strengthClass}" 
-						 style="width: ${strengthPercentage}%"></div>
-				</div>
-				<ul class="password-requirements">
-					${validations.map(v => html`
-						<li class="${v.valid ? 'valid' : 'invalid'}">
-							<span style="color: ${v.valid ? 'var(--win-color)' : 'var(--loss-color)'}">
-								${v.valid ? '✓' : '✗'}
-							</span>
-							${v.label}
-						</li>
-					`)}
-				</ul>
-			</div>
-		`;
+		// Update strength bar - this will transition smoothly
+		this.strengthBar.style.width = `${strengthPercentage}%`;
 		
-		render(template, this.container);
+		// Update class but preserve existing classes
+		this.strengthBar.className = 'password-strength-fill';
+		this.strengthBar.classList.add(strengthClass);
+		
+		// Update requirements list
+		this.requirementsList.innerHTML = '';
+		validations.forEach(v => {
+			const li = document.createElement('li');
+			li.className = v.valid ? 'valid' : 'invalid';
+			
+			const indicator = document.createElement('span');
+			indicator.style.color = v.valid ? 'var(--win-color)' : 'var(--loss-color)';
+			indicator.textContent = v.valid ? '✓' : '✗';
+			
+			li.appendChild(indicator);
+			li.append(` ${v.label}`);
+			
+			if (this.requirementsList) {
+				this.requirementsList.appendChild(li);
+			}
+		});
 	}
 }

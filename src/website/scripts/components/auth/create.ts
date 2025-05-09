@@ -1,7 +1,3 @@
-/**
- * Create Account Module
- * Handles user registration functionality
- */
 import { html, ASCII_ART, DbService, ApiError, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
@@ -54,14 +50,14 @@ export class RegistrationHandler {
 					class="menu-button auth-social-button google-auth"
 					onClick=${() => initiateGoogleAuth()}
 				>
-					Sign up with Google
+					G
 				</button>
 				
 				<button 
 					class="menu-button auth-social-button forty-two-auth"
 					onClick=${() => initiate42Auth()}
 				>
-					Sign up with 42
+					42
 				</button>
 			</div>
 			

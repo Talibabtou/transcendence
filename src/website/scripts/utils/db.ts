@@ -51,14 +51,18 @@ export class DbService {
 		this.logRequest('POST', `${AUTH.REGISTER}`, {
 			username: userData.username,
 			email: userData.email,
-			password: '********'
+			password: '********',
 		});
 		
 		try {
 			// Call the backend register endpoint
 			const userResponse = await this.fetchApi<IReplyUser>(`${AUTH.REGISTER}`, {
 				method: 'POST',
-				body: JSON.stringify(userData)
+				body: JSON.stringify({
+					username: userData.username,
+					email: userData.email,
+					password: userData.password
+				})
 			});
 			
 			// Login to get the token
@@ -85,7 +89,6 @@ export class DbService {
 				token: loginResponse.token
 			};
 		} catch (error) {
-			console.error('Registration failed:', error);
 			throw error;
 		}
 	}

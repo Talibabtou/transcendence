@@ -188,7 +188,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error('Fatal error', err);
       process.exit(1);

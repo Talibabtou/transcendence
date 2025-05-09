@@ -18,7 +18,7 @@ import profilRoutes from './routes/profil.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
 import { API_PREFIX } from './shared/constants/path.const.js';
 import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
-import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
+import { checkMicroservicesHook } from './controllers/gateway.controller.js';
 // const server = fastify({
 // 	logger: true,
 // 	http2: true,
@@ -175,7 +175,7 @@ export class Server {
                 }
                 server.log.info(`Server listening at ${address}`);
             });
-            setInterval(checkMicroservices, 2000);
+            // setInterval(checkMicroservices, 2000);
         }
         catch (err) {
             server.log.error('Fatal error', err);
