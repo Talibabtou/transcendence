@@ -15,14 +15,14 @@ let userId1: string = '';
 const user1 = {
   username: 'test',
   email: 'test@test.fr',
-  password: 'Test123456789',
+  password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let token2: string = '';
 let userId2: string = '';
 const user2 = {
   username: 'test2',
   email: 'test2@test.fr',
-  password: 'Test123456789',
+  password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let count: number = 0;
 let countFailed: number = 0;

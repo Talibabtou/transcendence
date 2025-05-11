@@ -43,24 +43,33 @@ export async function getPics(request: FastifyRequest, reply: FastifyReply) {
 
 export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
   try {
-    if (request.url.includes(process.env.AUTH_ADDR || 'auth') && Server.microservices.get('auth') === false) {
+    if (
+      request.url.includes(process.env.AUTH_ADDR || 'auth') &&
+      (Server.microservices.get('auth') === false ||
+        Server.microservices.get('game') === false ||
+        Server.microservices.get('profil') === false ||
+        Server.microservices.get('friends') === false)
+    ) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE);
       return reply.code(503).send(errorMessage);
     } else if (
       request.url.includes(process.env.PROFIL_ADDR || 'profil') &&
-      Server.microservices.get(process.env.PROFIL_ADDR || 'profil') === false
+      (Server.microservices.get('auth') === false ||
+        Server.microservices.get(process.env.PROFIL_ADDR || 'profil') === false)
     ) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE);
       return reply.code(503).send(errorMessage);
     } else if (
       request.url.includes(process.env.FRIENDS_ADDR || 'friends') &&
-      Server.microservices.get(process.env.FRIENDS_ADDR || 'friends') === false
+      (Server.microservices.get('auth') === false ||
+        Server.microservices.get(process.env.FRIENDS_ADDR || 'friends') === false)
     ) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE);
       return reply.code(503).send(errorMessage);
     } else if (
       request.url.includes(process.env.GAME_ADDR || 'game') &&
-      Server.microservices.get(process.env.GAME_ADDR || 'game') === false
+      (Server.microservices.get('auth') === false ||
+        Server.microservices.get(process.env.GAME_ADDR || 'game') === false)
     ) {
       const errorMessage = createErrorResponse(503, ErrorCodes.SERVICE_UNAVAILABLE);
       return reply.code(503).send(errorMessage);
@@ -93,6 +102,9 @@ async function checkService(serviceName: string, servicePort: string): Promise<b
     const serviceUrl = `http://${serviceName}:${servicePort}/health`;
     const response = await fetch(serviceUrl, {
       method: 'GET',
+      headers: {
+        'X-Suppress-Logger': 'true',
+      },
     });
     return response.ok;
   } catch (err) {

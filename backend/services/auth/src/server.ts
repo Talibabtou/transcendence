@@ -1,7 +1,7 @@
 import { initDb } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
-import { fastify, FastifyInstance } from 'fastify';
+import { fastify, FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { startTelemetry } from './telemetry/telemetry.js';
 import { jwtPluginRegister } from './plugins/jwtPlugin.js';
 

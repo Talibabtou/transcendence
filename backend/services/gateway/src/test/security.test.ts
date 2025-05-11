@@ -14,7 +14,7 @@ const checks: any = {
   'cross-origin-opener-policy': 'Cross-Origin-Opener-Policy',
   'cross-origin-resource-policy': 'Cross-Origin-Resource-Policy',
   'origin-agent-cluster': 'Origin-Agent-Cluster',
-  'cache-control': 'Cache-Control'
+  'cache-control': 'Cache-Control',
 };
 
 function validateHeaderValue(key: string, value: string): string | null {
@@ -54,8 +54,8 @@ async function checkCors() {
   const res = await axios.options(target, {
     headers: {
       Origin: 'https://evil.com',
-      'Access-Control-Request-Method': 'GET'
-    }
+      'Access-Control-Request-Method': 'GET',
+    },
   });
 
   const allowOrigin = res.headers['access-control-allow-origin'];
@@ -86,9 +86,13 @@ async function checkCors() {
 async function checkPayloadLimit() {
   try {
     const bigPayload = 'A'.repeat(1024 * 1024 * 2); // 2 Mo
-    await axios.post(target, { data: bigPayload }, {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    await axios.post(
+      target,
+      { data: bigPayload },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
     console.log(chalk.red('No 2 MB payload rejection (missing limit?) ❌'));
   } catch (err: any) {
     if (err.response && err.response.status === 413) {

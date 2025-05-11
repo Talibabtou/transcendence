@@ -170,7 +170,6 @@ const fastifyConfig = {
     },
   },
   bodyLimit: 1024 * 1024, // 1 Mo
-  cookie: { httpOnly: true, secure: true, sameSite: 'strict' },
   // http2: true,
   // https: {
   //   key: fs.readFileSync(path.join(path.resolve(), '/certs/key.pem')),
@@ -189,7 +188,6 @@ async function addHeaders(request: FastifyRequest, reply: FastifyReply) {
 
 async function blockHeaders(request: FastifyRequest, reply: FastifyReply) {
   const forbiddenMethods = ['TRACE', 'TRACK', 'CONNECT', 'PUT'];
-
   if (forbiddenMethods.includes(request.raw.method || '')) {
     reply.code(405).send({ error: 'Method Not Allowed' });
   }
@@ -222,13 +220,13 @@ export class Server {
       await server.register(rateLimit, rateLimitConfig);
       await server.register(fastifyMultipart, multipartConfig);
       await server.register(fastifyStatic, staticConfig);
-      await server.register(helmet, helmetConfig);
-      server.register(cors, corsConfig);
+      // await server.register(helmet, helmetConfig);
+      // server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);
       server.addHook('onRequest', jwtPluginHook);
       server.addHook('onRequest', blockHeaders);
-      server.addHook('preValidation', checkMicroservicesHook);
+      // server.addHook('preValidation', checkMicroservicesHook);
       server.addHook('onSend', addHeaders);
       server.listen(
         {
@@ -245,7 +243,7 @@ export class Server {
           server.log.info(`Server listening at ${address}`);
         }
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error('Fatal error', err);
       process.exit(1);

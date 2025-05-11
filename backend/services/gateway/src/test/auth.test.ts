@@ -60,7 +60,7 @@ try {
     const user = {
       username: 'test',
       email: 'test@test',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/register';
@@ -95,7 +95,7 @@ try {
     const user = {
       username: 't',
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/register';
@@ -130,7 +130,7 @@ try {
     const user = {
       username: 'test',
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/register';
@@ -199,7 +199,7 @@ try {
     count += 1;
     const user = {
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/login';
@@ -402,7 +402,7 @@ try {
     count += 1;
     const modify = {
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
       username: 'test',
       vacance: 'Thailand',
       mange: 'une pomme',
@@ -573,7 +573,7 @@ try {
     count += 1;
     const user = {
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/login';
@@ -654,7 +654,7 @@ try {
     count += 1;
     const user = {
       email: 'test@test.fr',
-      password: 'Test123456789',
+      password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
     };
     const method = 'POST';
     const path = '/login';

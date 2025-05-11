@@ -43,7 +43,6 @@ export default async function eloRoutes(fastify: FastifyInstance) {
         ...getLeaderboardSchema,
         tags: ['elos'],
       },
-      config: auth,
     },
     getLeaderboard
   );
