@@ -219,7 +219,7 @@ export class GameEngine {
 		}
 		
 		// Redraw the scene
-		this.draw(0);
+		this.draw(1);
 	}
 
 	// =========================================

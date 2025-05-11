@@ -632,7 +632,7 @@ export class GameManager {
 				
 				// Force a redraw of the background game
 				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.draw(0);
+					this.backgroundGameInstance.engine.draw(1);
 				}
 			}
 		} catch (error) {

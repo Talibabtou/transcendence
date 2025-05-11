@@ -190,7 +190,7 @@ export class ResizeManager {
 	private resizeGameObjects(): void {
 		// Check if we are in a game scene with objects
 		if (!this.isGameScene()) {
-			this.scene.draw(); // Just redraw for non-game scenes
+			this.scene.draw(1); // Just redraw for non-game scenes
 			return;
 		}
 		
@@ -246,7 +246,7 @@ export class ResizeManager {
 		this.handleResizeDuringCountdown();
 		
 		// Force redraw
-		this.scene.draw();
+		this.scene.draw(1);
 	}
 
 	/**
