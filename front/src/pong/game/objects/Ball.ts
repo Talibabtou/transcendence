@@ -58,6 +58,9 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		// Initialize previous position for continuous collision
 		this.prevPosition.x = this.x;
 		this.prevPosition.y = this.y;
+		// Initialize previous render position for interpolation
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
 	}
 
 	// =========================================
@@ -273,6 +276,11 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.dy = 0;
 		this.destroyed = false;
 		this.hitLeftBorder = false;
+		// Snap previous render and physics positions to the new position
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
+		this.prevPosition.x = this.x;
+		this.prevPosition.y = this.y;
 	}
 
 	// =========================================

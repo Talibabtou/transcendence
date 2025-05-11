@@ -4,6 +4,7 @@ import { GameContext, GameState } from '@pong/types';
 import { calculateGameSizes } from '@pong/constants';
 import { GameScene } from '@pong/game/scenes';
 
+
 /**
  * Manages window resizing operations for the game, ensuring
  * that all game elements scale and position correctly.
@@ -34,6 +35,9 @@ export class ResizeManager {
 	 * @param player2 Right player reference
 	 * @param pauseManager PauseManager reference
 	 */
+	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
+	private lastResizeEvt = 0;
+
 	constructor(
 		ctx: GameContext,
 		scene: GameScene,
@@ -103,13 +107,16 @@ export class ResizeManager {
 	 * Main resize handler that orchestrates the resize process
 	 */
 	public handleResize(): void {
-		// Cancel any pending resize timeout
-		if (this.resizeTimeout) {
-			window.clearTimeout(this.resizeTimeout);
+		const now = performance.now();
+		if (now - this.lastResizeEvt < this.DEBOUNCE_MS) {
+			this.isResizing = false;
+			return;   // Debounced
 		}
-		
-		// Set resizing state
-		this.isResizing = true;
+		this.lastResizeEvt = now;
+		this.isResizing   = true;
+
+		// Only ONE queue jump – run heavy work in next frame, not a timeout
+
 		
 		// Check if we're in background mode - use GameScene
 		const isBackgroundMode = this.isInBackgroundDemo();
@@ -128,21 +135,13 @@ export class ResizeManager {
 			this.pauseManager.pause();
 		}
 		
-		// Request animation frame for smoother visual update
 		requestAnimationFrame(() => {
-			// Handle the resize operation
 			this.updateCanvasSize();
 			this.resizeGameObjects();
-			
-			// Reset resize state after a short delay
-			this.resizeTimeout = window.setTimeout(() => {
-				this.isResizing = false;
-				
-				// Resume game if it was playing (and not in background mode)
-				if (!isBackgroundMode && wasPlaying && this.pauseManager) {
-					this.pauseManager.resume();
-				}
-			}, isBackgroundMode ? 50 : 150);
+			this.isResizing = false;          // reset flag
+			if (!isBackgroundMode && wasPlaying && this.pauseManager) {
+							this.pauseManager.resume();
+			}
 		});
 	}
 
@@ -241,7 +240,6 @@ export class ResizeManager {
 		// Update paddle positions after bounds check
 		this.player1.updateHorizontalPosition();
 		this.player2.updateHorizontalPosition();
-		
 		// Handle countdown state explicitly
 		this.handleResizeDuringCountdown();
 		
@@ -259,9 +257,7 @@ export class ResizeManager {
 		if (isInCountdown) {
 			// Position the ball in the center if we're in countdown
 			if (this.ball) {
-				const { width, height } = this.context.canvas;
-				this.ball.x = width * 0.5;
-				this.ball.y = height * 0.5;
+				this.ball.restart(); // Use restart to correctly center and snap visual history
 			}
 			
 			// Tell pause manager to maintain countdown state

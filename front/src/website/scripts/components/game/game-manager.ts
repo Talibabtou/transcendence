@@ -220,25 +220,29 @@ export class GameManager {
 				let deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
 				// console.log("deltaTime", deltaTime);
-				// Prevent spiral of death by capping delta time
+				// Prevent spiral of death by capping extremely large frame delays
 				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) {
-					deltaTime = GAME_CONFIG.MAX_DELTA_TIME; 
-					console.log("above");
+					deltaTime = GAME_CONFIG.MAX_DELTA_TIME;
 				}
 
 				accumulator += deltaTime;
 
 				try {
-					// Perform fixed updates
-					while (accumulator >= GAME_CONFIG.FRAME_TIME) {
-						// Pass the fixed delta time (in seconds) to the update function
+					let steps = 0;
+					// Perform fixed updates but never more than MAX_STEPS_PER_FRAME per render frame
+					while (accumulator >= GAME_CONFIG.FRAME_TIME && steps < GAME_CONFIG.MAX_STEPS_PER_FRAME) {
 						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000);
 						accumulator -= GAME_CONFIG.FRAME_TIME;
+						steps++;
 					}
-
+					// If we reached the max steps, drop any remaining accumulator to avoid spiral
+					if (steps === GAME_CONFIG.MAX_STEPS_PER_FRAME) {
+						accumulator = 0;
+					}
+					
 					// Calculate interpolation alpha
 					const alpha = accumulator / GAME_CONFIG.FRAME_TIME;
-
+					
 					// Render the latest state with interpolation
 					instance.engine.draw(alpha);
 

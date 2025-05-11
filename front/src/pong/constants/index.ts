@@ -6,8 +6,8 @@ import { GameSizes } from '@pong/types';
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
 	MAX_STEPS_PER_FRAME: 8,
-	FRAME_TIME: 8,
-	MAX_DELTA_TIME: 10, // Maximum delta time to prevent spiral of death
+	FRAME_TIME: 10,
+	MAX_DELTA_TIME: 64, // Maximum delta time to prevent spiral of death
 	MIN_SIZES: {
 		BALL_SIZE: 5
 	}
