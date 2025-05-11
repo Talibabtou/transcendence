@@ -112,19 +112,24 @@ export class GameScene {
 		if (!this.isBackgroundDemo()) {
 			this.uiManager.drawBackground(this.player1, this.player2);
 		}
-		
+
+		// Determine if interpolation should be applied based on game state
+		const isPlaying = this.pauseManager.hasState(GameState.PLAYING);
+		const interpolationAlpha = isPlaying ? alpha : 0; // Use 0 if not playing
+
 		if (!this.isFrozen) {
 			this.objectsInScene.forEach(obj => {
 				if (typeof (obj as any).draw === 'function') {
+					// Pass conditional alpha to object's draw method if it accepts it
 					if ((obj as any).draw.length >= 1) {
-						(obj as any).draw(this.context, alpha);
+						(obj as any).draw(this.context, interpolationAlpha); // Pass conditional alpha
 					} else {
-						(obj as any).draw();
+						(obj as any).draw(); // Draw without alpha if the method doesn't take it
 					}
 				}
 			});
 		}
-		
+
 		this.uiManager.drawUI(
 			this.pauseManager.hasState(GameState.PAUSED),
 			this.isBackgroundDemo()
