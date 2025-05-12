@@ -91,9 +91,8 @@ export async function createMatch(
   reply: FastifyReply
 ) {
   try {
-    const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {

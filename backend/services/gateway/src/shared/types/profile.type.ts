@@ -6,3 +6,7 @@ export interface IUpload {
 export interface IId {
   id: string;
 }
+
+export interface IReplyPic {
+  link: string;
+}
