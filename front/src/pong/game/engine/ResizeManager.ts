@@ -206,6 +206,11 @@ export class ResizeManager {
 		this.ball.updateSizes();
 		this.player1.updateSizes();
 		this.player2.updateSizes();
+
+		// <<< Add UIManager font size update here >>>
+		if (typeof this.scene.getUIManager === 'function') {
+			this.scene.getUIManager().updateFontSizes(newWidth, newHeight);
+		}
 		
 		// Update horizontal paddle positions
 		this.player1.x = sizes.PLAYER_PADDING;

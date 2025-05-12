@@ -405,6 +405,10 @@ export class GameScene {
 	// Getters
 	// =========================================
 
+	public getUIManager(): UIManager {
+		return this.uiManager;
+	}
+
 	public getPauseManager(): PauseManager {
 		return this.pauseManager;
 	}

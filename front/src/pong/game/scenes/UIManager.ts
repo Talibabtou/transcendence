@@ -11,6 +11,11 @@ export class UIManager {
 	// =========================================
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
+	private cachedFontSizes: ReturnType<typeof calculateFontSizes>;
+	private lastSetFont: string | null = null;
+	private lastSetFillStyle: string | null = null;
+	private lastSetTextAlign: CanvasTextAlign | null = null;
+	private lastSetTextBaseline: CanvasTextBaseline | null = null;
 
 	/**
 	 * Creates a new UIManager instance
@@ -18,11 +23,22 @@ export class UIManager {
 	 */
 	constructor(context: GameContext) {
 		this.context = context;
+		// Initialize cachedFontSizes directly
+		this.cachedFontSizes = calculateFontSizes(this.context.canvas.width, this.context.canvas.height);
 	}
 
 	// =========================================
 	// Public Methods
 	// =========================================
+
+	/**
+	 * Updates the cached font sizes. Should be called on init and resize.
+	 * @param width The current canvas width.
+	 * @param height The current canvas height.
+	 */
+	public updateFontSizes(width: number, height: number): void {
+		this.cachedFontSizes = calculateFontSizes(width, height);
+	}
 
 	/**
 	 * Updates the countdown text to be displayed
@@ -38,6 +54,7 @@ export class UIManager {
 	 * @param player2 The second player
 	 */
 	public drawBackground(player1: Player, player2: Player): void {
+		this.resetTextStyles();
 		this.drawPlayerNames(player1, player2);
 		this.drawScores(player1, player2);
 	}
@@ -56,6 +73,7 @@ export class UIManager {
 	 * @param isBackgroundDemo Whether the game is in background demo mode
 	 */
 	public drawUI(isPaused: boolean, isBackgroundDemo: boolean): void {
+		this.resetTextStyles();
 		if (isPaused && !isBackgroundDemo) {
 			this.drawPauseOverlay();
 			this.drawPauseText();
@@ -75,7 +93,7 @@ export class UIManager {
 	 */
 	private drawScores(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.cachedFontSizes;
 
 		this.setTextStyle(
 			`${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`,
@@ -93,7 +111,7 @@ export class UIManager {
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.cachedFontSizes;
 		
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
@@ -127,8 +145,7 @@ export class UIManager {
 	 * Draws pause screen text
 	 */
 	private drawPauseText(): void {
-		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.cachedFontSizes;
 		
 		this.setTextStyle(
 			`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`,
@@ -152,10 +169,7 @@ export class UIManager {
 	private drawCountdown(): void {
 		if (this.countdownText === null) return;
 		
-		const sizes = calculateFontSizes(
-			this.context.canvas.width,
-			this.context.canvas.height
-		);
+		const sizes = this.cachedFontSizes;
 		
 		this.setTextStyle(
 			`${sizes.COUNTDOWN_SIZE} ${FONTS.FAMILIES.COUNTDOWN}`,
@@ -213,10 +227,22 @@ export class UIManager {
 		align: CanvasTextAlign = 'center',
 		baseline: CanvasTextBaseline = 'middle'
 	): void {
-		this.context.font = font;
-		this.context.fillStyle = color;
-		this.context.textAlign = align;
-		this.context.textBaseline = baseline;
+		if (this.lastSetFont !== font) {
+			this.context.font = font;
+			this.lastSetFont = font;
+		}
+		if (this.lastSetFillStyle !== color) {
+			this.context.fillStyle = color;
+			this.lastSetFillStyle = color;
+		}
+		if (this.lastSetTextAlign !== align) {
+			this.context.textAlign = align;
+			this.lastSetTextAlign = align;
+		}
+		if (this.lastSetTextBaseline !== baseline) {
+			this.context.textBaseline = baseline;
+			this.lastSetTextBaseline = baseline;
+		}
 	}
 
 	/**
@@ -242,5 +268,13 @@ export class UIManager {
 			x: width * 0.5,
 			y: startY + (lineIndex * spacing)
 		};
+	}
+
+	// Reset cached styles when necessary (e.g., before drawing different types of elements)
+	public resetTextStyles(): void {
+		this.lastSetFont = null;
+		this.lastSetFillStyle = null;
+		this.lastSetTextAlign = null;
+		this.lastSetTextBaseline = null;
 	}
 }

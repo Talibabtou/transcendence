@@ -1,4 +1,4 @@
-import { BALL_CONFIG } from '@pong/constants';
+import { BALL_CONFIG, GAME_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
 import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
@@ -34,22 +34,141 @@ export class PhysicsManager {
   }
 
   /**
+   * Stores the ball's previous position and render states.
+   * Call this before updating the ball's position.
+   * @param ball The ball object.
+   */
+  private storeBallPreviousStates(ball: Ball): void {
+    ball.prevPosition.x = ball.x;
+    ball.prevPosition.y = ball.y;
+    ball.prevRenderX = ball.x;
+    ball.prevRenderY = ball.y;
+  }
+
+  /**
+   * Applies movement to the ball based on its velocity and deltaTime.
+   * Also handles speed capping.
+   * @param ball The ball object.
+   * @param deltaTime The time elapsed since the last physics update, in seconds.
+   */
+  private applyBallMovement(ball: Ball, deltaTime: number): void {
+    // REMOVE or COMMENT OUT the clamping:
+    // const physicsDeltaTime = Math.min(deltaTime, BALL_CONFIG.PHYSICS_MAX_TIMESTEP_S);
+    // USE deltaTime directly:
+    const physicsDeltaTime = deltaTime;
+
+    // Speed cap logic (from former Ball.updatePhysics)
+    if (ball.currentSpeed > ball.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
+      ball.currentSpeed = ball.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER;
+      const normalized = ball.getNormalizedVelocity();
+      ball.dx = normalized.dx * ball.currentSpeed;
+      ball.dy = normalized.dy * ball.currentSpeed;
+    }
+
+    // Calculate how far the ball will move this step
+    const moveX = ball.dx * physicsDeltaTime;
+    const moveY = ball.dy * physicsDeltaTime;
+
+    // Move the ball
+    ball.x += moveX;
+    ball.y += moveY;
+  }
+
+  /**
+   * Handles ball collisions with game boundaries (walls).
+   * Updates ball's state (velocity, destroyed flag) accordingly.
+   * @param ball The ball object.
+   * @returns True if the ball hit a vertical (top/bottom) reflecting wall, false otherwise.
+   */
+  private handleBallWallCollisions(ball: Ball): boolean {
+    const ballRadius = ball.getSize();
+    const canvas = ball.getContext().canvas;
+    let reflectedOffVerticalWall = false;
+
+    // Vertical boundaries (top/bottom walls)
+    if (ball.y - ballRadius <= 0) {
+      ball.y = ballRadius;
+      ball.dy = Math.abs(ball.dy); // Force positive
+      reflectedOffVerticalWall = true;
+    } else if (ball.y + ballRadius >= canvas.height) {
+      ball.y = canvas.height - ballRadius;
+      ball.dy = -Math.abs(ball.dy); // Force negative
+      reflectedOffVerticalWall = true;
+    }
+
+    // Horizontal boundaries (left/right walls - scoring zones)
+    if (ball.x - ballRadius <= 0) {
+      ball.destroyed = true;
+      ball.hitLeftBorder = true;
+    } else if (ball.x + ballRadius >= canvas.width) {
+      ball.destroyed = true;
+      ball.hitLeftBorder = false;
+    }
+
+    // Ensure minimum velocity to prevent sticking (from former Ball.checkBoundaries)
+    const minSpeed = 1; // Define this in constants if needed
+    const currentSpeedSq = ball.dx * ball.dx + ball.dy * ball.dy;
+    if (currentSpeedSq < minSpeed * minSpeed && currentSpeedSq > 1e-6) { // Check against squared speed and ensure it's not zero
+      const currentSpeed = Math.sqrt(currentSpeedSq);
+      const scale = minSpeed / currentSpeed;
+      ball.dx *= scale;
+      ball.dy *= scale;
+    }
+    return reflectedOffVerticalWall;
+  }
+
+  /**
+   * Increases ball speed based on acceleration settings.
+   * @param ball The ball object.
+   */
+  private accelerateBall(ball: Ball): void {
+    ball.speedMultiplier = Math.min(
+      ball.speedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
+      BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
+    );
+    ball.currentSpeed = ball.baseSpeed * ball.speedMultiplier;
+    
+    // Apply new speed while maintaining direction
+    const normalized = ball.getNormalizedVelocity();
+    if (normalized.dx !== 0 || normalized.dy !== 0) { // Avoid division by zero if speed is zero
+        ball.dx = normalized.dx * ball.currentSpeed;
+        ball.dy = normalized.dy * ball.currentSpeed;
+    } else { // If ball was stationary, launchBall should have set a direction. This is a fallback.
+        // Potentially re-launch or set a default small velocity if it ends up here with 0 magnitude.
+        // For now, if magnitude is 0, currentSpeed won't apply to dx/dy.
+    }
+  }
+
+  /**
    * Updates physics simulation for one fixed timestep.
-   * @param context Game context (unused for now, but good practice)
    * @param deltaTime Fixed time step duration in seconds.
    * @param gameState Current game state.
    */
   public update(deltaTime: number, gameState: GameState): void {
-    // Only run physics if playing
     if (gameState !== GameState.PLAYING) {
       return;
     }
-    this.ball.updatePhysics(deltaTime);
-    PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
-    const hitRight = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
-    if (hitRight) { // Player 2 hit, Player 1 (AI) predicts (or any hit for AI?)
+
+    this.storeBallPreviousStates(this.ball);
+    this.applyBallMovement(this.ball, deltaTime);
+    
+    const reflectedOffVerticalWall = this.handleBallWallCollisions(this.ball);
+    if (reflectedOffVerticalWall) {
+      this.accelerateBall(this.ball);
+    }
+
+    const hitPlayer1 = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+    if (hitPlayer1) {
+      this.accelerateBall(this.ball);
+      // Potentially add other P1 hit specific logic here if needed in future
+    }
+
+    const hitPlayer2 = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+    if (hitPlayer2) {
+      this.accelerateBall(this.ball);
       this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
-		}
+    }
+
     this.handleBallDestruction();
   }
 
@@ -143,35 +262,29 @@ export class PhysicsManager {
     const maxDeflection = BALL_CONFIG.EDGES.MAX_DEFLECTION;
     const paddleHeight = paddleBottom - paddleTop;
 
-    // Ensure paddleHeight is not zero to avoid division by zero
     if (paddleHeight <= 0) {
-      return reflectedVel; // Return original reflected velocity if height is invalid
+      return reflectedVel;
     }
 
     const clampedY = Math.max(paddleTop, Math.min(ballPos.y, paddleBottom));
     const relHit = (clampedY - paddleTop) / paddleHeight; // 0=top, 1=bottom
 
-    // compute normalized deflection in [-1,1]
     const midStart = zoneSize;
     const midEnd = 1 - zoneSize;
     let defNorm = 0;
     if (relHit < midStart) {
-      // Map [0, midStart) -> [-1, 0) linearly
       defNorm = -1 * (1 - (relHit / midStart));
     } else if (relHit > midEnd) {
-       // Map (midEnd, 1] -> (0, 1] linearly
-      defNorm = (relHit - midEnd) / (1 - midEnd); // Normalize correctly
+      defNorm = (relHit - midEnd) / (1 - midEnd);
     }
 
     let finalDx = reflectedVel.dx;
     let finalDy = reflectedVel.dy;
-
-    // apply actual deflection angle only if maxDeflection > 0 and deflection is non-zero
+    // Apply actual deflection angle only if maxDeflection > 0 and deflection is non-zero
     if (maxDeflection > 0 && defNorm !== 0) {
       const angle = defNorm * maxDeflection; // angle in radians
       const cosA = Math.cos(angle);
       const sinA = Math.sin(angle);
-      // rotate the reflected vector by 'angle'
       finalDx = reflectedVel.dx * cosA - reflectedVel.dy * sinA;
       finalDy = reflectedVel.dx * sinA + reflectedVel.dy * cosA;
     }
@@ -225,8 +338,8 @@ export class PhysicsManager {
     const cTop = player.y;
     const cBottom = player.y + player.paddleHeight;
     const ballRadius = ball.getSize();
-    const epsilon = 0.05; // 5% bias for separation
-    const velocity = ball.getVelocity(); // Get velocity once
+    const epsilon = 0.05; 
+    const velocity = ball.getVelocity();
 
     // 1) Continuous Sweep Test
     if (typeof (ball as any).getPrevPosition === 'function') {
@@ -234,11 +347,11 @@ export class PhysicsManager {
       const p1 = ball.getPosition();
       const dir = {dx: p1.x - p0.x, dy: p1.y - p0.y};
 
-      if (!(Math.abs(dir.dx) < 1e-6 && Math.abs(dir.dy) < 1e-6)) { // Check for movement
+      if (!(Math.abs(dir.dx) < 1e-6 && Math.abs(dir.dy) < 1e-6)) {
           const hit = PhysicsManager.sweepCircleVsRect(p0, dir, ballRadius, cLeft, cRight, cTop, cBottom);
           if (hit) {
             const {t, normal} = hit;
-            if (normal.ny !== 0) {
+            if (normal.ny !== 0) { // Hit top/bottom of paddle
               player.freezeMovement(0.2);
             }
             const contactX = p0.x + dir.dx * t;
@@ -246,22 +359,31 @@ export class PhysicsManager {
             const dot = velocity.dx * normal.nx + velocity.dy * normal.ny;
 
             if (dot < 0) {
-              // Reflect velocity
               const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, normal.nx, normal.ny, dot);
-              // Apply deflection
               const finalVel = PhysicsManager._applyPaddleDeflection(
                 { x: contactX, y: contactY },
-                reflectedVel, // Use reflected velocity
+                reflectedVel,
                 cTop,
                 cBottom
               );
-              ball.dx = finalVel.dx;
-              ball.dy = finalVel.dy;
+              ball.dx = reflectedVel.dx;
+              ball.dy = reflectedVel.dy;
 
-              // Correct position
+              // Ensure minimum vertical velocity if hitting front face of paddle
+              if (normal.nx !== 0) { // Hit was on the side (front face)
+                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+                if (speed > 1e-6) { // Avoid division by zero or issues with zero speed
+                    const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
+                    if (Math.abs(ball.dy) < minVerticalComponent) {
+                        ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
+                        // Optional: re-normalize dx, dy to maintain original speed after adjusting dy.
+                        // For now, matching original Ball.hit behavior which just sets dy.
+                        // Acceleration will later adjust magnitude.
+                    }
+                }
+              }
               PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
-
-              return true; // Collision handled by sweep
+              return true; 
             }
           }
       }
@@ -270,76 +392,77 @@ export class PhysicsManager {
     // 2) Discrete Collision Test (Fallback - Merged Corner/Edge Logic)
     const pos = ball.getPosition();
     const r = ballRadius;
-
-    // Find closest point on paddle rectangle to ball center
     const cx = Math.max(cLeft, Math.min(pos.x, cRight));
     const cy = Math.max(cTop, Math.min(pos.y, cBottom));
+    const dxHit = pos.x - cx;
+    const dyHit = pos.y - cy;
+    const distSq = dxHit * dxHit + dyHit * dyHit;
 
-    // Calculate squared distance from ball center to closest point
-    const dx = pos.x - cx;
-    const dy = pos.y - cy;
-    const distSq = dx * dx + dy * dy;
-
-    // Check for overlap (ball is within radius of the closest point)
     if (distSq <= r * r) {
-      // Determine if the closest point is a corner
       const isCorner = (cx === cLeft || cx === cRight) && (cy === cTop || cy === cBottom);
       let nx: number, ny: number;
-      let len: number;
+      let len: number = Math.sqrt(distSq);
+
+      if (len === 0) { // Ball center is exactly on corner/edge point
+        // Determine a fallback normal. E.g., based on incoming velocity or a default pushout.
+        // For simplicity, if len is 0, try pushing out along ball's incoming velocity negated, or a default.
+        // This case should ideally be rare with continuous collision.
+        // Let's use the vector from paddle center to ball as a rough normal if on edge.
+        // Or simply prioritize horizontal push for vertical paddles.
+        if (Math.abs(velocity.dx) > Math.abs(velocity.dy)) {
+            nx = -Math.sign(velocity.dx); ny = 0;
+        } else {
+            nx = 0; ny = -Math.sign(velocity.dy);
+        }
+        if (nx === 0 && ny === 0) nx = 1; // ultimate fallback
+        len = 1; // avoid division by zero for normalization
+      } else {
+        nx = dxHit / len;
+        ny = dyHit / len;
+      }
 
       if (isCorner) {
-				console.log('corner');
-        // --- Corner Collision --- 
-        player.freezeMovement(0.5); // Freeze on corner hit
-        // Normal is from corner to ball center
-        len = Math.sqrt(distSq) || 1;
-        nx = dx / len;
-        ny = dy / len;
+        console.log('corner');
+        player.freezeMovement(0.5); 
         const dot = velocity.dx * nx + velocity.dy * ny;
-
         if (dot < 0) {
-          // Reflect velocity using corner normal (no deflection)
           const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
           ball.dx = reflectedVel.dx;
           ball.dy = reflectedVel.dy;
-          // Correct position pushing away from the corner
           PhysicsManager._correctPositionCorner(ball, cx, cy, nx, ny, r, epsilon);
           return true;
         }
-      } else {
-        // --- Edge Collision --- 
-        // Freeze only if hitting top/bottom edge explicitly
-        if (Math.abs(pos.x - cx) < 1e-6 && (cy === cTop || cy === cBottom)) {
+      } else { // Edge Collision
+        if (Math.abs(pos.x - cx) < 1e-6 && (cy === cTop || cy === cBottom)) { // Top/bottom edge hit
             player.freezeMovement(0.5);
         }
-        // Normal is from closest point on edge to ball center
-        len = Math.sqrt(distSq) || 1;
-        nx = dx / len;
-        ny = dy / len;
         const dot = velocity.dx * nx + velocity.dy * ny;
-
         if (dot < 0) {
-          // Reflect velocity using edge normal
           const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
-          // Apply deflection based on hit position relative to the edge
           const finalVel = PhysicsManager._applyPaddleDeflection(
-             pos, // Use current ball position for deflection calc on edge
+             pos, 
              reflectedVel,
              cTop,
              cBottom
            );
-          ball.dx = finalVel.dx;
-          ball.dy = finalVel.dy;
-          // Correct position pushing away from the edge
-          // Note: _correctPosition and _correctPositionCorner now do the same thing,
-          // maybe rename/merge the helper if desired, but functionally using either is fine here
-          // Let's keep distinct names for clarity for now.
-          PhysicsManager._correctPosition(ball, cx, cy, nx, ny, epsilon);
+          ball.dx = reflectedVel.dx;
+          ball.dy = reflectedVel.dy;
+
+          // Ensure minimum vertical velocity if hitting front face of paddle (approximated by normal)
+          if (Math.abs(nx) > Math.abs(ny)) { // Hit was primarily on the side (front face)
+            const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+            if (speed > 1e-6) {
+                const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
+                if (Math.abs(ball.dy) < minVerticalComponent) {
+                    ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
+                }
+            }
+          }
+          PhysicsManager._correctPosition(ball, cx, cy, nx, ny, epsilon); // Using _correctPosition for general pushout
           return true;
         }
       }
     }
-
-    return false; // No collision detected
+    return false;
   }
 } 

@@ -402,6 +402,7 @@ export class Player implements GraphicalElement {
 	/**
 	 * Predicts the ball's trajectory through multiple bounces until it heads back
 	 * towards the player's paddle line. Updates `predictedBouncePoints` and `_targetY`.
+	 * Now accounts for ball acceleration after simulated bounces.
 	 */
 	public predictBallTrajectory(
 		startPoint: { x: number; y: number },
@@ -416,67 +417,61 @@ export class Player implements GraphicalElement {
 		const { width, height } = this.context.canvas;
 		const ballRadius = this.ball.getSize();
 		const sizes = calculateGameSizes(width, height);
-		const maxBounces = 6; // Limit the number of predicted bounces
+		const maxBounces = 6;
 
 		let currentPos = { ...startPoint };
 		let currentVel = { ...initialVelocity };
 
-		// Determine player and opponent X coordinates (edge of paddle facing the ball)
+		// Initialize simulated speed state based on the initial velocity
+		let simulatedCurrentSpeed = Math.sqrt(currentVel.dx * currentVel.dx + currentVel.dy * currentVel.dy);
+		// Estimate initial multiplier (this might not be perfectly accurate if prediction starts mid-flight,
+		// but it's the best guess without tracking the ball's actual multiplier history)
+		let simulatedSpeedMultiplier = this.ball.baseSpeed > 0 ? simulatedCurrentSpeed / this.ball.baseSpeed : BALL_CONFIG.ACCELERATION.INITIAL;
+		simulatedSpeedMultiplier = Math.max(BALL_CONFIG.ACCELERATION.INITIAL, simulatedSpeedMultiplier); // Ensure it's at least the initial multiplier
+
 		const playerPaddleEdgeX = this._position === PlayerPosition.LEFT
-			? sizes.PLAYER_PADDING + this.paddleWidth // Right edge of left paddle
-			: width - (sizes.PLAYER_PADDING + this.paddleWidth); // Left edge of right paddle
+			? sizes.PLAYER_PADDING + this.paddleWidth
+			: width - (sizes.PLAYER_PADDING + this.paddleWidth);
 		const opponentPaddleEdgeX = this._position === PlayerPosition.LEFT
-			? width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH) // Left edge of right (opponent) paddle
-			: sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH; // Right edge of left (opponent) paddle
+			? width - (sizes.PLAYER_PADDING + this.paddleWidth)
+			: sizes.PLAYER_PADDING + this.paddleWidth;
 
 		for (let bounceCount = 0; bounceCount < maxBounces; bounceCount++) {
 			let timeToCollision = Infinity;
 			let collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' = 'none';
 			let collisionPoint: { x: number; y: number } | null = null;
 
-			// Time to hit vertical walls (Top/Bottom)
+			// Recalculate times based on currentVel (which now includes speed changes)
 			let timeToTop = Infinity;
-			if (currentVel.dy < 0) { // Moving up
-				timeToTop = (ballRadius - currentPos.y) / currentVel.dy;
-			}
+			if (currentVel.dy < 0) { timeToTop = (ballRadius - currentPos.y) / currentVel.dy; }
 			let timeToBottom = Infinity;
-			if (currentVel.dy > 0) { // Moving down
-				timeToBottom = (height - ballRadius - currentPos.y) / currentVel.dy;
-			}
-
-			// Time to hit paddle lines (Opponent/Player), adjusted for ball radius
+			if (currentVel.dy > 0) { timeToBottom = (height - ballRadius - currentPos.y) / currentVel.dy; }
 			let timeToOpponent = Infinity;
 			if (currentVel.dx !== 0) {
-				// Check if moving towards opponent
-				if ((this._position === PlayerPosition.LEFT && currentVel.dx > 0)) { // Moving right towards right opponent
-					const targetX = opponentPaddleEdgeX - ballRadius; // Left edge of opponent - radius
-					timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
-				} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx < 0)) { // Moving left towards left opponent
-					const targetX = opponentPaddleEdgeX + ballRadius; // Right edge of opponent + radius
-					timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
+				if ((this._position === PlayerPosition.LEFT && currentVel.dx > 0)) {
+					const targetX = opponentPaddleEdgeX - ballRadius;
+					if (currentVel.dx !== 0) timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
+				} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx < 0)) {
+					const targetX = opponentPaddleEdgeX + ballRadius;
+					if (currentVel.dx !== 0) timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
 				}
 			}
-
 			let timeToPlayer = Infinity;
 			if (currentVel.dx !== 0) {
-				// Check if moving towards player
-				if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) { // Moving left towards left player
-					const targetX = playerPaddleEdgeX + ballRadius; // Right edge of player + radius
-					timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
-				} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) { // Moving right towards right player
-					const targetX = playerPaddleEdgeX - ballRadius; // Left edge of player - radius
-					timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
+				if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) {
+					const targetX = playerPaddleEdgeX + ballRadius;
+					if (currentVel.dx !== 0) timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
+				} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) {
+					const targetX = playerPaddleEdgeX - ballRadius;
+					if (currentVel.dx !== 0) timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
 				}
 			}
 
-			// Find the earliest positive collision time
-			timeToCollision = Math.min(timeToTop, timeToBottom, timeToOpponent, timeToPlayer);
+			// Filter out non-positive times before finding the minimum
+			const positiveTimes = [timeToTop, timeToBottom, timeToOpponent, timeToPlayer].filter(t => t > 1e-6); // Use small epsilon
+			if (positiveTimes.length === 0) break; // No valid future collision
 
-			// Determine collision type based on the minimum time
-			if (timeToCollision <= 0 || timeToCollision === Infinity) {
-				// No valid collision predicted, stop simulation
-				break;
-			}
+			timeToCollision = Math.min(...positiveTimes);
 
 			// Calculate the exact point of collision
 			collisionPoint = {
@@ -484,38 +479,57 @@ export class Player implements GraphicalElement {
 				y: currentPos.y + currentVel.dy * timeToCollision
 			};
 
-			// Determine type and update velocity for next segment
-			if (timeToCollision === timeToTop) {
-				collisionType = 'top';
-				currentVel.dy *= -1; // Reflect vertically
-			} else if (timeToCollision === timeToBottom) {
-				collisionType = 'bottom';
-				currentVel.dy *= -1; // Reflect vertically
-			} else if (timeToCollision === timeToOpponent) {
-				// Opponent paddle: pure horizontal bounce, no vertical deflection
-				collisionType = 'opponent';
-				currentVel.dx = -currentVel.dx;
-			} else if (timeToCollision === timeToPlayer) {
-				// Ball is heading towards the player's line. This is our target.
-				// We don't add this point to bounces, but use it to calculate targetY.
-				collisionType = 'player'; // Set type but break below
-			}
+			// Determine type based on which time was the minimum (using a small tolerance)
+			const tolerance = 1e-6;
+			if (Math.abs(timeToCollision - timeToTop) < tolerance) collisionType = 'top';
+			else if (Math.abs(timeToCollision - timeToBottom) < tolerance) collisionType = 'bottom';
+			else if (Math.abs(timeToCollision - timeToOpponent) < tolerance) collisionType = 'opponent';
+			else if (Math.abs(timeToCollision - timeToPlayer) < tolerance) collisionType = 'player';
+			else break; // Should not happen if filtering works correctly
 
 			// If the collision is with the player's line, we've found the end point.
 			if (collisionType === 'player') {
-				// Store the final impact point
 				this.finalPredictedImpactPoint = collisionPoint;
-
-				// Calculate final target Y based on this collision point
 				const finalPredictedY = collisionPoint.y;
-				// Clamp the predicted Y to stay within playable bounds (paddle center)
 				const paddleCenterMinY = this.paddleHeight / 2;
 				const paddleCenterMaxY = height - this.paddleHeight / 2;
 				this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedY));
-				break; // Exit the loop, prediction complete
+				break;
 			}
 
-			// Store the valid bounce point (wall or opponent paddle)
+			// --- Apply Collision Response and Acceleration ---
+			let reflected = false;
+			if (collisionType === 'top' || collisionType === 'bottom') {
+				currentVel.dy *= -1;
+				reflected = true;
+			} else if (collisionType === 'opponent') {
+				currentVel.dx *= -1;
+				reflected = true;
+			}
+
+			if (reflected) {
+				// Accelerate the ball after the simulated reflection
+				simulatedSpeedMultiplier = Math.min(
+					simulatedSpeedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
+					BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
+				);
+				simulatedCurrentSpeed = this.ball.baseSpeed * simulatedSpeedMultiplier;
+
+				// Re-normalize velocity and apply new speed
+				const magnitude = Math.sqrt(currentVel.dx * currentVel.dx + currentVel.dy * currentVel.dy);
+				if (magnitude > 1e-6) { // Avoid division by zero
+					const normDx = currentVel.dx / magnitude;
+					const normDy = currentVel.dy / magnitude;
+					currentVel.dx = normDx * simulatedCurrentSpeed;
+					currentVel.dy = normDy * simulatedCurrentSpeed;
+				} else {
+					// If velocity somehow became zero, we can't accelerate. Stop prediction.
+					break;
+				}
+			}
+			// --- End Collision Response and Acceleration ---
+
+			// Store the valid bounce point
 			if (collisionPoint) {
 				this.predictedBouncePoints.push(collisionPoint);
 			}
@@ -523,37 +537,32 @@ export class Player implements GraphicalElement {
 			// Update current position for the next iteration
 			currentPos = collisionPoint;
 
-			// If loop finishes without hitting player line, reset targetY?
+			// If loop finishes (max bounces), predict final impact on player line if possible
 			if (bounceCount === maxBounces - 1) {
-				// Max bounces reached, predict final impact on player line if possible
 				let finalTimeToPlayerFallback = Infinity;
-				if (currentVel.dx !== 0) {
-					if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) { // Moving left towards left player
+				if (currentVel.dx !== 0) { // Check based on the updated currentVel
+					if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) {
 						const targetX = playerPaddleEdgeX + ballRadius;
-						finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
-					} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) { // Moving right towards right player
+						if (currentVel.dx !== 0) finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
+					} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) {
 						const targetX = playerPaddleEdgeX - ballRadius;
-						finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
+						if (currentVel.dx !== 0) finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
 					}
 				}
 
 				if (finalTimeToPlayerFallback > 0 && finalTimeToPlayerFallback !== Infinity) {
 					const finalPredictedYFallback = currentPos.y + currentVel.dy * finalTimeToPlayerFallback;
-					const finalPredictedXFallback = currentPos.x + currentVel.dx * finalTimeToPlayerFallback; // Calculate X as well
-
-					// Store the final impact point from fallback
+					const finalPredictedXFallback = currentPos.x + currentVel.dx * finalTimeToPlayerFallback;
 					this.finalPredictedImpactPoint = { x: finalPredictedXFallback, y: finalPredictedYFallback };
-
 					const paddleCenterMinY = this.paddleHeight / 2;
 					const paddleCenterMaxY = height - this.paddleHeight / 2;
 					this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedYFallback));
 				} else {
-					// Cannot predict return, default target and clear final point
 					this.finalPredictedImpactPoint = null;
-					this._targetY = this.y + this.paddleHeight / 2; // Default to current paddle center
+					this._targetY = this.y + this.paddleHeight / 2;
 				}
 			}
-		}
+		} // End bounce loop
 	}
 
 	// =========================================

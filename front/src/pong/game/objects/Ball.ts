@@ -2,7 +2,7 @@ import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } fr
 import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
 // const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // Removed: Fixed timestep now handled by GameManager
-const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call
+// const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call - MOVED TO BALL_CONFIG
 
 /**
  * Represents the ball in the game, handling its movement,
@@ -13,17 +13,18 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	// Private Properties
 	// =========================================
 	private readonly context: GameContext;
-	private size!: number;
-	private baseSpeed!: number;
-	private currentSpeed!: number;
+	// Made public for PhysicsManager access
+	public size!: number;
+	public baseSpeed!: number;
+	public currentSpeed!: number;
 	private readonly colour = COLORS.BALL;
 	
-	// State flags
-	private destroyed = false;
-	private hitLeftBorder = false;
+	// State flags - Made public for PhysicsManager access
+	public destroyed = false;
+	public hitLeftBorder = false;
 	
-	// Speed control
-	private speedMultiplier: number = BALL_CONFIG.ACCELERATION.INITIAL;
+	// Speed control - Made public for PhysicsManager access
+	public speedMultiplier: number = BALL_CONFIG.ACCELERATION.INITIAL;
 	
 	// =========================================
 	// Public Properties
@@ -33,9 +34,10 @@ export class Ball implements GraphicalElement, PhysicsObject {
 
 	// Pool vector calculations to avoid creating new objects
 	// Position from previous physics step (for swept collision)
-	private prevPosition: { x: number; y: number } = { x: 0, y: 0 };
-	private prevRenderX: number = 0; // For rendering interpolation
-	private prevRenderY: number = 0; // For rendering interpolation
+	// Made public for PhysicsManager access
+	public prevPosition: { x: number; y: number } = { x: 0, y: 0 };
+	public prevRenderX: number = 0; // For rendering interpolation
+	public prevRenderY: number = 0; // For rendering interpolation
 	private readonly velocityCache = { dx: 0, dy: 0 };
 	private readonly positionCache = { x: 0, y: 0 };
 
@@ -110,50 +112,24 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	}
 
 	/**
-	 * Updates the ball's position and state
-	 * Note: The fixed timestep logic is now handled by the main game loop (GameManager).
-	 * This method now directly calls updatePhysics with the provided deltaTime.
+	 * Updates the ball's state. Physics is now handled by PhysicsManager.
+	 * This method is called by the game engine's update loop.
+	 * @param _context The game context.
+	 * @param _deltaTime The time elapsed since the last frame.
+	 * @param _state The current game state.
 	 */
-	public update(_context: GameContext, deltaTime: number, state: GameState): void {
-		if (state !== GameState.PLAYING) return;
-
-		// Directly update physics using the delta time from the main loop
-		// Clamp deltaTime to prevent extreme jumps if needed (optional, but safer)
-		const clampedDeltaTime = Math.min(deltaTime, MAX_DELTA_TIME / 1000); // MAX_DELTA_TIME is in ms
-		this.updatePhysics(clampedDeltaTime); 
+	public update(_context: GameContext, _deltaTime: number, _state: GameState): void {
+		// Physics logic is now handled by PhysicsManager.
+		// This method can be used for non-physics updates if any are needed in the future.
 	}
 
 	// =========================================
-	// Physics Update Methods
+	// Physics Update Methods (REMOVED - MOVED TO PHYSICS MANAGER)
 	// =========================================
-	/**
-	 * Updates ball physics for a fixed timestep
-	 */
-	public updatePhysics(deltaTime: number): void {
-		// Store previous position for sweep collision BEFORE interpolation state
-		this.prevPosition.x = this.x;
-		this.prevPosition.y = this.y;
-
-		// Store position for rendering interpolation BEFORE moving
-		this.prevRenderX = this.x;
-		this.prevRenderY = this.y;
-
-		// Add speed cap for background mode
-		if (this.currentSpeed > this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
-				this.currentSpeed = this.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER;
-				const normalized = this.getNormalizedVelocity();
-				this.dx = normalized.dx * this.currentSpeed;
-				this.dy = normalized.dy * this.currentSpeed;
-		}
-		// Calculate how far the ball will move this step
-		const moveX = this.dx * deltaTime;
-		const moveY = this.dy * deltaTime;
-		// Move the ball
-		this.x = this.x + moveX;
-		this.y = this.y + moveY;
-		// Check boundaries
-		this.checkBoundaries();
-	}
+	// updatePhysics(deltaTime: number) - REMOVED
+	// checkBoundaries() - REMOVED
+	// hit(hitFace, deflectionModifier) - REMOVED
+	// accelerate() - REMOVED
 
 	/**
 	 * Launches the ball in a random direction
@@ -191,48 +167,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		if (Math.random() > 0.5) {
 			this.dx = -this.dx;
 		}
-	}
-
-	/**
-	 * Handle ball collision with paddle or wall
-	 * @param hitFace The face that was hit
-	 * @param deflectionModifier Angle modification value
-	 */
-	public hit(hitFace: 'front' | 'top' | 'bottom', deflectionModifier: number = 0): void {
-		// Store current speed
-		const speed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-
-		if (hitFace === 'front') {
-			// Reverse horizontal direction
-			this.dx = -this.dx;
-			// deflectionModifier = 0;
-			if (deflectionModifier !== 0) {
-				// Apply rotation matrix for deflection
-				const cos = Math.cos(deflectionModifier);
-				const sin = Math.sin(deflectionModifier);
-				
-				// Normalize velocity
-				const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-				const nx = this.dx / magnitude;
-				const ny = this.dy / magnitude;
-				
-				// Apply rotation
-				this.dx = (nx * cos - ny * sin) * speed;
-				this.dy = (nx * sin + ny * cos) * speed;
-			}
-
-			// Ensure minimum vertical velocity to prevent horizontal stalemates
-			const minVerticalComponent = speed * 0.1;
-			if (Math.abs(this.dy) < minVerticalComponent) {
-				this.dy = this.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
-			}
-		} else {
-			// Top/bottom collision
-			this.dy = -this.dy;
-		}
-
-		// Apply acceleration
-		this.accelerate();
 	}
 
 	/**
@@ -329,9 +263,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 	}
 
-	// =========================================
-	// Private Helper Methods
-	// =========================================
 	/**
 	 * Initializes ball size and speed based on canvas dimensions
 	 */
@@ -343,57 +274,10 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	}
 
 	/**
-	 * Checks if the ball collides with game boundaries
-	 */
-	private checkBoundaries(): void {
-		const ballRadius = this.size;
-		// Vertical boundaries with position correction and acceleration
-		if (this.y - ballRadius <= 0) {
-			this.y = ballRadius;
-			this.dy = Math.abs(this.dy); // Force positive
-			this.accelerate(); // Accelerate on wall hit
-		} else if (this.y + ballRadius >= this.context.canvas.height) {
-			this.y = this.context.canvas.height - ballRadius;
-			this.dy = -Math.abs(this.dy); // Force negative
-			this.accelerate(); // Accelerate on wall hit
-		}
-		// Horizontal boundaries with destruction
-		if (this.x - ballRadius <= 0) {
-			this.destroyed = true;
-			this.hitLeftBorder = true;
-		} else if (this.x + ballRadius >= this.context.canvas.width) {
-			this.destroyed = true;
-			this.hitLeftBorder = false;
-		}
-		// Ensure minimum velocity to prevent sticking
-		const minSpeed = 1;
-		const currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-		if (currentSpeed < minSpeed && currentSpeed > 0) {
-			const scale = minSpeed / currentSpeed;
-			this.dx *= scale;
-			this.dy *= scale;
-		}
-	}
-
-	/**
-	 * Increases ball speed based on acceleration settings
-	 */
-	private accelerate(): void {
-		this.speedMultiplier = Math.min(
-			this.speedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
-			BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
-		);
-		this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-		// Apply new speed while maintaining direction
-		const normalized = this.getNormalizedVelocity();
-		this.dx = normalized.dx * this.currentSpeed;
-		this.dy = normalized.dy * this.currentSpeed;
-	}
-
-	/**
 	 * Returns the normalized velocity vector (unit vector of direction)
+	 * This is still useful for PhysicsManager.
 	 */
-	private getNormalizedVelocity(): { dx: number; dy: number } {
+	public getNormalizedVelocity(): { dx: number; dy: number } {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		if (magnitude === 0) return { dx: 0, dy: 0 };
 		return {

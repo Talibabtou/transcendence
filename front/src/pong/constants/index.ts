@@ -5,9 +5,9 @@ import { GameSizes } from '@pong/types';
 // =========================================
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
-	MAX_STEPS_PER_FRAME: 8,
-	FRAME_TIME: 10,
-	MAX_DELTA_TIME: 64, // Maximum delta time to prevent spiral of death
+	MAX_STEPS_PER_FRAME: 4,
+	FRAME_TIME: 20,
+	MAX_DELTA_TIME: 50, // Maximum delta time to prevent spiral of death
 	MIN_SIZES: {
 		BALL_SIZE: 5
 	}
@@ -85,7 +85,9 @@ export const BALL_CONFIG = {
 	EDGES: {
 		ZONE_SIZE: 0.3,  // 5% edge detection zone
 		MAX_DEFLECTION: 0.03  // 1% max deflection
-	}
+	},
+	PHYSICS_MAX_TIMESTEP_S: 1 / 120, // Max physics delta allowed per update call (in seconds)
+	MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT: 0.1 // Minimum vertical speed component relative to total speed after a paddle hit
 } as const;
 
 // =========================================
