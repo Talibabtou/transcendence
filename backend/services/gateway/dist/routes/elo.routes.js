@@ -21,7 +21,6 @@ export default async function eloRoutes(fastify) {
             ...getLeaderboardSchema,
             tags: ['elos'],
         },
-        config: auth,
     }, getLeaderboard);
     fastify.post('/game/elo', {
         schema: {

@@ -12,9 +12,9 @@ export const HEALTH_CHECK_PATH = '/health';
 
 // Game service paths
 export const GAME = {
-  BASE: '/games',
-  BY_ID: (id: string | number) => `/games/${id}`,
-  LEADERBOARD: '/leaderboard',
+  BASE: '/game',
+  BY_ID: (id: string | number) => `/game/${id}`,
+  LEADERBOARD: '/game/leaderboard',
 };
 
 // User service paths
