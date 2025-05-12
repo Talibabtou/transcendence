@@ -36,7 +36,7 @@ export class Player implements GraphicalElement {
 	protected predictedBouncePoints: { x: number; y: number }[] = [];
 	protected finalPredictedImpactPoint: { x: number; y: number } | null = null;
 	protected _lastCollisionTime: number;
-	private paddle: Paddle;
+	public paddle: Paddle;
 	private movementFrozen: number = 0;
 	protected prevRenderX: number = 0; // For rendering interpolation
 	protected prevRenderY: number = 0; // For rendering interpolation

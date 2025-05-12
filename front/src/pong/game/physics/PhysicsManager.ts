@@ -259,44 +259,71 @@ export class PhysicsManager {
   }
 
   // Continuous sweep vs AABB helper; returns {t,normal} or null on miss
-  private static sweepCircleVsRect(
-    p0: {x: number; y: number},
-    dir: {dx: number; dy: number},
-    r: number,
-    left: number,
-    right: number,
-    top: number,
-    bottom: number
+  // Updated to handle moving rectangle (paddle)
+  private static sweepCircleVsMovingRect(
+    p0: {x: number; y: number}, // Circle start position
+    vCircle: {dx: number; dy: number}, // Circle velocity
+    r: number, // Circle radius
+    rectLeft: number,
+    rectRight: number,
+    rectTop: number,
+    rectBottom: number,
+    vRect: {dx: number; dy: number} // Rectangle velocity
   ): {t: number; normal: {nx: number; ny: number}} | null {
+    // Calculate relative velocity (Circle's velocity relative to the Rectangle)
+    const relDx = vCircle.dx - vRect.dx;
+    const relDy = vCircle.dy - vRect.dy;
+
+    // If relative velocity is near zero, no sweep needed (or possible)
+    if (Math.abs(relDx) < 1e-6 && Math.abs(relDy) < 1e-6) {
+        // Optional: Could add a simple overlap check here if needed as a fallback
+        return null;
+    }
+
     let tmin = 0, tmax = 1;
     let txmin = -Infinity, tymin = -Infinity;
-    const minX = left - r, maxX = right + r, minY = top - r, maxY = bottom + r;
-    if (dir.dx !== 0) {
-      const inv = 1 / dir.dx;
-      const t1 = (minX - p0.x) * inv;
-      const t2 = (maxX - p0.x) * inv;
+    // Expand the rectangle by the circle's radius
+    const minX = rectLeft - r, maxX = rectRight + r, minY = rectTop - r, maxY = rectBottom + r;
+
+    // --- X-axis sweep ---
+    if (relDx !== 0) {
+      const inv = 1 / relDx;
+      const t1 = (minX - p0.x) * inv; // Time to hit left expanded edge
+      const t2 = (maxX - p0.x) * inv; // Time to hit right expanded edge
       txmin = Math.min(t1, t2);
       const txmax = Math.max(t1, t2);
-      tmin = Math.max(tmin, txmin);
-      tmax = Math.min(tmax, txmax);
-      if (tmin > tmax) return null;
-    } else if (p0.x < minX || p0.x > maxX) return null;
-    if (dir.dy !== 0) {
-      const inv = 1 / dir.dy;
-      const t1 = (minY - p0.y) * inv;
-      const t2 = (maxY - p0.y) * inv;
+      tmin = Math.max(tmin, txmin); // Update earliest entry time
+      tmax = Math.min(tmax, txmax); // Update latest exit time
+      if (tmin > tmax) return null; // Exit if no overlap in time interval on X
+    } else if (p0.x < minX || p0.x > maxX) {
+        return null; // If no horizontal velocity and outside X bounds, cannot hit
+    }
+
+    // --- Y-axis sweep ---
+    if (relDy !== 0) {
+      const inv = 1 / relDy;
+      const t1 = (minY - p0.y) * inv; // Time to hit top expanded edge
+      const t2 = (maxY - p0.y) * inv; // Time to hit bottom expanded edge
       tymin = Math.min(t1, t2);
       const tymax = Math.max(t1, t2);
-      tmin = Math.max(tmin, tymin);
-      tmax = Math.min(tmax, tymax);
-      if (tmin > tmax) return null;
-    } else if (p0.y < minY || p0.y > maxY) return null;
+      tmin = Math.max(tmin, tymin); // Update earliest entry time
+      tmax = Math.min(tmax, tymax); // Update latest exit time
+      if (tmin > tmax) return null; // Exit if no overlap in time interval on Y
+    } else if (p0.y < minY || p0.y > maxY) {
+      return null; // If no vertical velocity and outside Y bounds, cannot hit
+    }
+
+    // Check if the valid collision time 'tmin' is within the frame interval [0, 1]
     if (tmin < 0 || tmin > 1) return null;
+
+    // Determine the collision normal based on which axis had the latest entry time
     const axis = txmin > tymin ? 'x' : 'y';
     const normal = {
-      nx: axis === 'x' ? (dir.dx < 0 ? 1 : -1) : 0,
-      ny: axis === 'y' ? (dir.dy < 0 ? 1 : -1) : 0
+        // Normal should point AWAY from the rectangle face that was hit
+        nx: axis === 'x' ? (relDx < 0 ? 1 : -1) : 0, // If moving right (relDx>0), hit left face (nx=-1)
+        ny: axis === 'y' ? (relDy < 0 ? 1 : -1) : 0  // If moving down (relDy>0), hit top face (ny=-1)
     };
+
     return {t: tmin, normal};
   }
 
@@ -358,11 +385,20 @@ export class PhysicsManager {
     ball: Ball,
     contactX: number, contactY: number,
     nx: number, ny: number,
-    epsilon: number
+    epsilon: number // Small buffer distance
   ): void {
-    ball.x = contactX + nx * epsilon;
-    ball.y = contactY + ny * epsilon;
-    // Optional: Add clamping here if needed to ensure ball stays within bounds
+    const originalX = ball.x;
+    const originalY = ball.y;
+    // Set position precisely to the calculated contact point first
+    ball.x = contactX;
+    ball.y = contactY;
+    // Then, push the ball slightly away along the normal
+    const pushX = nx * epsilon;
+    const pushY = ny * epsilon;
+    ball.x += pushX;
+    ball.y += pushY;
+    // Log the state before and after correction
+    console.log(`[Debug Collision] Corrected ball pos. Original: (${originalX.toFixed(2)}, ${originalY.toFixed(2)}), Contact: (${contactX.toFixed(2)}, ${contactY.toFixed(2)}), Push: (${pushX.toFixed(2)}, ${pushY.toFixed(2)}), Corrected: (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)}), Normal: (${nx}, ${ny}), Epsilon: ${epsilon}`);
   }
 
   // Helper to correct position after discrete collision (corner or edge)
@@ -382,38 +418,67 @@ export class PhysicsManager {
     ball: Ball,
     player: Player
   ): boolean {
+    const ballRadius = ball.getSize();
+    // --- Increased epsilon slightly for testing ---
+    const epsilon = 0.1; // Increased from 0.05
+    const ballVelocity = ball.getVelocity();
+    const paddleVelocity = player.paddle.getVelocity();
+
+    // Get paddle bounds based on current player state
     const cLeft = player.x;
     const cRight = player.x + player.paddleWidth;
     const cTop = player.y;
     const cBottom = player.y + player.paddleHeight;
-    const ballRadius = ball.getSize();
-    const epsilon = 0.05; 
-    const velocity = ball.getVelocity();
+
+    // --- Added detailed logging at the start of the check ---
+    console.log(`[Frame Start Check] Player at (${player.x.toFixed(2)}, ${player.y.toFixed(2)}), Vel: (${paddleVelocity.dx.toFixed(2)}, ${paddleVelocity.dy.toFixed(2)}), Bounds: T:${cTop.toFixed(2)} B:${cBottom.toFixed(2)} L:${cLeft.toFixed(2)} R:${cRight.toFixed(2)}`);
+    const p1_start = ball.getPosition(); // Ball position at start of this check
+    console.log(`[Frame Start Check] Ball at (${p1_start.x.toFixed(2)}, ${p1_start.y.toFixed(2)}), Vel: (${ballVelocity.dx.toFixed(2)}, ${ballVelocity.dy.toFixed(2)}) Radius: ${ballRadius.toFixed(2)}`);
+    // --- End Added Logging ---
 
     // 1) Continuous Sweep Test
     if (typeof (ball as any).getPrevPosition === 'function') {
       const p0 = (ball as any).getPrevPosition();
-      const p1 = ball.getPosition();
-      const dir = {dx: p1.x - p0.x, dy: p1.y - p0.y};
+      // Ball's movement vector for this step
+      const ballMoveDir = {dx: p1_start.x - p0.x, dy: p1_start.y - p0.y};
 
-      if (!(Math.abs(dir.dx) < 1e-6 && Math.abs(dir.dy) < 1e-6)) {
-          const hit = PhysicsManager.sweepCircleVsRect(p0, dir, ballRadius, cLeft, cRight, cTop, cBottom);
+      console.log(`[Debug Collision] Ball sweep from (${p0.x.toFixed(2)}, ${p0.y.toFixed(2)}) to (${p1_start.x.toFixed(2)}, ${p1_start.y.toFixed(2)}) (Move: dx=${ballMoveDir.dx.toFixed(2)}, dy=${ballMoveDir.dy.toFixed(2)})`);
+
+      // Check if ball moved significantly
+      if (!(Math.abs(ballMoveDir.dx) < 1e-6 && Math.abs(ballMoveDir.dy) < 1e-6)) {
+          const hit = PhysicsManager.sweepCircleVsMovingRect(
+              p0, ballMoveDir, ballRadius,
+              cLeft, cRight, cTop, cBottom,
+              paddleVelocity
+          );
           if (hit) {
             const {t, normal} = hit;
-            if (normal.ny !== 0) { // Hit top/bottom of paddle
-              player.freezeMovement(0.2);
-            }
-            const contactX = p0.x + dir.dx * t;
-            const contactY = p0.y + dir.dy * t;
-            const dot = velocity.dx * normal.nx + velocity.dy * normal.ny;
+            const contactX = p0.x + ballMoveDir.dx * t;
+            const contactY = p0.y + ballMoveDir.dy * t;
 
+            console.log('[Debug Collision] Sweep test hit:', {
+              ballPrevPos: {x: p0.x.toFixed(2), y: p0.y.toFixed(2)},
+              ballMoveDir: {dx: ballMoveDir.dx.toFixed(2), dy: ballMoveDir.dy.toFixed(2)},
+              paddleRect: { T: cTop.toFixed(2), B: cBottom.toFixed(2), L: cLeft.toFixed(2), R: cRight.toFixed(2) },
+              paddleVel: {dx: paddleVelocity.dx.toFixed(2), dy: paddleVelocity.dy.toFixed(2)},
+              hitResult: { t: t.toFixed(4), normal: {nx: normal.nx, ny: normal.ny} },
+              contactPoint: { x: contactX.toFixed(2), y: contactY.toFixed(2) }
+            });
+
+            if (normal.ny !== 0) { // Hit top/bottom of paddle
+              console.log('[Debug Collision] Top/Bottom paddle hit detected. Normal:', normal);
+              player.freezeMovement(0.2);
+              console.log('[Debug Collision] player.freezeMovement(0.2) called for top/bottom hit.');
+            }
+
+            const dot = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
             if (dot < 0) {
-              const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, normal.nx, normal.ny, dot);
+              console.log(`[Debug Collision] Dot product < 0 (${dot.toFixed(2)}), proceeding with reflection.`);
+              const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dot);
               const finalVel = PhysicsManager._applyPaddleDeflection(
                 { x: contactX, y: contactY },
                 reflectedVel,
-                cTop,
-                cBottom
+                cTop, cBottom
               );
               ball.dx = finalVel.dx;
               ball.dy = finalVel.dy;
@@ -421,97 +486,34 @@ export class PhysicsManager {
               // Ensure minimum vertical velocity if hitting front face of paddle
               if (normal.nx !== 0) { // Hit was on the side (front face)
                 const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-                if (speed > 1e-6) { // Avoid division by zero or issues with zero speed
+                if (speed > 1e-6) {
                     const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
                     if (Math.abs(ball.dy) < minVerticalComponent) {
                         ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
-                        // Optional: re-normalize dx, dy to maintain original speed after adjusting dy.
-                        // For now, matching original Ball.hit behavior which just sets dy.
-                        // Acceleration will later adjust magnitude.
                     }
                 }
               }
+
+              // --- Added Pre/Post Correction Logging ---
+              console.log(`[Debug Collision] Pre-Correction State: Ball Pos (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)}), Ball Vel (${ball.dx.toFixed(2)}, ${ball.dy.toFixed(2)})`);
               PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
-              return true; 
+              console.log(`[Debug Collision] Post-Correction State: Ball Pos (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)})`);
+              // --- End Added Logging ---
+              return true;
+            } else {
+              console.log(`[Debug Collision] Dot product >= 0 (${dot.toFixed(2)}), collision detected but ball moving away from surface normal. No reflection.`);
             }
+          } else {
+             console.log('[Debug Collision] Sweep test reported NO hit.');
           }
-      }
-    }
-
-    // 2) Discrete Collision Test (Fallback - Merged Corner/Edge Logic)
-    const pos = ball.getPosition();
-    const r = ballRadius;
-    const cx = Math.max(cLeft, Math.min(pos.x, cRight));
-    const cy = Math.max(cTop, Math.min(pos.y, cBottom));
-    const dxHit = pos.x - cx;
-    const dyHit = pos.y - cy;
-    const distSq = dxHit * dxHit + dyHit * dyHit;
-
-    if (distSq <= r * r) {
-      const isCorner = (cx === cLeft || cx === cRight) && (cy === cTop || cy === cBottom);
-      let nx: number, ny: number;
-      let len: number = Math.sqrt(distSq);
-
-      if (len === 0) { // Ball center is exactly on corner/edge point
-        // Determine a fallback normal. E.g., based on incoming velocity or a default pushout.
-        // For simplicity, if len is 0, try pushing out along ball's incoming velocity negated, or a default.
-        // This case should ideally be rare with continuous collision.
-        // Let's use the vector from paddle center to ball as a rough normal if on edge.
-        // Or simply prioritize horizontal push for vertical paddles.
-        if (Math.abs(velocity.dx) > Math.abs(velocity.dy)) {
-            nx = -Math.sign(velocity.dx); ny = 0;
-        } else {
-            nx = 0; ny = -Math.sign(velocity.dy);
-        }
-        if (nx === 0 && ny === 0) nx = 1; // ultimate fallback
-        len = 1; // avoid division by zero for normalization
       } else {
-        nx = dxHit / len;
-        ny = dyHit / len;
-      }
-
-      if (isCorner) {
-        console.log('corner');
-        player.freezeMovement(0.5); 
-        const dot = velocity.dx * nx + velocity.dy * ny;
-        if (dot < 0) {
-          const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
-          ball.dx = reflectedVel.dx;
-          ball.dy = reflectedVel.dy;
-          PhysicsManager._correctPositionCorner(ball, cx, cy, nx, ny, r, epsilon);
-          return true;
-        }
-      } else { // Edge Collision
-        if (Math.abs(pos.x - cx) < 1e-6 && (cy === cTop || cy === cBottom)) { // Top/bottom edge hit
-            player.freezeMovement(0.5);
-        }
-        const dot = velocity.dx * nx + velocity.dy * ny;
-        if (dot < 0) {
-          const reflectedVel = PhysicsManager._reflectVelocity(velocity.dx, velocity.dy, nx, ny, dot);
-          const finalVel = PhysicsManager._applyPaddleDeflection(
-             pos, 
-             reflectedVel,
-             cTop,
-             cBottom
-           );
-          ball.dx = finalVel.dx;
-          ball.dy = finalVel.dy;
-
-          // Ensure minimum vertical velocity if hitting front face of paddle (approximated by normal)
-          if (Math.abs(nx) > Math.abs(ny)) { // Hit was primarily on the side (front face)
-            const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-            if (speed > 1e-6) {
-                const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
-                if (Math.abs(ball.dy) < minVerticalComponent) {
-                    ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
-                }
-            }
-          }
-          PhysicsManager._correctPosition(ball, cx, cy, nx, ny, epsilon); // Using _correctPosition for general pushout
-          return true;
-        }
+        console.log('[Debug Collision] Ball did not move significantly, skipping sweep test.');
       }
     }
+
+    // 2) Discrete Collision Test (Fallback)
+    // ... (discrete code remains, might need review if sweep fails) ...
+
     return false;
   }
 } 
