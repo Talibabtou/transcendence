@@ -127,7 +127,7 @@ export class GameEngine {
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
 	public draw(alpha: number): void {
-		// this.clearScreen(); // Removed: Clearing will be handled by GameScene with dirty rectangles
+		this.clearScreen();
 		this.scene.draw(alpha);
 	}
 
@@ -230,7 +230,9 @@ export class GameEngine {
 	 */
 	private clearScreen(): void {
 		const { width, height } = this.context.canvas;
+		this.context.beginPath();
 		this.context.clearRect(0, 0, width, height);
+		this.context.closePath();
 	}
 
 	// =========================================

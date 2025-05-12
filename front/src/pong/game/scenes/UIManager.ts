@@ -11,16 +11,6 @@ export class UIManager {
 	// =========================================
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
-	private cachedFontSizes: ReturnType<typeof calculateFontSizes>;
-	private lastSetFont: string | null = null;
-	private lastSetFillStyle: string | null = null;
-	private lastSetTextAlign: CanvasTextAlign | null = null;
-	private lastSetTextBaseline: CanvasTextBaseline | null = null;
-
-	// Offscreen canvases for performance
-	private digitCanvases: (HTMLCanvasElement | null)[] = Array(10).fill(null);
-	private digitCanvasWidth: number = 0;
-	private digitCanvasHeight: number = 0;
 
 	/**
 	 * Creates a new UIManager instance
@@ -28,26 +18,11 @@ export class UIManager {
 	 */
 	constructor(context: GameContext) {
 		this.context = context;
-		// Initialize cachedFontSizes directly
-		this.cachedFontSizes = calculateFontSizes(this.context.canvas.width, this.context.canvas.height);
-		// Pre-render digits after sizes are known
-		this.preRenderDigits();
 	}
 
 	// =========================================
 	// Public Methods
 	// =========================================
-
-	/**
-	 * Updates the cached font sizes. Should be called on init and resize.
-	 * @param width The current canvas width.
-	 * @param height The current canvas height.
-	 */
-	public updateFontSizes(width: number, height: number): void {
-		this.cachedFontSizes = calculateFontSizes(width, height);
-		// Re-render digits when font size changes
-		this.preRenderDigits();
-	}
 
 	/**
 	 * Updates the countdown text to be displayed
@@ -63,7 +38,6 @@ export class UIManager {
 	 * @param player2 The second player
 	 */
 	public drawBackground(player1: Player, player2: Player): void {
-		this.resetTextStyles();
 		this.drawPlayerNames(player1, player2);
 		this.drawScores(player1, player2);
 	}
@@ -82,7 +56,6 @@ export class UIManager {
 	 * @param isBackgroundDemo Whether the game is in background demo mode
 	 */
 	public drawUI(isPaused: boolean, isBackgroundDemo: boolean): void {
-		this.resetTextStyles();
 		if (isPaused && !isBackgroundDemo) {
 			this.drawPauseOverlay();
 			this.drawPauseText();
@@ -102,49 +75,17 @@ export class UIManager {
 	 */
 	private drawScores(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		// const sizes = this.cachedFontSizes; // Font sizes already used in preRenderDigits
-		
-		// No need to setTextStyle here anymore for scores
-		// this.resetTextStyles(); // Reset styles if needed before drawing images (usually not necessary for drawImage)
+		const sizes = calculateFontSizes(width, height);
 
-		const p1ScoreStr = player1.getScore().toString();
-		const p2ScoreStr = player2.getScore().toString();
+		this.setTextStyle(
+			`${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`,
+			COLORS.SCORE,
+			'center',
+			'middle'
+		);
 
-		const yPosition = height * 0.52 - (this.digitCanvasHeight / 2); // Adjust Y to center the digit canvas vertically
-
-		// --- Draw Player 1 Score --- 
-		let currentX_p1 = width * 0.25;
-		// Calculate starting X to center the whole score number
-		const totalWidthP1 = p1ScoreStr.length * this.digitCanvasWidth;
-		currentX_p1 -= totalWidthP1 / 2;
-
-		for (let i = 0; i < p1ScoreStr.length; i++) {
-			const digit = parseInt(p1ScoreStr[i], 10);
-			const digitCanvas = this.digitCanvases[digit];
-			if (digitCanvas) {
-				this.context.drawImage(digitCanvas, currentX_p1, yPosition);
-				currentX_p1 += this.digitCanvasWidth; // Move to the next digit position
-			}
-		}
-
-		// --- Draw Player 2 Score --- 
-		let currentX_p2 = width * 0.75;
-		// Calculate starting X to center the whole score number
-		const totalWidthP2 = p2ScoreStr.length * this.digitCanvasWidth;
-		currentX_p2 -= totalWidthP2 / 2;
-
-		for (let i = 0; i < p2ScoreStr.length; i++) {
-			const digit = parseInt(p2ScoreStr[i], 10);
-			const digitCanvas = this.digitCanvases[digit];
-			if (digitCanvas) {
-				this.context.drawImage(digitCanvas, currentX_p2, yPosition);
-				currentX_p2 += this.digitCanvasWidth; // Move to the next digit position
-			}
-		}
-		
-		// Remove old fillText calls
-		// this.context.fillText(player1.getScore().toString(), width * 0.25, height * 0.52);
-		// this.context.fillText(player2.getScore().toString(), width * 0.75, height * 0.52);
+		this.context.fillText(player1.getScore().toString(), width * 0.25, height * 0.52);
+		this.context.fillText(player2.getScore().toString(), width * 0.75, height * 0.52);
 	}
 
 	/**
@@ -152,7 +93,7 @@ export class UIManager {
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		const sizes = this.cachedFontSizes;
+		const sizes = calculateFontSizes(width, height);
 		
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
@@ -186,7 +127,8 @@ export class UIManager {
 	 * Draws pause screen text
 	 */
 	private drawPauseText(): void {
-		const sizes = this.cachedFontSizes;
+		const { width, height } = this.context.canvas;
+		const sizes = calculateFontSizes(width, height);
 		
 		this.setTextStyle(
 			`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`,
@@ -210,7 +152,10 @@ export class UIManager {
 	private drawCountdown(): void {
 		if (this.countdownText === null) return;
 		
-		const sizes = this.cachedFontSizes;
+		const sizes = calculateFontSizes(
+			this.context.canvas.width,
+			this.context.canvas.height
+		);
 		
 		this.setTextStyle(
 			`${sizes.COUNTDOWN_SIZE} ${FONTS.FAMILIES.COUNTDOWN}`,
@@ -268,22 +213,10 @@ export class UIManager {
 		align: CanvasTextAlign = 'center',
 		baseline: CanvasTextBaseline = 'middle'
 	): void {
-		if (this.lastSetFont !== font) {
-			this.context.font = font;
-			this.lastSetFont = font;
-		}
-		if (this.lastSetFillStyle !== color) {
-			this.context.fillStyle = color;
-			this.lastSetFillStyle = color;
-		}
-		if (this.lastSetTextAlign !== align) {
-			this.context.textAlign = align;
-			this.lastSetTextAlign = align;
-		}
-		if (this.lastSetTextBaseline !== baseline) {
-			this.context.textBaseline = baseline;
-			this.lastSetTextBaseline = baseline;
-		}
+		this.context.font = font;
+		this.context.fillStyle = color;
+		this.context.textAlign = align;
+		this.context.textBaseline = baseline;
 	}
 
 	/**
@@ -309,68 +242,5 @@ export class UIManager {
 			x: width * 0.5,
 			y: startY + (lineIndex * spacing)
 		};
-	}
-
-	// Reset cached styles when necessary (e.g., before drawing different types of elements)
-	public resetTextStyles(): void {
-		this.lastSetFont = null;
-		this.lastSetFillStyle = null;
-		this.lastSetTextAlign = null;
-		this.lastSetTextBaseline = null;
-	}
-
-	// =========================================
-	// Offscreen Canvas Rendering
-	// =========================================
-
-	/** Helper to create an offscreen canvas */
-	private createOffscreenCanvas(width: number, height: number): HTMLCanvasElement {
-		const canvas = document.createElement('canvas');
-		canvas.width = Math.max(1, Math.round(width)); // Ensure positive integer width
-		canvas.height = Math.max(1, Math.round(height)); // Ensure positive integer height
-		return canvas;
-	}
-
-	/** Pre-renders digits 0-9 onto their own canvases */
-	private preRenderDigits(): void {
-		const scoreFontSizePx = parseInt(this.cachedFontSizes.SCORE_SIZE, 10);
-		if (isNaN(scoreFontSizePx) || scoreFontSizePx <= 0) {
-			console.error("Invalid score font size for pre-rendering digits");
-			return;
-		}
-
-		// Estimate digit dimensions (adjust multipliers as needed)
-		// Width can be tricky, might need measureText, but let's estimate宽
-		this.digitCanvasHeight = scoreFontSizePx * 1.2; // A bit taller than font size
-		// Estimate width (e.g., 60% of height for typical digits, but might need adjustment)
-		this.digitCanvasWidth = this.digitCanvasHeight * 0.6;
-
-		const font = `${this.cachedFontSizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`;
-		const color = COLORS.SCORE;
-
-		for (let i = 0; i < 10; i++) {
-			const digit = i.toString();
-			const canvas = this.createOffscreenCanvas(this.digitCanvasWidth, this.digitCanvasHeight);
-			const ctx = canvas.getContext('2d');
-
-			if (ctx) {
-				// Clear potential previous content
-				ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-				// Set styles (no need to cache here, it's offscreen and temporary)
-				ctx.font = font;
-				ctx.fillStyle = color;
-				ctx.textAlign = 'center';
-				ctx.textBaseline = 'middle';
-
-				// Draw the digit centered
-				ctx.fillText(digit, canvas.width / 2, canvas.height / 2);
-				
-				this.digitCanvases[i] = canvas;
-			} else {
-				console.error(`Failed to get context for offscreen digit canvas ${i}`);
-				this.digitCanvases[i] = null;
-			}
-		}
 	}
 }

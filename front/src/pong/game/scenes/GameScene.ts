@@ -5,14 +5,6 @@ import { GAME_CONFIG, calculateGameSizes, KEYS, DEBUG } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 
-// Define a simple AABB interface for dirty rectangles
-interface AABB {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
 // Define the game mode type here since GameScene is the authority
 export type GameModeType = 'single' | 'multi' | 'tournament' | 'background_demo';
 
@@ -28,7 +20,6 @@ export class GameScene {
 	private player1!: Player;
 	private player2!: Player;
 	private objectsInScene: Array<GraphicalElement> = [];
-	private dirtyRects: AABB[] = []; // Store dirty regions for current frame
 
 	// =========================================
 	// Managers
@@ -99,29 +90,13 @@ export class GameScene {
 		if (this.shouldSkipUpdate()) return;
 		
 		// Player updates (input handling, AI)
+		// TODO: Move player updates potentially into PhysicsManager or keep here?
 		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : this.getCurrentGameState();
 		this.player1.update(this.context, deltaTime, updateState);
 		this.player2.update(this.context, deltaTime, updateState);
 
-		// Physics updates (which moves the ball)
-		this.updateGameState(deltaTime); // Calls physicsManager.update()
-
-		// --- Collect Dirty Rects --- 
-		// Clear previous frame's list (moved from draw to ensure rects are collected *before* drawing)
-		this.dirtyRects = [];
-		
-		// Add dirty rects from moving objects
-		// Need to check if getDirtyRects exists as it's newly added
-		if (typeof (this.ball as any).getDirtyRects === 'function') {
-			(this.ball as any).getDirtyRects().forEach((rect: AABB) => this.addDirtyRect(rect));
-		}
-		if (typeof (this.player1 as any).getDirtyRects === 'function') {
-			(this.player1 as any).getDirtyRects().forEach((rect: AABB) => this.addDirtyRect(rect));
-		}
-		if (typeof (this.player2 as any).getDirtyRects === 'function') {
-			(this.player2 as any).getDirtyRects().forEach((rect: AABB) => this.addDirtyRect(rect));
-		}
-		// --- End Collect Dirty Rects ---
+		// Physics and UI updates
+		this.updateGameState(deltaTime);
 		
 		// Win condition check (delegated to GameEngine)
 		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
@@ -134,20 +109,8 @@ export class GameScene {
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
 	public draw(alpha: number): void {
-		// 1. Clear dirty regions
-		// For now, let's keep it simple and not merge overlapping rects
-		// In a more advanced version, we could merge them to reduce clearRect calls
-		this.dirtyRects.forEach(rect => {
-			if (rect.width > 0 && rect.height > 0) { // Ensure valid rect
-				this.context.clearRect(rect.x, rect.y, rect.width, rect.height);
-			}
-		});
-
-		// --- TODO: Redraw static background elements if they intersect dirtyRects ---
-		// For now, assuming background is redrawn by UIManager or is simple enough.
-
 		if (!this.isBackgroundDemo()) {
-			this.uiManager.drawBackground(this.player1, this.player2); // Redraws names/scores (will be optimized later)
+			this.uiManager.drawBackground(this.player1, this.player2);
 		}
 
 		// Determine if interpolation should be applied based on game state
@@ -164,15 +127,6 @@ export class GameScene {
 						(obj as any).draw(); // Draw without alpha if the method doesn't take it
 					}
 				}
-				// --- TODO: Replace above block with intersection logic --- 
-				// Get object's bounding box
-				// if (typeof (obj as any).getBoundingBox === 'function') {
-				//   const objBox = (obj as any).getBoundingBox();
-				//   // Check if objBox intersects with ANY of the clearedDirtyRectsForFrame
-				//   if (clearedDirtyRectsForFrame.some(dirtyRect => this.rectIntersectsRect(objBox, dirtyRect))) {
-				//     // Draw the object (with interpolation logic as before)
-				//   }
-				// }
 			});
 		}
 
@@ -180,12 +134,6 @@ export class GameScene {
 			this.pauseManager.hasState(GameState.PAUSED),
 			this.isBackgroundDemo()
 		);
-		// --- TODO: Also apply intersection logic to UI elements --- 
-		// For UI like scores, names, pause, countdown: get their bounding boxes
-		// and only call their respective draw functions in UIManager if their
-		// bounding box intersects with a clearedDirtyRectForFrame.
-
-		// 5. Clear the dirty rectangles list for the next frame - MOVED to update()
 	}
 
 	// =========================================
@@ -457,10 +405,6 @@ export class GameScene {
 	// Getters
 	// =========================================
 
-	public getUIManager(): UIManager {
-		return this.uiManager;
-	}
-
 	public getPauseManager(): PauseManager {
 		return this.pauseManager;
 	}
@@ -509,34 +453,5 @@ export class GameScene {
 		if (evt.code === KEYS.DEBUG_TOGGLE) {
 			DEBUG.enabled = !DEBUG.enabled;
 		}
-	}
-
-	// =========================================
-	// Dirty Rectangle Management (NEW)
-	// =========================================
-
-	/**
-	 * Adds a rectangle to the list of dirty regions for the current frame.
-	 * @param rect The rectangle to add (object with x, y, width, height).
-	 */
-	public addDirtyRect(rect: AABB): void {
-		// Basic validation: Ensure width and height are positive
-		if (rect.width > 0 && rect.height > 0) {
-			// --- TODO Optional: Implement merging logic here --- 
-			// For now, just add directly
-			this.dirtyRects.push(rect);
-		}
-	}
-
-	/** 
-	 * Checks if two rectangles intersect.
-	 */
-	private rectIntersectsRect(rectA: AABB, rectB: AABB): boolean {
-		return (
-			rectA.x < rectB.x + rectB.width &&
-			rectA.x + rectA.width > rectB.x &&
-			rectA.y < rectB.y + rectB.height &&
-			rectA.y + rectA.height > rectB.y
-		);
 	}
 }
