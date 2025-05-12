@@ -88,7 +88,7 @@ export class PhysicsManager {
 
     // Vertical boundaries (top/bottom walls)
     const topWallSurfaceY = ballRadius;
-    if (ball.y < topWallSurfaceY) { // Ball center is above where it should be for contact with top wall
+    if (ball.y <= topWallSurfaceY) { // Ball center is above where it should be for contact with top wall
       const penetration = topWallSurfaceY - ball.y;
       ball.dy = Math.abs(ball.dy); // Force positive dy (downwards)
       ball.y = topWallSurfaceY + penetration + epsilon; // Move to surface, add penetration in new direction, then epsilon
@@ -96,7 +96,7 @@ export class PhysicsManager {
     }
     
     const bottomWallSurfaceY = canvas.height - ballRadius;
-    if (ball.y > bottomWallSurfaceY) { // Ball center is below where it should be for contact with bottom wall
+    if (ball.y >= bottomWallSurfaceY) { // Ball center is below where it should be for contact with bottom wall
       const penetration = ball.y - bottomWallSurfaceY;
       ball.dy = -Math.abs(ball.dy); // Force negative dy (upwards)
       ball.y = bottomWallSurfaceY - penetration - epsilon; // Move to surface, add penetration in new direction, then epsilon
