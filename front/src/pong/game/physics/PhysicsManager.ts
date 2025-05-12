@@ -74,55 +74,97 @@ export class PhysicsManager {
     ball.y += moveY;
   }
 
-  /**
+    /**
    * Handles ball collisions with game boundaries (walls).
-   * Updates ball's state (velocity, destroyed flag) accordingly.
+   * Uses continuous collision detection for top/bottom walls.
    * @param ball The ball object.
    * @returns True if the ball hit a vertical (top/bottom) reflecting wall, false otherwise.
    */
-  private handleBallWallCollisions(ball: Ball): boolean {
-    const ballRadius = ball.getSize();
-    const canvas = ball.getContext().canvas;
-    let reflectedOffVerticalWall = false;
-    const epsilon = 0.05; // Small offset for separation
-
-    // Vertical boundaries (top/bottom walls)
-    const topWallSurfaceY = ballRadius;
-    if (ball.y <= topWallSurfaceY) { // Ball center is above where it should be for contact with top wall
-      const penetration = topWallSurfaceY - ball.y;
-      ball.dy = Math.abs(ball.dy); // Force positive dy (downwards)
-      ball.y = topWallSurfaceY + penetration + epsilon; // Move to surface, add penetration in new direction, then epsilon
-      reflectedOffVerticalWall = true;
-    }
-    
-    const bottomWallSurfaceY = canvas.height - ballRadius;
-    if (ball.y >= bottomWallSurfaceY) { // Ball center is below where it should be for contact with bottom wall
-      const penetration = ball.y - bottomWallSurfaceY;
-      ball.dy = -Math.abs(ball.dy); // Force negative dy (upwards)
-      ball.y = bottomWallSurfaceY - penetration - epsilon; // Move to surface, add penetration in new direction, then epsilon
-      reflectedOffVerticalWall = true;
-    }
-
-    // Horizontal boundaries (left/right walls - scoring zones)
-    if (ball.x - ballRadius <= 0) {
-      ball.destroyed = true;
-      ball.hitLeftBorder = true;
-    } else if (ball.x + ballRadius >= canvas.width) {
-      ball.destroyed = true;
-      ball.hitLeftBorder = false;
-    }
-
-    // Ensure minimum velocity to prevent sticking (from former Ball.checkBoundaries)
-    const minSpeed = 1; // Define this in constants if needed
-    const currentSpeedSq = ball.dx * ball.dx + ball.dy * ball.dy;
-    if (currentSpeedSq < minSpeed * minSpeed && currentSpeedSq > 1e-6) { // Check against squared speed and ensure it's not zero
-      const currentSpeed = Math.sqrt(currentSpeedSq);
-      const scale = minSpeed / currentSpeed;
-      ball.dx *= scale;
-      ball.dy *= scale;
-    }
-    return reflectedOffVerticalWall;
-  }
+		private handleBallWallCollisions(ball: Ball): boolean {
+			const ballRadius = ball.getSize();
+			const canvas = ball.getContext().canvas;
+			let reflectedOffVerticalWall = false;
+			const epsilon = ballRadius * 0.02; // Small offset relative to ball radius
+	
+			// Get previous and current positions for sweep test
+			const p0 = ball.prevPosition;
+			const p1 = { x: ball.x, y: ball.y };
+			const dir = { dx: p1.x - p0.x, dy: p1.y - p0.y };
+			
+			// Only perform sweep test if we have movement
+			if (Math.abs(dir.dx) > 1e-6 || Math.abs(dir.dy) > 1e-6) {
+				// Top wall sweep test
+				const topWallY = ballRadius;
+				if (p0.y > topWallY && p1.y <= topWallY) {
+					// Calculate time of impact
+					const t = (topWallY - p0.y) / dir.dy;
+					if (t >= 0 && t <= 1) {
+						// Position at impact
+						const hitX = p0.x + dir.dx * t;
+						// Reflect velocity and position
+						ball.dy = Math.abs(ball.dy);
+						ball.y = topWallY + epsilon;
+						ball.x = hitX;
+						reflectedOffVerticalWall = true;
+					}
+				}
+				
+				// Bottom wall sweep test
+				const bottomWallY = canvas.height - ballRadius;
+				if (p0.y < bottomWallY && p1.y >= bottomWallY) {
+					// Calculate time of impact
+					const t = (bottomWallY - p0.y) / dir.dy;
+					if (t >= 0 && t <= 1) {
+						// Position at impact
+						const hitX = p0.x + dir.dx * t;
+						// Reflect velocity and position
+						ball.dy = -Math.abs(ball.dy);
+						ball.y = bottomWallY - epsilon;
+						ball.x = hitX;
+						reflectedOffVerticalWall = true;
+					}
+				}
+			}
+			
+			// Fallback discrete checks for any missed collisions
+			if (!reflectedOffVerticalWall) {
+				const topWallSurfaceY = ballRadius;
+				if (ball.y <= topWallSurfaceY) {
+					const penetration = topWallSurfaceY - ball.y;
+					ball.dy = Math.abs(ball.dy);
+					ball.y = topWallSurfaceY + penetration + epsilon;
+					reflectedOffVerticalWall = true;
+				}
+				
+				const bottomWallSurfaceY = canvas.height - ballRadius;
+				if (ball.y >= bottomWallSurfaceY) {
+					const penetration = ball.y - bottomWallSurfaceY;
+					ball.dy = -Math.abs(ball.dy);
+					ball.y = bottomWallSurfaceY - penetration - epsilon;
+					reflectedOffVerticalWall = true;
+				}
+			}
+	
+			// Horizontal boundaries (left/right walls - scoring zones)
+			if (ball.x - ballRadius <= 0) {
+				ball.destroyed = true;
+				ball.hitLeftBorder = true;
+			} else if (ball.x + ballRadius >= canvas.width) {
+				ball.destroyed = true;
+				ball.hitLeftBorder = false;
+			}
+	
+			// Ensure minimum velocity to prevent sticking
+			const minSpeed = 1;
+			const currentSpeedSq = ball.dx * ball.dx + ball.dy * ball.dy;
+			if (currentSpeedSq < minSpeed * minSpeed && currentSpeedSq > 1e-6) {
+				const currentSpeed = Math.sqrt(currentSpeedSq);
+				const scale = minSpeed / currentSpeed;
+				ball.dx *= scale;
+				ball.dy *= scale;
+			}
+			return reflectedOffVerticalWall;
+		}
 
   /**
    * Increases ball speed based on acceleration settings.
@@ -373,8 +415,8 @@ export class PhysicsManager {
                 cTop,
                 cBottom
               );
-              ball.dx = reflectedVel.dx;
-              ball.dy = reflectedVel.dy;
+              ball.dx = finalVel.dx;
+              ball.dy = finalVel.dy;
 
               // Ensure minimum vertical velocity if hitting front face of paddle
               if (normal.nx !== 0) { // Hit was on the side (front face)
@@ -452,8 +494,8 @@ export class PhysicsManager {
              cTop,
              cBottom
            );
-          ball.dx = reflectedVel.dx;
-          ball.dy = reflectedVel.dy;
+          ball.dx = finalVel.dx;
+          ball.dy = finalVel.dy;
 
           // Ensure minimum vertical velocity if hitting front face of paddle (approximated by normal)
           if (Math.abs(nx) > Math.abs(ny)) { // Hit was primarily on the side (front face)
