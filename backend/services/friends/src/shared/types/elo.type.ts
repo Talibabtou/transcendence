@@ -10,6 +10,7 @@ export interface LeaderboardEntry extends Omit<Elo, 'id' | 'created_at'> {
   victories: number;
   defeats: number;
   total_matches: number;
+  username: string;
 }
 
 export interface GetElosQuery {

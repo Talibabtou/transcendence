@@ -23,6 +23,7 @@ export const eloSchema = {
 const LeaderboardSchema = {
   type: 'object',
   properties: {
+    username: { type: 'string' },
     victories: { type: 'number' },
     defeats: { type: 'number' },
     total_matches: { type: 'number' },

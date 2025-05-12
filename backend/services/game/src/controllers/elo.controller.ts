@@ -1,5 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import { ErrorResponse } from '../shared/types/error.type.js';
+import { IReplyUser } from '../shared/types/auth.types.js';
 import {
   recordFastDatabaseMetrics,
   recordMediumDatabaseMetrics,
@@ -216,7 +218,16 @@ export async function getLeaderboard(
       limit,
       offset
     )) as LeaderboardEntry[];
-
+    for (let i = 0; i < leaderboard.length; i++) {
+      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
+      const response = await fetch(serviceUrl, { method: 'GET' });
+      const user = (await response.json()) as IReplyUser | ErrorResponse;
+      if ('username' in user) {
+        leaderboard[i].username = user.username;
+      } else {
+        leaderboard[i].username = 'undefined';
+      }
+    }
     recordMediumDatabaseMetrics('SELECT', 'leaderboard', performance.now() - startTime);
     return reply.code(200).send(leaderboard);
   } catch (error) {
