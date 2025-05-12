@@ -660,6 +660,17 @@ export class GameManager {
 	 */
 	public hideBackgroundGame(): void {
 		try {
+			// Stop the animation loop if it's running
+			if (this.backgroundGameInstance.animationFrameId !== null) {
+				cancelAnimationFrame(this.backgroundGameInstance.animationFrameId);
+				this.backgroundGameInstance.animationFrameId = null;
+			}
+			// Also clear interval just in case (though likely tied to RAF)
+			if (this.backgroundGameInstance.updateIntervalId !== null) {
+				clearInterval(this.backgroundGameInstance.updateIntervalId);
+				this.backgroundGameInstance.updateIntervalId = null;
+			}
+
 			if (this.backgroundGameInstance.canvas) {
 				// Just hide the canvas rather than cleaning up
 				this.backgroundGameInstance.canvas.style.display = 'none';

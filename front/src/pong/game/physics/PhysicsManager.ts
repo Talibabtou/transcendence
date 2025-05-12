@@ -1,4 +1,4 @@
-import { BALL_CONFIG, GAME_CONFIG } from '@pong/constants';
+import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
 import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
@@ -84,15 +84,22 @@ export class PhysicsManager {
     const ballRadius = ball.getSize();
     const canvas = ball.getContext().canvas;
     let reflectedOffVerticalWall = false;
+    const epsilon = 0.05; // Small offset for separation
 
     // Vertical boundaries (top/bottom walls)
-    if (ball.y - ballRadius <= 0) {
-      ball.y = ballRadius;
-      ball.dy = Math.abs(ball.dy); // Force positive
+    const topWallSurfaceY = ballRadius;
+    if (ball.y < topWallSurfaceY) { // Ball center is above where it should be for contact with top wall
+      const penetration = topWallSurfaceY - ball.y;
+      ball.dy = Math.abs(ball.dy); // Force positive dy (downwards)
+      ball.y = topWallSurfaceY + penetration + epsilon; // Move to surface, add penetration in new direction, then epsilon
       reflectedOffVerticalWall = true;
-    } else if (ball.y + ballRadius >= canvas.height) {
-      ball.y = canvas.height - ballRadius;
-      ball.dy = -Math.abs(ball.dy); // Force negative
+    }
+    
+    const bottomWallSurfaceY = canvas.height - ballRadius;
+    if (ball.y > bottomWallSurfaceY) { // Ball center is below where it should be for contact with bottom wall
+      const penetration = ball.y - bottomWallSurfaceY;
+      ball.dy = -Math.abs(ball.dy); // Force negative dy (upwards)
+      ball.y = bottomWallSurfaceY - penetration - epsilon; // Move to surface, add penetration in new direction, then epsilon
       reflectedOffVerticalWall = true;
     }
 
