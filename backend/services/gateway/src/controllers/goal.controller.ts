@@ -34,7 +34,7 @@ export async function getGoal(request: FastifyRequest<{ Params: IId }>, reply: F
 }
 
 export async function createGoal(
-  request: FastifyRequest<{ Params: IId, Body: CreateGoalRequest }>,
+  request: FastifyRequest<{ Params: IId; Body: CreateGoalRequest }>,
   reply: FastifyReply
 ) {
   try {

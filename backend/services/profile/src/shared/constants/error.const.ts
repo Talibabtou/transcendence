@@ -36,9 +36,10 @@ export enum ErrorCodes {
   //auth related errors
   LOGIN_FAILURE = 'LOGIN_FAILURE',
 
-  //profil
+  //profile
   NO_FILE_PROVIDED = 'NO_FILE_PROVIDED',
   INVALID_TYPE = 'INVALID_TYPE',
+  SUMMARY_NOT_FOUND = 'SUMMARY_NOT_FOUND',
 
   //friends
   FRIENDSHIP_EXISTS = 'FRIENDSHIP_EXISTS',
@@ -97,9 +98,10 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   //auth related errors
   [ErrorCodes.LOGIN_FAILURE, 'Login failure'],
 
-  //profil related errors
+  //profile related errors
   [ErrorCodes.NO_FILE_PROVIDED, 'No File Provided'],
   [ErrorCodes.INVALID_TYPE, 'Invalid Type'],
+  [ErrorCodes.SUMMARY_NOT_FOUND, 'Summary not found'],
 
   //friends
   [ErrorCodes.FRIENDSHIP_EXISTS, 'Friendship exists'],
@@ -245,7 +247,7 @@ export const ErrorExamples = {
     message: ErrorMessages.get(ErrorCodes.LOGIN_FAILURE),
   },
 
-  //profil related errors
+  //profile related errors
   noFileProvided: {
     statusCode: 404,
     code: ErrorCodes.NO_FILE_PROVIDED,
@@ -257,6 +259,12 @@ export const ErrorExamples = {
     code: ErrorCodes.INVALID_TYPE,
     error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
+  },
+  summaryNotFound: {
+    statusCode: 404,
+    code: ErrorCodes.SUMMARY_NOT_FOUND,
+    error: ErrorTypes.get(404),
+    message: ErrorMessages.get(ErrorCodes.SUMMARY_NOT_FOUND),
   },
 
   //friends
