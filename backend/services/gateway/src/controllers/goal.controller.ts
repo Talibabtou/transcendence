@@ -33,9 +33,12 @@ export async function getGoal(request: FastifyRequest<{ Params: IId }>, reply: F
   }
 }
 
-export async function createGoal(request: FastifyRequest<{ Body: CreateGoalRequest }>, reply: FastifyReply) {
+export async function createGoal(
+  request: FastifyRequest<{ Params: IId, Body: CreateGoalRequest }>,
+  reply: FastifyReply
+) {
   try {
-    const id: string = (request.user as FastifyJWT['user']).id;
+    const id: string = request.params.id;
     const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
     const response = await fetch(serviceUrl, {

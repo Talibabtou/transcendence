@@ -1,9 +1,27 @@
 import { MultipartFile } from '@fastify/multipart';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { IUpload } from '../shared/types/profil.type.js';
+import { IUpload, IId } from '../shared/types/profile.type.js';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+
+export async function getSummary(
+  request: FastifyRequest<{ Params: IId }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const id: string = request.params.id;
+    const subpath: string = request.url.split('/profile')[1];
+    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
+    const response: Response = await fetch(serviceUrl, { method: 'GET' });
+    const responseData = (await response.json()) as ErrorResponse | unknown;
+    return reply.code(response.status).send(responseData);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
 
 function verifTypeFile(file: MultipartFile): boolean {
   const allowedExt: string[] = ['.jpg', '.jpeg', '.png'];
@@ -13,10 +31,13 @@ function verifTypeFile(file: MultipartFile): boolean {
   return true;
 }
 
-export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: FastifyReply): Promise<void> {
+export async function postPic(
+  request: FastifyRequest<{ Body: IUpload }>,
+  reply: FastifyReply
+): Promise<void> {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath: string = request.url.split('/profil')[1];
+    const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
     const file: MultipartFile | undefined = await request.file();
     if (!file) {
@@ -33,9 +54,6 @@ export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: 
     formData.append('file', new Blob([buffer]), file.filename);
     const response: Response = await fetch(serviceUrl, {
       method: 'POST',
-      headers: {
-        Authorization: request.headers.authorization || 'no token',
-      },
       body: formData,
     });
     if (response.status >= 400) {
@@ -53,14 +71,9 @@ export async function upload(request: FastifyRequest<{ Body: IUpload }>, reply: 
 export async function deletePic(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath: string = request.url.split('/profil')[1];
+    const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
-    const response: Response = await fetch(serviceUrl, {
-      method: 'DELETE',
-      headers: {
-        Authorization: request.headers.authorization || 'no token',
-      },
-    });
+    const response: Response = await fetch(serviceUrl, { method: 'DELETE' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
       return reply.code(response.status).send(responseData);

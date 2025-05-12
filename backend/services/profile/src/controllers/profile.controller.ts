@@ -2,9 +2,28 @@ import path from 'path';
 import fs from 'node:fs';
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { ErrorResponse } from '../shared/types/error.type.js';
+import { PlayerMatchSummary } from '../shared/types/match.type.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
-export async function upload(
+export async function getSummary(
+  request: FastifyRequest<{ Params: IId }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const id = request.params.id;
+    const serviceUrlMatchSummary = `http://${process.env.GAME_ADDR || 'localhost'}:8083/match/summary/${id}`;
+    const responseMatchSummary = await fetch(serviceUrlMatchSummary, { method: 'GET' });
+    const reponseDataMatchSummary = (await responseMatchSummary.json()) as PlayerMatchSummary | ErrorResponse;
+    return reply.code(200).send();
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function postPic(
   request: FastifyRequest<{ Body: FormData; Params: IId }>,
   reply: FastifyReply
 ): Promise<void> {

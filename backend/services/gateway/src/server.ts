@@ -14,7 +14,7 @@ import fastifyMultipart from '@fastify/multipart';
 import matchRoutes from './routes/match.routes.js';
 import { fastify, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import profilRoutes from './routes/profil.routes.js';
+import profileRoutes from './routes/profile.routes.js';
 import gatewayRoutes from './routes/gateway.routes.js';
 import friendsRoutes from './routes/friends.routes.js';
 import tournamentRoutes from './routes/tournament.routes.js';
@@ -28,7 +28,7 @@ async function routes(server: FastifyInstance) {
   await server.register(authRoutes, { prefix: API_PREFIX });
   await server.register(goalRoutes, { prefix: API_PREFIX });
   await server.register(matchRoutes, { prefix: API_PREFIX });
-  await server.register(profilRoutes, { prefix: API_PREFIX });
+  await server.register(profileRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });
   await server.register(tournamentRoutes, { prefix: API_PREFIX });
 }
@@ -81,7 +81,7 @@ const swaggerConfig = {
         description: 'System and health check endpoints',
       },
       {
-        name: 'profil',
+        name: 'profile',
         description: 'User profile management endpoints',
       },
       {

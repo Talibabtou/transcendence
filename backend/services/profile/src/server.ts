@@ -1,6 +1,6 @@
 import { fastify, FastifyInstance } from 'fastify';
 import fastifyMultipart from '@fastify/multipart';
-import routes from './routes/profil.routes.js';
+import routes from './routes/profile.routes.js';
 
 const multipartParams = {
   limits: {

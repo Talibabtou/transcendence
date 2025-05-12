@@ -22,9 +22,9 @@ test_friends: clean
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} test_friends
 
-test_profil: clean
+test_profile: clean
 	@${NPM} build || { echo "Build failed"; exit 1; }
-	@${NPM} test_profil
+	@${NPM} test_profile
 
 test_gateway: clean
 	@${NPM} build || { echo "Build failed"; exit 1; }
@@ -54,7 +54,7 @@ test: clean
 	@${NPM} build || { echo "Build failed"; exit 1; }
 	@${NPM} test_auth
 	@${NPM} test_friends
-	@${NPM} test_profil
+	@${NPM} test_profile
 	@${NPM} test_elo
 	@${NPM} test_match
 	@${NPM} test_goal
@@ -62,7 +62,7 @@ test: clean
 	@${NPM} test_gateway
 
 infos:
-	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix, test_friends, test_profil, test_gateway, test_match, test_goal, test_tournament, test_security, test"
+	@echo "Makefile commands:  infos, re, clean, fclean, prettier, linter, format, install, audit, audit-fix, test_friends, test_profile, test_gateway, test_match, test_goal, test_tournament, test_security, test"
 
 re: fclean install all 
 
@@ -90,4 +90,4 @@ fclean: clean
 	@${RM} node_modules/
 	@${RM} dist/
 
-.PHONY: all re clean fclean prettier linter format install audit audit-fix infos test_auth test_auth2fa test_friends test_profil test_gateway test_match test_goal test_security test
+.PHONY: all re clean fclean prettier linter format install audit audit-fix infos test_auth test_auth2fa test_friends test_profile test_gateway test_match test_goal test_security test

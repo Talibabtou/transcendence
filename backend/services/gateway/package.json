@@ -13,7 +13,7 @@
     "test_auth": "node dist/test/auth.test.js",
     "test_auth2fa": "node dist/test/auth2fa.test.js",
     "test_friends": "node dist/test/friends.test.js",
-    "test_profil": "node dist/test/profil.test.js",
+    "test_profile": "node dist/test/profile.test.js",
     "test_gateway": "node dist/test/gateway.test.js",
     "test_elo": "node dist/test/elo.test.js",
     "test_match": "node dist/test/match.test.js",

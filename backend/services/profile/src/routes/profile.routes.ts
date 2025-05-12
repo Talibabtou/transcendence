@@ -1,9 +1,11 @@
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { upload, deletePic } from '../controllers/profil.controller.js';
+import { postPic, deletePic, getSummary } from '../controllers/profile.controller.js';
 
 export default async function profilRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.post<{ Body: FormData; Params: IId }>('/uploads/:id', upload);
+  fastify.get<{ Params: IId }>('/uploads/:id', getSummary);
+
+  fastify.post<{ Body: FormData; Params: IId }>('/uploads/:id', postPic);
 
   fastify.delete<{ Params: IId }>('/uploads/:id', deletePic);
 
