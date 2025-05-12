@@ -387,8 +387,6 @@ export class PhysicsManager {
     nx: number, ny: number,
     epsilon: number // Small buffer distance
   ): void {
-    const originalX = ball.x;
-    const originalY = ball.y;
     // Set position precisely to the calculated contact point first
     ball.x = contactX;
     ball.y = contactY;
@@ -398,21 +396,8 @@ export class PhysicsManager {
     ball.x += pushX;
     ball.y += pushY;
     // Log the state before and after correction
-    console.log(`[Debug Collision] Corrected ball pos. Original: (${originalX.toFixed(2)}, ${originalY.toFixed(2)}), Contact: (${contactX.toFixed(2)}, ${contactY.toFixed(2)}), Push: (${pushX.toFixed(2)}, ${pushY.toFixed(2)}), Corrected: (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)}), Normal: (${nx}, ${ny}), Epsilon: ${epsilon}`);
   }
 
-  // Helper to correct position after discrete collision (corner or edge)
-  private static _correctPositionCorner(
-    ball: Ball,
-    pointX: number, pointY: number, // The point to push away from (corner or closest edge point)
-    nx: number, ny: number, // Normal pointing away from the point
-    radius: number,
-    epsilon: number
-  ): void {
-    const bias = radius + epsilon;
-    ball.x = pointX + nx * bias;
-    ball.y = pointY + ny * bias;
-  }
 
   public static collideBallWithPaddle(
     ball: Ball,
@@ -431,18 +416,14 @@ export class PhysicsManager {
     const cBottom = player.y + player.paddleHeight;
 
     // --- Added detailed logging at the start of the check ---
-    console.log(`[Frame Start Check] Player at (${player.x.toFixed(2)}, ${player.y.toFixed(2)}), Vel: (${paddleVelocity.dx.toFixed(2)}, ${paddleVelocity.dy.toFixed(2)}), Bounds: T:${cTop.toFixed(2)} B:${cBottom.toFixed(2)} L:${cLeft.toFixed(2)} R:${cRight.toFixed(2)}`);
-    const p1_start = ball.getPosition(); // Ball position at start of this check
-    console.log(`[Frame Start Check] Ball at (${p1_start.x.toFixed(2)}, ${p1_start.y.toFixed(2)}), Vel: (${ballVelocity.dx.toFixed(2)}, ${ballVelocity.dy.toFixed(2)}) Radius: ${ballRadius.toFixed(2)}`);
-    // --- End Added Logging ---
+   	const p1_start = ball.getPosition(); // Ball position at start of this check
+
 
     // 1) Continuous Sweep Test
     if (typeof (ball as any).getPrevPosition === 'function') {
       const p0 = (ball as any).getPrevPosition();
       // Ball's movement vector for this step
       const ballMoveDir = {dx: p1_start.x - p0.x, dy: p1_start.y - p0.y};
-
-      console.log(`[Debug Collision] Ball sweep from (${p0.x.toFixed(2)}, ${p0.y.toFixed(2)}) to (${p1_start.x.toFixed(2)}, ${p1_start.y.toFixed(2)}) (Move: dx=${ballMoveDir.dx.toFixed(2)}, dy=${ballMoveDir.dy.toFixed(2)})`);
 
       // Check if ball moved significantly
       if (!(Math.abs(ballMoveDir.dx) < 1e-6 && Math.abs(ballMoveDir.dy) < 1e-6)) {
@@ -456,24 +437,12 @@ export class PhysicsManager {
             const contactX = p0.x + ballMoveDir.dx * t;
             const contactY = p0.y + ballMoveDir.dy * t;
 
-            console.log('[Debug Collision] Sweep test hit:', {
-              ballPrevPos: {x: p0.x.toFixed(2), y: p0.y.toFixed(2)},
-              ballMoveDir: {dx: ballMoveDir.dx.toFixed(2), dy: ballMoveDir.dy.toFixed(2)},
-              paddleRect: { T: cTop.toFixed(2), B: cBottom.toFixed(2), L: cLeft.toFixed(2), R: cRight.toFixed(2) },
-              paddleVel: {dx: paddleVelocity.dx.toFixed(2), dy: paddleVelocity.dy.toFixed(2)},
-              hitResult: { t: t.toFixed(4), normal: {nx: normal.nx, ny: normal.ny} },
-              contactPoint: { x: contactX.toFixed(2), y: contactY.toFixed(2) }
-            });
-
             if (normal.ny !== 0) { // Hit top/bottom of paddle
-              console.log('[Debug Collision] Top/Bottom paddle hit detected. Normal:', normal);
               player.freezeMovement(0.2);
-              console.log('[Debug Collision] player.freezeMovement(0.2) called for top/bottom hit.');
             }
 
             const dot = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
             if (dot < 0) {
-              console.log(`[Debug Collision] Dot product < 0 (${dot.toFixed(2)}), proceeding with reflection.`);
               const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dot);
               const finalVel = PhysicsManager._applyPaddleDeflection(
                 { x: contactX, y: contactY },
@@ -495,19 +464,11 @@ export class PhysicsManager {
               }
 
               // --- Added Pre/Post Correction Logging ---
-              console.log(`[Debug Collision] Pre-Correction State: Ball Pos (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)}), Ball Vel (${ball.dx.toFixed(2)}, ${ball.dy.toFixed(2)})`);
               PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
-              console.log(`[Debug Collision] Post-Correction State: Ball Pos (${ball.x.toFixed(2)}, ${ball.y.toFixed(2)})`);
               // --- End Added Logging ---
               return true;
-            } else {
-              console.log(`[Debug Collision] Dot product >= 0 (${dot.toFixed(2)}), collision detected but ball moving away from surface normal. No reflection.`);
             }
-          } else {
-             console.log('[Debug Collision] Sweep test reported NO hit.');
           }
-      } else {
-        console.log('[Debug Collision] Ball did not move significantly, skipping sweep test.');
       }
     }
 
