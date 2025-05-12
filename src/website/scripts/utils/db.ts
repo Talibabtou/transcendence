@@ -1,7 +1,6 @@
 import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
-import { ApiError, ErrorResponse, createErrorResponse } from '@website/scripts/utils';
-import { ErrorCodes } from '@shared/constants/error.const';
-import { API_PREFIX, GAME, USER, AUTH, SOCIAL } from '@shared/constants/path.const';
+import { ApiError, ErrorResponse } from '@website/scripts/utils';
+import { API_PREFIX, AUTH, GAME, USER } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 
 // =========================================
@@ -15,20 +14,37 @@ import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.ty
 export class DbService {
 	private static async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 		const url = `${API_PREFIX}${endpoint}`;
-		const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token');
+		
+		// Get token from the correct storage type - use sessionStorage by default
+		// This ensures each tab can maintain its own session
+		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
 		
 		const headers = {
 			'Content-Type': 'application/json',
-			...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+			...(token && { 'Authorization': `Bearer ${token}` }),
 			...options.headers
 		};
 
-		const response = await fetch(url, {
-			...options,
-			headers
-		});
+		try {
+			const response = await fetch(url, {
+				...options,
+				headers
+			});
 
-		return this.handleApiResponse<T>(response);
+			return this.handleApiResponse<T>(response);
+		} catch (error) {
+			// Handle token-related errors
+			if (error instanceof ApiError) {
+				// Only clear the token from the current tab's session
+				sessionStorage.removeItem('jwt_token');
+				
+				// Import dynamically to avoid circular dependencies
+				const { appState } = await import('./app-state');
+				appState.logout();
+				throw new Error('Your session has expired. Please log in again.');
+			}
+			throw error;
+		}
 	}
 
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
@@ -58,11 +74,7 @@ export class DbService {
 			// Call the backend register endpoint
 			const userResponse = await this.fetchApi<IReplyUser>(`${AUTH.REGISTER}`, {
 				method: 'POST',
-				body: JSON.stringify({
-					username: userData.username,
-					email: userData.email,
-					password: userData.password
-				})
+				body: JSON.stringify(userData)
 			});
 			
 			// Login to get the token
@@ -125,21 +137,25 @@ export class DbService {
 				};
 			}
 			
-			// Get user details
-			const userResponse = await this.fetchApi<IReplyUser>(`${AUTH}/user/${loginResponse.id}`, {
-				method: 'GET',
-				headers: {
-					'Authorization': `Bearer ${loginResponse.token}`
+			// Save token based on persistence preference
+			if (loginResponse.token) {
+				const isPersistent = localStorage.getItem('auth_persistent') === 'true';
+				if (isPersistent) {
+					localStorage.setItem('jwt_token', loginResponse.token);
+				} else {
+					// For non-persistent logins, always use sessionStorage
+					// This allows multiple tabs with different sessions
+					sessionStorage.setItem('jwt_token', loginResponse.token);
 				}
-			});
+			}
 			
 			// Return properly formatted AuthResponse
 			return {
 				success: true,
 				user: {
-					id: userResponse.id,
-					pseudo: userResponse.username,
-					email: userResponse.email,
+					id: loginResponse.id || '',
+					pseudo: loginResponse.username || '',
+					email: credentials.email,
 					created_at: new Date(),
 					last_login: new Date(),
 					auth_method: 'email',
@@ -175,11 +191,17 @@ export class DbService {
 	 * @param userId - The ID of the user to log out
 	 */
 	static async logout(userId: string): Promise<void> {
-		this.logRequest('POST', '/api/auth/logout', { userId });
+		this.logRequest('POST', `${AUTH.LOGOUT}`, { userId });
 		
-		return this.fetchApi<void>('/auth/logout', {
-			method: 'POST'
-		});
+		try {
+			await this.fetchApi<void>(`${AUTH.LOGOUT}`, {
+				method: 'POST'
+			});
+		} finally {
+			// Always clear tokens on logout regardless of API response
+			localStorage.removeItem('jwt_token');
+			sessionStorage.removeItem('jwt_token');
+		}
 	}
 
 	// =========================================
@@ -191,8 +213,8 @@ export class DbService {
 	 * @param id - The user's ID
 	 */
 	static async getUser(id: string): Promise<User> {
-		this.logRequest('GET', `/api/users/${id}`);
-		return this.fetchApi<User>(`/users/${id}`);
+		this.logRequest('GET', `${API_PREFIX}${USER.BY_ID(id)}`);
+		return this.fetchApi<User>(USER.BY_ID(id));
 	}
 
 	/**
@@ -202,9 +224,9 @@ export class DbService {
 	 * @returns Promise with updated user data
 	 */
 	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
-		this.logRequest('PUT', `/api/users/${userId}`, userData);
+		this.logRequest('PUT', `${API_PREFIX}${USER.BY_ID(userId)}`, userData);
 		
-		return this.fetchApi<User>(`/users/${userId}`, {
+		return this.fetchApi<User>(USER.BY_ID(userId), {
 			method: 'PUT',
 			body: JSON.stringify(userData)
 		});
@@ -216,9 +238,9 @@ export class DbService {
 	 * @param theme - Color value for the theme/paddle
 	 */
 	static async updateUserTheme(userId: string, theme: string): Promise<void> {
-		this.logRequest('PUT', `/api/users/${userId}/theme`, { theme });
+		this.logRequest('PUT', `${API_PREFIX}${USER.BY_ID(userId)}/theme`, { theme });
 		
-		await this.fetchApi<void>(`/users/${userId}/theme`, {
+		await this.fetchApi<void>(`${USER.BY_ID(userId)}/theme`, {
 			method: 'PUT',
 			body: JSON.stringify({ theme })
 		});
@@ -243,14 +265,15 @@ export class DbService {
 	static async getUserMatches(userId: string, page?: number, pageSize?: number): Promise<Match[]> {
 		const queryParams = new URLSearchParams();
 		queryParams.append('player_id', userId);
+		queryParams.append('active', 'false');
 		
 		if (page !== undefined && pageSize !== undefined) {
 			queryParams.append('offset', String(page * pageSize));
 			queryParams.append('limit', String(pageSize));
 		}
 		
-		this.logRequest('GET', `/api/users/${userId}/matches?${queryParams.toString()}`);
-		return this.fetchApi<Match[]>(`/matches?${queryParams.toString()}`);
+		this.logRequest('GET', `${API_PREFIX}${GAME.BASE}?${queryParams.toString()}`);
+		return this.fetchApi<Match[]>(`${GAME.BASE}?${queryParams.toString()}`);
 	}
 
 	/**
@@ -260,9 +283,9 @@ export class DbService {
 	 * @param tournamentId - Optional tournament ID
 	 */
 	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string): Promise<Match> {
-		this.logRequest('POST', '/api/matches', { player1Id, player2Id, tournamentId });
+		this.logRequest('POST', `${API_PREFIX}${GAME.MATCH.BASE}`, { player1Id, player2Id, tournamentId });
 		
-		return this.fetchApi<Match>('/matches', {
+		return this.fetchApi<Match>(`${GAME.MATCH.BASE}`, {
 			method: 'POST',
 			body: JSON.stringify({
 				player_1: player1Id,
@@ -279,9 +302,9 @@ export class DbService {
 	 * @param duration - Time of goal in seconds from match start
 	 */
 	static async recordGoal(matchId: string, playerId: string, duration: number): Promise<Goal> {
-		this.logRequest('POST', '/api/goals', { matchId, playerId, duration });
+		this.logRequest('POST', `${API_PREFIX}${GAME.GOALS.BASE}`, { matchId, playerId, duration });
 		
-		return this.fetchApi<Goal>('/goals', {
+		return this.fetchApi<Goal>(`${GAME.GOALS.BASE}`, {
 			method: 'POST',
 			body: JSON.stringify({
 				match_id: matchId,
@@ -308,8 +331,8 @@ export class DbService {
 	 * Retrieves global leaderboard data
 	 */
 	static async getLeaderboard(): Promise<LeaderboardEntry[]> {
-		this.logRequest('GET', '/api/leaderboard');
-		return this.fetchApi<LeaderboardEntry[]>('/leaderboard?limit=100&offset=0');
+		this.logRequest('GET', `${API_PREFIX}${GAME.LEADERBOARD}`);
+		return this.fetchApi<LeaderboardEntry[]>(`${GAME.LEADERBOARD}?limit=100&offset=0`);
 	}
 
 	/**
@@ -318,8 +341,8 @@ export class DbService {
 	 * @returns Promise with the match details
 	 */
 	static async getMatchDetails(matchId: string): Promise<any> {
-		this.logRequest('GET', `/api/matches/${matchId}`);
-		return this.fetchApi<any>(`/matches/${matchId}`);
+		this.logRequest('GET', `${API_PREFIX}${GAME.MATCH.BY_ID(matchId)}`);
+		return this.fetchApi<any>(`${GAME.MATCH.BY_ID(matchId)}`);
 	}
 
 	/**
@@ -327,8 +350,8 @@ export class DbService {
 	 * @param matchId - ID of the match to get goals for
 	 */
 	static async getMatchGoals(matchId: string): Promise<any[]> {
-		this.logRequest('GET', `/api/matches/${matchId}/goals`);
-		return this.fetchApi<any[]>(`/goals?match_id=${matchId}`);
+		this.logRequest('GET', `${API_PREFIX}${GAME.GOALS.BASE}?match_id=${matchId}`);
+		return this.fetchApi<any[]>(`${GAME.GOALS.BASE}?match_id=${matchId}`);
 	}
 
 	/**
@@ -396,8 +419,8 @@ export class DbService {
 	 * @param playerId - Player's UUID
 	 */
 	static async getPlayerElo(playerId: string): Promise<any> {
-		this.logRequest('GET', `/api/elo?player=${playerId}`);
-		return this.fetchApi<any>(`/elo?player=${playerId}`);
+		this.logRequest('GET', `${API_PREFIX}${GAME.ELO.BY_ID(playerId)}`);
+		return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
 	}
 
 	/**
@@ -405,8 +428,8 @@ export class DbService {
 	 * @param userId - The UUID of the user
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
-		this.logRequest('GET', `/api/profile/${userId}`);
-		return this.fetchApi<any>(`/profile/${userId}`);
+		this.logRequest('GET', `${API_PREFIX}${USER.BY_ID(userId)}`);
+		return this.fetchApi<any>(`${USER.BY_ID(userId)}`);
 	}
 
 	/**

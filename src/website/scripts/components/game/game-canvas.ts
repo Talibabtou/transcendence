@@ -75,7 +75,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	startGame(
 		mode: GameMode,
 		playerInfo?: { 
-			playerIds?: number[],
+			playerIds?: string[],
 			playerNames?: string[],
 			playerColors?: string[]
 		}

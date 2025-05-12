@@ -38,7 +38,8 @@ export class RegistrationHandler {
 				<div class="form-group">
 					<label for="password">Password:</label>
 					<input type="password" id="password" name="password" required 
-						   onInput=${(e: Event) => this.handlePasswordInput(e)} />
+						   onInput=${(e: Event) => this.handlePasswordInput(e)}
+						   onFocus=${() => this.initializePasswordStrength()} />
 					<div id="password-strength-container"></div>
 				</div>
 				
@@ -71,23 +72,40 @@ export class RegistrationHandler {
 	}
 
 	/**
-	 * Handle password input to update strength indicator
+	 * Initialize password strength component
 	 */
-	handlePasswordInput(e: Event): void {
-		const input = e.target as HTMLInputElement;
-		const password = input.value;
-		
-		// Initialize password strength component if needed
+	private initializePasswordStrength(): void {
 		if (!this.passwordStrength) {
 			const container = document.getElementById('password-strength-container');
 			if (container) {
 				this.passwordStrength = new PasswordStrengthComponent(container);
 			}
 		}
+	}
+
+	/**
+	 * Handle password input to update strength indicator
+	 */
+	handlePasswordInput(e: Event): void {
+		const input = e.target as HTMLInputElement;
+		const password = input.value;
 		
 		// Update password strength indicator
 		if (this.passwordStrength) {
 			this.passwordStrength.updatePassword(password);
+		}
+	}
+
+	/**
+	 * Reset form and password strength component
+	 */
+	private resetForm(): void {
+		const form = document.querySelector('.auth-form') as HTMLFormElement;
+		if (form) {
+			form.reset();
+		}
+		if (this.passwordStrength) {
+			this.passwordStrength = null;
 		}
 	}
 
@@ -142,6 +160,7 @@ export class RegistrationHandler {
 				};
 				
 				this.setCurrentUser(userData);
+				this.resetForm(); // Reset form after successful registration
 				
 				// Update component state
 				this.updateState({

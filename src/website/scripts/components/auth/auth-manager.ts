@@ -95,14 +95,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 				
 				// If already logged in, redirect immediately
 				if (this.currentUser) {
-					// Log the session restoration
-					console.log('Auth: Restored session for user', {
-						userId: this.currentUser.id,
-						username: this.currentUser.username,
-						authMethod: this.currentUser.authMethod || 'unknown',
-						persistent: this.persistSession
-					});
-					
 					this.handleSuccessfulAuth();
 					return;
 				}

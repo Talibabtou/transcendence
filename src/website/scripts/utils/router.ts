@@ -327,6 +327,15 @@ export class Router {
 	public refreshCurrentComponent(): void {
 		if (!this.currentRoute) return;
 		
+		// First refresh the navbar since it's a global component
+		const navbar = document.querySelector('nav.navbar');
+		if (navbar) {
+			const navbarComponent = (navbar as any).__component;
+			if (navbarComponent && typeof navbarComponent.renderNavbar === 'function') {
+				navbarComponent.renderNavbar();
+			}
+		}
+		
 		const component = this.components.get(this.currentRoute);
 		if (component) {
 			// Call refresh on the component if available

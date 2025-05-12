@@ -306,7 +306,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	 * @returns Object with playerInfo if match found, null if tournament complete
 	 */
 	public handleContinue(): {
-		playerIds: number[];
+		playerIds: string[];
 		playerNames: string[];
 		playerColors: string[];
 	} | null {

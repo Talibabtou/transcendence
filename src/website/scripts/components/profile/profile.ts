@@ -193,22 +193,16 @@ export class ProfileComponent extends Component<ProfileState> {
 						console.error('Error parsing current user data:', error);
 					}
 				}
-				
-				// If still no user ID, fall back to the default
-				if (!userId) {
-					userId = '1'; // Default user
-				}
 			}
-			
-			// Convert to numeric ID
-			const numericId = parseInt(userId, 10);
-			console.log(`Loading profile for user ID: ${numericId}`);
 			
 			try {
 				// Fetch core user data
-				const user = await DbService.getUser(numericId);
+				if (!userId) {
+					throw new Error('No user ID provided');
+				}
+				const user = await DbService.getUserProfile(userId);
 				if (!user) {
-					throw new Error(`User with ID ${numericId} not found`);
+					throw new Error(`User with ID ${userId} not found`);
 				}
 				
 				// Initialize UserProfile with minimal data
@@ -231,13 +225,13 @@ export class ProfileComponent extends Component<ProfileState> {
 				this.updateInternalState({ profile: userProfile });
 				
 				// Load initial summary data
-				await this.loadSummaryData(numericId, userProfile);
+				await this.loadSummaryData(userId, userProfile);
 				
 			} catch (error) {
 				if (error instanceof ApiError) {
 					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
 						this.updateInternalState({ 
-							errorMessage: `User with ID ${numericId} not found`
+							errorMessage: `User with ID ${userId} not found`
 						});
 					} else {
 						this.updateInternalState({ 
@@ -260,7 +254,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	/**
 	 * Load summary data (wins/losses/elo)
 	 */
-	private async loadSummaryData(userId: number, profile: UserProfile): Promise<void> {
+	private async loadSummaryData(userId: string, profile: UserProfile): Promise<void> {
 		try {
 			console.log(`Loading summary for user ID: ${userId}`);
 			

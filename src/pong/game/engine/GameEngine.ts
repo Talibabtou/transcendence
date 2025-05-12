@@ -28,6 +28,7 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
+	private readonly AI_PLAYER_ID: string = 'bcb16fe1-2cc3-2a01-a174-c6df8520150f';
 	public onGameOver?: (detail: any) => void;
 
 	// =========================================
@@ -353,24 +354,20 @@ export class GameEngine {
 			return;
 		}
 
-		// For single player mode, we only need player 1 ID
-		const isSinglePlayer = this.gameMode === 'single';
-		
-		// Ensure we have at least one player ID (for single player)
+		// Ensure we have at least one player ID (for player 1)
 		if (this.playerIds.length < 1 || this.playerIds[0] === undefined) {
 			return;
 		}
 
 		const player1Id = this.playerIds[0];
 		
-		// For single player, create an AI opponent ID
-		let player2Id: number;
+		// For single player, use the AI player ID; otherwise use player 2's ID
+		let player2Id: string;
 		
-		if (isSinglePlayer) {
-			// Use ID 0 for AI opponent
-			player2Id = 0;
+		if (this.gameMode === 'single') {
+			player2Id = this.AI_PLAYER_ID;
 		} else {
-			// For multiplayer modes, use the second player's ID
+			// For multiplayer modes, ensure we have player 2's ID
 			if (this.playerIds.length >= 2) {
 				player2Id = this.playerIds[1];
 			} else {
@@ -571,21 +568,28 @@ export class GameEngine {
 		}
 		
 		// Determine the scoring player's ID
-		let scoringPlayerId: number;
+		let scoringPlayerId: string;
 		
-		// Special handling for AI in single player mode
-		if (scoringPlayerIndex === 1 && this.scene.isSinglePlayer()) {
-			scoringPlayerId = 0;
-		} else if (scoringPlayerIndex >= 0 && scoringPlayerIndex < this.playerIds.length) {
-			scoringPlayerId = this.playerIds[scoringPlayerIndex];
+		if (scoringPlayerIndex === 0) {
+			// Player 1 scored
+			scoringPlayerId = this.playerIds[0];
+		} else if (scoringPlayerIndex === 1) {
+			// Player 2 or AI scored
+			if (this.gameMode === 'single') {
+				scoringPlayerId = this.AI_PLAYER_ID;
+			} else if (this.playerIds.length >= 2) {
+				scoringPlayerId = this.playerIds[1];
+			} else {
+				return;
+			}
 		} else {
 			return;
 		}
 		
 		// Calculate goal duration accounting for pauses
 		const currentTime = Date.now();
-		const goalDuration = ((currentTime - this.goalStartTime) - 
-							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000;
+		const goalDuration = Math.floor(((currentTime - this.goalStartTime) - 
+							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000);
 		
 		// Record the goal in the database
 		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
@@ -655,7 +659,7 @@ export class GameEngine {
 	 * Gets the current match ID
 	 * @returns The current match ID or null
 	 */
-	public getMatchId(): number | null {
+	public getMatchId(): string | null {
 		return this.matchId;
 	}
 

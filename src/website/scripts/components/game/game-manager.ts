@@ -313,8 +313,8 @@ export class GameManager {
 	public startTournamentMatch(
 		container: HTMLElement,
 		matchInfo: {
-			player1Id: number;
-			player2Id: number;
+			player1Id: string;
+			player2Id: string;
 			player1Name: string;
 			player2Name: string;
 			player1Color: string;
@@ -343,10 +343,10 @@ export class GameManager {
 		playerInfo?: { 
 			playerName?: string,
 			playerColor?: string,
-			playerIds?: number[],
+			playerIds?: string[],
 			playerNames?: string[],
 			playerColors?: string[],
-			tournamentId?: string // Add this parameter
+			tournamentId?: string
 		}
 	): void {
 		// Start the game
@@ -379,15 +379,15 @@ export class GameManager {
 				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
 				
 				const playerColors = playerInfo.playerColors || [];
-				const p1Color = playerColors[0] || playerInfo.playerColor || '#3498db';  // Default blue
+				const p1Color = playerColors[0] || playerInfo.playerColor || '#ffffff';
 				
 				let p2Color;
 				if (mode === GameMode.SINGLE) {
-					p2Color = '#ffffff'; // AI is always white in single player
+					p2Color = '#ffffff';
 				} else if (playerColors.length > 1 && playerColors[1]) {
-					p2Color = playerColors[1]; // Use the color chosen by player 2
+					p2Color = playerColors[1];
 				} else {
-					p2Color = '#2ecc71'; // Default green if no color provided
+					p2Color = '#ffffff';
 				}
 				
 				// Now update the colors in the game engine

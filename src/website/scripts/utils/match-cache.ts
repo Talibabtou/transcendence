@@ -23,17 +23,17 @@ interface MatchResult {
 	player2Name: string;
 	player1Score: number;
 	player2Score: number;
-	matchId?: number;
+	matchId?: string;
 	gameMode?: GameMode;
 	isBackgroundGame?: boolean;
 }
 
 class MatchCacheSingleton {
 	private static instance: MatchCacheSingleton;
-	private cache: Map<number, Promise<ExtendedMatch>>;
-	private completedMatches: Set<number>;
+	private cache: Map<string, Promise<ExtendedMatch>>;
+	private completedMatches: Set<string>;
 	private lastGameMode: GameMode = GameMode.SINGLE;
-	private lastPlayerIds: number[] = [];
+	private lastPlayerIds: string[] = [];
 	private lastPlayerNames: string[] = [];
 	private lastPlayerColors: string[] = [];
 	
@@ -55,7 +55,7 @@ class MatchCacheSingleton {
 	/**
 	 * Gets match data, either from cache or by fetching from DB
 	 */
-	public getMatchData(matchId: number): Promise<ExtendedMatch> {
+	public getMatchData(matchId: string): Promise<ExtendedMatch> {
 		// Check if we already have a promise for this matchId
 		if (this.cache.has(matchId)) {
 			return this.cache.get(matchId)!;
@@ -64,12 +64,7 @@ class MatchCacheSingleton {
 		// Create a new promise for the DB fetch
 		const dataPromise = import('@website/scripts/utils')
 			.then(({ DbService }) => DbService.getMatchDetails(matchId))
-			.then(matchDetails => {
-				// Mark as completed
-				this.completedMatches.add(matchId);
-				return matchDetails;
-			});
-		
+
 		// Store in cache
 		this.cache.set(matchId, dataPromise);
 		
@@ -88,13 +83,13 @@ class MatchCacheSingleton {
 	/**
 	 * Checks if a match has already been processed
 	 */
-	public isMatchCompleted(matchId: number): boolean {
+	public isMatchCompleted(matchId: string): boolean {
 		return this.completedMatches.has(matchId);
 	}
 	
 	public setCurrentGameInfo(info: {
 		gameMode: GameMode;
-		playerIds?: number[];
+		playerIds?: string[];
 		playerNames?: string[];
 		playerColors?: string[];
 	}): void {
@@ -106,7 +101,7 @@ class MatchCacheSingleton {
 	
 	public getCurrentGameInfo(): {
 		gameMode: GameMode;
-		playerIds: number[];
+		playerIds: string[];
 		playerNames: string[];
 		playerColors: string[];
 	} {

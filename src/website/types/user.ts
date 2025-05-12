@@ -44,3 +44,21 @@ export interface FriendProfile {
 	avatarUrl: string;
 	lastLogin?: Date;
 }
+
+// Define available accent colors
+export type AccentColor = 'white' | 'blue' | 'green' | 'purple' | 'pink' | 'orange' | 'yellow' | 'cyan' | 'teal' | 'lime' | 'red';
+
+// Available accent colors with their hex values
+export const ACCENT_COLORS: Record<AccentColor, string> = {
+	'white': '#ffffff',
+	'blue': '#3498db',
+	'green': '#2ecc71',
+	'purple': '#9b59b6',
+	'pink': '#e84393',
+	'orange': '#e67e22',
+		'yellow': '#f1c40f',
+		'cyan': '#00bcd4',
+		'teal': '#009688',
+		'lime': '#cddc39',
+		'red': '#e74c3c'
+	};

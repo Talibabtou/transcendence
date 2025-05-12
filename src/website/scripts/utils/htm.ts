@@ -157,3 +157,77 @@ export function render(
 		container.appendChild(vdom);
 	}
 }
+
+/**
+ * Updates an existing DOM element with new content while preserving its position.
+ * Useful for dynamic updates like progress bars or live data.
+ * 
+ * @param vdom - New virtual DOM node(s) to render
+ * @param container - Target container element to update
+ * 
+ * @example
+ * const container = document.querySelector('.progress-bar');
+ * update(html`<div class="progress" style="width: ${progress}%"></div>`, container);
+ */
+export function update(
+	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
+	container: HTMLElement
+): void {
+	// Store the parent and next sibling for reinsertion
+	const parent = container.parentNode;
+	const nextSibling = container.nextSibling;
+
+	// Remove the old content
+	container.textContent = '';
+
+	// Insert new content
+	if (Array.isArray(vdom)) {
+		vdom.forEach(node => {
+			if (node instanceof Node) {
+				container.appendChild(node);
+			}
+		});
+	} else if (vdom instanceof Node) {
+		container.appendChild(vdom);
+	}
+
+	// If the container was removed from DOM, reinsert it
+	if (parent && !container.parentNode) {
+		if (nextSibling) {
+			parent.insertBefore(container, nextSibling);
+		} else {
+			parent.appendChild(container);
+		}
+	}
+}
+
+/**
+ * Creates a component that can be updated with new content.
+ * Useful for creating reusable, updatable UI elements.
+ * 
+ * @param container - The container element for the component
+ * @param initialRender - Function that returns the initial virtual DOM
+ * @returns Object with update method
+ * 
+ * @example
+ * const progressBar = createComponent(
+ *   container,
+ *   () => html`<div class="progress" style="width: 0%"></div>`
+ * );
+ * 
+ * // Later update the progress
+ * progressBar.update(() => html`<div class="progress" style="width: 50%"></div>`);
+ */
+export function createComponent(
+	container: HTMLElement,
+	initialRender: () => HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[]
+) {
+	// Initial render
+	render(initialRender(), container);
+
+	return {
+		update: (newRender: () => HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[]) => {
+			update(newRender(), container);
+		}
+	};
+}

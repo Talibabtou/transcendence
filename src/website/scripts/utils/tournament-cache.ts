@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
  * Structure to represent a tournament player
  */
 interface TournamentPlayer {
-	id: number;
+	id: string;
 	name: string;
 	color: string;
 	wins: number;
@@ -62,7 +62,7 @@ class TournamentCacheSingleton {
 	/**
 	 * Store registered players and initialize tournament
 	 */
-	public registerPlayers(playerIds: number[], playerNames: string[], playerColors: string[]): string {
+	public registerPlayers(playerIds: string[], playerNames: string[], playerColors: string[]): string {
 		if (playerIds.length !== 4 || playerNames.length !== 4 || playerColors.length !== 4) {
 			throw new Error('Tournament requires exactly 4 players');
 		}
@@ -631,7 +631,7 @@ class TournamentCacheSingleton {
 	 * Get current match player info
 	 */
 	public getCurrentMatchPlayerInfo(): {
-		playerIds: number[];
+		playerIds: string[];
 		playerNames: string[];
 		playerColors: string[];
 	} {

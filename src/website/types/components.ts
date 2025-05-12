@@ -1,4 +1,4 @@
-import { UserProfile, LeaderboardEntry } from '@website/types';
+import { UserProfile, LeaderboardEntry, PlayerData, AccentColor } from '@website/types';
 
 /**
  * Profile component state interface
@@ -30,4 +30,22 @@ export interface LeaderboardState {
 	leaderboardData: LeaderboardEntry[];
 	isLoading: boolean;
 	errorMessage?: string;
+}
+// Define the app state interface
+export interface AppState {
+	auth: {
+			isAuthenticated: boolean;
+			user: any | null;
+			jwtToken: string | null;
+	};
+	accentColor: AccentColor;
+	accentColors: {
+		accent1: string;
+		accent2: string;
+		accent3: string;
+		accent4: string;
+	};
+	players: {
+		[playerId: string]: PlayerData;
+	};
 }
