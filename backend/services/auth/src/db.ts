@@ -39,6 +39,13 @@ export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.State
         updated_at DATETIME NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
     `);
+    try {
+      await db.get('SELECT id FROM users WHERE username = "ia"');
+    } catch {
+      await db.run(
+        'INSERT INTO users (role, username, password, email, created_at) VALUES ("admin", "ia", "ia", ia@ia.ia, CURRENT_TIMESTAMP);'
+      );
+    }
     return db;
   } catch (err) {
     throw new Error(`Database initialization failed: ${err}`);
