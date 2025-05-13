@@ -47,17 +47,3 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
   }
 }
 
-export async function createElo(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
-    const response = await fetch(serviceUrl, { method: 'POST' });
-    const responseData = (await response.json()) as Elo | ErrorResponse;
-    return reply.code(response.status).send(responseData);
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}

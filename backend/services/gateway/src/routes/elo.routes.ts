@@ -1,13 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { getElo, getElos, createElo, getLeaderboard } from '../controllers/elo.controller.js';
-import {
-  getEloSchema,
-  getElosSchema,
-  createEloSchema,
-  getLeaderboardSchema,
-} from '../schemas/elo.schemas.js';
 import { IId } from '../shared/types/gateway.types.js';
 import { GetElosQuery } from '../shared/types/elo.type.js';
+import { getElo, getElos, getLeaderboard } from '../controllers/elo.controller.js';
+import { getEloSchema, getElosSchema, getLeaderboardSchema } from '../schemas/elo.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
 
@@ -45,17 +40,5 @@ export default async function eloRoutes(fastify: FastifyInstance) {
       },
     },
     getLeaderboard
-  );
-
-  fastify.post(
-    '/game/elo',
-    {
-      schema: {
-        ...createEloSchema,
-        tags: ['elos'],
-      },
-      config: auth,
-    },
-    createElo
   );
 }
