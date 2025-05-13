@@ -28,7 +28,7 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
-	private readonly AI_PLAYER_ID: string = '409edf7c-83d5-062a-a618-8ee2d1d92ec5';
+	private readonly AI_PLAYER_ID: string = 'f701f644-d187-8f1d-11fe-7c139fd94591';
 	public onGameOver?: (detail: any) => void;
 
 	// =========================================

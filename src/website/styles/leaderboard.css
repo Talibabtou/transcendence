@@ -88,6 +88,10 @@
 	z-index: var(--z-ui);
 }
 
+.player-cell:not(.clickable) {
+	cursor: default;
+}
+
 .elo-cell,
 .wins-cell,
 .losses-cell {

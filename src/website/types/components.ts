@@ -31,6 +31,7 @@ export interface LeaderboardState {
 	isLoading: boolean;
 	errorMessage?: string;
 }
+
 // Define the app state interface
 export interface AppState {
 	auth: {

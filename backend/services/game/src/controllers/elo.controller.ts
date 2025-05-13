@@ -228,6 +228,7 @@ export async function getLeaderboard(
         leaderboard[i].username = 'undefined';
       }
     }
+
     recordMediumDatabaseMetrics('SELECT', 'leaderboard', performance.now() - startTime);
     return reply.code(200).send(leaderboard);
   } catch (error) {

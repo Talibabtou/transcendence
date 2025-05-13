@@ -37,12 +37,12 @@ export interface GameHistoryEntry {
  * Leaderboard entry for a player's ranking
  */
 export interface LeaderboardEntry {
-	id: string;
+	player: string;
 	rank: number;
 	username: string;
 	elo: number;
-	wins: number;
-	losses: number;
+	victories: number;
+	defeats: number;
 }
 
 /**

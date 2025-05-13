@@ -4,7 +4,7 @@
  * Handles data fetching, sorting, and user interaction with the leaderboard.
  */
 import { Component } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, ApiError } from '@website/scripts/utils';
+import { DbService, html, render, navigate, ASCII_ART, ApiError, appState } from '@website/scripts/utils';
 import { LeaderboardState } from '@website/types';
 
 /**
@@ -84,9 +84,23 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 */
 	private async fetchLeaderboardData(): Promise<void> {
 		try {
-			const leaderboardData = await DbService.getLeaderboard();
-			this.updateInternalState({ leaderboardData });
-			console.log('Leaderboard data fetched:', leaderboardData);
+			const apiResponse = await DbService.getLeaderboard();
+			
+			// Map the API response to the format expected by the component
+			// Sort by ELO first to ensure proper ranking
+			const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);
+			
+			const formattedLeaderboard = sortedData.map((entry, index) => ({
+				rank: index + 1,
+				player: entry.player,
+				username: entry.username,
+				elo: entry.elo,
+				victories: entry.victories,
+				defeats: entry.defeats
+			}));
+			
+			this.updateInternalState({ leaderboardData: formattedLeaderboard });
+			console.log('Leaderboard data processed:', formattedLeaderboard);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				console.error(`Error fetching leaderboard data: ${error.message}`);
@@ -103,11 +117,15 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 
 	/**
 	 * Handles clicks on player names in the leaderboard
-	 * Navigates to the clicked player's profile
+	 * Only navigates to profiles if the user is authenticated
 	 * @param playerId - The ID of the clicked player
 	 */
 	private handlePlayerClick(playerId: string): void {
-		navigate(`/profile?id=${playerId}`);
+		// Check if user is authenticated before allowing profile navigation
+		if (appState.isAuthenticated()) {
+			navigate(`/profile?id=${playerId}`);
+		}
+		// Do nothing if not authenticated
 	}
 	
 	/**
@@ -160,14 +178,15 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 												<tr class="${index < 3 ? `top-${index+1}` : ''}">
 													<td class="rank-cell">${entry.rank.toString()}</td>
 													<td 
-														class="player-cell" 
-														onClick=${() => this.handlePlayerClick(entry.id)}
+														class="player-cell ${appState.isAuthenticated() ? 'clickable' : ''}" 
+														onClick=${() => this.handlePlayerClick(entry.player)}
+														title=${appState.isAuthenticated() ? 'View profile' : 'Log in to view profiles'}
 													>
 														${entry.username}
 													</td>
 													<td class="elo-cell">${entry.elo.toString()}</td>
-													<td class="wins-cell">${entry.wins.toString()}</td>
-													<td class="losses-cell">${entry.losses.toString()}</td>
+													<td class="wins-cell">${entry.victories.toString()}</td>
+													<td class="losses-cell">${entry.defeats.toString()}</td>
 												</tr>
 											`) : 
 											html`<tr><td colspan="5" class="no-data">No leaderboard data available</td></tr>`
