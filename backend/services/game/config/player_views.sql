@@ -14,16 +14,16 @@ SELECT
   player_id, -- The ID of the player
   COUNT(match_id) AS total_matches, -- Total number of matches played by the player
   (SELECT elo FROM elo WHERE player = player_id ORDER BY created_at DESC LIMIT 1) AS elo,
-  SUM(CASE WHEN active = FALSE (score_1 = 3 OR score_2 = 3) THEN 1 ELSE 0 END) AS active_matches, -- Number of matches that are active
+  SUM(CASE WHEN active = FALSE THEN 1 ELSE 0 END) AS active_matches, -- Number of matches that are active
   SUM(CASE WHEN active = FALSE AND 
-           ((player_id = player_1 AND score_1 = 3 AND score_1 > score_2) OR 
-            (player_id = player_2 AND score_2 = 3 AND score_2 > score_1)) 
+           ((player_id = player_1 AND score_1 > score_2) OR 
+            (player_id = player_2 AND score_2 > score_1)) 
       THEN 1 ELSE 0 END) AS victories, -- Number of matches won by the player
   CAST(SUM(CASE WHEN active = FALSE AND 
-                ((player_id = player_1 AND score_1 = 3 AND score_1 > score_2) OR 
-                 (player_id = player_2 AND score_2 = 3 AND score_2 > score_1)) 
+                ((player_id = player_1 AND score_1 > score_2) OR 
+                 (player_id = player_2 AND score_2 > score_1)) 
            THEN 1 ELSE 0 END) AS REAL) / 
-    NULLIF(SUM(CASE WHEN active = FALSE AND (score_1 = 3 OR score_2 = 3) THEN 1 ELSE 0 END), 0) AS win_ratio -- Win ratio (victories / active matches)
+    NULLIF(SUM(CASE WHEN active = FALSE THEN 1 ELSE 0 END), 0) AS win_ratio -- Win ratio (victories / active matches)
 FROM (
   -- Include matches where player was player_1
   SELECT 
@@ -49,7 +49,6 @@ FROM (
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS score_2
   FROM matches m
 ) AS player_matches
-WHERE score_1 = 3 OR score_2 = 3
 GROUP BY player_id; -- Group results by player ID
 
 -- Daily win/loss ratio for line plot
