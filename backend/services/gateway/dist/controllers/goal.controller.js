@@ -29,7 +29,7 @@ export async function getGoal(request, reply) {
 }
 export async function createGoal(request, reply) {
     try {
-        const id = request.user.id;
+        const id = request.params.id;
         const subpath = request.url.split('/game')[1];
         const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
         const response = await fetch(serviceUrl, {

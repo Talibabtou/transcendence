@@ -10,9 +10,9 @@ export const API_PREFIX = `/api/${API_VERSION}`;
 export const HEALTH_CHECK_PATH = '/health';
 // Game service paths
 export const GAME = {
-    BASE: '/game',
-    BY_ID: (id) => `/game/${id}`,
-    LEADERBOARD: '/game/leaderboard',
+    BASE: '/games',
+    BY_ID: (id) => `/games/${id}`,
+    LEADERBOARD: '/leaderboard',
 };
 // User service paths
 export const USER = {

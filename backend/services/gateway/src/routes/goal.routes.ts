@@ -31,8 +31,8 @@ export default async function goalRoutes(fastify: FastifyInstance) {
     getGoal
   );
 
-  fastify.post<{ Body: CreateGoalRequest }>(
-    '/game/goal',
+  fastify.post<{ Params: IId; Body: CreateGoalRequest }>(
+    '/game/goal/:id',
     {
       schema: {
         ...createGoalSchema,

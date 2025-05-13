@@ -1,7 +1,21 @@
 import path from 'path';
 import fs from 'node:fs';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
-export async function upload(request, reply) {
+export async function getSummary(request, reply) {
+    try {
+        const id = request.params.id;
+        const serviceUrlMatchSummary = `http://${process.env.GAME_ADDR || 'localhost'}:8083/match/summary/${id}`;
+        const responseMatchSummary = await fetch(serviceUrlMatchSummary, { method: 'GET' });
+        const reponseDataMatchSummary = (await responseMatchSummary.json());
+        return reply.code(200).send();
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function postPic(request, reply) {
     try {
         const id = request.params.id;
         const file = await request.file();

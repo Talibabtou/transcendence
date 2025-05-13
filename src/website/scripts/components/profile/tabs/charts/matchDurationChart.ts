@@ -25,7 +25,7 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 		},
 		opacity: 0.9,
 		xbins: {
-			size: 1
+			size: 10
 		},
 		hovertemplate: '%{x} second(s), %{y} match(es)<extra></extra>',
 		hoverlabel: {

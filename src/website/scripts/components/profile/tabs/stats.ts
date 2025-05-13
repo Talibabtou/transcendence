@@ -5,8 +5,8 @@
  */
 import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
 import { html, render } from '@website/scripts/utils';
-import playerStatsData from '../player_stats.json';
 import { UserProfile } from '@website/types';
+import { DbService } from '@website/scripts/utils/db';
 
 // Define the stats component state interface
 interface ProfileStatsState {
@@ -17,6 +17,7 @@ interface ProfileStatsState {
 	goalDurationChartRendered: boolean;
 	errorMessage?: string;
 	profile?: any; // Add profile to the state
+	playerStats?: any; // Add playerStats to the state
 	cleanup?: {
 		eloChart?: () => void;
 		matchDurationChart?: () => void;
@@ -42,6 +43,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			dailyActivityChartRendered: false,
 			goalDurationChartRendered: false,
 			profile: null,
+			playerStats: null,
 			cleanup: {}
 		});
 	}
@@ -63,22 +65,28 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 */
 	private async loadData(): Promise<void> {
 		try {
+			const profile = this.getInternalState().profile;
+			if (!profile || !profile.id) {
+				throw new Error('Profile not available');
+			}
+			
 			this.updateInternalState({ 
 				isLoading: true, 
 				errorMessage: undefined
 			});
 			
-			// Simulate API delay
-			await new Promise(resolve => setTimeout(resolve, 500));
+			// Fetch real stats data from API
+			const playerStats = await DbService.getUserStats(profile.id);
 			
 			this.updateInternalState({ 
-				isLoading: false 
+				isLoading: false,
+				playerStats
 			});
 			
 			// Render charts after the component is rendered
 			this.renderCharts();
 			
-			console.log('Player stats summary:', playerStatsData.summary);
+			console.log('Player stats summary:', playerStats.summary);
 		} catch (error) {
 			console.error('Error loading stats data:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';
@@ -104,14 +112,14 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 */
 	private renderEloChart(): void {
 		const state = this.getInternalState();
-		if (state.eloChartRendered) return;
+		if (state.eloChartRendered || !state.playerStats) return;
 		
 		// Get the container for the ELO chart
 		const eloChartContainer = this.container.querySelector('#elo-chart');
 		if (!eloChartContainer) return;
 		
 		// Extract data from the player stats
-		const elos = playerStatsData.elo_history;
+		const elos = state.playerStats.elo_history;
 		
 		// Render the ELO chart and get the cleanup function
 		const cleanupEloChart = renderEloChart(eloChartContainer as HTMLElement, elos);
@@ -138,7 +146,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		if (!matchDurationChartContainer) return;
 		
 		// Extract data from the player stats
-		const matchDurations = playerStatsData.match_durations;
+		const matchDurations = state.playerStats?.match_durations || [];
 		
 		// Render the match duration chart and get the cleanup function
 		const cleanupMatchDurationChart = renderMatchDurationChart(
@@ -168,7 +176,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		if (!dailyActivityChartContainer) return;
 		
 		// Extract data from the player stats
-		const dailyPerformance = playerStatsData.daily_performance;
+		const dailyPerformance = state.playerStats?.daily_performance || [];
 		
 		// Render the daily activity chart and get the cleanup function
 		const cleanupDailyActivityChart = renderDailyActivityChart(
@@ -198,7 +206,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		if (!goalDurationChartContainer) return;
 		
 		// Extract data from the player stats
-		const goalDurations = playerStatsData.goal_durations;
+		const goalDurations = state.playerStats?.goal_durations || [];
 		
 		// Render the goal duration chart and get the cleanup function
 		const cleanupGoalDurationChart = renderGoalDurationChart(

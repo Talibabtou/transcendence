@@ -93,6 +93,17 @@ export const createGoalSchema = {
     additionalProperties: false,
     properties: {},
   },
+  params: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        format: 'uuid',
+        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      },
+    },
+    required: ['id'],
+  },
   body: {
     type: 'object',
     properties: {

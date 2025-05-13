@@ -6,22 +6,22 @@ const BOLD: string = '\x1b[1m';
 const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
-const authUrl: string = 'http://localhost:8080/api/v1/auth';
-const gameUrl: string = 'http://localhost:8080/api/v1/game';
+const authUrl: string = 'http://localhost:8085/api/v1/auth';
+const gameUrl: string = 'http://localhost:8085/api/v1/game';
 let matchId = '';
 let token1: string = '';
 let userId1: string = '';
 const user1 = {
   username: 'test',
   email: 'test@test.fr',
-  password: 'Test123456789',
+  password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let token2: string = '';
 let userId2: string = '';
 const user2 = {
   username: 'test2',
   email: 'test2@test.fr',
-  password: 'Test123456789',
+  password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let count: number = 0;
 let countFailed: number = 0;

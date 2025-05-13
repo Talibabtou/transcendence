@@ -52,4 +52,43 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
       reply.code(200).send({ check: 'ok' });
     }
   );
+
+  fastify.put(
+    '/check',
+    {
+      schema: {
+        ...getCheckSchema,
+        tags: ['system'],
+      },
+    },
+    (request: FastifyRequest, reply: FastifyReply) => {
+      reply.code(200).send({ check: 'ok' });
+    }
+  );
+
+  fastify.delete(
+    '/check',
+    {
+      schema: {
+        ...getCheckSchema,
+        tags: ['system'],
+      },
+    },
+    (request: FastifyRequest, reply: FastifyReply) => {
+      reply.code(200).send({ check: 'ok' });
+    }
+  );
+
+  fastify.trace(
+    '/check',
+    {
+      schema: {
+        ...getCheckSchema,
+        tags: ['system'],
+      },
+    },
+    (request: FastifyRequest, reply: FastifyReply) => {
+      reply.code(200).send({ check: 'ok' });
+    }
+  );
 }

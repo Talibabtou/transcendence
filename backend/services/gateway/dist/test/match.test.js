@@ -4,22 +4,22 @@ const GREEN = '\x1b[32m';
 const BOLD = '\x1b[1m';
 const UNDERLINE = '\x1b[4m';
 const RESET = '\x1b[0m';
-const authUrl = 'http://localhost:8080/api/v1/auth';
-const gameUrl = 'http://localhost:8080/api/v1/game';
+const authUrl = 'http://localhost:8085/api/v1/auth';
+const gameUrl = 'http://localhost:8085/api/v1/game';
 let matchId = '';
 let token1 = '';
 let userId1 = '';
 const user1 = {
     username: 'test',
     email: 'test@test.fr',
-    password: 'Test123456789',
+    password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let token2 = '';
 let userId2 = '';
 const user2 = {
     username: 'test2',
     email: 'test2@test.fr',
-    password: 'Test123456789',
+    password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let count = 0;
 let countFailed = 0;

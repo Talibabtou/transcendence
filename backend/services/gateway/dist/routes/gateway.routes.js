@@ -30,4 +30,28 @@ export default async function gatewayRoutes(fastify) {
     }, (request, reply) => {
         reply.code(200).send({ check: 'ok' });
     });
+    fastify.put('/check', {
+        schema: {
+            ...getCheckSchema,
+            tags: ['system'],
+        },
+    }, (request, reply) => {
+        reply.code(200).send({ check: 'ok' });
+    });
+    fastify.delete('/check', {
+        schema: {
+            ...getCheckSchema,
+            tags: ['system'],
+        },
+    }, (request, reply) => {
+        reply.code(200).send({ check: 'ok' });
+    });
+    fastify.trace('/check', {
+        schema: {
+            ...getCheckSchema,
+            tags: ['system'],
+        },
+    }, (request, reply) => {
+        reply.code(200).send({ check: 'ok' });
+    });
 }

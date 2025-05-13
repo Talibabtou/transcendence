@@ -359,17 +359,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const currentUser = appState.getCurrentUser();
 		if (!currentUser) return false;
 		
-		// Get current user ID (numeric format)
-		let currentUserId: number;
-		if (typeof currentUser.id === 'string' && currentUser.id.includes('_')) {
-			const parts = currentUser.id.split('_');
-			currentUserId = parseInt(parts[parts.length - 1], 10);
-		} else if (typeof currentUser.id === 'string') {
-			currentUserId = parseInt(currentUser.id, 10);
-		} else {
-			currentUserId = Number(currentUser.id);
-		}
-		
 		// Get tournament players
 		const tournamentData = TournamentCache.getTournamentData();
 		if (!tournamentData || !tournamentData.players || !tournamentData.players.length) {
@@ -377,7 +366,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		
 		// Check if current user is one of the tournament players
-		return tournamentData.players.some(player => player.id === currentUserId);
+		return tournamentData.players.some(player => player.id === currentUser.id);
 	}
 	
 	/**

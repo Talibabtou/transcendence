@@ -16,7 +16,7 @@ export default async function goalRoutes(fastify) {
         },
         config: auth,
     }, getGoal);
-    fastify.post('/game/goal', {
+    fastify.post('/game/goal/:id', {
         schema: {
             ...createGoalSchema,
             tags: ['goals'],

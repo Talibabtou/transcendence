@@ -1,6 +1,6 @@
 import { fastify } from 'fastify';
 import fastifyMultipart from '@fastify/multipart';
-import routes from './routes/profil.routes.js';
+import routes from './routes/profile.routes.js';
 const multipartParams = {
     limits: {
         fieldNameSize: 100, // Max field name size in bytes
@@ -40,7 +40,7 @@ class Server {
             await server.register(routes);
             server.listen({
                 port: Number(process.env.PROFIL_PORT) || 8081,
-                host: process.env.PROFIL_ADDR || '0.0.0.0',
+                host: process.env.PROFIL_ADDR || 'localhost',
             }, (err, address) => {
                 if (err) {
                     server.log.error(`Failed to start server: ${err.message}`);

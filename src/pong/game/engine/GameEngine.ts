@@ -28,7 +28,7 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
-	private readonly AI_PLAYER_ID: string = 'bcb16fe1-2cc3-2a01-a174-c6df8520150f';
+	private readonly AI_PLAYER_ID: string = '034c67cb-cfaa-8651-d6db-bdd2ceb0c4ef';
 	public onGameOver?: (detail: any) => void;
 
 	// =========================================
@@ -553,20 +553,6 @@ export class GameEngine {
 			return;
 		}
 		
-		// Ensure we have a match ID
-		if (!this.matchId) {
-			if (!this.matchCreated && this.scene.requiresDbRecording()) {
-				this.createMatch();
-				
-				// If still no match after creation attempt, give up
-				if (!this.matchId) {
-					return;
-				}
-			} else {
-				return;
-			}
-		}
-		
 		// Determine the scoring player's ID
 		let scoringPlayerId: string;
 		
@@ -590,6 +576,10 @@ export class GameEngine {
 		const currentTime = Date.now();
 		const goalDuration = Math.floor(((currentTime - this.goalStartTime) - 
 							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000);
+		
+		if (!this.matchId) {
+			return;
+		}
 		
 		// Record the goal in the database
 		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)

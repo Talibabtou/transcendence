@@ -78,6 +78,7 @@ export const createMatchSchema = {
   body: {
     type: 'object',
     properties: {
+      player_1: { type: 'string', format: 'uuid' },
       player_2: { type: 'string', format: 'uuid' },
       tournament_id: {
         type: ['string', 'null'],
@@ -86,7 +87,7 @@ export const createMatchSchema = {
       },
       duration: { type: ['integer', 'null'], minimum: 0, default: null },
     },
-    required: ['player_2'],
+    required: ['player_1', 'player_2'],
   },
   response: {
     201: matchSchema,

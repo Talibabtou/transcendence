@@ -86,6 +86,16 @@ export class DbService {
 				})
 			});
 			
+			// Store the token based on persistence preference
+			if (loginResponse.token) {
+				const isPersistent = localStorage.getItem('auth_persistent') === 'true';
+				if (isPersistent) {
+					localStorage.setItem('jwt_token', loginResponse.token);
+				} else {
+					sessionStorage.setItem('jwt_token', loginResponse.token);
+				}
+			}
+			
 			// Return properly formatted AuthResponse
 			return {
 				success: true,
@@ -302,13 +312,12 @@ export class DbService {
 	 * @param duration - Time of goal in seconds from match start
 	 */
 	static async recordGoal(matchId: string, playerId: string, duration: number): Promise<Goal> {
-		this.logRequest('POST', `${API_PREFIX}${GAME.GOALS.BASE}`, { matchId, playerId, duration });
+		this.logRequest('POST', `${API_PREFIX}${GAME.GOALS.BASE}/${playerId}`, { matchId, duration });
 		
-		return this.fetchApi<Goal>(`${GAME.GOALS.BASE}`, {
+		return this.fetchApi<Goal>(`${GAME.GOALS.BASE}/${playerId}`, {
 			method: 'POST',
 			body: JSON.stringify({
 				match_id: matchId,
-				player: playerId,
 				duration
 			})
 		});
@@ -319,12 +328,12 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Retrieves statistics for a user
+	 * Retrieves detailed statistics for a user
 	 * @param userId - The user's ID
 	 */
 	static async getUserStats(userId: string): Promise<any> {
-		this.logRequest('GET', `/api/users/${userId}/stats`);
-		return this.fetchApi<any>(`/matches/stats/${userId}`);
+		this.logRequest('GET', `${API_PREFIX}${GAME.MATCH.STATS(userId)}`);
+		return this.fetchApi<any>(`${GAME.MATCH.STATS(userId)}`);
 	}
 
 	/**

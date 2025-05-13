@@ -65,6 +65,16 @@ export async function addUser(request, reply) {
         const ip = request.headers['from'];
         await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username, password, email, ip]);
         const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
+        if (user !== undefined) {
+            const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
+            const response = await fetch(serviceUrl, { method: 'POST' });
+            if (response.status !== 201) {
+                throw new Error('Create elo failed');
+            }
+        }
+        else {
+            throw new Error('Create user failed');
+        }
         return reply.code(201).send(user);
     }
     catch (err) {

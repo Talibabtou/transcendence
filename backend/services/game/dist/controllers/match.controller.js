@@ -53,8 +53,8 @@ export async function createMatch(request, reply) {
     //Request Body Extraction
     // destructuring to extract the required fields
     // match the CreateMatchRequest interface
-    const player_1 = request.params.id;
-    const { player_2, tournament_id } = request.body;
+    // const player_1 = request.params.id;
+    const { player_1, player_2, tournament_id } = request.body;
     try {
         let startTime = performance.now();
         const prevMatches = (await request.server.db.all("SELECT *, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE", [player_1, player_2]));

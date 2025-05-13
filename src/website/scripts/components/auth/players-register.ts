@@ -10,7 +10,7 @@ import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@web
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManagers: Map<string, IAuthComponent> = new Map();
 	private authContainer: HTMLElement | null = null;
-	private onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void;
+	private onAllPlayersRegistered: (playerIds: string[], playerNames: string[], playerColors: string[]) => void;
 	private onBack: () => void;
 	private maxPlayers: number = 2;
 	private onShowTournamentSchedule?: () => void;
@@ -22,7 +22,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
-		onAllPlayersRegistered: (playerIds: number[], playerNames: string[], playerColors: string[]) => void,
+		onAllPlayersRegistered: (playerIds: string[], playerNames: string[], playerColors: string[]) => void,
 		onBack: () => void,
 		onShowTournamentSchedule: () => void
 	) {
@@ -64,18 +64,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const currentUser = appState.getCurrentUser();
 		
 		if (currentUser) {
-			// Extract numeric ID for host
-			let hostId: number;
-			
-			if (typeof currentUser.id === 'string' && currentUser.id.includes('_')) {
-				// Extract numeric part after underscore
-				const parts = currentUser.id.split('_');
-				hostId = parseInt(parts[parts.length - 1], 10);
-			} else if (typeof currentUser.id === 'string') {
-				hostId = parseInt(currentUser.id, 10);
-			} else {
-				hostId = Number(currentUser.id);
-			}
+			// Use the string ID directly
+			const hostId = currentUser.id;
 			
 			// Fetch the user's ELO and latest data from the database
 			DbService.getUser(hostId)
@@ -486,28 +476,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const userData = customEvent.detail.user;
 			const position = customEvent.detail.position; // Get position if available
 			
-			// Get user ID in the correct format for the player data
-			let guestId: number;
-			
-			if (typeof userData.id === 'string' && userData.id.includes('_')) {
-				// Extract numeric part from string ID with prefix
-				const parts = userData.id.split('_');
-				guestId = parseInt(parts[parts.length - 1], 10);
-			} else if (typeof userData.id === 'string') {
-				// Convert string ID to number
-				guestId = parseInt(userData.id, 10);
-			} else {
-				// Already numeric
-				guestId = Number(userData.id);
-			}
-			
-			if (isNaN(guestId)) {
-				console.error('Invalid guest ID format:', userData.id);
-				this.updateInternalState({
-					error: 'Invalid guest ID format'
-				});
-				return;
-			}
+			// Use the string ID directly
+			const guestId = userData.id;
 			
 			// Convert to PlayerData format
 			const guestData: PlayerData = {
@@ -527,13 +497,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Handle user theme updates from other components (like settings)
 	 */
 	private handleUserThemeUpdated(event: Event): void {
-		const customEvent = event as CustomEvent<{ userId: number, theme: string }>;
+		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
 		if (customEvent.detail) {
 			const { userId, theme } = customEvent.detail;
 			
 			const state = this.getInternalState();
 			const currentUser = appState.getCurrentUser();
-			const currentUserId = currentUser ? Number(currentUser.id) : null;
+			const currentUserId = currentUser ? currentUser.id : null;
 			
 			// Only update the host's theme if the event is for the current user (host)
 			if (state.host && state.host.id === userId && currentUserId === userId) {
@@ -832,7 +802,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	/**
 	 * Handle guest color selection
 	 */
-	private handleGuestColorSelect(colorHex: string, guestId: number): void {
+	private handleGuestColorSelect(colorHex: string, guestId: string): void {
 		const state = this.getInternalState();
 		if (!state.guests || !state.guests.length) return;
 		

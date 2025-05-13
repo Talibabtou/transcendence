@@ -139,6 +139,17 @@ export async function getLeaderboard(request, reply) {
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id
       ORDER BY e.elo DESC LIMIT ? OFFSET ?;
     `, limit, offset));
+        for (let i = 0; i < leaderboard.length; i++) {
+            const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
+            const response = await fetch(serviceUrl, { method: 'GET' });
+            const user = (await response.json());
+            if ('username' in user) {
+                leaderboard[i].username = user.username;
+            }
+            else {
+                leaderboard[i].username = 'undefined';
+            }
+        }
         recordMediumDatabaseMetrics('SELECT', 'leaderboard', performance.now() - startTime);
         return reply.code(200).send(leaderboard);
     }

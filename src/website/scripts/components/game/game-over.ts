@@ -176,7 +176,7 @@ export class GameOverComponent extends Component<GameOverState> {
 		player2Name: string;
 		player1Score: number;
 		player2Score: number;
-		matchId?: number;
+		matchId?: string;
 	}): void {
 		if (this.inTransition) return;
 		

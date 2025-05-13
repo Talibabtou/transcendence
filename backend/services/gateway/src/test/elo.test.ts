@@ -6,14 +6,14 @@ const BOLD: string = '\x1b[1m';
 const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
-const authUrl: string = 'http://localhost:8080/api/v1/auth';
-const gameUrl: string = 'http://localhost:8080/api/v1/game';
+const authUrl: string = 'http://localhost:8085/api/v1/auth';
+const gameUrl: string = 'http://localhost:8085/api/v1/game';
 let token: string = '';
 let userId: string = '';
 const user = {
   username: 'test',
   email: 'test@test.fr',
-  password: 'Test123456789',
+  password: '387a1fa356cc3c632ca23c41392bf1538777f13fc0f8ab21f15faf310e3b2087',
 };
 let count: number = 0;
 let countFailed: number = 0;

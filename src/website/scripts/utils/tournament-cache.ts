@@ -283,8 +283,8 @@ class TournamentCacheSingleton {
 		matchIndex: number;
 		gameInMatch: number;
 		matchInfo: {
-			player1Id: number;
-			player2Id: number;
+			player1Id: string;
+			player2Id: string;
 			player1Name: string;
 			player2Name: string;
 			player1Color: string;
@@ -422,7 +422,7 @@ class TournamentCacheSingleton {
 	 * Get the tournament winner (only valid if tournament is complete)
 	 */
 	public getTournamentWinner(): {
-		id: number;
+		id: string;
 		name: string;
 		color: string;
 	} | null {
@@ -467,7 +467,7 @@ class TournamentCacheSingleton {
 	/**
 	 * Initialize tournament with player information
 	 */
-	public initializeTournament(playerIds: number[], playerNames: string[], playerColors: string[]): void {
+	public initializeTournament(playerIds: string[], playerNames: string[], playerColors: string[]): void {
 		// Generate a tournament ID first
 		this.tournamentId = uuidv4();
 		
@@ -697,7 +697,7 @@ export const TournamentCache = TournamentCacheSingleton.getInstance();
 /**
  * Checks if a user ID is part of the current tournament players
  */
-export function isUserInCurrentTournament(userId: number): boolean {
+export function isUserInCurrentTournament(userId: string): boolean {
 	const players = TournamentCache.getTournamentPlayers();
 	return players.some(player => player.id === userId);
 }

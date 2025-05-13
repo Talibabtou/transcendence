@@ -48,7 +48,7 @@ class Server {
       server.listen(
         {
           port: Number(process.env.GAME_PORT) || 8083,
-          host: process.env.GAME_ADDR || '0.0.0.0',
+          host: process.env.GAME_ADDR || 'localhost',
         },
         (err, address) => {
           if (err) {

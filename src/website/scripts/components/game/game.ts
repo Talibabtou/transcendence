@@ -29,7 +29,7 @@ enum GameState {
 interface GameComponentState {
 	currentState: GameState;
 	currentMode: GameMode;
-	playerIds?: number[];
+	playerIds?: string[];
 	playerNames?: string[];
 	playerColors?: string[];
 }
@@ -301,24 +301,7 @@ export class GameComponent extends Component<GameComponentState> {
 		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
 			// For single player, we need to explicitly set the current user's ID
 			if (currentUser && currentUser.id) {
-				// Convert ID to number if it's a string
-				let playerId: number;
-				if (typeof currentUser.id === 'string') {
-					if (currentUser.id.includes('_')) {
-						// Extract numeric part if ID has prefix
-						const parts = currentUser.id.split('_');
-						playerId = parseInt(parts[parts.length - 1], 10);
-					} else {
-						playerId = parseInt(currentUser.id, 10);
-					}
-				} else {
-					playerId = Number(currentUser.id);
-				}
-				
-				// Ensure we have a valid numeric ID
-				if (!isNaN(playerId)) {
-					state.playerIds = [playerId];
-				}
+				state.playerIds = [currentUser.id];
 			}
 		}
 		
@@ -349,7 +332,6 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Start the game with selected mode and player info
 		if (this.canvasComponent) {
-			
 			// For single player mode, use the current user's info if playerNames not already set
 			const playerNames = state.playerNames || [playerName];
 			const playerColors = state.playerColors || [playerColor];
@@ -814,7 +796,7 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param playerNames - The player names
 	 * @param playerColors - The player colors
 	 */
-	private handlePlayersRegistered(playerIds: number[], playerNames: string[], playerColors: string[]): void {
+	private handlePlayersRegistered(playerIds: string[], playerNames: string[], playerColors: string[]): void {
 		// Prevent handling if already transitioning
 		if (this.isTransitioning) {
 			return;
@@ -825,7 +807,7 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Store player information for the game
 		this.updateInternalState({
-			playerIds: playerIds,
+			playerIds: playerIds.map(String),
 			playerNames: playerNames,
 			playerColors: playerColors
 		});
