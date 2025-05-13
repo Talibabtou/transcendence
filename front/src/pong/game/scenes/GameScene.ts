@@ -92,11 +92,17 @@ export class GameScene {
 		// Player updates (input handling, AI)
 		// TODO: Move player updates potentially into PhysicsManager or keep here?
 		const updateState = this.isBackgroundDemo() ? GameState.PLAYING : this.getCurrentGameState();
+		console.time('GameScene.player1.update');
 		this.player1.update(this.context, deltaTime, updateState);
+		console.timeEnd('GameScene.player1.update');
+		console.time('GameScene.player2.update');
 		this.player2.update(this.context, deltaTime, updateState);
+		console.timeEnd('GameScene.player2.update');
 
 		// Physics and UI updates
+		console.time('GameScene.updateGameState');
 		this.updateGameState(deltaTime);
+		console.timeEnd('GameScene.updateGameState');
 		
 		// Win condition check (delegated to GameEngine)
 		if (this.gameEngine && typeof this.gameEngine.checkWinCondition === 'function') {
@@ -110,7 +116,9 @@ export class GameScene {
 	 */
 	public draw(alpha: number): void {
 		if (!this.isBackgroundDemo()) {
+			console.time('GameScene.uiManager.drawBackground');
 			this.uiManager.drawBackground(this.player1, this.player2);
+			console.timeEnd('GameScene.uiManager.drawBackground');
 		}
 
 		// Determine if interpolation should be applied based on game state
@@ -118,6 +126,7 @@ export class GameScene {
 		const interpolationAlpha = isPlaying ? alpha : 0; // Use 0 if not playing
 
 		if (!this.isFrozen) {
+			console.time('GameScene.drawObjectsInScene');
 			this.objectsInScene.forEach(obj => {
 				if (typeof (obj as any).draw === 'function') {
 					// Pass conditional alpha to object's draw method if it accepts it
@@ -128,12 +137,15 @@ export class GameScene {
 					}
 				}
 			});
+			console.timeEnd('GameScene.drawObjectsInScene');
 		}
 
+		console.time('GameScene.uiManager.drawUI');
 		this.uiManager.drawUI(
 			this.pauseManager.hasState(GameState.PAUSED),
 			this.isBackgroundDemo()
 		);
+		console.timeEnd('GameScene.uiManager.drawUI');
 	}
 
 	// =========================================

@@ -231,7 +231,9 @@ export class GameManager {
 					let steps = 0;
 					// Perform fixed updates but never more than MAX_STEPS_PER_FRAME per render frame
 					while (accumulator >= GAME_CONFIG.FRAME_TIME && steps < GAME_CONFIG.MAX_STEPS_PER_FRAME) {
+						console.time('GameManager.engine.update');
 						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000);
+						console.timeEnd('GameManager.engine.update');
 						accumulator -= GAME_CONFIG.FRAME_TIME;
 						steps++;
 					}
@@ -244,7 +246,9 @@ export class GameManager {
 					const alpha = accumulator / GAME_CONFIG.FRAME_TIME;
 					
 					// Render the latest state with interpolation
+					console.time('GameManager.engine.draw');
 					instance.engine.draw(alpha);
+					console.timeEnd('GameManager.engine.draw');
 
 				} catch (error) {
 					this.handleGameEngineError(

@@ -117,6 +117,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
 	public draw(ctx: GameContext, alpha: number): void {
+		console.time('Ball.draw');
 		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
 
@@ -125,6 +126,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		ctx.arc(interpolatedX, interpolatedY, this.size, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();
+		console.timeEnd('Ball.draw');
 	}
 
 	/**

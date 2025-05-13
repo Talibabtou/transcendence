@@ -276,13 +276,17 @@ export class Player implements GraphicalElement {
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
 	public draw(ctx: GameContext, alpha: number): void {
+		console.time('Player.draw');
 		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
 
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(interpolatedX, interpolatedY, this.paddleWidth, this.paddleHeight);
 
-		if (!DEBUG.enabled) return;
+		if (!DEBUG.enabled) {
+			console.timeEnd('Player.draw');
+			return;
+		}
 
 		// Draw debug info relative to interpolated position
 		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
@@ -319,6 +323,7 @@ export class Player implements GraphicalElement {
 			ctx.fill();
 			ctx.closePath();
 		}
+		console.timeEnd('Player.draw');
 	}
 
 	// =========================================

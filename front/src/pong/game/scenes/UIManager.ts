@@ -11,6 +11,12 @@ export class UIManager {
 	// =========================================
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
+	private player1NameCanvas: HTMLCanvasElement;
+	private player1NameContext: CanvasRenderingContext2D | null;
+	private player2NameCanvas: HTMLCanvasElement;
+	private player2NameContext: CanvasRenderingContext2D | null;
+	private player1CachedName: string = '';
+	private player2CachedName: string = '';
 
 	/**
 	 * Creates a new UIManager instance
@@ -18,6 +24,10 @@ export class UIManager {
 	 */
 	constructor(context: GameContext) {
 		this.context = context;
+		this.player1NameCanvas = document.createElement('canvas');
+		this.player1NameContext = this.player1NameCanvas.getContext('2d');
+		this.player2NameCanvas = document.createElement('canvas');
+		this.player2NameContext = this.player2NameCanvas.getContext('2d');
 	}
 
 	// =========================================
@@ -38,8 +48,12 @@ export class UIManager {
 	 * @param player2 The second player
 	 */
 	public drawBackground(player1: Player, player2: Player): void {
+		console.time('UIManager.drawPlayerNames');
 		this.drawPlayerNames(player1, player2);
+		console.timeEnd('UIManager.drawPlayerNames');
+		console.time('UIManager.drawScores');
 		this.drawScores(player1, player2);
+		console.timeEnd('UIManager.drawScores');
 	}
 
 	/**
@@ -57,12 +71,16 @@ export class UIManager {
 	 */
 	public drawUI(isPaused: boolean, isBackgroundDemo: boolean): void {
 		if (isPaused && !isBackgroundDemo) {
+			console.time('UIManager.drawPause');
 			this.drawPauseOverlay();
 			this.drawPauseText();
+			console.timeEnd('UIManager.drawPause');
 		}
 
 		if (this.shouldDrawCountdown(isBackgroundDemo)) {
+			console.time('UIManager.drawCountdown');
 			this.drawCountdown();
+			console.timeEnd('UIManager.drawCountdown');
 		}
 	}
 
@@ -92,26 +110,55 @@ export class UIManager {
 	 * Draws player names
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
+		console.time('UIManager.drawPlayerNames');
 		const { width, height } = this.context.canvas;
 		const sizes = calculateFontSizes(width, height);
-		
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
 		const paddingRight = width * 0.06;
-		
-		this.setTextStyle(
-			`${sizes.SUBTITLE_SIZE} ${FONTS.FAMILIES.SUBTITLE}`,
-			COLORS.NAMES,
-			'left',
-			'top'
-		);
-		
-		// Draw player 1 name
-		this.context.fillText(player1.name, paddingLeft, paddingTop);
-		
-		// Draw player 2 name
-		this.context.textAlign = 'right';
-		this.context.fillText(player2.name, width - paddingRight, paddingTop);
+		const nameFont = `${sizes.SUBTITLE_SIZE} ${FONTS.FAMILIES.SUBTITLE}`;
+
+		// Player 1 Name Caching
+		if (player1.name !== this.player1CachedName || this.player1NameCanvas.width === 0) {
+			if (this.player1NameContext) {
+				this.player1CachedName = player1.name;
+				// Set font on offscreen context BEFORE measuring
+				this.setTextStyleHelper(this.player1NameContext, nameFont, COLORS.NAMES, 'left', 'top');
+				const p1NameMetrics = this.player1NameContext.measureText(player1.name);
+				this.player1NameCanvas.width = p1NameMetrics.width * 1.1; // Adjusted padding slightly
+				this.player1NameCanvas.height = parseInt(sizes.SUBTITLE_SIZE, 10) * 1.5;
+				// Clear and re-apply style as clearRect might reset it, and fillText needs it.
+				this.player1NameContext.clearRect(0, 0, this.player1NameCanvas.width, this.player1NameCanvas.height);
+				this.setTextStyleHelper(this.player1NameContext, nameFont, COLORS.NAMES, 'left', 'top');
+				this.player1NameContext.fillText(player1.name, 0, 0);
+			}
+		}
+
+		// Player 2 Name Caching
+		if (player2.name !== this.player2CachedName || this.player2NameCanvas.width === 0) {
+			if (this.player2NameContext) {
+				this.player2CachedName = player2.name;
+				// Set font on offscreen context BEFORE measuring
+				this.setTextStyleHelper(this.player2NameContext, nameFont, COLORS.NAMES, 'left', 'top');
+				const p2NameMetrics = this.player2NameContext.measureText(player2.name);
+				this.player2NameCanvas.width = p2NameMetrics.width * 1.1; // Adjusted padding slightly
+				this.player2NameCanvas.height = parseInt(sizes.SUBTITLE_SIZE, 10) * 1.5;
+				// Clear and re-apply style
+				this.player2NameContext.clearRect(0, 0, this.player2NameCanvas.width, this.player2NameCanvas.height);
+				this.setTextStyleHelper(this.player2NameContext, nameFont, COLORS.NAMES, 'left', 'top');
+				this.player2NameContext.fillText(player2.name, 0, 0);
+			}
+		}
+
+		// Draw cached names to main canvas
+		if (this.player1NameCanvas.width > 0) {
+			this.context.drawImage(this.player1NameCanvas, paddingLeft, paddingTop);
+		}
+		if (this.player2NameCanvas.width > 0) {
+			this.context.drawImage(this.player2NameCanvas, width - paddingRight - this.player2NameCanvas.width, paddingTop);
+		}
+
+		console.timeEnd('UIManager.drawPlayerNames');
 	}
 
 	/**
@@ -217,6 +264,20 @@ export class UIManager {
 		this.context.fillStyle = color;
 		this.context.textAlign = align;
 		this.context.textBaseline = baseline;
+	}
+
+	/** Helper to set text style on a specific context */
+	private setTextStyleHelper(
+		ctx: CanvasRenderingContext2D,
+		font: string,
+		color: string,
+		align: CanvasTextAlign = 'center',
+		baseline: CanvasTextBaseline = 'middle'
+	): void {
+		ctx.font = font;
+		ctx.fillStyle = color;
+		ctx.textAlign = align;
+		ctx.textBaseline = baseline;
 	}
 
 	/**
