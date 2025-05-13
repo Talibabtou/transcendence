@@ -53,9 +53,9 @@ export class PhysicsManager {
    */
   private applyBallMovement(ball: Ball, deltaTime: number): void {
     // REMOVE or COMMENT OUT the clamping:
-    // const physicsDeltaTime = Math.min(deltaTime, BALL_CONFIG.PHYSICS_MAX_TIMESTEP_S);
+    const physicsDeltaTime = Math.min(deltaTime, BALL_CONFIG.PHYSICS_MAX_TIMESTEP_S);
     // USE deltaTime directly:
-    const physicsDeltaTime = deltaTime;
+    // const physicsDeltaTime = deltaTime;
 
     // Speed cap logic (from former Ball.updatePhysics)
     if (ball.currentSpeed > ball.baseSpeed * BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER) {
