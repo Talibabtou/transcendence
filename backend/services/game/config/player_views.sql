@@ -14,16 +14,16 @@ SELECT
   player_id, -- The ID of the player
   COUNT(match_id) AS total_matches, -- Total number of matches played by the player
   (SELECT elo FROM elo WHERE player = player_id ORDER BY created_at DESC LIMIT 1) AS elo,
-  SUM(CASE WHEN active = FALSE THEN 1 ELSE 0 END) AS active_matches, -- Number of matches that are active
-  SUM(CASE WHEN active = FALSE AND 
+  SUM(CASE WHEN active = FALSE AND duration NOT NULL  THEN 1 ELSE 0 END) AS active_matches, -- Number of matches that are active
+  SUM(CASE WHEN active = FALSE AND duration NOT NULL  AND 
            ((player_id = player_1 AND score_1 > score_2) OR 
             (player_id = player_2 AND score_2 > score_1)) 
       THEN 1 ELSE 0 END) AS victories, -- Number of matches won by the player
-  CAST(SUM(CASE WHEN active = FALSE AND 
+  CAST(SUM(CASE WHEN active = FALSE AND duration NOT NULL  AND 
                 ((player_id = player_1 AND score_1 > score_2) OR 
                  (player_id = player_2 AND score_2 > score_1)) 
            THEN 1 ELSE 0 END) AS REAL) / 
-    NULLIF(SUM(CASE WHEN active = FALSE THEN 1 ELSE 0 END), 0) AS win_ratio -- Win ratio (victories / active matches)
+    NULLIF(SUM(CASE WHEN active = FALSE AND duration NOT NULL THEN 1 ELSE 0 END), 0) AS win_ratio -- Win ratio (victories / active matches)
 FROM (
   -- Include matches where player was player_1
   SELECT 
@@ -57,19 +57,19 @@ SELECT
   player_id, -- The player ID to filter by in your query
   DATE(m.created_at) AS match_date, -- Date of the match
   COUNT(DISTINCT m.id) AS matches_played, -- Number of matches played on this date
-  SUM(CASE WHEN m.active = FALSE AND 
+  SUM(CASE WHEN m.active = FALSE AND m.duration NOT NULL  AND 
            ((player_id = m.player_1 AND p1_score > p2_score) OR 
             (player_id = m.player_2 AND p2_score > p1_score)) 
       THEN 1 ELSE 0 END) AS wins, -- Number of wins on this date
-  SUM(CASE WHEN m.active = FALSE AND 
+  SUM(CASE WHEN m.active = FALSE AND m.duration NOT NULL  AND 
            ((player_id = m.player_1 AND p1_score < p2_score) OR 
             (player_id = m.player_2 AND p2_score < p1_score)) 
       THEN 1 ELSE 0 END) AS losses, -- Number of losses
-  CAST(SUM(CASE WHEN m.active = FALSE AND 
+  CAST(SUM(CASE WHEN m.active = FALSE AND m.duration NOT NULL  AND 
                 ((player_id = m.player_1 AND p1_score > p2_score) OR 
                  (player_id = m.player_2 AND p2_score > p1_score)) 
            THEN 1 ELSE 0 END) AS REAL) / 
-    NULLIF(SUM(CASE WHEN m.active = FALSE THEN 1 ELSE 0 END), 0) AS daily_win_ratio -- Daily win ratio
+    NULLIF(SUM(CASE WHEN m.active = FALSE AND m.duration NOT NULL  THEN 1 ELSE 0 END), 0) AS daily_win_ratio -- Daily win ratio
 FROM (
   -- Player 1 perspective
   SELECT 
@@ -120,7 +120,7 @@ FROM (
     m.player_1 AS player_id,
     m.duration
   FROM matches m
-  WHERE m.active = FALSE
+  WHERE m.active = FALSE AND m.duration NOT NULL 
   
   UNION ALL
   
@@ -129,5 +129,5 @@ FROM (
     m.player_2 AS player_id,
     m.duration
   FROM matches m
-  WHERE m.active = FALSE
+  WHERE m.active = FALSE AND m.duration NOT NULL 
 ) AS player_matches;
