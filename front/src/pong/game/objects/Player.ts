@@ -3,14 +3,6 @@ import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
 import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/constants';
 
-// Define a simple AABB interface for dirty rectangles
-interface AABB {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
 /**
  * Represents a player in the game, managing paddle movement,
  * input handling, scoring, and AI behavior.
@@ -40,10 +32,6 @@ export class Player implements GraphicalElement {
 	private movementFrozen: number = 0;
 	protected prevRenderX: number = 0; // For rendering interpolation
 	protected prevRenderY: number = 0; // For rendering interpolation
-
-	// Bounding boxes for dirty rectangle calculation
-	protected currentBoundingBox: AABB;
-	protected previousBoundingBox: AABB;
 
 	// =========================================
 	// Event Handlers
@@ -138,10 +126,6 @@ export class Player implements GraphicalElement {
 		
 		// Initialize paddle first
 		this.paddle = new Paddle(x, y, this.paddleWidth, this.paddleHeight, context);
-	
-		// Initialize bounding boxes (paddle dimensions might not be final yet)
-		this.currentBoundingBox = { x: this.x, y: this.y, width: this.paddleWidth, height: this.paddleHeight };
-		this.previousBoundingBox = { ...this.currentBoundingBox };
 		
 		// Finally update sizes (this will also update bounding box based on final dims)
 		this.updateSizes();
@@ -226,8 +210,6 @@ export class Player implements GraphicalElement {
 		this.paddle.updateDimensions(this.paddleWidth, this.paddleHeight);
 		
 		this.updateHorizontalPosition();
-		// Update bounding box after size change
-		this.updateBoundingBox();
 	}
 
 	// =========================================
@@ -237,14 +219,15 @@ export class Player implements GraphicalElement {
 	 * Updates player state for the current frame
 	 */
 	public update(ctx: GameContext, deltaTime: number, state: GameState): void {
-		// --- Bounding Box Update (Start) ---
-		// Store the *current* box as the *previous* one before any potential updates this frame
-		this.previousBoundingBox = { ...this.currentBoundingBox };
-		// --- End Bounding Box Update (Start) ---
 
 		// Store position for rendering interpolation BEFORE moving
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
+
+		// Store paddle's current position as its previous physics position BEFORE it moves
+		if (this.paddle) { // Ensure paddle exists
+			this.paddle.setPreviousPosition(this.paddle.x, this.paddle.y);
+		}
 
 		const { width, height } = ctx.canvas;
 		const sizes = calculateGameSizes(width, height);
@@ -264,11 +247,6 @@ export class Player implements GraphicalElement {
 		
 		// Update horizontal position AFTER potential y movement
 		this.updateHorizontalPosition();
-
-		// --- Bounding Box Update (End) ---
-		// Update the current bounding box based on the final position for this frame
-		this.updateBoundingBox();
-		// --- End Bounding Box Update (End) ---
 	}
 
 	/**
@@ -734,57 +712,5 @@ export class Player implements GraphicalElement {
 	 */
 	public freezeMovement(duration: number): void {
 		this.movementFrozen = duration;
-	}
-
-	// =========================================
-	// Dirty Rectangle Methods (NEW)
-	// =========================================
-
-	/** Updates the current bounding box based on position and size */
-	protected updateBoundingBox(): void {
-		this.currentBoundingBox = {
-			x: this.x,
-			y: this.y,
-			width: this.paddleWidth,
-			height: this.paddleHeight
-		};
-	}
-
-	/** Gets the current bounding box */
-	public getBoundingBox(): AABB {
-		return this.currentBoundingBox;
-	}
-
-	/** 
-	 * Returns an array of dirty rectangles (previous and current bounding box)
-	 * if the player paddle has moved significantly since the last frame.
-	 */
-	public getDirtyRects(): AABB[] {
-		// Use a small epsilon for floating point comparisons
-		const epsilon = 0.1;
-		if (Math.abs(this.currentBoundingBox.x - this.previousBoundingBox.x) > epsilon ||
-			Math.abs(this.currentBoundingBox.y - this.previousBoundingBox.y) > epsilon ||
-			Math.abs(this.currentBoundingBox.width - this.previousBoundingBox.width) > epsilon ||
-			Math.abs(this.currentBoundingBox.height - this.previousBoundingBox.height) > epsilon)
-		{
-			// Add a small padding to the dirty rectangles to avoid artifacts from anti-aliasing or interpolation
-			const padding = 2;
-			const prevPadded = {
-				...this.previousBoundingBox,
-				x: this.previousBoundingBox.x - padding,
-				y: this.previousBoundingBox.y - padding,
-				width: this.previousBoundingBox.width + padding * 2,
-				height: this.previousBoundingBox.height + padding * 2
-			};
-			const currentPadded = {
-				...this.currentBoundingBox,
-				x: this.currentBoundingBox.x - padding,
-				y: this.currentBoundingBox.y - padding,
-				width: this.currentBoundingBox.width + padding * 2,
-				height: this.currentBoundingBox.height + padding * 2
-			};
-			return [prevPadded, currentPadded];
-		}
-		return []; // No significant change
 	}
 }

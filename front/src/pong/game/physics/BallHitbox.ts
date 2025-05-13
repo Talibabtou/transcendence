@@ -9,7 +9,6 @@ export class BallHitbox implements Collidable {
 	// =========================================
 	// Properties
 	// =========================================
-	private previousPosition: { x: number; y: number };
 
 	/**
 	 * Creates a new BallHitbox instance
@@ -19,7 +18,6 @@ export class BallHitbox implements Collidable {
 		if (!ball) {
 			throw new Error('Ball must be provided to BallHitbox');
 		}
-		this.previousPosition = ball.getPosition();
 	}
 
 	// =========================================
@@ -67,21 +65,10 @@ export class BallHitbox implements Collidable {
 	 * Returns the previous position of the ball
 	 */
 	public getPreviousPosition(): { x: number; y: number } {
-		return this.previousPosition;
+		return this.ball.getPrevPosition();
 	}
 
 	// =========================================
 	// State Management
 	// =========================================
-
-	/**
-	 * Updates the previous position to the current position
-	 * Should be called after each physics update
-	 */
-	public updatePreviousPosition(): void {
-		if (!this.ball) {
-			throw new Error('Ball is undefined in BallHitbox');
-		}
-		this.previousPosition = this.ball.getPosition();
-	}
 }

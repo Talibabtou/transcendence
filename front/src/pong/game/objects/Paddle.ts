@@ -13,6 +13,8 @@ export class Paddle implements MovableObject {
 	private speed: number;
 	private _paddleWidth: number;
 	private _paddleHeight: number;
+	private prevX: number;
+	private prevY: number;
 
 	// =========================================
 	// Constructor
@@ -39,6 +41,8 @@ export class Paddle implements MovableObject {
 		this.speed = sizes.PADDLE_SPEED;
 		this._paddleWidth = paddleWidth;
 		this._paddleHeight = paddleHeight;
+		this.prevX = x;
+		this.prevY = y;
 	}
 
 	// =========================================
@@ -86,9 +90,7 @@ export class Paddle implements MovableObject {
 	 * Gets the current velocity of the paddle
 	 */
 	public getVelocity(): { dx: number; dy: number } {
-		const dy = this.direction === Direction.UP ? -this.speed : 
-				  this.direction === Direction.DOWN ? this.speed : 0;
-		return { dx: 0, dy };
+		return { dx: 0, dy: this.y - this.prevY };
 	}
 
 	/**
@@ -140,5 +142,22 @@ export class Paddle implements MovableObject {
 			width: this.paddleWidth,
 			height: this.paddleHeight
 		};
+	}
+
+	/**
+	 * Sets the paddle's previous position for physics calculations.
+	 * @param x The previous x position.
+	 * @param y The previous y position.
+	 */
+	public setPreviousPosition(x: number, y: number): void {
+		this.prevX = x;
+		this.prevY = y;
+	}
+
+	/**
+	 * Gets the paddle's previous position for physics calculations.
+	 */
+	public getPreviousPosition(): { x: number; y: number } {
+		return { x: this.prevX, y: this.prevY };
 	}
 }

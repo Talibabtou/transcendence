@@ -52,6 +52,6 @@ export class PaddleHitbox implements Collidable {
 	 * Note: For paddles, we currently use the current position
 	 */
 	public getPreviousPosition(): { x: number; y: number } {
-		return this.getPosition();
+		return this.paddle.getPreviousPosition();
 	}
 }

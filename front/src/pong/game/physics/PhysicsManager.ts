@@ -398,83 +398,188 @@ export class PhysicsManager {
     // Log the state before and after correction
   }
 
+  /**
+   * Checks for overlap between a circle and an AABB (Axis-Aligned Bounding Box).
+   * If an overlap occurs, returns the penetration depth and collision normal.
+   * @param ballPos Current position of the ball's center.
+   * @param ballRadius Radius of the ball.
+   * @param rectLeft Left edge of the rectangle.
+   * @param rectRight Right edge of the rectangle.
+   * @param rectTop Top edge of the rectangle.
+   * @param rectBottom Bottom edge of the rectangle.
+   * @returns Object with penetration depth and normal, or null if no overlap.
+   */
+  private static checkCircleAABBOverlap(
+    ballPos: { x: number; y: number },
+    ballRadius: number,
+    rectLeft: number,
+    rectRight: number,
+    rectTop: number,
+    rectBottom: number
+  ): { penetration: { dx: number; dy: number }; normal: { nx: number; ny: number } } | null {
+    // Find the closest point on the AABB to the circle's center
+    const closestX = Math.max(rectLeft, Math.min(ballPos.x, rectRight));
+    const closestY = Math.max(rectTop, Math.min(ballPos.y, rectBottom));
+
+    // Calculate the distance between the circle's center and this closest point
+    const distanceX = ballPos.x - closestX;
+    const distanceY = ballPos.y - closestY;
+    const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+
+    // If the distance is less than the circle's radius, an overlap occurs
+    if (distanceSquared < ballRadius * ballRadius && distanceSquared > 1e-9) { // Added > 1e-9 to avoid issues with zero distance
+      const distance = Math.sqrt(distanceSquared);
+      const penetrationDepth = ballRadius - distance;
+      
+      // Collision normal points from the AABB to the circle
+      const normalX = distanceX / distance;
+      const normalY = distanceY / distance;
+
+      return {
+        penetration: { dx: normalX * penetrationDepth, dy: normalY * penetrationDepth },
+        normal: { nx: normalX, ny: normalY },
+      };
+    }
+    return null; // No overlap
+  }
 
   public static collideBallWithPaddle(
     ball: Ball,
     player: Player
   ): boolean {
     const ballRadius = ball.getSize();
-    // --- Increased epsilon slightly for testing ---
-    const epsilon = 0.1; // Increased from 0.05
+    const epsilon = 0.01; // Reduced epsilon as discrete check is more robust
+    const ballPosition = ball.getPosition();
     const ballVelocity = ball.getVelocity();
     const paddleVelocity = player.paddle.getVelocity();
 
-    // Get paddle bounds based on current player state
-    const cLeft = player.x;
-    const cRight = player.x + player.paddleWidth;
-    const cTop = player.y;
-    const cBottom = player.y + player.paddleHeight;
+    const pLeft = player.x;
+    const pRight = player.x + player.paddleWidth;
+    const pTop = player.y;
+    const pBottom = player.y + player.paddleHeight;
 
-    // --- Added detailed logging at the start of the check ---
-   	const p1_start = ball.getPosition(); // Ball position at start of this check
-
+    let hitOccurred = false;
 
     // 1) Continuous Sweep Test
-    if (typeof (ball as any).getPrevPosition === 'function') {
-      const p0 = (ball as any).getPrevPosition();
-      // Ball's movement vector for this step
-      const ballMoveDir = {dx: p1_start.x - p0.x, dy: p1_start.y - p0.y};
+    const prevBallPos = ball.getPrevPosition ? ball.getPrevPosition() : ballPosition; // Handle if getPrevPosition is missing
+    const ballMoveDir = { dx: ballPosition.x - prevBallPos.x, dy: ballPosition.y - prevBallPos.y };
 
-      // Check if ball moved significantly
-      if (!(Math.abs(ballMoveDir.dx) < 1e-6 && Math.abs(ballMoveDir.dy) < 1e-6)) {
-          const hit = PhysicsManager.sweepCircleVsMovingRect(
-              p0, ballMoveDir, ballRadius,
-              cLeft, cRight, cTop, cBottom,
-              paddleVelocity
-          );
-          if (hit) {
-            const {t, normal} = hit;
-            const contactX = p0.x + ballMoveDir.dx * t;
-            const contactY = p0.y + ballMoveDir.dy * t;
+    if (Math.abs(ballMoveDir.dx) > 1e-6 || Math.abs(ballMoveDir.dy) > 1e-6) {
+      const sweepHit = PhysicsManager.sweepCircleVsMovingRect(
+        prevBallPos, ballMoveDir, ballRadius,
+        pLeft, pRight, pTop, pBottom,
+        paddleVelocity
+      );
 
-            if (normal.ny !== 0) { // Hit top/bottom of paddle
-              player.freezeMovement(0.2);
-            }
+      if (sweepHit) {
+        const { t, normal } = sweepHit;
+        const contactX = prevBallPos.x + ballMoveDir.dx * t;
+        const contactY = prevBallPos.y + ballMoveDir.dy * t;
 
-            const dot = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
-            if (dot < 0) {
-              const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dot);
-              const finalVel = PhysicsManager._applyPaddleDeflection(
-                { x: contactX, y: contactY },
-                reflectedVel,
-                cTop, cBottom
-              );
-              ball.dx = finalVel.dx;
-              ball.dy = finalVel.dy;
-
-              // Ensure minimum vertical velocity if hitting front face of paddle
-              if (normal.nx !== 0) { // Hit was on the side (front face)
-                const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
-                if (speed > 1e-6) {
-                    const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
-                    if (Math.abs(ball.dy) < minVerticalComponent) {
-                        ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
-                    }
-                }
-              }
-
-              // --- Added Pre/Post Correction Logging ---
-              PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
-              // --- End Added Logging ---
-              return true;
-            }
+        // Ensure the ball is moving towards the paddle surface it hit
+        const dotProduct = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
+        if (dotProduct < 0) { // Negative dot product means velocities are opposing (moving towards)
+          if (normal.ny !== 0) { // Hit top/bottom of paddle
+            player.freezeMovement(0.2);
           }
+          const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+          const finalVel = PhysicsManager._applyPaddleDeflection(
+            { x: contactX, y: contactY },
+            reflectedVel,
+            pTop, pBottom
+          );
+          ball.dx = finalVel.dx;
+          ball.dy = finalVel.dy;
+
+          PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
+          hitOccurred = true;
+        }
       }
     }
 
-    // 2) Discrete Collision Test (Fallback)
-    // ... (discrete code remains, might need review if sweep fails) ...
+    // 2) Discrete Collision Test (Fallback or if sweep didn't fully resolve)
+    // Always perform this check, even if sweep hit, to correct residual penetration
+    // or handle cases where sweep might miss (e.g., object starts already overlapping).
+    const discreteOverlap = PhysicsManager.checkCircleAABBOverlap(
+      ball.getPosition(), // Use the ball\'s *current* position after sweep correction
+      ballRadius,
+      pLeft, pRight, pTop, pBottom
+    );
 
-    return false;
+    if (discreteOverlap) {
+      const { penetration, normal } = discreteOverlap;
+
+      // Push the ball out of the paddle by the penetration amount
+      ball.x += penetration.dx;
+      ball.y += penetration.dy;
+      
+      // Reflect velocity based on the discrete collision normal
+      // Only reflect if the ball is moving towards the paddle (or was before being pushed out)
+      const dotProduct = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
+      if (dotProduct < 0 || hitOccurred) { // If sweep already hit, we might be reflecting again, or if moving into.
+                                       // The condition `hitOccurred` helps if the sweep moved the ball
+                                       // but it still ended up penetrating for the discrete check.
+        if (normal.ny !== 0 && !hitOccurred) { // Hit top/bottom of paddle, and sweep didn\'t cause freeze
+            player.freezeMovement(0.2);
+        }
+        const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+        const finalVel = PhysicsManager._applyPaddleDeflection(
+            ball.getPosition(), // Use current ball position for deflection calculation
+            reflectedVel,
+            pTop, pBottom
+        );
+        ball.dx = finalVel.dx;
+        ball.dy = finalVel.dy;
+        hitOccurred = true; // Mark that a collision (discrete) was handled
+      } else if (!hitOccurred && (Math.abs(normal.nx) > 0.9 || Math.abs(normal.ny) > 0.9)) {
+        // If no prior hit and clearly hitting a face (not a corner snag moving away)
+        // and velocity wasn\'t clearly "into" the paddle (dotProduct >= 0),
+        // this might be a "resting" contact or a snag.
+        // For simplicity, we might just stop the ball or reflect if it has some velocity component against normal.
+        // A more advanced solution might involve friction or other responses.
+        // For now, if it wasn\'t moving into the paddle but is overlapping,
+        // and we haven\'t reflected from sweep, we reflect to prevent sticking.
+        // This is a bit of a heuristic.
+        const emergencyDot = -0.1; // Assume a small "into" component to force reflection
+         if (normal.ny !== 0) {
+            player.freezeMovement(0.2);
+        }
+        const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
+        const finalVel = PhysicsManager._applyPaddleDeflection(
+            ball.getPosition(),
+            reflectedVel,
+            pTop, pBottom
+        );
+        ball.dx = finalVel.dx;
+        ball.dy = finalVel.dy;
+        hitOccurred = true;
+      }
+    }
+    
+    if (hitOccurred) {
+        // Ensure minimum vertical velocity if hitting front face of paddle
+        // Check if normal from discrete or sweep indicates a side hit
+        // This logic might need to be more robust regarding which normal to use if both hit
+        let collisionNormalX = 0;
+        if (discreteOverlap) collisionNormalX = discreteOverlap.normal.nx;
+        // else if (sweepHit) collisionNormalX = sweepHit.normal.nx; // sweepHit might not be in scope
+
+        if (collisionNormalX !== 0) { // Hit was on the side (front face)
+            const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy);
+            if (speed > 1e-6) {
+                const minVerticalComponent = speed * BALL_CONFIG.MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT;
+                if (Math.abs(ball.dy) < minVerticalComponent) {
+                    ball.dy = ball.dy >= 0 ? minVerticalComponent : -minVerticalComponent;
+                    // Adjust dx to maintain overall speed if dy was changed significantly (optional, can lead to complexities)
+                    // const newSpeedSq = ball.dx * ball.dx + ball.dy * ball.dy;
+                    // if (newSpeedSq > speed * speed) { // if new speed is higher
+                    //    ball.dx = Math.sign(ball.dx) * Math.sqrt(Math.max(0, speed*speed - ball.dy*ball.dy));
+                    // }
+                }
+            }
+        }
+    }
+
+    return hitOccurred;
   }
 } 

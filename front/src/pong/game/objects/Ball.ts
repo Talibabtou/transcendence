@@ -1,14 +1,6 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
-// Define a simple AABB interface for dirty rectangles
-interface AABB {
-	x: number;
-	y: number;
-	width: number;
-	height: number;
-}
-
 // const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // Removed: Fixed timestep now handled by GameManager
 // const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call - MOVED TO BALL_CONFIG
 
@@ -33,10 +25,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	
 	// Speed control - Made public for PhysicsManager access
 	public speedMultiplier: number = BALL_CONFIG.ACCELERATION.INITIAL;
-	
-	// Bounding boxes for dirty rectangle calculation
-	private currentBoundingBox: AABB;
-	private previousBoundingBox: AABB;
+
 	
 	// =========================================
 	// Public Properties
@@ -75,10 +64,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		// Initialize previous render position for interpolation
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
-
-		// Initialize bounding boxes
-		this.currentBoundingBox = { x: this.x - this.size, y: this.y - this.size, width: this.size * 2, height: this.size * 2 };
-		this.previousBoundingBox = { ...this.currentBoundingBox };
 	}
 
 	// =========================================
@@ -139,14 +124,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public update(_context: GameContext, _deltaTime: number, _state: GameState): void {
 		// Physics logic is now handled by PhysicsManager.
 		// This method can be used for non-physics updates if any are needed in the future.
-
-		// --- Update Bounding Box Logic ---
-		// Store the *current* box as the *previous* one before any potential updates this frame
-		this.previousBoundingBox = { ...this.currentBoundingBox };
-
-		// Update the current bounding box based on the ball's state (potentially updated by PhysicsManager)
-		this.updateBoundingBox();
-		// --- End Bounding Box Logic ---
 	}
 
 	// =========================================
@@ -241,9 +218,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.prevRenderY = this.y;
 		this.prevPosition.x = this.x;
 		this.prevPosition.y = this.y;
-		// Update bounding box after restart
-		this.updateBoundingBox();
-		this.previousBoundingBox = { ...this.currentBoundingBox }; // Ensure previous matches current after restart
 	}
 
 	// =========================================
@@ -290,9 +264,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 			this.dx = state.velocity.dx * this.currentSpeed;
 			this.dy = state.velocity.dy * this.currentSpeed;
 		}
-		// Update bounding box after restoring state
-		this.updateBoundingBox();
-		this.previousBoundingBox = { ...this.currentBoundingBox }; // Ensure previous matches current after restore
 	}
 
 	/**
@@ -344,56 +315,4 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		return { x: this.prevPosition.x, y: this.prevPosition.y };
 	}
 
-	// =========================================
-	// Dirty Rectangle Methods (NEW)
-	// =========================================
-
-	/** Updates the current bounding box based on position and size */
-	private updateBoundingBox(): void {
-		const diameter = this.size * 2;
-		this.currentBoundingBox = {
-			x: this.x - this.size,
-			y: this.y - this.size,
-			width: diameter,
-			height: diameter
-		};
-	}
-
-	/** Gets the current bounding box */
-	public getBoundingBox(): AABB {
-		return this.currentBoundingBox;
-	}
-
-	/** 
-	 * Returns an array of dirty rectangles (previous and current bounding box)
-	 * if the ball has moved significantly since the last frame.
-	 */
-	public getDirtyRects(): AABB[] {
-		// Use a small epsilon for floating point comparisons
-		const epsilon = 0.1;
-		if (Math.abs(this.currentBoundingBox.x - this.previousBoundingBox.x) > epsilon ||
-			Math.abs(this.currentBoundingBox.y - this.previousBoundingBox.y) > epsilon ||
-			Math.abs(this.currentBoundingBox.width - this.previousBoundingBox.width) > epsilon || // Check size change too
-			Math.abs(this.currentBoundingBox.height - this.previousBoundingBox.height) > epsilon)
-		{
-			// Add a small padding to the dirty rectangles to avoid artifacts from anti-aliasing or interpolation
-			const padding = 2;
-			const prevPadded = {
-				...this.previousBoundingBox,
-				x: this.previousBoundingBox.x - padding,
-				y: this.previousBoundingBox.y - padding,
-				width: this.previousBoundingBox.width + padding * 2,
-				height: this.previousBoundingBox.height + padding * 2
-			};
-			const currentPadded = {
-				...this.currentBoundingBox,
-				x: this.currentBoundingBox.x - padding,
-				y: this.currentBoundingBox.y - padding,
-				width: this.currentBoundingBox.width + padding * 2,
-				height: this.currentBoundingBox.height + padding * 2
-			};
-			return [prevPadded, currentPadded];
-		}
-		return []; // No significant change
-	}
 }
