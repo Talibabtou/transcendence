@@ -15,7 +15,27 @@ import {
   IJwtId,
   I2faCode,
   IReplyQrCode,
+  IUsername,
 } from '../shared/types/auth.types.js';
+
+export async function getId(
+  request: FastifyRequest<{ Params: IUsername }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const username = request.params.username;
+    const id: IId | undefined = await request.server.db.get('SELECT id FROM users WHERE username = ?', [username]);
+    if (!id) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+      return reply.code(404).send(errorMessage);
+    }
+    return reply.code(200).send(id);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   try {
