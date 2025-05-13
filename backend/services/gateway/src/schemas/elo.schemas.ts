@@ -23,12 +23,17 @@ export const eloSchema = {
 const LeaderboardSchema = {
   type: 'object',
   properties: {
+    player: {
+      type: 'string',
+      format: 'uuid',
+      pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    },
     username: { type: 'string' },
+    elo: { type: 'integer' },
     victories: { type: 'number' },
     defeats: { type: 'number' },
-    total_matches: { type: 'number' },
   },
-  required: ['victories', 'defeats', 'total_matches'],
+  required: ['victories', 'defeats', 'elo', 'username', 'player'],
 };
 
 export const getEloSchema = {
