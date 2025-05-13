@@ -10,7 +10,7 @@ const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8085/api/v1/auth';
-const profilUrl: string = 'http://localhost:8085/api/v1/profil';
+const profilUrl: string = 'http://localhost:8085/api/v1/profile';
 let token: string = '';
 let id = '';
 let count: number = 0;
@@ -18,7 +18,7 @@ let countFailed: number = 0;
 let severalIssues: number = 0;
 let issuesList = [];
 
-console.log(`${BOLD}Test begin for ${UNDERLINE}profil${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}profile${RESET}`);
 try {
   //Register success
   {

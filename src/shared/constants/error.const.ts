@@ -36,7 +36,7 @@ export enum ErrorCodes {
 	//auth related errors
 	LOGIN_FAILURE = 'LOGIN_FAILURE',
 
-	//profil
+	//profile
 	NO_FILE_PROVIDED = 'NO_FILE_PROVIDED',
 	INVALID_TYPE = 'INVALID_TYPE',
 
@@ -97,7 +97,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
 	//auth related errors
 	[ErrorCodes.LOGIN_FAILURE, 'Login failure'],
 
-	//profil related errors
+	//profile related errors
 	[ErrorCodes.NO_FILE_PROVIDED, 'No File Provided'],
 	[ErrorCodes.INVALID_TYPE, 'Invalid Type'],
 
@@ -245,7 +245,7 @@ export const ErrorExamples = {
 		message: ErrorMessages.get(ErrorCodes.LOGIN_FAILURE),
 	},
 
-	//profil related errors
+	//profile related errors
 	noFileProvided: {
 		statusCode: 404,
 		code: ErrorCodes.NO_FILE_PROVIDED,

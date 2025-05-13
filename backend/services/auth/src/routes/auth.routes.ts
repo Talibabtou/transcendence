@@ -1,4 +1,12 @@
-import { IModifyUser, IAddUser, ILogin, IId, IJwtId, I2faCode } from '../shared/types/auth.types.js';
+import {
+  IModifyUser,
+  IAddUser,
+  ILogin,
+  IId,
+  IJwtId,
+  I2faCode,
+  IUsername,
+} from '../shared/types/auth.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
@@ -13,12 +21,15 @@ import {
   twofaDisable,
   twofaGenerate,
   twofaValidate,
+  getId,
 } from '../controllers/auth.controller.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => {
     reply.code(200).send();
   });
+
+  fastify.get<{ Params: IUsername }>('/id/:username', getId);
 
   fastify.get('/users', getUsers);
 

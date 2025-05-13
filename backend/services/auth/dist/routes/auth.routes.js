@@ -1,8 +1,9 @@
-import { addUser, getUsers, getUser, getUserMe, deleteUser, modifyUser, login, logout, checkRevoked, twofaDisable, twofaGenerate, twofaValidate, } from '../controllers/auth.controller.js';
+import { addUser, getUsers, getUser, getUserMe, deleteUser, modifyUser, login, logout, checkRevoked, twofaDisable, twofaGenerate, twofaValidate, getId, } from '../controllers/auth.controller.js';
 export default async function authRoutes(fastify) {
     fastify.get('/health', (request, reply) => {
         reply.code(200).send();
     });
+    fastify.get('/id/:username', getId);
     fastify.get('/users', getUsers);
     fastify.get('/user/:id', getUser);
     fastify.get('/user/me/:id', getUserMe);

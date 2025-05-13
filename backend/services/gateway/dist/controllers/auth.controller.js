@@ -1,4 +1,18 @@
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+export async function getId(request, reply) {
+    try {
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const id = (await response.json());
+        return reply.code(response.status).send(id);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function getUsers(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];

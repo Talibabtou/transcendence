@@ -43,7 +43,7 @@ export const USER = {
 	BY_ID: (id: string | number) => `/auth/user/${id}`,
 	ME: '/auth/user/me',
 	PROFILE: '/profile/summary',
-	UPLOADS: '/profil/uploads',
+	UPLOADS: '/profile/uploads',
 };
 
 // Authentication paths

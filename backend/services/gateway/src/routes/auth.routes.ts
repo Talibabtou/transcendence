@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { IAddUser, ILogin, IModifyUser, IId } from '../shared/types/auth.types.js';
+import { IAddUser, ILogin, IModifyUser, IId, IUsername } from '../shared/types/auth.types.js';
 import {
   getUsers,
   getUser,
@@ -12,6 +12,7 @@ import {
   twofaGenerate,
   twofaValidate,
   twofaDisable,
+  getId,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -25,12 +26,25 @@ import {
   twofaDisableSchema,
   twofaValidateSchema,
   twofaGenerateSchema,
+  getIdSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
 const twofa = { auth: true, roles: ['user', 'admin', '2fa'] };
 
 export default async function authRoutes(fastify: FastifyInstance) {
+  fastify.get<{ Params: IUsername }>(
+    '/auth/id/:username',
+    {
+      schema: {
+        ...getIdSchema,
+        tags: ['auth'],
+      },
+      config: auth,
+    },
+    getId
+  );
+
   fastify.get(
     '/auth/users',
     {

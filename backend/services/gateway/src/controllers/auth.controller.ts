@@ -9,7 +9,23 @@ import {
   IReplyUser,
   IReplyLogin,
   IReplyQrCode,
+  IUsername,
+  IId,
 } from '../shared/types/auth.types.js';
+
+export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
+  try {
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const response = await fetch(serviceUrl, { method: 'GET' });
+    const id = (await response.json()) as IId | ErrorResponse;
+    return reply.code(response.status).send(id);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
 
 export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -25,7 +41,7 @@ export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
-export async function getUser(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
+export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;

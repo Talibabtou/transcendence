@@ -1,5 +1,46 @@
 import { ErrorExamples } from '../shared/constants/error.const.js';
 import { errorResponseSchema } from '../shared/schemas/error.schema.js';
+export const getIdSchema = {
+    querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {},
+    },
+    params: {
+        type: 'object',
+        properties: {
+            username: { type: 'string' },
+        },
+        required: ['username'],
+        additionalProperties: false,
+    },
+    response: {
+        200: {
+            type: 'object',
+            properties: {
+                id: {
+                    type: 'string',
+                    format: 'uuid',
+                    pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+                },
+            },
+            required: ['id'],
+            additionalProperties: false,
+        },
+        404: {
+            ...errorResponseSchema,
+            example: ErrorExamples.playerNotFound,
+        },
+        400: {
+            ...errorResponseSchema,
+            example: ErrorExamples.sqliteMismatch,
+        },
+        500: {
+            ...errorResponseSchema,
+            example: ErrorExamples.internalError,
+        },
+    },
+};
 export const getUserSchema = {
     querystring: {
         type: 'object',

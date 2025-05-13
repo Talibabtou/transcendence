@@ -25,11 +25,16 @@ export async function initDb() {
         two_factor_enabled BOOLEAN NOT NULL DEFAULT 0,
         two_factor_secret TEXT,
         verified BOOLEAN NOT NULL DEFAULT 0,
-        last_ip VARCHAR(255) NOT NULL,
+        last_ip VARCHAR(255),
         last_login DATETIME NULL,
         updated_at DATETIME NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
     `);
+        const computer = await db.get('SELECT id FROM users WHERE username = "computer"');
+        if (!computer) {
+            console.log({ computer: 'created' });
+            await db.run('INSERT INTO users (role, username, password, email, created_at) VALUES ("admin", "computer", "computer", "computer@computer.com", CURRENT_TIMESTAMP);');
+        }
         return db;
     }
     catch (err) {

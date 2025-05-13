@@ -4,6 +4,22 @@ import qrcode from 'qrcode';
 import { v4 as uuid } from 'uuid';
 import speakeasy from 'speakeasy';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
+export async function getId(request, reply) {
+    try {
+        const username = request.params.username;
+        const id = await request.server.db.get('SELECT id FROM users WHERE username = ?', [username]);
+        if (!id) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+            return reply.code(404).send(errorMessage);
+        }
+        return reply.code(200).send(id);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function getUsers(request, reply) {
     try {
         const users = await request.server.db.all('SELECT username, email, id FROM users');

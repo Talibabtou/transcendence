@@ -8,14 +8,14 @@ const BOLD = '\x1b[1m';
 const UNDERLINE = '\x1b[4m';
 const RESET = '\x1b[0m';
 const authUrl = 'http://localhost:8085/api/v1/auth';
-const profilUrl = 'http://localhost:8085/api/v1/profil';
+const profilUrl = 'http://localhost:8085/api/v1/profile';
 let token = '';
 let id = '';
 let count = 0;
 let countFailed = 0;
 let severalIssues = 0;
 let issuesList = [];
-console.log(`${BOLD}Test begin for ${UNDERLINE}profil${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}profile${RESET}`);
 try {
     //Register success
     {

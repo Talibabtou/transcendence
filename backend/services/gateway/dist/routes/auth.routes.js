@@ -1,8 +1,15 @@
-import { getUsers, getUser, getUserMe, postUser, patchUser, deleteUser, postLogin, postLogout, twofaGenerate, twofaValidate, twofaDisable, } from '../controllers/auth.controller.js';
-import { getUserSchema, getUserMeSchema, getUsersSchema, deleteUserSchema, createUserSchema, modifyUserSchema, loginSchema, logoutSchema, twofaDisableSchema, twofaValidateSchema, twofaGenerateSchema, } from '../schemas/auth.schemas.js';
+import { getUsers, getUser, getUserMe, postUser, patchUser, deleteUser, postLogin, postLogout, twofaGenerate, twofaValidate, twofaDisable, getId, } from '../controllers/auth.controller.js';
+import { getUserSchema, getUserMeSchema, getUsersSchema, deleteUserSchema, createUserSchema, modifyUserSchema, loginSchema, logoutSchema, twofaDisableSchema, twofaValidateSchema, twofaGenerateSchema, getIdSchema, } from '../schemas/auth.schemas.js';
 const auth = { auth: true, roles: ['user', 'admin'] };
 const twofa = { auth: true, roles: ['user', 'admin', '2fa'] };
 export default async function authRoutes(fastify) {
+    fastify.get('/auth/id/:username', {
+        schema: {
+            ...getIdSchema,
+            tags: ['auth'],
+        },
+        config: auth,
+    }, getId);
     fastify.get('/auth/users', {
         schema: {
             ...getUsersSchema,

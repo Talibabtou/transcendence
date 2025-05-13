@@ -225,7 +225,7 @@ export class Server {
             // setInterval(checkMicroservices, 2000);
         }
         catch (err) {
-            server.log.error('Fatal error', err);
+            server.log.error(err);
             process.exit(1);
         }
     }

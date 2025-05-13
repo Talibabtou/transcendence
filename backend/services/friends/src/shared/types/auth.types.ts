@@ -1,3 +1,7 @@
+export interface IUsername {
+  username: string;
+}
+
 export interface IAddUser {
   username: string;
   email: string;
