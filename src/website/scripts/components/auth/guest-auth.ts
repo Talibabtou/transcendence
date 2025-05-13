@@ -3,7 +3,7 @@
  * A standalone component for guest player authentication without affecting the main app state
  */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, ApiError } from '@website/scripts/utils';
+import { html, render, DbService, ApiError, hashPassword } from '@website/scripts/utils';
 import { IAuthComponent, GuestAuthState } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -183,12 +183,18 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.updateInternalState({ error: null });
 		
 		try {
-			const response = await DbService.login({ email, password });
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
+			
+			const response = await DbService.login({ 
+				email, 
+				password: hashedPassword 
+			});
 			
 			if (response.success && response.user) {
 				const userData = {
 					id: response.user.id,
-					username: response.user.pseudo,
+					username: response.user.username,
 					email: response.user.email || '',
 					avatar: response.user.pfp || `/images/default-avatar.svg`,
 					theme: response.user.theme || '#ffffff'
@@ -232,16 +238,19 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.updateInternalState({ error: null });
 		
 		try {
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
+			
 			const newUser = await DbService.register({
 				username,
 				email,
-				password
+				password: hashedPassword
 			});
 			
 			if (newUser.success && newUser.user) {
 				const userData = {
 					id: String(newUser.user.id),
-					username: newUser.user.pseudo,
+					username: newUser.user.username,
 					email: newUser.user.email,
 					profilePicture: newUser.user.pfp || `/images/default-avatar.svg`,
 					theme: newUser.user.theme || '#ffffff'

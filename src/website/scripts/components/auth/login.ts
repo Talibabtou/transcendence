@@ -124,7 +124,7 @@ export class LoginHandler {
 				
 				const userData: UserData = {
 					id: user.id,
-					username: user.pseudo,
+					username: user.username,
 					email: user.email || '',
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: user.last_login ? new Date(user.last_login) : new Date(),
