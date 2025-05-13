@@ -205,28 +205,26 @@ export class ProfileComponent extends Component<ProfileState> {
 					throw new Error(`User with ID ${userId} not found`);
 				}
 				
-				// Initialize UserProfile with minimal data
+				// Initialize UserProfile with data from the API response
 				const userProfile: UserProfile = {
 					id: String(user.id),
-					username: user.pseudo,
-					avatarUrl: user.pfp || '/images/default-avatar.svg',
-					totalGames: 0,
-					wins: 0,
-					losses: 0,
+					username: user.username,
+					avatarUrl: user.pics?.link && user.pics.link !== "undefined" 
+						? user.pics.link 
+						: '/images/default-avatar.svg',
+					totalGames: user.summary?.total_matches || 0,
+					wins: user.summary?.victories || 0,
+					losses: (user.summary?.total_matches || 0) - (user.summary?.victories || 0),
 					gameHistory: [], 
 					friends: [], 
 					preferences: {
 						accentColor: user.theme || '#ffffff'
 					},
-					elo: user.elo || 1000
+					elo: user.summary?.elo || 1000
 				};
 				
 				// Set initial profile with basic data
 				this.updateInternalState({ profile: userProfile });
-				
-				// Load initial summary data
-				await this.loadSummaryData(userId, userProfile);
-				
 			} catch (error) {
 				if (error instanceof ApiError) {
 					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
@@ -248,84 +246,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		} catch (error) {
 			console.error('Error in fetchProfileData:', error);
 			throw new Error('Failed to fetch profile data');
-		}
-	}
-
-	/**
-	 * Load summary data (wins/losses/elo)
-	 */
-	private async loadSummaryData(userId: string, profile: UserProfile): Promise<void> {
-		try {
-			console.log(`Loading summary for user ID: ${userId}`);
-			
-			// Get user from DB to ensure we have latest data
-			const user = await DbService.getUser(userId);
-			
-			// Update profile with user data
-			profile.username = user.pseudo;
-			profile.avatarUrl = user.pfp || '/images/default-avatar.svg';
-			profile.elo = user.elo || 1000;
-			profile.preferences.accentColor = user.theme || '#ffffff';
-			
-			// Fetch match history to calculate wins/losses
-			const matches = await DbService.getUserMatches(userId);
-			console.log(`Found ${matches.length} matches for user ID: ${userId}`);
-			
-			// Process matches to calculate wins/losses
-			let wins = 0;
-			let losses = 0;
-			let totalGames = 0; // Only count "completed" matches (3 points or more)
-			
-			for (const match of matches) {
-				// Get goals for this match
-				const goals = await DbService.getMatchGoals(match.id);
-				
-				// Calculate scores
-				const isPlayer1 = match.player_1 === userId;
-				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
-				
-				let playerScore = 0;
-				let opponentScore = 0;
-				
-				for (const goal of goals) {
-					if (goal.player === userId) {
-						playerScore++;
-					} else if (goal.player === opponentId) {
-						opponentScore++;
-					}
-				}
-				
-				// Only count matches where at least one player has 3+ points
-				if (playerScore >= 3 || opponentScore >= 3) {
-					totalGames++;
-					
-					if (playerScore > opponentScore) {
-						wins++;
-					} else if (opponentScore > playerScore) {
-						losses++;
-					}
-					// Ties don't count for either
-					
-					console.log(`Match ${match.id}: ${playerScore}-${opponentScore} (counted)`);
-				} else {
-					console.log(`Match ${match.id}: ${playerScore}-${opponentScore} (not counted - under 3 points)`);
-				}
-			}
-			
-			console.log(`Final stats: ${wins} wins, ${losses} losses out of ${totalGames} completed games`);
-			
-			// Update profile with calculated stats
-			profile.totalGames = totalGames;
-			profile.wins = wins;
-			profile.losses = losses;
-			
-			// Update profile state with a new object to ensure reactivity
-			this.updateInternalState({ profile: {...profile} });
-			
-			// Update UI
-			this.renderView();
-		} catch (error) {
-			console.error('Error loading summary data:', error);
 		}
 	}
 

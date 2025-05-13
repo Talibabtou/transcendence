@@ -220,7 +220,7 @@ export class Server {
       await server.register(rateLimit, rateLimitConfig);
       await server.register(fastifyMultipart, multipartConfig);
       await server.register(fastifyStatic, staticConfig);
-      await server.register(helmet, helmetConfig);
+      // await server.register(helmet, helmetConfig);
       await server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);

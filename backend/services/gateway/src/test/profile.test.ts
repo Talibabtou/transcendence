@@ -2,6 +2,7 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 import FormData from 'form-data';
 import p from 'path';
+import { profile } from 'console';
 
 const RED: string = '\x1b[31m';
 const GREEN: string = '\x1b[32m';
@@ -10,7 +11,7 @@ const UNDERLINE: string = '\x1b[4m';
 const RESET: string = '\x1b[0m';
 
 const authUrl: string = 'http://localhost:8085/api/v1/auth';
-const profilUrl: string = 'http://localhost:8085/api/v1/profil';
+const profileUrl: string = 'http://localhost:8085/api/v1/profile';
 let token: string = '';
 let id = '';
 let count: number = 0;
@@ -18,7 +19,7 @@ let countFailed: number = 0;
 let severalIssues: number = 0;
 let issuesList = [];
 
-console.log(`${BOLD}Test begin for ${UNDERLINE}profil${RESET}`);
+console.log(`${BOLD}Test begin for ${UNDERLINE}profile${RESET}`);
 try {
   //Register success
   {
@@ -114,7 +115,7 @@ try {
       throw new Error(`File not found: ${imgPath}`);
     }
     form.append('image', fs.createReadStream(imgPath));
-    const response = await fetch(profilUrl + path, {
+    const response = await fetch(profileUrl + path, {
       method: method,
       headers: {
         Authorization: `Bearer ${token}`,
@@ -139,6 +140,35 @@ try {
       );
     }
   }
+  //Get pic
+  {
+    const name = 'Get pic';
+    count += 1;
+    const method = 'GET';
+    const path = `/pics/${id}`;
+    const response = await fetch(profileUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+  }
   // ----------------------------------------------------------------
   //Delete image success
   {
@@ -146,7 +176,7 @@ try {
     count += 1;
     const method = 'DELETE';
     const path = '/uploads';
-    const response = await fetch(profilUrl + path, {
+    const response = await fetch(profileUrl + path, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -160,6 +190,36 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
       );
     } else if (response.status !== 204) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
+  //Get summary success
+  {
+    const name = 'Get summary success';
+    count += 1;
+    const method = 'GET';
+    const path = `/summary/${id}`;
+    const response = await fetch(profileUrl + path, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      method: method,
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
       countFailed += 1;
       console.log(
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`

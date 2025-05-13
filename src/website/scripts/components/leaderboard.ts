@@ -86,6 +86,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		try {
 			const leaderboardData = await DbService.getLeaderboard();
 			this.updateInternalState({ leaderboardData });
+			console.log('Leaderboard data fetched:', leaderboardData);
 		} catch (error) {
 			if (error instanceof ApiError) {
 				console.error(`Error fetching leaderboard data: ${error.message}`);

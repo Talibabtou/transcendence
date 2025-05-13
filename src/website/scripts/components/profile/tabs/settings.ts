@@ -50,13 +50,13 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		// Initialize form data with profile data
 		const formData = {
 			username: profile.username || '',
-			email: '', // Email may need to be fetched separately
+			email: '',
 			password: '',
 			confirmPassword: '',
 		};
 		
 		// Get email from DB if not in profile
-		DbService.getUser(parseInt(profile.id))
+		DbService.getUser(profile.id)
 			.then(user => {
 				if (user && user.email) {
 					this.updateInternalState({

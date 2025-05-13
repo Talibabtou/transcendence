@@ -85,8 +85,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			
 			// Render charts after the component is rendered
 			this.renderCharts();
-			
-			console.log('Player stats summary:', playerStats.summary);
 		} catch (error) {
 			console.error('Error loading stats data:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';

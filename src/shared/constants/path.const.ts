@@ -42,7 +42,7 @@ export const USER = {
 	BASE: '/auth/users',
 	BY_ID: (id: string | number) => `/auth/user/${id}`,
 	ME: '/auth/user/me',
-	PROFILE: '/profil',
+	PROFILE: '/profile/summary',
 	UPLOADS: '/profil/uploads',
 };
 

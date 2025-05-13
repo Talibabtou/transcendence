@@ -2,7 +2,7 @@ import { getMatch, getMatches, createMatch, matchTimeline, matchStats, matchSumm
 export default async function matchRoutes(fastify) {
     fastify.get('/matches', getMatches);
     fastify.get('/match/:id', getMatch);
-    fastify.post('/match/:id', createMatch);
+    fastify.post('/match', createMatch);
     fastify.get('/match/:id/stats', matchTimeline);
     fastify.get('/match/stats/:id', matchStats);
     fastify.get('/match/summary/:id', matchSummary);

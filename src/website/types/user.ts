@@ -5,7 +5,7 @@ export interface User {
 	id: string;
 	theme?: string;
 	pfp?: string;
-	pseudo: string;
+	username: string;
 	last_login?: Date;
 	created_at: Date;
 	email?: string;

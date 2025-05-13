@@ -28,9 +28,10 @@ export var ErrorCodes;
     ErrorCodes["PICTURE_NOT_FOUND"] = "PICTURE_NOT_FOUND";
     //auth related errors
     ErrorCodes["LOGIN_FAILURE"] = "LOGIN_FAILURE";
-    //profil
+    //profile
     ErrorCodes["NO_FILE_PROVIDED"] = "NO_FILE_PROVIDED";
     ErrorCodes["INVALID_TYPE"] = "INVALID_TYPE";
+    ErrorCodes["SUMMARY_NOT_FOUND"] = "SUMMARY_NOT_FOUND";
     //friends
     ErrorCodes["FRIENDSHIP_EXISTS"] = "FRIENDSHIP_EXISTS";
     ErrorCodes["FRIENDS_NOTFOUND"] = "FRIENDS_NOT_FOUNDS";
@@ -77,9 +78,10 @@ export const ErrorMessages = new Map([
     [ErrorCodes.PICTURE_NOT_FOUND, 'Picture not found'],
     //auth related errors
     [ErrorCodes.LOGIN_FAILURE, 'Login failure'],
-    //profil related errors
+    //profile related errors
     [ErrorCodes.NO_FILE_PROVIDED, 'No File Provided'],
     [ErrorCodes.INVALID_TYPE, 'Invalid Type'],
+    [ErrorCodes.SUMMARY_NOT_FOUND, 'Summary not found'],
     //friends
     [ErrorCodes.FRIENDSHIP_EXISTS, 'Friendship exists'],
     [ErrorCodes.FRIENDS_NOTFOUND, 'Friends not found'],
@@ -212,7 +214,7 @@ export const ErrorExamples = {
         error: ErrorTypes.get(401),
         message: ErrorMessages.get(ErrorCodes.LOGIN_FAILURE),
     },
-    //profil related errors
+    //profile related errors
     noFileProvided: {
         statusCode: 404,
         code: ErrorCodes.NO_FILE_PROVIDED,
@@ -224,6 +226,12 @@ export const ErrorExamples = {
         code: ErrorCodes.INVALID_TYPE,
         error: ErrorTypes.get(403),
         message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
+    },
+    summaryNotFound: {
+        statusCode: 404,
+        code: ErrorCodes.SUMMARY_NOT_FOUND,
+        error: ErrorTypes.get(404),
+        message: ErrorMessages.get(ErrorCodes.SUMMARY_NOT_FOUND),
     },
     //friends
     friendshipExist: {

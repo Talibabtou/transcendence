@@ -101,7 +101,7 @@ export class DbService {
 				success: true,
 				user: {
 					id: userResponse.id,
-					pseudo: userResponse.username,
+					username: userResponse.username,
 					email: userResponse.email,
 					created_at: new Date(),
 					last_login: new Date(),
@@ -139,7 +139,7 @@ export class DbService {
 					requires2FA: true,
 					user: {
 						id: loginResponse.id || '',
-						pseudo: loginResponse.username || 'User',
+						username: loginResponse.username || 'User',
 						created_at: new Date(),
 						auth_method: 'email'
 					},
@@ -164,7 +164,7 @@ export class DbService {
 				success: true,
 				user: {
 					id: loginResponse.id || '',
-					pseudo: loginResponse.username || '',
+					username: loginResponse.username || '',
 					email: credentials.email,
 					created_at: new Date(),
 					last_login: new Date(),
@@ -387,33 +387,6 @@ export class DbService {
 		});
 	}
 
-	// =========================================
-	// Helper methods
-	// =========================================
-
-	/**
-	 * Helper method to standardize API request logging
-	 * @param method - HTTP method
-	 * @param endpoint - API endpoint
-	 * @param body - Optional request body
-	 */
-	public static logRequest(method: string, endpoint: string, body?: any): void {
-		const timestamp = new Date().toISOString();
-		const requestId = Math.random().toString(36).substring(2, 10);
-		
-		console.log(`[${timestamp}] [${requestId}] DB REQUEST: ${method} ${endpoint}`, {
-			method,
-			endpoint,
-			...(body && { body }),
-			timestamp,
-			requestId
-		});
-	}
-
-	/**
-	 * ADDITIONAL API METHODS
-	 */
-
 	/**
 	 * Gets tournament information
 	 * @param tournamentId - Tournament UUID
@@ -437,8 +410,8 @@ export class DbService {
 	 * @param userId - The UUID of the user
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
-		this.logRequest('GET', `${API_PREFIX}${USER.BY_ID(userId)}`);
-		return this.fetchApi<any>(`${USER.BY_ID(userId)}`);
+		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE}/${userId}`);
+		return this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
 	}
 
 	/**
@@ -490,6 +463,25 @@ export class DbService {
 		return this.fetchApi<any>('/friends', {
 			method: 'POST',
 			body: JSON.stringify({ user_id: userId, friend_id: friendId })
+		});
+	}
+
+	/**
+	 * Helper method to standardize API request logging
+	 * @param method - HTTP method
+	 * @param endpoint - API endpoint
+	 * @param body - Optional request body
+	 */
+	public static logRequest(method: string, endpoint: string, body?: any): void {
+		const timestamp = new Date().toISOString();
+		const requestId = Math.random().toString(36).substring(2, 10);
+		
+		console.log(`[${timestamp}] [${requestId}] DB REQUEST: ${method} ${endpoint}`, {
+			method,
+			endpoint,
+			...(body && { body }),
+			timestamp,
+			requestId
 		});
 	}
 }

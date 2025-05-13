@@ -95,64 +95,6 @@ try {
     }
   }
   // ----------------------------------------------------------------
-  //Get pic
-  {
-    const name = 'Get pic';
-    count += 1;
-    const method = 'GET';
-    const path = `/pics/ee39d4ea-bca8-b517-1fd6-168def8e547f`;
-    const response = await fetch(gatewayUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 200) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-  }
-  //Get pics
-  {
-    const name = 'Get pics';
-    count += 1;
-    const method = 'GET';
-    const path = `/pics`;
-    const response = await fetch(gatewayUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 200) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-  }
   //Check microservices success
   {
     const name = 'Check microservices success';

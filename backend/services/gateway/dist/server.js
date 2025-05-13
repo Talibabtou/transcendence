@@ -1,7 +1,6 @@
 // import fs from 'fs';
 import path from 'path';
 import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
@@ -203,7 +202,7 @@ export class Server {
             await server.register(rateLimit, rateLimitConfig);
             await server.register(fastifyMultipart, multipartConfig);
             await server.register(fastifyStatic, staticConfig);
-            await server.register(helmet, helmetConfig);
+            // await server.register(helmet, helmetConfig);
             await server.register(cors, corsConfig);
             await server.register(fastifyJwt, jwtPluginRegister);
             await server.register(routes);

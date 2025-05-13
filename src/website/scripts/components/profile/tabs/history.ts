@@ -55,8 +55,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	private async loadMatchHistory(userId: string, isLoadingMore: boolean = false): Promise<void> {
 		try {
 			const state = this.getInternalState();
-			
-			// Exit early if already loading
 			if (state.isLoading) return;
 			
 			// Update loading state
@@ -71,17 +69,14 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			}
 			
 			// Get user matches from DB service for current page
-			const numericId = parseInt(userId);
 			const pageToLoad = isLoadingMore ? state.historyPage + 1 : 0;
-			console.log(`History component loading matches for user ID: ${numericId}, page: ${pageToLoad}`);
 			
-			// Request more matches than needed to account for filtering out incomplete matches
-			const newMatches = await DbService.getUserMatches(numericId, pageToLoad, state.historyPageSize * 2);
-			console.log(`Found ${newMatches.length} matches for history`);
+			// Request the match history
+			const newMatches = await DbService.getUserMatches(userId, pageToLoad, state.historyPageSize);
 			
 			// Process matches
 			const processedMatches = await Promise.all(newMatches.map(async (match) => {
-				const isPlayer1 = match.player_1 === numericId;
+				const isPlayer1 = match.player_1 === userId;
 				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
 				
 				// Get opponent details
@@ -89,7 +84,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				try {
 					const opponent = await DbService.getUser(opponentId);
 					if (opponent) {
-						opponentName = opponent.pseudo;
+						opponentName = opponent.username;
 					}
 				} catch (error) {
 					if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
@@ -107,7 +102,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				let opponentScore = 0;
 				
 				for (const goal of goals) {
-					if (goal.player === numericId) {
+					if (goal.player === userId) {
 						playerScore++;
 					} else if (goal.player === opponentId) {
 						opponentScore++;
@@ -124,7 +119,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				
 				return {
 					id: match.id,
-					date: match.created_at,
+					date: new Date(match.created_at),
 					opponent: opponentName,
 					opponentId: opponentId,
 					playerScore,
@@ -136,25 +131,19 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			// Filter out null matches (incomplete matches) and sort by most recent first
 			const validMatches = processedMatches.filter(match => match !== null);
 			const sortedMatches = validMatches.sort((a, b) => 
-				b.date.getTime() - a.date.getTime()
+				new Date(b.date).getTime() - new Date(a.date).getTime()
 			);
-			
-			// Take only the first historyPageSize matches
-			const trimmedMatches = sortedMatches.slice(0, state.historyPageSize);
-			
-			// If we received fewer matches than requested, we've reached the end
-			const hasMoreMatches = newMatches.length === state.historyPageSize * 2;
 			
 			// Combine with existing matches if loading more
 			const combinedMatches = isLoadingMore 
-				? [...state.matches, ...trimmedMatches]
-				: trimmedMatches;
+				? [...state.matches, ...sortedMatches]
+				: sortedMatches;
 			
 			// Update state with new matches
 			this.updateInternalState({ 
 				matches: combinedMatches,
 				isLoading: false,
-				hasMoreMatches,
+				hasMoreMatches: newMatches.length >= state.historyPageSize,
 				historyPage: pageToLoad
 			});
 			
@@ -164,7 +153,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		} catch (error) {
 			if (error instanceof ApiError) {
 				if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-					console.error(`Player ID ${parseInt(userId)} not found when loading match history`);
+					console.error(`Player ID ${userId} not found when loading match history`);
 				} else {
 					console.error(`Error loading match history: ${error.message}`);
 				}

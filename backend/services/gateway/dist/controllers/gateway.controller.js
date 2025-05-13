@@ -1,45 +1,5 @@
-import path from 'path';
-import fs from 'node:fs';
 import { Server } from '../server.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
-export async function getPic(request, reply) {
-    try {
-        const id = request.params.id;
-        const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
-        const existingFile = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
-        if (existingFile) {
-            return reply.code(200).send({ link: `/uploads/${existingFile}` });
-        }
-        else {
-            const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND);
-            return reply.code(404).send(errorMessage);
-        }
-    }
-    catch (err) {
-        request.server.log.error(err);
-        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-        return reply.code(500).send(errorMessage);
-    }
-}
-export async function getPics(request, reply) {
-    try {
-        const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
-        const existingFiles = fs.readdirSync(uploadDir);
-        if (existingFiles.length > 0) {
-            const modifiedFiles = existingFiles.map((file) => '/uploads/' + file);
-            return reply.code(200).send({ links: modifiedFiles });
-        }
-        else {
-            const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND);
-            return reply.code(404).send(errorMessage);
-        }
-    }
-    catch (err) {
-        request.server.log.error(err);
-        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-        return reply.code(500).send(errorMessage);
-    }
-}
 export async function checkMicroservicesHook(request, reply) {
     try {
         if (request.url.includes(process.env.AUTH_ADDR || 'auth') &&

@@ -78,7 +78,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					
 					const host: PlayerData = {
 						id: hostId,
-						username: currentUser.username || user.pseudo,
+						username: currentUser.username || user.username,
 						pfp: profilePicture,
 						isConnected: true,
 						theme: hostTheme,

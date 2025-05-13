@@ -71,9 +71,8 @@ export async function matchStats(request, reply) {
 }
 export async function createMatch(request, reply) {
     try {
-        const id = request.user.id;
         const subpath = request.url.split('/game')[1];
-        const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}/${id}`;
+        const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
         const response = await fetch(serviceUrl, {
             method: 'POST',
             headers: {

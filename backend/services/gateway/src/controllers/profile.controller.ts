@@ -1,18 +1,31 @@
 import { MultipartFile } from '@fastify/multipart';
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { IUpload, IId } from '../shared/types/profile.type.js';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
+import { IUpload, IId, IReplyPic } from '../shared/types/profile.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+
+export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
+  try {
+    const subpath: string = request.url.split('/profile')[1];
+    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
+    const response: Response = await fetch(serviceUrl, { method: 'GET' });
+    const responseData = (await response.json()) as IReplyPic | ErrorResponse;
+    return reply.code(response.status).send(responseData);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
 
 export async function getSummary(
   request: FastifyRequest<{ Params: IId }>,
   reply: FastifyReply
 ): Promise<void> {
   try {
-    const id: string = request.params.id;
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
+    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as ErrorResponse | unknown;
     return reply.code(response.status).send(responseData);

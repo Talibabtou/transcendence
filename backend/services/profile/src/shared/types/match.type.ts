@@ -10,6 +10,7 @@ export interface Match {
 }
 
 export interface CreateMatchRequest {
+  player_1: string;
   player_2: string;
   tournament_id?: string | null;
 }
