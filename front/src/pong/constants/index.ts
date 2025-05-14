@@ -56,7 +56,7 @@ export const GAME_RATIOS = {
 	PADDLE: {
 		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
-		SPEED: 0.8,     // control speed (fraction of screen height per second)
+		SPEED: 1.0,     // control speed (fraction of screen height per second)
 		PADDING: 0.03   // % from edges
 	},
 	BALL: {

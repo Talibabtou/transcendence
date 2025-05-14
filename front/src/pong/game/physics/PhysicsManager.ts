@@ -4,6 +4,21 @@ import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
 
 // =========================================
+// Result Interfaces for Physics Calculations
+// =========================================
+interface SweepResult {
+  t: number;
+  normal: { nx: number; ny: number };
+  collided: boolean;
+}
+
+interface CircleAABBOverlapResult {
+  penetration: { dx: number; dy: number };
+  normal: { nx: number; ny: number };
+  collided: boolean;
+}
+
+// =========================================
 // PHYSICS MANAGER
 // =========================================
 // 1) Broad-phase (sweep): very cheap, finds the first time of impact along the movement ray
@@ -19,6 +34,14 @@ export class PhysicsManager {
   private player2: Player;
   private gameEngine: any; // Store game engine reference
   private gameScene: GameScene; // Need reference for resetPositions and pauseManager
+
+  // Reusable result objects for collision calculations
+  private sweepResult: SweepResult = { t: 0, normal: { nx: 0, ny: 0 }, collided: false };
+  private overlapResult: CircleAABBOverlapResult = {
+    penetration: { dx: 0, dy: 0 },
+    normal: { nx: 0, ny: 0 },
+    collided: false
+  };
 
   constructor(ball: Ball, player1: Player, player2: Player, gameEngine: any, gameScene: GameScene) {
     this.ball = ball;
@@ -84,7 +107,7 @@ export class PhysicsManager {
 			const ballRadius = ball.getSize();
 			const canvas = ball.getContext().canvas;
 			let reflectedOffVerticalWall = false;
-			const epsilon = ballRadius * 0.02; // Small offset relative to ball radius
+			const epsilon = ballRadius * 0.01; // Small offset relative to ball radius
 	
 			// Get previous and current positions for sweep test
 			const p0 = ball.prevPosition;
@@ -206,13 +229,13 @@ export class PhysicsManager {
       this.accelerateBall(this.ball);
     }
 
-    const hitPlayer1 = PhysicsManager.collideBallWithPaddle(this.ball, this.player1);
+    const hitPlayer1 = this.collideBallWithPaddle(this.ball, this.player1);
     if (hitPlayer1) {
       this.accelerateBall(this.ball);
       // Potentially add other P1 hit specific logic here if needed in future
     }
 
-    const hitPlayer2 = PhysicsManager.collideBallWithPaddle(this.ball, this.player2);
+    const hitPlayer2 = this.collideBallWithPaddle(this.ball, this.player2);
     if (hitPlayer2) {
       this.accelerateBall(this.ball);
       this.player2.predictBallTrajectory(this.ball.getPosition(), this.ball.getVelocity());
@@ -268,8 +291,11 @@ export class PhysicsManager {
     rectRight: number,
     rectTop: number,
     rectBottom: number,
-    vRect: {dx: number; dy: number} // Rectangle velocity
-  ): {t: number; normal: {nx: number; ny: number}} | null {
+    vRect: {dx: number; dy: number}, // Rectangle velocity
+    out: SweepResult // Output parameter
+  ): void {
+    out.collided = false; // Initialize
+
     // Calculate relative velocity (Circle's velocity relative to the Rectangle)
     const relDx = vCircle.dx - vRect.dx;
     const relDy = vCircle.dy - vRect.dy;
@@ -277,7 +303,7 @@ export class PhysicsManager {
     // If relative velocity is near zero, no sweep needed (or possible)
     if (Math.abs(relDx) < 1e-6 && Math.abs(relDy) < 1e-6) {
         // Optional: Could add a simple overlap check here if needed as a fallback
-        return null;
+        return; // out.collided remains false
     }
 
     let tmin = 0, tmax = 1;
@@ -294,9 +320,9 @@ export class PhysicsManager {
       const txmax = Math.max(t1, t2);
       tmin = Math.max(tmin, txmin); // Update earliest entry time
       tmax = Math.min(tmax, txmax); // Update latest exit time
-      if (tmin > tmax) return null; // Exit if no overlap in time interval on X
+      if (tmin > tmax) return; // Exit if no overlap in time interval on X, out.collided remains false
     } else if (p0.x < minX || p0.x > maxX) {
-        return null; // If no horizontal velocity and outside X bounds, cannot hit
+        return; // If no horizontal velocity and outside X bounds, cannot hit, out.collided remains false
     }
 
     // --- Y-axis sweep ---
@@ -308,23 +334,22 @@ export class PhysicsManager {
       const tymax = Math.max(t1, t2);
       tmin = Math.max(tmin, tymin); // Update earliest entry time
       tmax = Math.min(tmax, tymax); // Update latest exit time
-      if (tmin > tmax) return null; // Exit if no overlap in time interval on Y
+      if (tmin > tmax) return; // Exit if no overlap in time interval on Y, out.collided remains false
     } else if (p0.y < minY || p0.y > maxY) {
-      return null; // If no vertical velocity and outside Y bounds, cannot hit
+      return; // If no vertical velocity and outside Y bounds, cannot hit, out.collided remains false
     }
 
     // Check if the valid collision time 'tmin' is within the frame interval [0, 1]
-    if (tmin < 0 || tmin > 1) return null;
+    if (tmin < 0 || tmin > 1) return; // out.collided remains false
 
     // Determine the collision normal based on which axis had the latest entry time
     const axis = txmin > tymin ? 'x' : 'y';
-    const normal = {
-        // Normal should point AWAY from the rectangle face that was hit
-        nx: axis === 'x' ? (relDx < 0 ? 1 : -1) : 0, // If moving right (relDx>0), hit left face (nx=-1)
-        ny: axis === 'y' ? (relDy < 0 ? 1 : -1) : 0  // If moving down (relDy>0), hit top face (ny=-1)
-    };
-
-    return {t: tmin, normal};
+    
+    out.t = tmin;
+    out.normal.nx = axis === 'x' ? (relDx < 0 ? 1 : -1) : 0;
+    out.normal.ny = axis === 'y' ? (relDy < 0 ? 1 : -1) : 0;
+    out.collided = true;
+    // No explicit return needed here, function completes
   }
 
   // Helper function to apply paddle deflection
@@ -415,8 +440,11 @@ export class PhysicsManager {
     rectLeft: number,
     rectRight: number,
     rectTop: number,
-    rectBottom: number
-  ): { penetration: { dx: number; dy: number }; normal: { nx: number; ny: number } } | null {
+    rectBottom: number,
+    out: CircleAABBOverlapResult // Output parameter
+  ): void {
+    out.collided = false; // Initialize
+
     // Find the closest point on the AABB to the circle's center
     const closestX = Math.max(rectLeft, Math.min(ballPos.x, rectRight));
     const closestY = Math.max(rectTop, Math.min(ballPos.y, rectBottom));
@@ -435,15 +463,17 @@ export class PhysicsManager {
       const normalX = distanceX / distance;
       const normalY = distanceY / distance;
 
-      return {
-        penetration: { dx: normalX * penetrationDepth, dy: normalY * penetrationDepth },
-        normal: { nx: normalX, ny: normalY },
-      };
+      out.penetration.dx = normalX * penetrationDepth;
+      out.penetration.dy = normalY * penetrationDepth;
+      out.normal.nx = normalX;
+      out.normal.ny = normalY;
+      out.collided = true;
+      return; // Collision occurred
     }
-    return null; // No overlap
+    // No overlap, out.collided remains false
   }
 
-  public static collideBallWithPaddle(
+  public collideBallWithPaddle(
     ball: Ball,
     player: Player
   ): boolean {
@@ -465,14 +495,15 @@ export class PhysicsManager {
     const ballMoveDir = { dx: ballPosition.x - prevBallPos.x, dy: ballPosition.y - prevBallPos.y };
 
     if (Math.abs(ballMoveDir.dx) > 1e-6 || Math.abs(ballMoveDir.dy) > 1e-6) {
-      const sweepHit = PhysicsManager.sweepCircleVsMovingRect(
+      PhysicsManager.sweepCircleVsMovingRect(
         prevBallPos, ballMoveDir, ballRadius,
         pLeft, pRight, pTop, pBottom,
-        paddleVelocity
+        paddleVelocity,
+        this.sweepResult
       );
 
-      if (sweepHit) {
-        const { t, normal } = sweepHit;
+      if (this.sweepResult.collided) {
+        const { t, normal } = this.sweepResult;
         const contactX = prevBallPos.x + ballMoveDir.dx * t;
         const contactY = prevBallPos.y + ballMoveDir.dy * t;
 
@@ -498,53 +529,26 @@ export class PhysicsManager {
     }
 
     // 2) Discrete Collision Test (Fallback or if sweep didn't fully resolve)
-    // Always perform this check, even if sweep hit, to correct residual penetration
-    // or handle cases where sweep might miss (e.g., object starts already overlapping).
-    const discreteOverlap = PhysicsManager.checkCircleAABBOverlap(
-      ball.getPosition(), // Use the ball\'s *current* position after sweep correction
+    PhysicsManager.checkCircleAABBOverlap(
+      ball.getPosition(), // Use the ball's *current* position after sweep correction
       ballRadius,
-      pLeft, pRight, pTop, pBottom
+      pLeft, pRight, pTop, pBottom,
+      this.overlapResult
     );
 
-    if (discreteOverlap) {
-      const { penetration, normal } = discreteOverlap;
+    if (this.overlapResult.collided) {
+      const { penetration, normal } = this.overlapResult;
 
       // Push the ball out of the paddle by the penetration amount
       ball.x += penetration.dx;
       ball.y += penetration.dy;
       
-      // Reflect velocity based on the discrete collision normal
-      // Only reflect if the ball is moving towards the paddle (or was before being pushed out)
       const dotProduct = ballVelocity.dx * normal.nx + ballVelocity.dy * normal.ny;
-      if (dotProduct < 0 || hitOccurred) { // If sweep already hit, we might be reflecting again, or if moving into.
-                                       // The condition `hitOccurred` helps if the sweep moved the ball
-                                       // but it still ended up penetrating for the discrete check.
-        if (normal.ny !== 0 && !hitOccurred) { // Hit top/bottom of paddle, and sweep didn\'t cause freeze
+      if (dotProduct < 0 || hitOccurred) {
+        if (normal.ny !== 0 && !hitOccurred) {
             player.freezeMovement(0.2);
         }
         const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
-        const finalVel = PhysicsManager._applyPaddleDeflection(
-            ball.getPosition(), // Use current ball position for deflection calculation
-            reflectedVel,
-            pTop, pBottom
-        );
-        ball.dx = finalVel.dx;
-        ball.dy = finalVel.dy;
-        hitOccurred = true; // Mark that a collision (discrete) was handled
-      } else if (!hitOccurred && (Math.abs(normal.nx) > 0.9 || Math.abs(normal.ny) > 0.9)) {
-        // If no prior hit and clearly hitting a face (not a corner snag moving away)
-        // and velocity wasn\'t clearly "into" the paddle (dotProduct >= 0),
-        // this might be a "resting" contact or a snag.
-        // For simplicity, we might just stop the ball or reflect if it has some velocity component against normal.
-        // A more advanced solution might involve friction or other responses.
-        // For now, if it wasn\'t moving into the paddle but is overlapping,
-        // and we haven\'t reflected from sweep, we reflect to prevent sticking.
-        // This is a bit of a heuristic.
-        const emergencyDot = -0.1; // Assume a small "into" component to force reflection
-         if (normal.ny !== 0) {
-            player.freezeMovement(0.2);
-        }
-        const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
         const finalVel = PhysicsManager._applyPaddleDeflection(
             ball.getPosition(),
             reflectedVel,
@@ -553,6 +557,31 @@ export class PhysicsManager {
         ball.dx = finalVel.dx;
         ball.dy = finalVel.dy;
         hitOccurred = true;
+      } else {
+        // This 'else' block was problematic and led to unintended reflections on resting contact.
+        // Simplified logic: if overlapping but not clearly moving into it, and sweep didn't hit,
+        // we reflect to prevent sticking. This covers cases where the ball might be pushed slightly
+        // by the discrete check and its velocity vector isn't perfectly aligned for dotProduct < 0.
+        // However, the original aggressive reflection on any overlap if dotProduct wasn't < 0 was causing issues.
+        // A more robust solution would be to only reflect if there is some opposing motion, 
+        // or if the overlap is significant, or implement proper resting contact physics.
+        // For now, let's ensure we only apply this secondary reflection if not already handled by sweep.
+        if (!hitOccurred) {
+            // Small negative dot product to ensure reflection away from normal
+            const emergencyDot = -0.1; 
+            if (normal.ny !== 0) {
+                player.freezeMovement(0.2);
+            }
+            const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
+            const finalVel = PhysicsManager._applyPaddleDeflection(
+                ball.getPosition(),
+                reflectedVel,
+                pTop, pBottom
+            );
+            ball.dx = finalVel.dx;
+            ball.dy = finalVel.dy;
+            hitOccurred = true;
+        }
       }
     }
     
@@ -561,7 +590,7 @@ export class PhysicsManager {
         // Check if normal from discrete or sweep indicates a side hit
         // This logic might need to be more robust regarding which normal to use if both hit
         let collisionNormalX = 0;
-        if (discreteOverlap) collisionNormalX = discreteOverlap.normal.nx;
+        if (this.overlapResult.collided) collisionNormalX = this.overlapResult.normal.nx;
         // else if (sweepHit) collisionNormalX = sweepHit.normal.nx; // sweepHit might not be in scope
 
         if (collisionNormalX !== 0) { // Hit was on the side (front face)
