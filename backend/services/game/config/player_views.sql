@@ -12,7 +12,7 @@
 CREATE VIEW IF NOT EXISTS player_match_summary AS
 SELECT 
   player_id, -- The ID of the player
-  COUNT(match_id) AS total_matches, -- Total number of matches played by the player
+  COUNT(match_id) AND duration NOT NULL AS total_matches, -- Total number of matches played by the player
   (SELECT elo FROM elo WHERE player = player_id ORDER BY created_at DESC LIMIT 1) AS elo,
   SUM(CASE WHEN active = FALSE AND duration NOT NULL THEN 1 ELSE 0 END) AS active_matches, -- Number of matches that are active
   SUM(CASE WHEN active = FALSE AND duration NOT NULL AND 
