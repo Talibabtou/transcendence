@@ -44,19 +44,19 @@ export async function getMatch(request: FastifyRequest<{ Params: IMatchId }>, re
   }
 }
 
-export async function matchTimeline(request: FastifyRequest<{ Params: IMatchId }>, reply: FastifyReply) {
-  try {
-    const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
-    const response = await fetch(serviceUrl, { method: 'GET' });
-    const reponseData = (await response.json()) as MatchGoals[] | ErrorResponse;
-    return reply.code(response.status).send(reponseData);
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
+// export async function matchTimeline(request: FastifyRequest<{ Params: IMatchId }>, reply: FastifyReply) {
+//   try {
+//     const subpath = request.url.split('/game')[1];
+//     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+//     const response = await fetch(serviceUrl, { method: 'GET' });
+//     const reponseData = (await response.json()) as MatchGoals[] | ErrorResponse;
+//     return reply.code(response.status).send(reponseData);
+//   } catch (err) {
+//     request.server.log.error(err);
+//     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+//     return reply.code(500).send(errorMessage);
+//   }
+// }
 
 export async function matchSummary(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {

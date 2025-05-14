@@ -5,7 +5,7 @@ import {
   getMatch,
   getMatches,
   createMatch,
-  matchTimeline,
+  // matchTimeline,
   matchStats,
   matchSummary,
 } from '../controllers/match.controller.js';
@@ -13,7 +13,7 @@ import {
   getMatchSchema,
   getMatchesSchema,
   createMatchSchema,
-  matchTimelineSchema,
+  // matchTimelineSchema,
   matchStatsSchema,
   matchSummarySchema,
 } from '../schemas/match.schemas.js';
@@ -45,17 +45,17 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
     getMatch
   );
 
-  fastify.get<{ Params: IId }>(
-    '/game/match/:id/stats',
-    {
-      schema: {
-        ...matchTimelineSchema,
-        tags: ['matches'],
-      },
-      config: auth,
-    },
-    matchTimeline
-  );
+  // fastify.get<{ Params: IId }>(
+  //   '/game/match/:id/stats',
+  //   {
+  //     schema: {
+  //       ...matchTimelineSchema,
+  //       tags: ['matches'],
+  //     },
+  //     config: auth,
+  //   },
+  //   matchTimeline
+  // );
 
   fastify.get<{ Params: IId }>(
     '/game/match/stats/:id',

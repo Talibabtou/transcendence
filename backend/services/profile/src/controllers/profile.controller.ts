@@ -4,7 +4,7 @@ import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { IReplyUser } from '../shared/types/auth.types.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
-import { PlayerMatchSummary } from '../shared/types/match.type.js';
+import { MatchHistory, PlayerMatchSummary } from '../shared/types/match.type.js';
 import { IReplySummary, IReplyPic } from '../shared/types/profile.type.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
@@ -22,6 +22,24 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
       const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND);
       return reply.code(404).send(errorMessage);
     }
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function getHistory(
+  request: FastifyRequest<{ Params: IId }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const id = request.params.id;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}}`;
+    const response = await fetch(serviceUrl, { method: 'GET' });
+    const responseData = (await response.json()) as MatchHistory;
+    console.log(responseData);
+    return reply.code(200).send(responseData);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

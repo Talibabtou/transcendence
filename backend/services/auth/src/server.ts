@@ -23,6 +23,7 @@ class Server {
             },
           },
         },
+        disableRequestLogging: true,
       });
     return Server.instance;
   }

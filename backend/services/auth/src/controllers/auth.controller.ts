@@ -24,12 +24,36 @@ export async function getId(
 ): Promise<void> {
   try {
     const username = request.params.username;
-    const id: IId | undefined = await request.server.db.get('SELECT id FROM users WHERE username = ?', [username]);
+    const id: IId | undefined = await request.server.db.get('SELECT id FROM users WHERE username = ?', [
+      username,
+    ]);
     if (!id) {
       const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
       return reply.code(404).send(errorMessage);
     }
     return reply.code(200).send(id);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function getUsername(
+  request: FastifyRequest<{ Params: IId }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const id = request.params.id;
+    const username: IUsername | undefined = await request.server.db.get(
+      'SELECT username FROM users WHERE id = ?',
+      [id]
+    );
+    if (!username) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+      return reply.code(404).send(errorMessage);
+    }
+    return reply.code(200).send(username);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -108,13 +132,15 @@ export async function addUser(
   try {
     const { username, password, email } = request.body;
     const ip = request.headers['from'];
+    const userLower = username.toLowerCase();
+    const emailLower = email.toLowerCase();
     await request.server.db.run(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
-      [username.toLowerCase(), password, email.toLowerCase(), ip]
+      [userLower, password, emailLower, ip]
     );
     const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE username = ?',
-      [username]
+      [userLower]
     );
     if (user !== undefined) {
       const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
@@ -311,6 +337,28 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       username: data.username,
     };
     return reply.code(200).send(user);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}
+
+export async function loginGuest(
+  request: FastifyRequest<{ Body: ILogin }>,
+  reply: FastifyReply
+): Promise<void> {
+  try {
+    const { email, password } = request.body;
+    const data = await request.server.db.get(
+      'SELECT id, role, username, two_factor_enabled, verified FROM users WHERE email = ? AND password = ?;',
+      [email, password]
+    );
+    if (!data) {
+      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+      return reply.code(401).send(errorMessage);
+    }
+    return reply.code(200).send();
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

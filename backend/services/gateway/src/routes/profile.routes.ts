@@ -1,6 +1,12 @@
 import { FastifyInstance } from 'fastify';
-import { deletePic, postPic, getSummary, getPic } from '../controllers/profile.controller.js';
-import { deleteSchema, uploadSchema, getPicSchema } from '../schemas/profile.schemas.js';
+import { deletePic, postPic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
+import {
+  deleteSchema,
+  uploadSchema,
+  getPicSchema,
+  summarySchema,
+  // getHistorySchema,
+} from '../schemas/profile.schemas.js';
 import { IUpload } from '../shared/types/profile.type.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
@@ -19,12 +25,24 @@ export default async function profileRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
-    '/profile/summary/:id',
+    '/profile/history/:id',
     {
       // schema: {
-      //   ...summarySchema,
+      //   ...getHistorySchema,
       //   tags: ['profile'],
       // },
+      config: auth,
+    },
+    getHistory
+  );
+
+  fastify.get(
+    '/profile/summary/:id',
+    {
+      schema: {
+        ...summarySchema,
+        tags: ['profile'],
+      },
       config: auth,
     },
     getSummary
@@ -33,10 +51,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
   fastify.post<{ Body: IUpload }>(
     '/profile/uploads',
     {
-      // schema: {
-      //   ...uploadSchema,
-      //   tags: ['profile'],
-      // },
+      schema: {
+        ...uploadSchema,
+        tags: ['profile'],
+      },
       config: auth,
     },
     postPic

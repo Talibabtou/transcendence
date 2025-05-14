@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { IAddUser, ILogin, IModifyUser, IId, IUsername } from '../shared/types/auth.types.js';
 import {
+  getId,
   getUsers,
   getUser,
   getUserMe,
@@ -8,11 +9,12 @@ import {
   patchUser,
   deleteUser,
   postLogin,
+  postLoginGuest,
   postLogout,
   twofaGenerate,
   twofaValidate,
   twofaDisable,
-  getId,
+  getUsername,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -21,12 +23,14 @@ import {
   deleteUserSchema,
   createUserSchema,
   modifyUserSchema,
+  loginGuestSchema,
   loginSchema,
   logoutSchema,
   twofaDisableSchema,
   twofaValidateSchema,
   twofaGenerateSchema,
   getIdSchema,
+  getUsernameSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
@@ -43,6 +47,18 @@ export default async function authRoutes(fastify: FastifyInstance) {
       config: auth,
     },
     getId
+  );
+
+  fastify.get<{ Params: IId }>(
+    '/auth/username/:id',
+    {
+      schema: {
+        ...getUsernameSchema,
+        tags: ['auth'],
+      },
+      config: auth,
+    },
+    getUsername
   );
 
   fastify.get(
@@ -137,6 +153,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     postLogin
+  );
+
+  fastify.post<{ Body: ILogin }>(
+    '/auth/login/guest',
+    {
+      schema: {
+        ...loginGuestSchema,
+        tags: ['auth'],
+      },
+    },
+    postLoginGuest
   );
 
   fastify.patch<{ Body: IModifyUser }>(

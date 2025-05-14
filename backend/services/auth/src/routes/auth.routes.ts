@@ -15,13 +15,15 @@ import {
   getUserMe,
   deleteUser,
   modifyUser,
-  login,
   logout,
+  login,
+  loginGuest,
   checkRevoked,
   twofaDisable,
   twofaGenerate,
   twofaValidate,
   getId,
+  getUsername,
 } from '../controllers/auth.controller.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -30,6 +32,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   });
 
   fastify.get<{ Params: IUsername }>('/id/:username', getId);
+
+  fastify.get<{ Params: IId }>('/username/:id', getUsername);
 
   fastify.get('/users', getUsers);
 
@@ -48,6 +52,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.post<{ Body: IJwtId; Params: IId }>('/logout/:id', logout);
 
   fastify.post<{ Body: ILogin }>('/login', login);
+
+  fastify.post<{ Body: ILogin }>('/login/guest', loginGuest);
 
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
 
