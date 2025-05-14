@@ -1,19 +1,8 @@
-import eloRoutes from './routes/elo.routes.js';
-import goalRoutes from './routes/goal.routes.js';
-import fastify, { FastifyInstance } from 'fastify';
-import matchRoutes from './routes/match.routes.js';
-import systemRoutes from './routes/system.routes.js';
 import databaseConnector from './db.js';
+import { routes } from './routes/index.js';
+import fastify, { FastifyInstance } from 'fastify';
 import { startTelemetry } from './telemetry/telemetry.js';
-import tournamentRoutes from './routes/tournament.routes.js';
-
-async function routes(server: FastifyInstance) {
-  await server.register(eloRoutes);
-  await server.register(goalRoutes);
-  await server.register(matchRoutes);
-  await server.register(tournamentRoutes);
-  await server.register(systemRoutes);
-}
+import { fastifyConfig } from './config/fastify.js';
 
 class Server {
   private static instance: FastifyInstance;
@@ -21,50 +10,28 @@ class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance)
-      Server.instance = fastify({
-        logger: {
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-              ignore: 'pid,hostname',
-            },
-          },
-        },
-        disableRequestLogging: true,
-      });
+    if (!Server.instance) Server.instance = fastify(fastifyConfig);
     return Server.instance;
   }
 
   public static async start(): Promise<void> {
-    const server: FastifyInstance = Server.getInstance();
+    const server = Server.getInstance();
     const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
     try {
-      process.on('SIGINT', () => Server.shutdown('SIGINT'));
-      process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
+      process.once('SIGINT', () => Server.shutdown('SIGINT'));
+      process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       await server.register(databaseConnector);
       await server.register(routes);
-      server.listen(
-        {
-          port: Number(process.env.GAME_PORT) || 8083,
-          host: process.env.GAME_ADDR || 'localhost',
-        },
-        (err, address) => {
-          if (err) {
-            server.log.error(`Failed to start server: ${err.message}`);
-            if (err instanceof Error && err.message.includes('EADDRINUSE'))
-              server.log.error(`Port ${Number(process.env.FRIENDS_PORT) || 8083} is already in use`);
-            process.exit(1);
-          }
-          server.log.info(`Server listening at ${address}`);
-          server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
-        }
+      await server.listen({
+        port: Number(process.env.AUTH_PORT) || 8083,
+        host: process.env.AUTH_ADDR || 'localhost',
+      });
+      server.log.info(
+        `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8083}`
       );
+      server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
-      server.log.error(err);
-      process.exit(1);
+      server.log.error('Startup error:', err);
     }
   }
 

@@ -1,6 +1,7 @@
 import { initDb } from './db.js';
 import { fastify, FastifyInstance } from 'fastify';
 import friendsRoutes from './routes/friends.routes.js';
+import { fastifyConfig } from './config/fastify.js';
 
 class Server {
   private static instance: FastifyInstance;
@@ -8,48 +9,26 @@ class Server {
   private constructor() {}
 
   public static getInstance(): FastifyInstance {
-    if (!Server.instance)
-      Server.instance = fastify({
-        logger: {
-          transport: {
-            target: 'pino-pretty',
-            options: {
-              colorize: true,
-              translateTime: 'SYS:standard',
-              ignore: 'pid,hostname',
-            },
-          },
-        },
-        disableRequestLogging: true,
-      });
+    if (!Server.instance) Server.instance = fastify(fastifyConfig);
     return Server.instance;
   }
 
   public static async start(): Promise<void> {
-    const server: FastifyInstance = Server.getInstance();
+    const server = Server.getInstance();
     try {
-      process.on('SIGINT', () => Server.shutdown('SIGINT'));
-      process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
+      process.once('SIGINT', () => Server.shutdown('SIGINT'));
+      process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       server.decorate('db', await initDb());
       await server.register(friendsRoutes);
-      server.listen(
-        {
-          port: Number(process.env.FRIENDS_PORT) || 8084,
-          host: process.env.FRIENDS_ADDR || 'localhost',
-        },
-        (err, address) => {
-          if (err) {
-            server.log.error(`Failed to start server: ${err.message}`);
-            if (err instanceof Error && err.message.includes('EADDRINUSE'))
-              server.log.error(`Port ${Number(process.env.FRIENDS_PORT) || 8084} is already in use`);
-            process.exit(1);
-          }
-          server.log.info(`Server listening at ${address}`);
-        }
+      await server.listen({
+        port: Number(process.env.AUTH_PORT) || 8084,
+        host: process.env.AUTH_ADDR || 'localhost',
+      });
+      server.log.info(
+        `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8084}`
       );
     } catch (err) {
-      server.log.error(err);
-      process.exit(1);
+      server.log.error('Startup error:', err);
     }
   }
 
