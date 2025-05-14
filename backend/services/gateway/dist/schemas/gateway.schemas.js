@@ -8,12 +8,12 @@ export const getHealthSchema = {
         200: {
             type: 'object',
             properties: {
-                profile: { type: 'boolean' },
+                profil: { type: 'boolean' },
                 auth: { type: 'boolean' },
                 game: { type: 'boolean' },
                 friends: { type: 'boolean' },
             },
-            required: ['profile', 'auth', 'game', 'friends'],
+            required: ['profil', 'auth', 'game', 'friends'],
             additionalProperties: false,
         },
     },

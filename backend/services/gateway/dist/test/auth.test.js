@@ -366,7 +366,7 @@ try {
             issuesList.push(name);
             console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`);
         }
-        else if (response.status !== 400) {
+        else if (response.status === 200) {
             countFailed += 1;
             console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`);
         }

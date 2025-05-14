@@ -1,5 +1,5 @@
-import { getElo, getElos, createElo, getLeaderboard } from '../controllers/elo.controller.js';
-import { getEloSchema, getElosSchema, createEloSchema, getLeaderboardSchema, } from '../schemas/elo.schemas.js';
+import { getElo, getElos, getLeaderboard } from '../controllers/elo.controller.js';
+import { getEloSchema, getElosSchema, getLeaderboardSchema } from '../schemas/elo.schemas.js';
 const auth = { auth: true, roles: ['user', 'admin'] };
 export default async function eloRoutes(fastify) {
     fastify.get('/game/elos', {
@@ -22,11 +22,4 @@ export default async function eloRoutes(fastify) {
             tags: ['elos'],
         },
     }, getLeaderboard);
-    fastify.post('/game/elo', {
-        schema: {
-            ...createEloSchema,
-            tags: ['elos'],
-        },
-        config: auth,
-    }, createElo);
 }

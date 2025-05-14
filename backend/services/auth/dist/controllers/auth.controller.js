@@ -79,7 +79,7 @@ export async function addUser(request, reply) {
     try {
         const { username, password, email } = request.body;
         const ip = request.headers['from'];
-        await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username, password, email, ip]);
+        await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username.toLowerCase(), password, email.toLowerCase(), ip]);
         const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
         if (user !== undefined) {
             const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
@@ -113,6 +113,10 @@ export async function modifyUser(request, reply) {
     try {
         const id = request.params.id;
         const { username, password, email } = request.body;
+        if (!username && !password && !email) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.BAD_REQUEST);
+            return reply.code(404).send(errorMessage);
+        }
         const result = await request.server.db.run('SELECT id FROM users WHERE id = ?', [id]);
         if (!result) {
             const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
@@ -120,9 +124,9 @@ export async function modifyUser(request, reply) {
         }
         if (username)
             await request.server.db.run('UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [username, id]);
-        else if (password)
+        if (password)
             await request.server.db.run('UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [password, id]);
-        else
+        if (email)
             await request.server.db.run('UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?', [email, id]);
         return reply.code(200).send();
     }

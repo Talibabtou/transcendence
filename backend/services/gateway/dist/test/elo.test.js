@@ -83,32 +83,6 @@ try {
         }
     }
     // ----------------------------------------------------------------
-    //Create elo success
-    {
-        const name = 'Create elo success';
-        count += 1;
-        const method = 'POST';
-        const path = '/elo';
-        const response = await fetch(gameUrl + path, {
-            method: method,
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        });
-        if (response.status === 500) {
-            severalIssues += 1;
-            countFailed += 1;
-            issuesList.push(name);
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`);
-        }
-        else if (response.status !== 201) {
-            countFailed += 1;
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`);
-        }
-        else {
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`);
-        }
-    }
     //Get elos success
     {
         const name = 'Get elos success';
