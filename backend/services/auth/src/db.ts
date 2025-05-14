@@ -41,10 +41,20 @@ export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.State
     `);
     const computer = await db.get('SELECT id FROM users WHERE username = "computer"');
     if (!computer) {
-      console.log({ computer: 'created' });
       await db.run(
         'INSERT INTO users (role, username, password, email, created_at) VALUES ("admin", "computer", "computer", "computer@computer.com", CURRENT_TIMESTAMP);'
       );
+      const computer = await db.get('SELECT id FROM users WHERE username = "computer"');
+      if (!computer) {
+        throw new Error('Get id ia failed');
+      }
+      const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${computer.id}`;
+      const response = await fetch(eloUrl, { method: 'POST' });
+      if (response.status !== 201) {
+        throw new Error('Create elo failed');
+      }
+    } else {
+      throw new Error('Create user failed');
     }
     return db;
   } catch (err) {

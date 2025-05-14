@@ -347,14 +347,8 @@ export const modifyUserSchema = {
     },
     additionalProperties: false,
     required: [],
-    anyOf: [{ required: ['username'] }, { required: ['password'] }, { required: ['email'] }],
-    not: {
-      anyOf: [
-        { required: ['username', 'password'] },
-        { required: ['username', 'email'] },
-        { required: ['password', 'email'] },
-      ],
-    },
+    minProperties: 1,
+    maxProperties: 3,
     description:
       'Schema for modifying user profile information (username, password, or email). Only one property can be provided at a time.',
   },

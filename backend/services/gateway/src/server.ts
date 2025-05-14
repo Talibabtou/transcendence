@@ -152,7 +152,7 @@ const helmetConfig = {
 };
 
 const corsConfig = {
-  origin: 'http://localhost:3000',
+  origin: 'https://localhost:3000',
   methods: ['GET', 'POST', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -221,7 +221,7 @@ export class Server {
       await server.register(fastifyMultipart, multipartConfig);
       await server.register(fastifyStatic, staticConfig);
       // await server.register(helmet, helmetConfig);
-      await server.register(cors, corsConfig);
+      // server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.register(routes);
       server.addHook('onRequest', jwtPluginHook);

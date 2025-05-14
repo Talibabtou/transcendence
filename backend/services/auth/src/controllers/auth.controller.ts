@@ -110,7 +110,7 @@ export async function addUser(
     const ip = request.headers['from'];
     await request.server.db.run(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
-      [username, password, email, ip]
+      [username.toLowerCase(), password, email.toLowerCase(), ip]
     );
     const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE username = ?',
@@ -149,6 +149,10 @@ export async function modifyUser(
   try {
     const id = request.params.id;
     const { username, password, email } = request.body;
+    if (!username && !password && !email) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.BAD_REQUEST);
+      return reply.code(404).send(errorMessage);
+    }
     const result = await request.server.db.run('SELECT id FROM users WHERE id = ?', [id]);
     if (!result) {
       const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
@@ -159,12 +163,12 @@ export async function modifyUser(
         'UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [username, id]
       );
-    else if (password)
+    if (password)
       await request.server.db.run(
         'UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [password, id]
       );
-    else
+    if (email)
       await request.server.db.run(
         'UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [email, id]

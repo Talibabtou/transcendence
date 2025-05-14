@@ -93,25 +93,6 @@ export const getElosSchema = {
   },
 };
 
-export const createEloSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  response: {
-    201: eloSchema,
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const updatePlayerEloSchema = {
   querystring: {
     type: 'object',
