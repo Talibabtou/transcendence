@@ -1,0 +1,232 @@
+import { Ball } from '../objects';
+import { BALL_CONFIG } from '@pong/constants';
+import { SweepResult, CircleAABBOverlapResult } from './PhysicsManager'; // Assuming interfaces are exported from PhysicsManager
+
+// =========================================
+// Physics Utility Functions
+// =========================================
+
+/**
+ * Helper for basic velocity reflection.
+ * @param vx Current x-velocity.
+ * @param vy Current y-velocity.
+ * @param nx X-component of the collision normal.
+ * @param ny Y-component of the collision normal.
+ * @param dot Pre-calculated dot product (v . n).
+ * @returns Object with reflected dx and dy velocities.
+ */
+export function reflectVelocity(
+  vx: number, vy: number,
+  nx: number, ny: number,
+  dot: number // Pre-calculated dot product (v . n)
+): { dx: number, dy: number } {
+  return {
+    dx: vx - 2 * dot * nx,
+    dy: vy - 2 * dot * ny
+  };
+}
+
+/**
+ * Helper to correct ball position after a sweep collision.
+ * @param ball The ball object.
+ * @param contactX X-coordinate of the contact point.
+ * @param contactY Y-coordinate of the contact point.
+ * @param nx X-component of the collision normal.
+ * @param ny Y-component of the collision normal.
+ * @param epsilon Small buffer distance to push the ball out.
+ */
+export function correctPosition(
+  ball: Ball,
+  contactX: number, contactY: number,
+  nx: number, ny: number,
+  epsilon: number // Small buffer distance
+): void {
+  // Set position precisely to the calculated contact point first
+  ball.x = contactX;
+  ball.y = contactY;
+  // Then, push the ball slightly away along the normal
+  const pushX = nx * epsilon;
+  const pushY = ny * epsilon;
+  ball.x += pushX;
+  ball.y += pushY;
+}
+
+/**
+ * Checks for overlap between a circle and an AABB (Axis-Aligned Bounding Box).
+ * If an overlap occurs, updates the 'out' parameter with penetration depth and collision normal.
+ * @param ballPos Current position of the ball's center.
+ * @param ballRadius Radius of the ball.
+ * @param rectLeft Left edge of the rectangle.
+ * @param rectRight Right edge of the rectangle.
+ * @param rectTop Top edge of the rectangle.
+ * @param rectBottom Bottom edge of the rectangle.
+ * @param out Output parameter to store collision result.
+ */
+export function checkCircleAABBOverlap(
+  ballPos: { x: number; y: number },
+  ballRadius: number,
+  rectLeft: number,
+  rectRight: number,
+  rectTop: number,
+  rectBottom: number,
+  out: CircleAABBOverlapResult // Output parameter
+): void {
+  out.collided = false; // Initialize
+
+  // Find the closest point on the AABB to the circle's center
+  const closestX = Math.max(rectLeft, Math.min(ballPos.x, rectRight));
+  const closestY = Math.max(rectTop, Math.min(ballPos.y, rectBottom));
+
+  // Calculate the distance between the circle's center and this closest point
+  const distanceX = ballPos.x - closestX;
+  const distanceY = ballPos.y - closestY;
+  const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+
+  // If the distance is less than the circle's radius, an overlap occurs
+  if (distanceSquared < ballRadius * ballRadius && distanceSquared > 1e-9) { // Added > 1e-9 to avoid issues with zero distance
+    const distance = Math.sqrt(distanceSquared);
+    const penetrationDepth = ballRadius - distance;
+    
+    // Collision normal points from the AABB to the circle
+    const normalX = distanceX / distance;
+    const normalY = distanceY / distance;
+
+    out.penetration.dx = normalX * penetrationDepth;
+    out.penetration.dy = normalY * penetrationDepth;
+    out.normal.nx = normalX;
+    out.normal.ny = normalY;
+    out.collided = true;
+    return; // Collision occurred
+  }
+  // No overlap, out.collided remains false
+}
+
+/**
+ * Helper function to apply paddle deflection to the ball's velocity.
+ * @param ballPos Position of the ball at impact.
+ * @param reflectedVel Velocity of the ball after basic reflection.
+ * @param paddleTop Top Y-coordinate of the paddle.
+ * @param paddleBottom Bottom Y-coordinate of the paddle.
+ * @returns Object with final dx and dy velocities after deflection.
+ */
+export function applyPaddleDeflection(
+  ballPos: { x: number; y: number },
+  reflectedVel: { dx: number; dy: number },
+  paddleTop: number,
+  paddleBottom: number
+): { dx: number; dy: number } {
+  const zoneSize = BALL_CONFIG.EDGES.ZONE_SIZE;
+  const maxDeflection = BALL_CONFIG.EDGES.MAX_DEFLECTION;
+  const paddleHeight = paddleBottom - paddleTop;
+
+  if (paddleHeight <= 0) {
+    return reflectedVel;
+  }
+
+  const clampedY = Math.max(paddleTop, Math.min(ballPos.y, paddleBottom));
+  const relHit = (clampedY - paddleTop) / paddleHeight; // 0=top, 1=bottom
+
+  const midStart = zoneSize;
+  const midEnd = 1 - zoneSize;
+  let defNorm = 0;
+  if (relHit < midStart) {
+    defNorm = -1 * (1 - (relHit / midStart));
+  } else if (relHit > midEnd) {
+    defNorm = (relHit - midEnd) / (1 - midEnd);
+  }
+
+  let finalDx = reflectedVel.dx;
+  let finalDy = reflectedVel.dy;
+  // Apply actual deflection angle only if maxDeflection > 0 and deflection is non-zero
+  if (maxDeflection > 0 && defNorm !== 0) {
+    const angle = defNorm * maxDeflection; // angle in radians
+    const cosA = Math.cos(angle);
+    const sinA = Math.sin(angle);
+    finalDx = reflectedVel.dx * cosA - reflectedVel.dy * sinA;
+    finalDy = reflectedVel.dx * sinA + reflectedVel.dy * cosA;
+  }
+
+  return { dx: finalDx, dy: finalDy };
+}
+
+/**
+ * Continuous sweep vs AABB helper.
+ * Updates the 'out' parameter with collision time and normal, or indicates no collision.
+ * Handles moving rectangle (paddle).
+ * @param p0 Circle start position.
+ * @param vCircle Circle velocity.
+ * @param r Circle radius.
+ * @param rectLeft Left X-coordinate of the rectangle.
+ * @param rectRight Right X-coordinate of the rectangle.
+ * @param rectTop Top Y-coordinate of the rectangle.
+ * @param rectBottom Bottom Y-coordinate of the rectangle.
+ * @param vRect Rectangle velocity.
+ * @param out Output parameter to store sweep result.
+ */
+export function sweepCircleVsMovingRect(
+  p0: {x: number; y: number}, // Circle start position
+  vCircle: {dx: number; dy: number}, // Circle velocity
+  r: number, // Circle radius
+  rectLeft: number,
+  rectRight: number,
+  rectTop: number,
+  rectBottom: number,
+  vRect: {dx: number; dy: number}, // Rectangle velocity
+  out: SweepResult // Output parameter
+): void {
+  out.collided = false; // Initialize
+
+  // Calculate relative velocity (Circle's velocity relative to the Rectangle)
+  const relDx = vCircle.dx - vRect.dx;
+  const relDy = vCircle.dy - vRect.dy;
+
+  // If relative velocity is near zero, no sweep needed (or possible)
+  if (Math.abs(relDx) < 1e-6 && Math.abs(relDy) < 1e-6) {
+      // Optional: Could add a simple overlap check here if needed as a fallback
+      return; // out.collided remains false
+  }
+
+  let tmin = 0, tmax = 1;
+  let txmin = -Infinity, tymin = -Infinity;
+  // Expand the rectangle by the circle's radius
+  const minX = rectLeft - r, maxX = rectRight + r, minY = rectTop - r, maxY = rectBottom + r;
+
+  // --- X-axis sweep ---
+  if (relDx !== 0) {
+    const inv = 1 / relDx;
+    const t1 = (minX - p0.x) * inv; // Time to hit left expanded edge
+    const t2 = (maxX - p0.x) * inv; // Time to hit right expanded edge
+    txmin = Math.min(t1, t2);
+    const txmax = Math.max(t1, t2);
+    tmin = Math.max(tmin, txmin); // Update earliest entry time
+    tmax = Math.min(tmax, txmax); // Update latest exit time
+    if (tmin > tmax) return; // Exit if no overlap in time interval on X, out.collided remains false
+  } else if (p0.x < minX || p0.x > maxX) {
+      return; // If no horizontal velocity and outside X bounds, cannot hit, out.collided remains false
+  }
+
+  // --- Y-axis sweep ---
+  if (relDy !== 0) {
+    const inv = 1 / relDy;
+    const t1 = (minY - p0.y) * inv; // Time to hit top expanded edge
+    const t2 = (maxY - p0.y) * inv; // Time to hit bottom expanded edge
+    tymin = Math.min(t1, t2);
+    const tymax = Math.max(t1, t2);
+    tmin = Math.max(tmin, tymin); // Update earliest entry time
+    tmax = Math.min(tmax, tymax); // Update latest exit time
+    if (tmin > tmax) return; // Exit if no overlap in time interval on Y, out.collided remains false
+  } else if (p0.y < minY || p0.y > maxY) {
+    return; // If no vertical velocity and outside Y bounds, cannot hit, out.collided remains false
+  }
+
+  // Check if the valid collision time 'tmin' is within the frame interval [0, 1]
+  if (tmin < 0 || tmin > 1) return; // out.collided remains false
+
+  // Determine the collision normal based on which axis had the latest entry time
+  const axis = txmin > tymin ? 'x' : 'y';
+  
+  out.t = tmin;
+  out.normal.nx = axis === 'x' ? (relDx < 0 ? 1 : -1) : 0;
+  out.normal.ny = axis === 'y' ? (relDy < 0 ? 1 : -1) : 0;
+  out.collided = true;
+}

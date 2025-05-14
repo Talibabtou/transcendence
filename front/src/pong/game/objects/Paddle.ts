@@ -9,7 +9,7 @@ export class Paddle implements MovableObject {
 	// =========================================
 	// Properties
 	// =========================================
-	private direction: Direction | null = null;
+	private direction: Direction = Direction.NONE;
 	private speed: number;
 	private _paddleWidth: number;
 	private _paddleHeight: number;
@@ -104,7 +104,7 @@ export class Paddle implements MovableObject {
 	 * Sets the paddle's movement direction
 	 * @param direction The direction to move the paddle
 	 */
-	public setDirection(direction: Direction | null): void {
+	public setDirection(direction: Direction): void {
 		this.direction = direction;
 	}
 
@@ -113,7 +113,7 @@ export class Paddle implements MovableObject {
 	 * @param deltaTime Time elapsed since last update
 	 */
 	public updateMovement(deltaTime: number): void {
-		if (this.direction === null) return;
+		if (this.direction === Direction.NONE) return;
 
 		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 

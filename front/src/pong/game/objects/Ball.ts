@@ -39,8 +39,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public prevPosition: { x: number; y: number } = { x: 0, y: 0 };
 	public prevRenderX: number = 0; // For rendering interpolation
 	public prevRenderY: number = 0; // For rendering interpolation
-	private readonly velocityCache = { dx: 0, dy: 0 };
-	private readonly positionCache = { x: 0, y: 0 };
 
 	// =========================================
 	// Constructor
@@ -58,10 +56,8 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	) {
 		this.context = context;
 		this.initializeSizes();
-		// Initialize previous position for continuous collision
 		this.prevPosition.x = this.x;
 		this.prevPosition.y = this.y;
-		// Initialize previous render position for interpolation
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
 	}
@@ -120,18 +116,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * @param _state The current game state.
 	 */
 	public update(_context: GameContext, _deltaTime: number, _state: GameState): void {
-		// Physics logic is now handled by PhysicsManager.
-		// This method can be used for non-physics updates if any are needed in the future.
 	}
-
-	// =========================================
-	// Physics Update Methods (REMOVED - MOVED TO PHYSICS MANAGER)
-	// =========================================
-	// updatePhysics(deltaTime: number) - REMOVED
-	// checkBoundaries() - REMOVED
-	// hit(hitFace, deflectionModifier) - REMOVED
-	// accelerate() - REMOVED
-
 	/**
 	 * Launches the ball in a random direction
 	 */
@@ -294,18 +279,14 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * Gets the current velocity (required by PhysicsObject interface)
 	 */
 	public getVelocity(): { dx: number; dy: number } {
-		this.velocityCache.dx = this.dx;
-		this.velocityCache.dy = this.dy;
-		return this.velocityCache;
+		return { dx: this.dx, dy: this.dy };
 	}
 
 	/**
 	 * Gets the current position (required by PhysicsObject interface)
 	 */
 	public getPosition(): { x: number; y: number } {
-		this.positionCache.x = this.x;
-		this.positionCache.y = this.y;
-		return this.positionCache;
+		return { x: this.x, y: this.y };
 	}
 
 	/** Returns the position from the last physics step for continuous collision tests */

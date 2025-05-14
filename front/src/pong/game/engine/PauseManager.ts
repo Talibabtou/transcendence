@@ -19,7 +19,7 @@ export class PauseManager {
 	private ball: Ball;
 	private player1: Player;
 	private player2: Player;
-	private readonly states: Set<GameState> = new Set([GameState.PAUSED]);
+	private readonly states: Set<GameState> = new Set<GameState>();
 	
 	private isCountingDown: boolean = false;
 	private isFirstStart: boolean = true;
@@ -29,7 +29,7 @@ export class PauseManager {
 	private pendingPauseRequest: boolean = false;
 	private gameEngine: any;
 	private pointStartedCallback: (() => void) | null = null;
-	private gameScene: GameScene | null = null;
+	private gameScene: GameScene;
 
 	// =========================================
 	// Constructor
@@ -39,12 +39,13 @@ export class PauseManager {
 	 * @param ball The ball object
 	 * @param player1 The left player
 	 * @param player2 The right player
+	 * @param gameScene The GameScene instance
 	 */
-	constructor(ball: Ball, player1: Player, player2: Player) {
+	constructor(ball: Ball, player1: Player, player2: Player, gameScene: GameScene) {
 		this.ball = ball;
 		this.player1 = player1;
 		this.player2 = player2;
-		this.states.clear();
+		this.gameScene = gameScene;
 		this.states.add(GameState.PAUSED);
 		this.isFirstStart = true;
 	}
@@ -131,6 +132,7 @@ export class PauseManager {
 		
 		// Remove pause state
 		this.states.delete(GameState.PAUSED);
+		this.pendingPauseRequest = false;
 		
 		// Notify game engine about resume
 		if (this.gameEngine && typeof this.gameEngine.resumeMatchTimer === 'function') {
@@ -149,6 +151,7 @@ export class PauseManager {
 				this.restoreGameState();
 				this.states.delete(GameState.COUNTDOWN);
 				this.states.add(GameState.PLAYING);
+				this.pendingPauseRequest = false;
 			});
 		}
 	}
@@ -280,13 +283,6 @@ export class PauseManager {
 	 */
 	public setGameEngine(engine: any): void {
 		this.gameEngine = engine;
-	}
-
-	/**
-	 * Sets the reference to the game scene
-	 */
-	public setGameScene(scene: GameScene): void {
-		this.gameScene = scene;
 	}
 
 	// =========================================

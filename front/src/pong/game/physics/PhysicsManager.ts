@@ -2,17 +2,24 @@ import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
 import {GameState } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
+import {
+    reflectVelocity,
+    correctPosition,
+    checkCircleAABBOverlap,
+    applyPaddleDeflection,
+    sweepCircleVsMovingRect
+} from './PhysicsUtils';
 
 // =========================================
 // Result Interfaces for Physics Calculations
 // =========================================
-interface SweepResult {
+export interface SweepResult {
   t: number;
   normal: { nx: number; ny: number };
   collided: boolean;
 }
 
-interface CircleAABBOverlapResult {
+export interface CircleAABBOverlapResult {
   penetration: { dx: number; dy: number };
   normal: { nx: number; ny: number };
   collided: boolean;
@@ -495,7 +502,7 @@ export class PhysicsManager {
     const ballMoveDir = { dx: ballPosition.x - prevBallPos.x, dy: ballPosition.y - prevBallPos.y };
 
     if (Math.abs(ballMoveDir.dx) > 1e-6 || Math.abs(ballMoveDir.dy) > 1e-6) {
-      PhysicsManager.sweepCircleVsMovingRect(
+      sweepCircleVsMovingRect(
         prevBallPos, ballMoveDir, ballRadius,
         pLeft, pRight, pTop, pBottom,
         paddleVelocity,
@@ -513,8 +520,8 @@ export class PhysicsManager {
           if (normal.ny !== 0) { // Hit top/bottom of paddle
             player.freezeMovement(0.2);
           }
-          const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
-          const finalVel = PhysicsManager._applyPaddleDeflection(
+          const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+          const finalVel = applyPaddleDeflection(
             { x: contactX, y: contactY },
             reflectedVel,
             pTop, pBottom
@@ -522,14 +529,14 @@ export class PhysicsManager {
           ball.dx = finalVel.dx;
           ball.dy = finalVel.dy;
 
-          PhysicsManager._correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
+          correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
           hitOccurred = true;
         }
       }
     }
 
     // 2) Discrete Collision Test (Fallback or if sweep didn't fully resolve)
-    PhysicsManager.checkCircleAABBOverlap(
+    checkCircleAABBOverlap(
       ball.getPosition(), // Use the ball's *current* position after sweep correction
       ballRadius,
       pLeft, pRight, pTop, pBottom,
@@ -548,8 +555,8 @@ export class PhysicsManager {
         if (normal.ny !== 0 && !hitOccurred) {
             player.freezeMovement(0.2);
         }
-        const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
-        const finalVel = PhysicsManager._applyPaddleDeflection(
+        const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+        const finalVel = applyPaddleDeflection(
             ball.getPosition(),
             reflectedVel,
             pTop, pBottom
@@ -572,8 +579,8 @@ export class PhysicsManager {
             if (normal.ny !== 0) {
                 player.freezeMovement(0.2);
             }
-            const reflectedVel = PhysicsManager._reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
-            const finalVel = PhysicsManager._applyPaddleDeflection(
+            const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
+            const finalVel = applyPaddleDeflection(
                 ball.getPosition(),
                 reflectedVel,
                 pTop, pBottom

@@ -21,6 +21,7 @@ export interface GraphicalElement {
  * Represents movement directions within the game
  */
 export enum Direction {
+	NONE,
 	UP,
 	DOWN
 }

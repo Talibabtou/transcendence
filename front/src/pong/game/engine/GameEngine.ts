@@ -1,6 +1,6 @@
 import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { GameScene, GameModeType } from '@pong/game/scenes';
-import { KEYS } from '@pong/constants';
+import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
 import { DbService } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
 
@@ -17,9 +17,10 @@ export class GameEngine {
 	private context: GameContext;
 	private gameMode: GameModeType = 'single';
 	private keyboardEventListener: ((evt: KeyboardEvent) => void) | null = null;
+	private readonly boundKeydownHandler: (evt: KeyboardEvent) => void;
 	private matchStartTime: number = 0;
 	private playerIds: number[] = [];
-	private playerColors: string[] = [];
+	private playerColors: [string, string] = [COLORS.PADDLE, COLORS.PADDLE];
 	private matchId: number | null = null;
 	private goalStartTime: number = 0;
 	private isPaused: boolean = false;
@@ -38,6 +39,7 @@ export class GameEngine {
 	 */
 	constructor(ctx: GameContext) {
 		this.context = ctx;
+		this.boundKeydownHandler = this.handleKeydown.bind(this);
 		this.initializeGame();
 	}
 
@@ -158,7 +160,11 @@ export class GameEngine {
 	 * Sets up keyboard event listeners for pause control
 	 */
 	private bindPauseControls(): void {
-		this.keyboardEventListener = this.handleKeydown.bind(this);
+		// Ensure no double-listening if called multiple times (though it's from constructor)
+		if (this.keyboardEventListener) {
+			window.removeEventListener('keydown', this.keyboardEventListener);
+		}
+		this.keyboardEventListener = this.boundKeydownHandler;
 		window.addEventListener('keydown', this.keyboardEventListener);
 	}
 
@@ -246,10 +252,10 @@ export class GameEngine {
 		this.stopAllTimers();
 		
 		// Remove keyboard event listener if it exists
-		if (this.keyboardEventListener) {
-			window.removeEventListener('keydown', this.keyboardEventListener);
-			this.keyboardEventListener = null;
+		if (this.keyboardEventListener === this.boundKeydownHandler) {
+			window.removeEventListener('keydown', this.boundKeydownHandler);
 		}
+		this.keyboardEventListener = null;
 		
 		// Clean up the scene
 		if (this.scene) {
@@ -291,42 +297,54 @@ export class GameEngine {
 
 	/**
 	 * Update player colors for paddles
-	 * @param p1Color Color for player 1's paddle (hex format)
-	 * @param p2Color Color for player 2's paddle (hex format)
+	 * @param p1ColorInput Color for player 1's paddle (hex format)
+	 * @param p2ColorInput Color for player 2's paddle (hex format)
 	 */
-	public updatePlayerColors(p1Color: string, p2Color?: string): void {
+	public updatePlayerColors(p1ColorInput: string, p2ColorInput?: string): void {
 		try {
 			const scene = this.scene;
 			if (!scene) return;
-			
-			// Store colors in the playerColors array for reference
-			this.playerColors[0] = p1Color;
-			if (p2Color) {
-				this.playerColors[1] = p2Color;
-			}
-			
+
 			const player1 = scene.getPlayer1();
 			const player2 = scene.getPlayer2();
-			
-			if (player1) {
-				// Set player 1's color
-				player1.setColor(p1Color);
-			}
-			
+
+			let actualP1Color: string = p1ColorInput; // Player 1 always uses the input color.
+			let actualP2Color: string;
+
+			// Determine Player 2's actual color
 			if (player2) {
-				if (this.gameMode === 'single' && player2.getPlayerType() !== PlayerType.HUMAN) {
-					// For AI in single player mode, always use white
-					player2.setColor('#ffffff');
-					this.playerColors[1] = '#ffffff';
-				} else if (p2Color) {
-					// For human player 2, always use their chosen color
-					player2.setColor(p2Color);
+				const p2Type = player2.getPlayerType();
+				if (p2Type === PlayerType.AI) {
+					actualP2Color = '#ffffff'; // AI is white
+				} else if (p2Type === PlayerType.BACKGROUND) {
+					actualP2Color = '#808080'; // Proposed: Background demo players are grey
+				} else if (p2Type === PlayerType.HUMAN) {
+					if (p2ColorInput) {
+						actualP2Color = p2ColorInput; // Human player with a specified color
+					} else {
+						actualP2Color = '#2ecc71'; // Fallback for Human P2 if no color explicitly provided
+					}
 				} else {
-					// Fallback only if p2Color is undefined/null
-					player2.setColor('#2ecc71');
-					this.playerColors[1] = '#2ecc71';
+					// Fallback for any unexpected player type, though this shouldn't occur
+					actualP2Color = p2ColorInput || COLORS.PADDLE; 
 				}
+			} else {
+				// If there's no player2 object, use a default for the tuple placeholder.
+				// This side of the tuple will be p2ColorInput if provided, else COLORS.PADDLE
+				actualP2Color = p2ColorInput || COLORS.PADDLE;
 			}
+
+			// Apply colors to player objects
+			if (player1) {
+				player1.setColor(actualP1Color);
+			}
+			if (player2) {
+				player2.setColor(actualP2Color); // setColor using the determined actualP2Color
+			}
+
+			// Store the actual applied colors in the tuple
+			this.playerColors = [actualP1Color, actualP2Color];
+
 		} catch (error: any) {
 			console.error('Error updating player colors:', error);
 		}
@@ -427,9 +445,7 @@ export class GameEngine {
 	 * This prevents abandoned matches from staying open
 	 */
 	private setupMatchTimeout(): void {
-		// 10 minutes in milliseconds
-		const MAX_MATCH_DURATION = 10 * 60 * 1000;
-		
+
 		setTimeout(() => {
 			// Only timeout if match is still active and not completed
 			if (!this.matchCompleted && this.matchId && !this.scene.isBackgroundDemo()) {
@@ -439,7 +455,7 @@ export class GameEngine {
 				// Complete the match with timeout flag
 				this.completeMatch(winnerIndex);
 			}
-		}, MAX_MATCH_DURATION);
+		}, GAME_CONFIG.MAX_MATCH_DURATION);
 	}
 
 	/**
@@ -611,17 +627,19 @@ export class GameEngine {
 	 * @param enabled Whether keyboard control should be enabled
 	 */
 	public setKeyboardEnabled(enabled: boolean): void {
-		// If there's an existing listener, remove it
-		if (this.keyboardEventListener) {
-			window.removeEventListener('keydown', this.keyboardEventListener);
+		const isActive = this.keyboardEventListener === this.boundKeydownHandler;
+
+		if (enabled && !isActive) {
+			// If not already active, add it
+			window.addEventListener('keydown', this.boundKeydownHandler);
+			this.keyboardEventListener = this.boundKeydownHandler;
+		} else if (!enabled && isActive) {
+			// If active and we want to disable, remove it
+			window.removeEventListener('keydown', this.boundKeydownHandler);
 			this.keyboardEventListener = null;
 		}
-		
-		// Only add a new listener if enabled
-		if (enabled) {
-			this.keyboardEventListener = this.handleKeydown.bind(this);
-			window.addEventListener('keydown', this.keyboardEventListener);
-		}
+		// If enabled and already active, do nothing.
+		// If !enabled and already inactive, do nothing.
 	}
 
 	/**

@@ -13,7 +13,6 @@ export class ResizeManager {
 	// =========================================
 	// Private Properties
 	// =========================================
-	private resizeTimeout: number | null = null;
 	private isResizing: boolean = false;
 	private context: GameContext;
 	private scene: GameScene;
@@ -22,6 +21,8 @@ export class ResizeManager {
 	private player2: Player | null;
 	private pauseManager: PauseManager | null;
 	private boundResizeHandler: () => void;
+	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
+	private lastResizeEvt = 0;
 
 	// =========================================
 	// Constructor
@@ -35,9 +36,6 @@ export class ResizeManager {
 	 * @param player2 Right player reference
 	 * @param pauseManager PauseManager reference
 	 */
-	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
-	private lastResizeEvt = 0;
-
 	constructor(
 		ctx: GameContext,
 		scene: GameScene,
@@ -73,11 +71,7 @@ export class ResizeManager {
 	 * Cleans up resources and event listeners
 	 */
 	public cleanup(): void {
-		// Clear timeout if exists
-		if (this.resizeTimeout) {
-			window.clearTimeout(this.resizeTimeout);
-			this.resizeTimeout = null;
-		}
+
 		
 		// Remove event listener
 		window.removeEventListener('resize', this.boundResizeHandler);

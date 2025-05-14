@@ -17,7 +17,7 @@ export class Player implements GraphicalElement {
 	// =========================================
 	// Protected Properties
 	// =========================================
-	protected direction: Direction | null = null;
+	protected direction: Direction = Direction.NONE;
 	protected speed: number = 0;
 	protected colour = COLORS.PADDLE;
 	protected score = 0;
@@ -39,7 +39,6 @@ export class Player implements GraphicalElement {
 	private movementFrozen: number = 0;
 	protected prevRenderX: number = 0; // For rendering interpolation
 	protected prevRenderY: number = 0; // For rendering interpolation
-	private readonly pointPool: { x: number; y: number }[];
 
 	// Reusable vector objects for predictions
 	private readonly currentPosVec: { x: number; y: number };
@@ -126,7 +125,7 @@ export class Player implements GraphicalElement {
 		this._lastCollisionTime = 1000;
 		this.upPressed = false;
 		this.downPressed = false;
-		this.direction = null;
+		this.direction = Direction.NONE;
 
 		// Initialize reusable vector objects
 		this.currentPosVec = { x: 0, y: 0 };
@@ -151,9 +150,6 @@ export class Player implements GraphicalElement {
 		
 		// Initialize paddle first
 		this.paddle = new Paddle(x, y, this.paddleWidth, this.paddleHeight, context);
-		
-		// Initialize point pool for drawing predicted bounces
-		this.pointPool = Array.from({ length: Player.MAX_PREDICTED_BOUNCES_DISPLAY }, () => ({ x: 0, y: 0 }));
 
 		// Finally update sizes (this will also update bounding box based on final dims)
 		this.updateSizes();
@@ -187,7 +183,7 @@ export class Player implements GraphicalElement {
 	 * Stops the player's paddle movement
 	 */
 	public stopMovement(): void {
-		this.direction = null;
+		this.direction = Direction.NONE;
 	}
 
 	/**
@@ -344,7 +340,7 @@ export class Player implements GraphicalElement {
 	public unbindControls(): void {
 		this.upPressed = false;
 		this.downPressed = false;
-		this.direction = null;
+		this.direction = Direction.NONE;
 		
 		window.removeEventListener('keydown', this.handleKeydown);
 		window.removeEventListener('keyup', this.handleKeyup);
@@ -377,12 +373,12 @@ export class Player implements GraphicalElement {
 	protected updateMovement(deltaTime: number): void {
 		// if frozen, decrement timer and skip moving
 		if (this.movementFrozen > 0) {
-			this.direction = null;
+			this.direction = Direction.NONE;
 			this.movementFrozen -= deltaTime;
 			if (this.movementFrozen < 0) this.movementFrozen = 0;
 			return;
 		}
-		if (this.direction === null) return;
+		if (this.direction === Direction.NONE) return;
 
 		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 
@@ -398,13 +394,13 @@ export class Player implements GraphicalElement {
 	 */
 	protected updateDirection(): void {
 		if (this.upPressed && this.downPressed) {
-			this.direction = null;
+			this.direction = Direction.NONE;
 		} else if (this.upPressed) {
 			this.direction = Direction.UP;
 		} else if (this.downPressed) {
 			this.direction = Direction.DOWN;
 		} else {
-			this.direction = null;
+			this.direction = Direction.NONE;
 		}
 	}
 

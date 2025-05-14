@@ -246,11 +246,7 @@ export class GameScene {
 	 * Initializes the pause manager
 	 */
 	private initializePauseManager(): void {
-		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2);
-		
-		// Set the GameScene reference to enable background mode detection
-		if (typeof this.pauseManager.setGameScene === 'function')
-			this.pauseManager.setGameScene(this);
+		this.pauseManager = new PauseManager(this.ball, this.player1, this.player2, this);
 		
 		// Set game engine reference if available
 		if (this.gameEngine && typeof this.pauseManager.setGameEngine === 'function')
