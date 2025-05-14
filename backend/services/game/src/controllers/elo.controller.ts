@@ -213,18 +213,24 @@ export async function getLeaderboard(
         COALESCE(pms.total_matches, 0) as total_matches
       FROM latest_player_elos e
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id
+      WHERE e.player != 'computer'
       ORDER BY e.elo DESC LIMIT ? OFFSET ?;
     `,
       limit,
       offset
     )) as LeaderboardEntry[];
     for (let i = 0; i < leaderboard.length; i++) {
-      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
-      const response = await fetch(serviceUrl, { method: 'GET' });
-      const user = (await response.json()) as IReplyUser | ErrorResponse;
-      if ('username' in user) {
-        leaderboard[i].username = user.username;
-      } else {
+      try {
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const user = (await response.json()) as IReplyUser | ErrorResponse;
+        if ('username' in user && user.username !== 'computer') {
+          leaderboard[i].username = user.username;
+        } else {
+          leaderboard.splice(i, 1);
+          i--;
+        }
+      } catch (err) {
         leaderboard[i].username = 'undefined';
       }
     }
