@@ -8,6 +8,7 @@ import { PlayerType } from '@pong/types';
  * coordinating the state transitions between different game states.
  */
 export class PauseManager {
+	
 	private ball: Ball;
 	private player1: Player;
 	private player2: Player;
