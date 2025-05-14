@@ -8,7 +8,7 @@ import { PlayerType } from '@pong/types';
  * coordinating the state transitions between different game states.
  */
 export class PauseManager {
-	
+
 	private ball: Ball;
 	private player1: Player;
 	private player2: Player;
@@ -193,7 +193,7 @@ export class PauseManager {
 	private maintainPositionsFromSnapshot(): void {
 		if (!this.gameSnapshot) return;
 		
-		const { width, height } = this.ball.getContext().canvas;
+		const { width, height } = this.ball.Context.canvas;
 		this.ball.x = width * this.gameSnapshot.ballState.position.x;
 		this.ball.y = height * this.gameSnapshot.ballState.position.y;
 		this.player1.y = (this.gameSnapshot.player1RelativeY * height) - (this.player1.paddleHeight * 0.5);
@@ -204,7 +204,7 @@ export class PauseManager {
 	 * Saves the current game state into a snapshot.
 	 */
 	private saveGameState(): void {
-		const canvas = this.ball.getContext().canvas;
+		const canvas = this.ball.Context.canvas;
 		const p1Center = (this.player1.y + this.player1.paddleHeight * 0.5) / canvas.height;
 		const p2Center = (this.player2.y + this.player2.paddleHeight * 0.5) / canvas.height;
 		
@@ -261,7 +261,7 @@ export class PauseManager {
 					}
 					onComplete();
 					if (
-						this.player2.getPlayerType() === PlayerType.AI
+						this.player2.PlayerType === PlayerType.AI
 					) {
 						this.player2.calculateInitialPrediction();
 					}
@@ -299,14 +299,14 @@ export class PauseManager {
 	////////////////////////////////////////////////////////////
 	// Getters and Setters
 	////////////////////////////////////////////////////////////
-	public getStates(): Set<GameState> { return new Set(this.states); }
-	public getGameSnapshot(): GameSnapshot | null { return this.gameSnapshot; }
-	public getStatesArray(): GameState[] { return Array.from(this.states); }
-	public getIsCountingDown(): boolean { return this.isCountingDown; }
+	public get States(): Set<GameState> { return new Set(this.states); }
+	public get GameSnapshot(): GameSnapshot | null { return this.gameSnapshot; }
+	public get StatesArray(): GameState[] { return Array.from(this.states); }
+	public get IsCountingDown(): boolean { return this.isCountingDown; }
+	public get PendingPauseRequest(): boolean { return this.pendingPauseRequest; }
 
 	public setCountdownCallback(callback: CountdownCallback): void { this.countdownCallback = callback; }
 	public setPointStartedCallback(callback: () => void): void { this.pointStartedCallback = callback; }
 	public setPendingPauseRequest(value: boolean): void { this.pendingPauseRequest = value; }
-	public getPendingPauseRequest(): boolean { return this.pendingPauseRequest; }
 	public setGameEngine(engine: any): void { this.gameEngine = engine; }
 }

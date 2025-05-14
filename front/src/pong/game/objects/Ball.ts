@@ -41,20 +41,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	}
 
 	/**
-	 * Returns whether the ball is destroyed (out of bounds)
-	 */
-	public isDestroyed(): boolean {
-		return this.destroyed;
-	}
-
-	/**
-	 * Returns whether the ball hit the left border
-	 */
-	public isHitLeftBorder(): boolean {
-		return this.hitLeftBorder;
-	}
-
-	/**
 	 * Draws the ball on the canvas using interpolation
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
@@ -87,7 +73,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		const { MIN, MAX } = BALL_CONFIG.SPEED.RELATIVE.INITIAL_ANGLE;
 		const goingUp = Math.random() > 0.5;
 		let angle;
-
 		if (goingUp) {
 			angle = (MIN + Math.random() * (MAX - MIN)) * (Math.PI / 180);
 		} else {
@@ -148,7 +133,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 				x: this.x / width,
 				y: this.y / height
 			},
-			velocity: this.getNormalizedVelocity(),  // This already gives us normalized direction
+			velocity: this.NormalizedVelocity,
 			speedMultiplier: this.speedMultiplier
 		};
 	}
@@ -182,16 +167,22 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.currentSpeed = this.baseSpeed;
 	}
 
+
+	////////////////////////////////////////////////////////////
+	// Helper methods
+	////////////////////////////////////////////////////////////
+	public isDestroyed(): boolean { return this.destroyed; }
+	public isHitLeftBorder(): boolean { return this.hitLeftBorder; }
+
 	////////////////////////////////////////////////////////////
 	// Getters
 	////////////////////////////////////////////////////////////
-	public getVelocity(): { dx: number; dy: number } { return { dx: this.dx, dy: this.dy };	}
-	public getPosition(): { x: number; y: number } { return { x: this.x, y: this.y };	}
-	public getPrevPosition(): { x: number; y: number } { return { x: this.prevPosition.x, y: this.prevPosition.y }; }
-	public getContext(): GameContext { return this.context; }
-	public getSize(): number { return this.size; }
-
-	public getNormalizedVelocity(): { dx: number; dy: number } {
+	public get Velocity(): { dx: number; dy: number } { return { dx: this.dx, dy: this.dy };	}
+	public get Position(): { x: number; y: number } { return { x: this.x, y: this.y };	}
+	public get PrevPosition(): { x: number; y: number } { return { x: this.prevPosition.x, y: this.prevPosition.y }; }
+	public get Context(): GameContext { return this.context; }
+	public get Size(): number { return this.size; }
+	public get NormalizedVelocity(): { dx: number; dy: number } {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		if (magnitude === 0) return { dx: 0, dy: 0 };
 		return {

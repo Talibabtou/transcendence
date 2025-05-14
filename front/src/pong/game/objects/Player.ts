@@ -8,15 +8,9 @@ import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/cons
  * input handling, scoring, and AI behavior.
  */
 export class Player implements GraphicalElement {
-	// =========================================
-	// Static Properties
-	// =========================================
-	private static readonly BOUNCE_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 6; // Should match maxBounces in predictBallTrajectory or be configurable
 
-	// =========================================
-	// Protected Properties
-	// =========================================
+	private static readonly BOUNCE_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 6;
 	protected direction: Direction = Direction.NONE;
 	protected speed: number = 0;
 	protected colour = COLORS.PADDLE;
@@ -32,23 +26,21 @@ export class Player implements GraphicalElement {
 	protected _downKey: string;
 	protected _targetY: number;
 	protected predictedBouncePoints: { x: number; y: number }[];
-	protected numPredictedBounces: number = 0; // To track the number of valid points in the fixed-size array
+	protected numPredictedBounces: number = 0;
 	protected finalPredictedImpactPoint: { x: number; y: number } | null = null;
 	protected _lastCollisionTime: number;
-	public paddle: Paddle;
+	protected prevRenderX: number = 0;
+	protected prevRenderY: number = 0;
 	private movementFrozen: number = 0;
-	protected prevRenderX: number = 0; // For rendering interpolation
-	protected prevRenderY: number = 0; // For rendering interpolation
-
-	// Reusable vector objects for predictions
 	private readonly currentPosVec: { x: number; y: number };
 	private readonly currentVelVec: { dx: number; dy: number };
 	private readonly collisionPointVec: { x: number; y: number };
 	private readonly finalPredictedImpactPointVec: { x: number; y: number };
+	public paddle: Paddle;
+	public paddleWidth: number = 10;
+	public paddleHeight: number = 100;
 
-	// =========================================
-	// Event Handlers
-	// =========================================
+
 	/**
 	 * Handles keyboard keydown events for player control
 	 */
@@ -79,14 +71,6 @@ export class Player implements GraphicalElement {
 		this.updateDirection();
 	};
 
-	// =========================================
-	// Public Properties
-	// =========================================
-	public paddleWidth: number = 10;
-	public paddleHeight: number = 100;
-	public get name(): string {
-		return this._name;
-	}
 
 	// =========================================
 	// Constructor
@@ -114,11 +98,9 @@ export class Player implements GraphicalElement {
 		if (!context) {
 			throw new Error('Context must be provided to Player');
 		}
-
 		this.startX = x;
 		this.startY = context.canvas.height * 0.5 - this.paddleHeight * 0.5;
 		this.y = this.startY;
-		
 		this._position = position;
 		this._type = type;
 		this._targetY = this.startY;
@@ -126,18 +108,12 @@ export class Player implements GraphicalElement {
 		this.upPressed = false;
 		this.downPressed = false;
 		this.direction = Direction.NONE;
-
-		// Initialize reusable vector objects
 		this.currentPosVec = { x: 0, y: 0 };
 		this.currentVelVec = { dx: 0, dy: 0 };
 		this.collisionPointVec = { x: 0, y: 0 };
 		this.finalPredictedImpactPointVec = { x: 0, y: 0 };
-
-		// Initialize fixed-size array for predicted bounce points
 		this.predictedBouncePoints = Array.from({ length: Player.MAX_PREDICTED_BOUNCES_DISPLAY }, () => ({ x: 0, y: 0 }));
 		this.numPredictedBounces = 0;
-
-		// Set keys based on position
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
 			this._downKey = KEYS.PLAYER_LEFT_DOWN;
@@ -147,76 +123,10 @@ export class Player implements GraphicalElement {
 			this._downKey = KEYS.PLAYER_RIGHT_DOWN;
 			this._name = this._type === PlayerType.HUMAN ? 'Player 2' : 'Computer';
 		}
-		
-		// Initialize paddle first
 		this.paddle = new Paddle(x, y, this.paddleWidth, this.paddleHeight, context);
-
-		// Finally update sizes (this will also update bounding box based on final dims)
 		this.updateSizes();
 	}
 
-	// =========================================
-	// Public API
-	// =========================================
-	/**
-	 * Returns the player's current score
-	 */
-	public getScore(): number {
-		return this.score;
-	}
-
-	/**
-	 * Increments the player's score by one point
-	 */
-	public givePoint(): void {
-		this.score += 1;
-	}
-
-	/**
-	 * Resets the player's score to zero
-	 */
-	public resetScore(): void {
-		this.score = 0;
-	}
-
-	/**
-	 * Stops the player's paddle movement
-	 */
-	public stopMovement(): void {
-		this.direction = Direction.NONE;
-	}
-
-	/**
-	 * Resets the player's paddle to the center position
-	 */
-	public resetPosition(): void {
-		const height = this.context.canvas.height;
-		this.y = height * 0.5 - this.paddleHeight * 0.5;
-		// Update paddle position
-		this.paddle.setPosition(this.x, this.y);
-	}
-	
-	public setPlayerType(type: PlayerType): void {
-		this._type = type;
-	}
-
-	/**
-	 * Returns the player's type
-	 */
-	public getPlayerType(): PlayerType {
-		return this._type;
-	}
-
-	/**
-	 * Returns the player's position (left or right)
-	 */
-	public getPosition(): PlayerPosition {
-		return this._position;
-	}
-
-	// =========================================
-	// Size Management
-	// =========================================
 	/**
 	 * Updates the player's paddle dimensions based on canvas size
 	 */
@@ -229,47 +139,33 @@ export class Player implements GraphicalElement {
 		this.paddleWidth = sizes.PADDLE_WIDTH;
 		this.paddleHeight = sizes.PADDLE_HEIGHT;
 		this.speed = sizes.PADDLE_SPEED;
-
-		// Update paddle with new sizes
 		this.paddle.updateDimensions(this.paddleWidth, this.paddleHeight);
-		
 		this.updateHorizontalPosition();
 	}
 
-	// =========================================
-	// Game Loop Methods
-	// =========================================
+
 	/**
 	 * Updates player state for the current frame
 	 */
 	public update(ctx: GameContext, deltaTime: number, state: GameState): void {
 
-		// Store position for rendering interpolation BEFORE moving
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
-
-		// Store paddle's current position as its previous physics position BEFORE it moves
-		if (this.paddle) { // Ensure paddle exists
+		if (this.paddle) {
 			this.paddle.setPreviousPosition(this.paddle.x, this.paddle.y);
 		}
-
 		const { width, height } = ctx.canvas;
 		const sizes = calculateGameSizes(width, height);
 		this.paddleHeight = sizes.PADDLE_HEIGHT;
-
-		// Update AI inputs if AI-controlled and playing or in background mode
 		if (this._type === PlayerType.BACKGROUND && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
 			this.updateBackgroundInputs(ctx);
 		}
-
 		if (this._type === PlayerType.AI && (state === GameState.PLAYING || state === GameState.COUNTDOWN)) {
 			this.updateAIInputs(ctx);
 		}
 		if (state === GameState.PLAYING) {
 			this.updateMovement(deltaTime);
 		}
-		
-		// Update horizontal position AFTER potential y movement
 		this.updateHorizontalPosition();
 	}
 
@@ -280,15 +176,11 @@ export class Player implements GraphicalElement {
 	public draw(ctx: GameContext, alpha: number): void {
 		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
-
 		ctx.fillStyle = this.colour;
 		ctx.fillRect(interpolatedX, interpolatedY, this.paddleWidth, this.paddleHeight);
-
 		if (!DEBUG.enabled) {
 			return;
 		}
-
-		// Draw debug info relative to interpolated position
 		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
 		const yTop = interpolatedY + this.paddleHeight * zone;
 		const yBot = interpolatedY + this.paddleHeight * (1 - zone);
@@ -300,36 +192,27 @@ export class Player implements GraphicalElement {
 		ctx.moveTo(interpolatedX, yBot);
 		ctx.lineTo(interpolatedX + this.paddleWidth, yBot);
 		ctx.stroke();
-
-		// Draw predicted bounce points for debugging
 		for (let i = 0; i < this.numPredictedBounces; i++) {
 			const point = this.predictedBouncePoints[i];
-			// Cycle through colors if more bounces than defined colors
 			ctx.fillStyle = Player.BOUNCE_COLORS[i % Player.BOUNCE_COLORS.length];
 			ctx.beginPath();
 			ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
 			ctx.fill();
 			ctx.closePath();
 		}
-
-		// Draw final predicted impact point with a distinct color
-		if (this.finalPredictedImpactPoint && this._position === PlayerPosition.RIGHT) { // Only draw for the predicting player
-			ctx.fillStyle = 'cyan'; // Use cyan for the final impact point
+		if (this.finalPredictedImpactPoint && this._position === PlayerPosition.RIGHT) {
+			ctx.fillStyle = 'cyan';
 			ctx.beginPath();
-			ctx.arc(this.finalPredictedImpactPoint.x, this.finalPredictedImpactPoint.y, 6, 0, Math.PI * 2); // Slightly larger
+			ctx.arc(this.finalPredictedImpactPoint.x, this.finalPredictedImpactPoint.y, 6, 0, Math.PI * 2);
 			ctx.fill();
 			ctx.closePath();
 		}
 	}
 
-	// =========================================
-	// Control Methods
-	// =========================================
 	/**
 	 * Sets up keyboard event listeners for player control
 	 */
 	public bindControls(): void {
-		
 		window.addEventListener('keydown', this.handleKeydown, { passive: true });
 		window.addEventListener('keyup', this.handleKeyup, { passive: true });
 	}
@@ -341,14 +224,10 @@ export class Player implements GraphicalElement {
 		this.upPressed = false;
 		this.downPressed = false;
 		this.direction = Direction.NONE;
-		
 		window.removeEventListener('keydown', this.handleKeydown);
 		window.removeEventListener('keyup', this.handleKeyup);
 	}
 
-	// =========================================
-	// Protected Methods
-	// =========================================
 	/**
 	 * Updates the horizontal position of the player's paddle.
 	 * This method should be called whenever the player's x position changes.
@@ -356,14 +235,12 @@ export class Player implements GraphicalElement {
 	public updateHorizontalPosition(): void {
 		const { width } = this.context.canvas;
 		const sizes = calculateGameSizes(width, this.context.canvas.height);
-		
+	
 		if (this._position === PlayerPosition.LEFT) {
 			this.x = sizes.PLAYER_PADDING;
 		} else {
 			this.x = width - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
 		}
-		
-		// Update paddle position
 		this.paddle.setPosition(this.x, this.y);
 	}
 
@@ -379,12 +256,10 @@ export class Player implements GraphicalElement {
 			return;
 		}
 		if (this.direction === Direction.NONE) return;
-
 		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 
 			? this.y - frameSpeed 
 			: this.y + frameSpeed;
-
 		const maxY = this.context.canvas.height - this.paddleHeight;
 		this.y = Math.min(Math.max(0, newY), maxY);
 	}
@@ -404,23 +279,18 @@ export class Player implements GraphicalElement {
 		}
 	}
 
-	// =========================================
-	// Prediction Methods
-	// =========================================
 
 	/**
 	 * Public method to trigger an initial prediction calculation, usually at the start of a point.
 	 * Checks if the ball is moving before calling the internal prediction logic.
 	 */
 	public calculateInitialPrediction(): void {
-		// Ensure the ball object exists and has a non-zero velocity
 		if (!this.ball) return;
-		const ballVelocity = this.ball.getVelocity();
+		const ballVelocity = this.ball.Velocity;
 		if (ballVelocity.dx !== 0 || ballVelocity.dy !== 0) {
-			this.predictBallTrajectory(this.ball.getPosition(), ballVelocity);
+			this.predictBallTrajectory(this.ball.Position, ballVelocity);
 			this._lastCollisionTime = 0;
 		} else {
-			// If ball is not moving, clear predictions
 			this.numPredictedBounces = 0;
 			this.finalPredictedImpactPoint = null;
 		}
@@ -439,23 +309,20 @@ export class Player implements GraphicalElement {
 			return;
 		}
 		this._lastCollisionTime = Date.now();
-		this.numPredictedBounces = 0; // Reset count for new prediction
-		this.finalPredictedImpactPoint = null; // Reset final impact point
+		this.numPredictedBounces = 0;
+		this.finalPredictedImpactPoint = null;
 
 		const { width, height } = this.context.canvas;
-		const ballRadius = this.ball.getSize();
+		const ballRadius = this.ball.Size;
 		const sizes = calculateGameSizes(width, height);
-		const maxBounces = Player.MAX_PREDICTED_BOUNCES_DISPLAY; // Use the static constant
+		const maxBounces = Player.MAX_PREDICTED_BOUNCES_DISPLAY;
 
-		// Use reusable vector objects
 		this.currentPosVec.x = startPoint.x;
 		this.currentPosVec.y = startPoint.y;
 		this.currentVelVec.dx = initialVelocity.dx;
 		this.currentVelVec.dy = initialVelocity.dy;
 
-		// Initialize simulated speed state based on the initial velocity
 		let simulatedCurrentSpeed = Math.sqrt(this.currentVelVec.dx * this.currentVelVec.dx + this.currentVelVec.dy * this.currentVelVec.dy);
-		// Estimate initial multiplier
 		let simulatedSpeedMultiplier = this.ball.baseSpeed > 0 ? simulatedCurrentSpeed / this.ball.baseSpeed : BALL_CONFIG.ACCELERATION.INITIAL;
 		simulatedSpeedMultiplier = Math.max(BALL_CONFIG.ACCELERATION.INITIAL, simulatedSpeedMultiplier);
 
@@ -469,9 +336,6 @@ export class Player implements GraphicalElement {
 		for (let bounceCount = 0; bounceCount < maxBounces; bounceCount++) {
 			let timeToCollision = Infinity;
 			let collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' = 'none';
-			// collisionPoint is now a class member (this.collisionPointVec), no need to declare here
-
-			// Recalculate times based on currentVelVec
 			let timeToTop = Infinity;
 			if (this.currentVelVec.dy < 0) { timeToTop = (ballRadius - this.currentPosVec.y) / this.currentVelVec.dy; }
 			let timeToBottom = Infinity;
@@ -496,23 +360,17 @@ export class Player implements GraphicalElement {
 					if (this.currentVelVec.dx !== 0) timeToPlayer = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
 				}
 			}
-
 			const positiveTimes = [timeToTop, timeToBottom, timeToOpponent, timeToPlayer].filter(t => t > 1e-6);
 			if (positiveTimes.length === 0) break;
-
 			timeToCollision = Math.min(...positiveTimes);
-
-			// Calculate the exact point of collision into this.collisionPointVec
 			this.collisionPointVec.x = this.currentPosVec.x + this.currentVelVec.dx * timeToCollision;
 			this.collisionPointVec.y = this.currentPosVec.y + this.currentVelVec.dy * timeToCollision;
-
 			const tolerance = 1e-6;
 			if (Math.abs(timeToCollision - timeToTop) < tolerance) collisionType = 'top';
 			else if (Math.abs(timeToCollision - timeToBottom) < tolerance) collisionType = 'bottom';
 			else if (Math.abs(timeToCollision - timeToOpponent) < tolerance) collisionType = 'opponent';
 			else if (Math.abs(timeToCollision - timeToPlayer) < tolerance) collisionType = 'player';
 			else break;
-
 			if (collisionType === 'player') {
 				this.finalPredictedImpactPointVec.x = this.collisionPointVec.x;
 				this.finalPredictedImpactPointVec.y = this.collisionPointVec.y;
@@ -523,7 +381,6 @@ export class Player implements GraphicalElement {
 				this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedY));
 				break;
 			}
-
 			let reflected = false;
 			if (collisionType === 'top' || collisionType === 'bottom') {
 				this.currentVelVec.dy *= -1;
@@ -532,14 +389,12 @@ export class Player implements GraphicalElement {
 				this.currentVelVec.dx *= -1;
 				reflected = true;
 			}
-
 			if (reflected) {
 				simulatedSpeedMultiplier = Math.min(
 					simulatedSpeedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
 					BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
 				);
 				simulatedCurrentSpeed = this.ball.baseSpeed * simulatedSpeedMultiplier;
-
 				const magnitude = Math.sqrt(this.currentVelVec.dx * this.currentVelVec.dx + this.currentVelVec.dy * this.currentVelVec.dy);
 				if (magnitude > 1e-6) {
 					const normDx = this.currentVelVec.dx / magnitude;
@@ -550,18 +405,13 @@ export class Player implements GraphicalElement {
 					break;
 				}
 			}
-
-			// Store the valid bounce point into the fixed-size array
 			if (this.numPredictedBounces < maxBounces) {
 				this.predictedBouncePoints[this.numPredictedBounces].x = this.collisionPointVec.x;
 				this.predictedBouncePoints[this.numPredictedBounces].y = this.collisionPointVec.y;
 				this.numPredictedBounces++;
 			}
-
-			// Update current position for the next iteration
 			this.currentPosVec.x = this.collisionPointVec.x;
 			this.currentPosVec.y = this.collisionPointVec.y;
-
 			if (bounceCount === maxBounces - 1) {
 				let finalTimeToPlayerFallback = Infinity;
 				if (this.currentVelVec.dx !== 0) {
@@ -573,7 +423,6 @@ export class Player implements GraphicalElement {
 						if (this.currentVelVec.dx !== 0) finalTimeToPlayerFallback = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
 					}
 				}
-
 				if (finalTimeToPlayerFallback > 0 && finalTimeToPlayerFallback !== Infinity) {
 					const finalPredictedYFallback = this.currentPosVec.y + this.currentVelVec.dy * finalTimeToPlayerFallback;
 					const finalPredictedXFallback = this.currentPosVec.x + this.currentVelVec.dx * finalTimeToPlayerFallback;
@@ -588,18 +437,14 @@ export class Player implements GraphicalElement {
 					this._targetY = this.y + this.paddleHeight / 2;
 				}
 			}
-		} // End bounce loop
+		}
 	}
 
-	// =========================================
-	// AI Control Methods
-	// =========================================
 	/**
 	 * Updates AI inputs based on ball position and game state
 	 */
 	protected updateAIInputs(ctx: GameContext): void {
-		// Compute time to cross half the canvas at current horizontal speed
-		const vx = Math.abs(this.ball.getVelocity().dx);
+		const vx = Math.abs(this.ball.Velocity.dx);
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		if (vx > 0) {
 			const Width = ctx.canvas.width;
@@ -616,31 +461,21 @@ export class Player implements GraphicalElement {
 	protected updateBackgroundInputs(ctx: GameContext): void {
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
-		
-		// Only update AI movement if the ball is actually moving
+
 		if (this.ball.dx === 0 && this.ball.dy === 0) {
-			// Slowly return to center when ball is not moving
 			this.moveTowardsCenter(paddleCenter, centerY);
 			return;
 		}
-
-		// Different behavior based on player position and ball direction
 		if (this._position === PlayerPosition.LEFT) {
-			// Left player AI
 			if (this.ball.dx >= 0) {
-				// Ball moving away - return to center with smooth movement
 				this.moveTowardsCenter(paddleCenter, centerY);
 			} else {
-				// Ball coming towards - track with smooth movement
 				this.trackBallWithDelay(paddleCenter);
 			}
 		} else {
-			// Right player AI
 			if (this.ball.dx <= 0) {
-				// Ball moving away - return to center with smooth movement
 				this.moveTowardsCenter(paddleCenter, centerY);
 			} else {
-				// Ball coming towards - track with smooth movement
 				this.trackBallWithDelay(paddleCenter);
 			}
 		}
@@ -650,17 +485,12 @@ export class Player implements GraphicalElement {
 	 * AI helper method to move paddle towards center position
 	 */
 	private moveTowardsCenter(paddleCenter: number, centerY: number): void {
-		// Create a moderate deadzone for center position to prevent jitter
-		// Use a fraction of paddle height instead of speed
-		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
+		const deadzone = this.paddleHeight * 0.1;
 		const targetY = centerY + (this.paddleHeight * 0.5);
-
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
-			// Within deadzone - stop movement
 			this.upPressed = false;
 			this.downPressed = false;
 		} else {
-			// Move towards center with smooth movement
 			this.upPressed = paddleCenter > targetY;
 			this.downPressed = paddleCenter < targetY;
 		}
@@ -671,31 +501,23 @@ export class Player implements GraphicalElement {
 	 * AI helper method to move paddle towards the predicted ball Y position
 	 */
 	private moveTowardsPredictedBallY(paddleCenter: number): void {
-		// Use a fraction of paddle height instead of speed
-		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
+		const deadzone = this.paddleHeight * 0.1;
 
 		if (Math.abs(paddleCenter - this._targetY) < deadzone) {
-			// Within deadzone - stop movement
 			this.upPressed = false;
 			this.downPressed = false;
 		} else {
-			// Move towards the predicted Y
 			this.upPressed = paddleCenter > this._targetY;
 			this.downPressed = paddleCenter < this._targetY;
 		}
-		// updateDirection() will be called by the caller (updateAIInputs)
 	}
 
 	/**
 	 * AI helper method to track the ball with realistic movement
 	 */
 	private trackBallWithDelay(paddleCenter: number): void {
-		// Remove prediction error and directly track ball
 		const targetY = this.ball.y;
-		
-		// Keep a small deadzone to prevent jitter
-		// Use a fraction of paddle height instead of speed
-		const deadzone = this.paddleHeight * 0.1; // 10% of paddle height
+		const deadzone = this.paddleHeight * 0.1;
 		
 		if (Math.abs(paddleCenter - targetY) < deadzone) {
 			this.upPressed = false;
@@ -704,29 +526,31 @@ export class Player implements GraphicalElement {
 			this.upPressed = paddleCenter > targetY;
 			this.downPressed = paddleCenter < targetY;
 		}
-		
 		this.updateDirection();
 	}
 
-	/**
-	 * Sets the display name for this player
-	 */
-	public setName(name: string): void {
-		this._name = name;
+	////////////////////////////////////////////////////////////
+	// Helper methods
+	////////////////////////////////////////////////////////////
+	public freezeMovement(duration: number): void { this.movementFrozen = duration; }
+	public stopMovement(): void { this.direction = Direction.NONE; }
+	public givePoint(): void { this.score += 1; }
+	public resetScore(): void { this.score = 0; }
+	public resetPosition(): void {
+		const height = this.context.canvas.height;
+		this.y = height * 0.5 - this.paddleHeight * 0.5;
+		this.paddle.setPosition(this.x, this.y);
 	}
 
-	/**
-	 * Sets the paddle color
-	 * @param color Hex color string
-	 */
-	public setColor(color: string): void {
-		(this as any).colour = color;
-	}
-
-	/**
-	 * Freeze this paddle's movement for a duration (in seconds).
-	 */
-	public freezeMovement(duration: number): void {
-		this.movementFrozen = duration;
-	}
+	////////////////////////////////////////////////////////////
+	// Getters and setters
+	////////////////////////////////////////////////////////////
+	public get name(): string { return this._name; }
+	public get PlayerType(): PlayerType { return this._type; }
+	public get Score(): number { return this.score; }
+	public get Position(): PlayerPosition { return this._position; }
+	
+	public setName(name: string): void { this._name = name; }
+	public setPlayerType(type: PlayerType): void { this._type = type; }
+	public setColor(color: string): void { (this as any).colour = color; }	
 }

@@ -20,19 +20,15 @@ export class BallHitbox implements Collidable {
 		}
 	}
 
-	// =========================================
-	// Collidable Interface Implementation
-	// =========================================
-	
-	/**
-	 * Returns the current bounding box of the ball
-	 */
-	public getBoundingBox(): BoundingBox {
+	////////////////////////////////////////////////////////////
+	// Getters and setters
+	////////////////////////////////////////////////////////////
+	public get BoundingBox(): BoundingBox {
 		if (!this.ball) {
 			throw new Error('Ball is undefined in BallHitbox');
 		}
-		const radius = this.ball.getSize();
-		const pos = this.ball.getPosition();
+		const radius = this.ball.Size;
+		const pos = this.ball.Position;
 		return {
 			left: pos.x - radius,
 			right: pos.x + radius,
@@ -41,34 +37,18 @@ export class BallHitbox implements Collidable {
 		};
 	}
 
-	/**
-	 * Returns the current velocity of the ball
-	 */
-	public getVelocity(): { dx: number; dy: number } {
+	public get Velocity(): { dx: number; dy: number } {
 		if (!this.ball) {
 			throw new Error('Ball is undefined in BallHitbox');
 		}
-		return this.ball.getVelocity();
+		return this.ball.Velocity;
 	}
 
-	/**
-	 * Returns the current position of the ball
-	 */
-	public getPosition(): { x: number; y: number } {
+	public get Position(): { x: number; y: number } {
 		if (!this.ball) {
 			throw new Error('Ball is undefined in BallHitbox');
 		}
-		return this.ball.getPosition();
+		return this.ball.Position;
 	}
-
-	/**
-	 * Returns the previous position of the ball
-	 */
-	public getPreviousPosition(): { x: number; y: number } {
-		return this.ball.getPrevPosition();
-	}
-
-	// =========================================
-	// State Management
-	// =========================================
+	public get PreviousPosition(): { x: number; y: number } { return this.ball.PrevPosition; }
 }

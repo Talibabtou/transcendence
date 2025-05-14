@@ -16,42 +16,20 @@ export class PaddleHitbox implements Collidable {
 		}
 	}
 
-	// =========================================
-	// Collidable Interface Implementation
-	// =========================================
+	////////////////////////////////////////////////////////////
+	// Getters and setters
+	////////////////////////////////////////////////////////////
 	
-	/**
-	 * Returns the current bounding box of the paddle
-	 */
-	public getBoundingBox(): BoundingBox {
-		const pos = this.paddle.getPosition();
+	public get Velocity(): { dx: number; dy: number } { return this.paddle.Velocity; }
+	public get Position(): { x: number; y: number } { return this.paddle.Position; }
+	public get PreviousPosition(): { x: number; y: number } { return this.paddle.PreviousPosition; }
+	public get BoundingBox(): BoundingBox {
+		const pos = this.paddle.Position;
 		return {
 			left: pos.x,
 			right: pos.x + this.paddle.paddleWidth,
 			top: pos.y + this.paddle.paddleHeight * 0.01,
 			bottom: pos.y + this.paddle.paddleHeight - this.paddle.paddleHeight * 0.01
 		};
-	}
-
-	/**
-	 * Returns the current velocity of the paddle
-	 */
-	public getVelocity(): { dx: number; dy: number } {
-		return this.paddle.getVelocity();
-	}
-
-	/**
-	 * Returns the current position of the paddle
-	 */
-	public getPosition(): { x: number; y: number } {
-		return this.paddle.getPosition();
-	}
-
-	/**
-	 * Returns the previous position of the paddle
-	 * Note: For paddles, we currently use the current position
-	 */
-	public getPreviousPosition(): { x: number; y: number } {
-		return this.paddle.getPreviousPosition();
 	}
 }

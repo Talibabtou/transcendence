@@ -48,13 +48,6 @@ export class ResizeManager {
 		this.setupResizeHandler();
 	}
 
-	/**
-	 * Returns whether a resize operation is currently in progress
-	 * @returns True if resizing is in progress, false otherwise.
-	 */
-	public isCurrentlyResizing(): boolean {
-		return this.isResizing;
-	}
 
 	/**
 	 * Cleans up resources and event listeners
@@ -70,12 +63,7 @@ export class ResizeManager {
 		this.boundResizeHandler = null as any;
 	}
 
-	/**
-	 * Sets up the window resize event listener
-	 */
-	private setupResizeHandler(): void {
-		window.addEventListener('resize', this.boundResizeHandler);
-	}
+
 
 	/**
 	 * Main resize handler that orchestrates the resize process
@@ -142,7 +130,7 @@ export class ResizeManager {
 		const { width: newWidth, height: newHeight } = this.context.canvas;
 		const sizes = calculateGameSizes(newWidth, newHeight);
 		if (!this.ball || !this.player1 || !this.player2) return;
-		const gameSnapshot = this.pauseManager?.getGameSnapshot();
+		const gameSnapshot = this.pauseManager?.GameSnapshot;
 		this.ball.updateSizes();
 		this.player1.updateSizes();
 		this.player2.updateSizes();
@@ -196,26 +184,18 @@ export class ResizeManager {
 		const maxY = newHeight - this.player1.paddleHeight;
 		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
 		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
-		const gameSnapshot = this.pauseManager?.getGameSnapshot();
+		const gameSnapshot = this.pauseManager?.GameSnapshot;
 		if (gameSnapshot) {
 			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
 			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
 		}
 	}
 
-	/**
-	 * Checks if we have a valid game scene with all needed objects
-	 * @returns True if it's a game scene, false otherwise.
-	 */
-	private isGameScene(): boolean {
-		return !!(this.ball && this.player1 && this.player2 && this.pauseManager);
-	}
-
-	/**
-	 * Checks if we're in background demo mode
-	 * @returns True if in background demo mode, false otherwise.
-	 */
-	private isInBackgroundDemo(): boolean {
-		return this.scene.isBackgroundDemo();
-	}
+	////////////////////////////////////////////////////////////
+	// Helper methods
+	////////////////////////////////////////////////////////////
+	private isGameScene(): boolean { return !!(this.ball && this.player1 && this.player2 && this.pauseManager); }
+	private isInBackgroundDemo(): boolean { return this.scene.isBackgroundDemo(); }
+	private setupResizeHandler(): void { window.addEventListener('resize', this.boundResizeHandler); }
+	public isCurrentlyResizing(): boolean { return this.isResizing; }
 }

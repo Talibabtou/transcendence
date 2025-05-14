@@ -54,14 +54,14 @@ export class GameEngine {
 	 */
 	private loadMainScene(): void {
 		this.scene.setGameMode(this.gameMode);
-		if (this.scene.getBall()) {
-			this.scene.getBall().restart();
+		if (this.scene.Ball) {
+			this.scene.Ball.restart();
 		}
-		if (this.scene.getPlayer1()) {
-			this.scene.getPlayer1().resetPosition();
+		if (this.scene.Player1) {
+			this.scene.Player1.resetPosition();
 		}
-		if (this.scene.getPlayer2()) {
-			this.scene.getPlayer2().resetPosition();
+		if (this.scene.Player2) {
+			this.scene.Player2.resetPosition();
 		}
 		this.scene.load();
 	}
@@ -108,11 +108,11 @@ export class GameEngine {
 			return;
 		}
 		const gameScene = this.scene;
-		const resizeManager = gameScene.getResizeManager();
+		const resizeManager = gameScene.ResizeManager;
 		if (resizeManager?.isCurrentlyResizing()) {
 			return;
 		}
-		const pauseManager = gameScene.getPauseManager();
+		const pauseManager = gameScene.PauseManager;
 		if (pauseManager.hasState(GameState.PLAYING)) {
 			gameScene.handlePause();
 			this.pauseMatchTimer();
@@ -130,7 +130,7 @@ export class GameEngine {
 		if (!(this.scene instanceof GameScene)) {
 			return false;
 		}
-		return this.scene.getPauseManager().hasState(GameState.PAUSED);
+		return this.scene.PauseManager.hasState(GameState.PAUSED);
 	}
 
 	/**
@@ -144,8 +144,8 @@ export class GameEngine {
 			this.context.canvas.height = height;
 		}
 		if (this.scene instanceof GameScene) {
-			this.scene.getPlayer1()?.updateSizes();
-			this.scene.getPlayer2()?.updateSizes();
+			this.scene.Player1?.updateSizes();
+			this.scene.Player2?.updateSizes();
 		}
 		this.draw(1);
 	}
@@ -189,13 +189,13 @@ export class GameEngine {
 		try {
 			const scene = this.scene;
 			if (!scene) return;
-			const player1 = scene.getPlayer1();
-			const player2 = scene.getPlayer2();
+			const player1 = scene.Player1;
+			const player2 = scene.Player2;
 			let actualP1Color: string = p1ColorInput;
 			let actualP2Color: string;
 
 			if (player2) {
-				const p2Type = player2.getPlayerType();
+				const p2Type = player2.PlayerType;
 				if (p2Type === PlayerType.AI) {
 					actualP2Color = '#ffffff';
 				} else if (p2Type === PlayerType.BACKGROUND) {
@@ -286,7 +286,7 @@ export class GameEngine {
 	private setupMatchTimeout(): void {
 		setTimeout(() => {
 			if (!this.matchCompleted && this.matchId && !this.scene.isBackgroundDemo()) {
-				const winnerIndex = this.scene?.getPlayer1().getScore() > this.scene?.getPlayer2().getScore() ? 0 : 1;
+				const winnerIndex = this.scene?.Player1?.Score > this.scene?.Player2?.Score ? 0 : 1;
 				this.completeMatch(winnerIndex);
 			}
 		}, GAME_CONFIG.MAX_MATCH_DURATION);
@@ -312,7 +312,7 @@ export class GameEngine {
 		if (!(this.scene instanceof GameScene)) {
 			return;
 		}
-		const pauseManager = this.scene.getPauseManager();
+		const pauseManager = this.scene.PauseManager;
 		if (pauseManager.hasState(GameState.COUNTDOWN)) {
 			pauseManager.setPendingPauseRequest(true);
 		} 
@@ -371,7 +371,7 @@ export class GameEngine {
 		}
 		let scoringPlayerId: number;
 		if (scoringPlayerIndex === 1 && this.scene.isSinglePlayer()) {
-			scoringPlayerId = 0; // Use ID 0 for AI
+			scoringPlayerId = 0;
 		} else if (scoringPlayerIndex >= 0 && scoringPlayerIndex < this.playerIds.length) {
 			scoringPlayerId = this.playerIds[scoringPlayerIndex];
 		} else {
@@ -390,47 +390,19 @@ export class GameEngine {
 				}
 			});
 	}
-	
-	/**
-	 * Resets the goal timer.
-	 */
-	public resetGoalTimer(): void {
-		if (this.scene.isBackgroundDemo()) {
-			return;
-		}
-		this.goalStartTime = Date.now() - this.totalPausedTime;
-	}
-
-	/**
-	 * Handles keydown events for game controls.
-	 * @param evt The keyboard event.
-	 */
-	private handleKeydown(evt: KeyboardEvent): void {
-		if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
-			this.togglePause();
-		}
-	}
-
-	/**
-	 * Stops all active timers (match, goal, pause related).
-	 */
-	public stopAllTimers(): void {
-		this.isPaused = true;
-		this.matchCompleted = true;
-	}
 
 	/**
 	 * Dispatches a game over event.
 	 */
 	private dispatchGameOver(): void {
 		if (this.scene.isBackgroundDemo()) return;
-		const player1 = this.scene.getPlayer1();
-		const player2 = this.scene.getPlayer2();
-		const winner = this.scene.getWinner();
+		const player1 = this.scene.Player1;
+		const player2 = this.scene.Player2;
+		const winner = this.scene.Winner;
 		const player1Name = player1.name; 
 		const player2Name = player2.name;
-		const player1Score = player1.getScore();
-		const player2Score = player2.getScore();
+		const player1Score = player1.Score;
+		const player2Score = player2.Score;
 		const winnerName = winner ? winner.name : (player1Score > player2Score ? player1Name : player2Name);
 
 		import('@website/scripts/utils').then(({ MatchCache }) => {
@@ -471,27 +443,47 @@ export class GameEngine {
 			return;
 		}
 		if (this.scene.isGameOver()) {
-			const player1 = this.scene.getPlayer1();
-			const player2 = this.scene.getPlayer2();
-			const winnerIndex = player1.getScore() > player2.getScore() ? 0 : 1;
+			const player1 = this.scene.Player1;
+			const player2 = this.scene.Player2;
+			const winnerIndex = player1.Score > player2.Score ? 0 : 1;
 			this.completeMatch(winnerIndex);
 		}
 	}
 
+	////////////////////////////////////////////////////////////
+	// Helper methods
+	////////////////////////////////////////////////////////////
 
+	public resetGoalTimer(): void {
+		if (this.scene.isBackgroundDemo()) {
+			return;
+		}
+		this.goalStartTime = Date.now() - this.totalPausedTime;
+	}
+
+	private handleKeydown(evt: KeyboardEvent): void {
+		if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
+			this.togglePause();
+		}
+	}
+
+	public stopAllTimers(): void {
+		this.isPaused = true;
+		this.matchCompleted = true;
+	}
 	////////////////////////////////////////////////////////////
 	// Getters and setters
 	////////////////////////////////////////////////////////////
-	public getMatchId(): number | null { return this.matchId; }
-	public getGameState(): GameStateInfo {
+	public get MatchId(): number | null { return this.matchId; }
+	public get GameState(): GameStateInfo {
 		return {
-			player1Score: this.scene.getPlayer1()?.getScore() ?? 0,
-			player2Score: this.scene.getPlayer2()?.getScore() ?? 0,
+			player1Score: this.scene.Player1?.Score ?? 0,
+			player2Score: this.scene.Player2?.Score ?? 0,
 			isGameOver: this.scene.isGameOver(),
-			winner: this.scene.getWinner()
+			winner: this.scene.Winner
 		};
 	}
-	public getMatchDuration(): number {
+	public get MatchDuration(): number {
 		if (!this.matchStartTime) return 0;
 		const currentTime = Date.now();
 		const totalPaused = this.totalPausedTime + (this.isPaused ? (currentTime - this.pauseStartTime) : 0);
@@ -499,11 +491,11 @@ export class GameEngine {
 	}
 
 	public setPlayerNames(player1Name: string, player2Name: string): void {
-		if (this.scene.getPlayer1()) {
-			this.scene.getPlayer1().setName(player1Name);
+		if (this.scene.Player1) {
+			this.scene.Player1.setName(player1Name);
 		}
-		if (this.scene.getPlayer2()) {
-			this.scene.getPlayer2().setName(player2Name);
+		if (this.scene.Player2) {
+			this.scene.Player2.setName(player2Name);
 		}
 	}
 	public setKeyboardEnabled(enabled: boolean): void {

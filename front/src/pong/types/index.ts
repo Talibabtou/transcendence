@@ -69,10 +69,10 @@ export interface BoundingBox {
  * Interface for objects that can collide with other objects
  */
 export interface Collidable {
-	getBoundingBox(): BoundingBox;
-	getVelocity(): { dx: number; dy: number };
-	getPosition(): { x: number; y: number };
-	getPreviousPosition(): { x: number; y: number };
+	BoundingBox: BoundingBox;
+	Velocity: { dx: number; dy: number };
+	Position: { x: number; y: number };
+	PreviousPosition: { x: number; y: number };
 }
 
 /**
@@ -92,8 +92,8 @@ export interface CollisionResult {
 export interface PhysicsObject {
 	x: number;
 	y: number;
-	getVelocity(): { dx: number; dy: number };
-	getPosition(): { x: number; y: number };
+	Velocity: { dx: number; dy: number };
+	Position: { x: number; y: number };
 }
 
 /**
@@ -133,14 +133,13 @@ export interface Player extends GraphicalElement {
 	x: number;
 	y: number;
 	name: string;
-
-	getScore(): number;
+	Score: number;
+	PlayerType: PlayerType;
 	resetScore(): void;
 	givePoint(): void;
 	updateSizes(): void;
 	bindControls(): void;
 	unbindControls(): void;
-	getPlayerType(): PlayerType;
 	setPlayerType(type: PlayerType): void;
 }
 
@@ -196,3 +195,5 @@ export interface SceneParams {
 	winner?: Player;
 	[key: string]: any;
 }
+
+export type CountdownCallback = (text: string | number | string[] | null) => void;

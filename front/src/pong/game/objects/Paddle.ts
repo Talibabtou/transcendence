@@ -45,23 +45,6 @@ export class Paddle implements MovableObject {
 		this.prevY = y;
 	}
 
-	// =========================================
-	// Getters and Setters
-	// =========================================
-	/**
-	 * Gets the paddle width
-	 */
-	public get paddleWidth(): number {
-		return this._paddleWidth;
-	}
-
-	/**
-	 * Gets the paddle height
-	 */
-	public get paddleHeight(): number {
-		return this._paddleHeight;
-	}
-
 	/**
 	 * Updates paddle dimensions
 	 * @param width The new paddle width
@@ -72,40 +55,12 @@ export class Paddle implements MovableObject {
 		this._paddleHeight = height;
 	}
 
-	// =========================================
-	// Rendering Methods
-	// =========================================
 	/**
 	 * Draws the paddle on the canvas
 	 */
 	public draw(): void {
 		this.context.fillStyle = COLORS.PADDLE;
 		this.context.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
-	}
-
-	// =========================================
-	// Movement and Physics Methods
-	// =========================================
-	/**
-	 * Gets the current velocity of the paddle
-	 */
-	public getVelocity(): { dx: number; dy: number } {
-		return { dx: 0, dy: this.y - this.prevY };
-	}
-
-	/**
-	 * Gets the current position of the paddle
-	 */
-	public getPosition(): { x: number; y: number } {
-		return { x: this.x, y: this.y };
-	}
-
-	/**
-	 * Sets the paddle's movement direction
-	 * @param direction The direction to move the paddle
-	 */
-	public setDirection(direction: Direction): void {
-		this.direction = direction;
 	}
 
 	/**
@@ -124,40 +79,28 @@ export class Paddle implements MovableObject {
 		this.y = Math.min(Math.max(0, newY), maxY);
 	}
 
-	/**
-	 * Updates paddle position
-	 * @param x The new x position
-	 * @param y The new y position
-	 */
-	public setPosition(x: number, y: number): void {
-		this.x = x;
-		this.y = y;
-	}
-
-	/**
-	 * Gets paddle dimensions
-	 */
-	public getDimensions(): { width: number; height: number } {
+	////////////////////////////////////////////////////////////
+	// Getters and Setters
+	////////////////////////////////////////////////////////////
+	public get PreviousPosition(): { x: number; y: number } { return { x: this.prevX, y: this.prevY }; }
+	public get Velocity(): { dx: number; dy: number } { return { dx: 0, dy: this.y - this.prevY }; }
+	public get Position(): { x: number; y: number } { return { x: this.x, y: this.y }; }
+	public get paddleWidth(): number { return this._paddleWidth; }
+	public get paddleHeight(): number { return this._paddleHeight; }
+	public get Dimensions(): { width: number; height: number } {
 		return {
 			width: this.paddleWidth,
 			height: this.paddleHeight
 		};
 	}
-
-	/**
-	 * Sets the paddle's previous position for physics calculations.
-	 * @param x The previous x position.
-	 * @param y The previous y position.
-	 */
+	
+	public setDirection(direction: Direction): void { this.direction = direction; }
 	public setPreviousPosition(x: number, y: number): void {
 		this.prevX = x;
 		this.prevY = y;
 	}
-
-	/**
-	 * Gets the paddle's previous position for physics calculations.
-	 */
-	public getPreviousPosition(): { x: number; y: number } {
-		return { x: this.prevX, y: this.prevY };
+	public setPosition(x: number, y: number): void {
+		this.x = x;
+		this.y = y;
 	}
 }
