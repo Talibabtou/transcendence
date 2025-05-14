@@ -1,7 +1,7 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
-import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/constants';
+import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
 
 /**
  * Represents a player in the game, managing paddle movement,
@@ -9,37 +9,33 @@ import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG, DEBUG } from '@pong/cons
  */
 export class Player implements GraphicalElement {
 
-	private static readonly BOUNCE_COLORS = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 6;
-	protected direction: Direction = Direction.NONE;
-	protected speed: number = 0;
-	protected colour = COLORS.PADDLE;
-	protected score = 0;
-	protected readonly startX: number;
-	protected readonly startY: number;
-	protected upPressed = false;
-	protected downPressed = false;
-	protected _name: string = 'Player';
-	protected _type: PlayerType;
-	protected _position: PlayerPosition;
-	protected _upKey: string;
-	protected _downKey: string;
-	protected _targetY: number;
-	protected predictedBouncePoints: { x: number; y: number }[];
-	protected numPredictedBounces: number = 0;
-	protected finalPredictedImpactPoint: { x: number; y: number } | null = null;
-	protected _lastCollisionTime: number;
-	protected prevRenderX: number = 0;
-	protected prevRenderY: number = 0;
-	private movementFrozen: number = 0;
-	private readonly currentPosVec: { x: number; y: number };
-	private readonly currentVelVec: { dx: number; dy: number };
-	private readonly collisionPointVec: { x: number; y: number };
-	private readonly finalPredictedImpactPointVec: { x: number; y: number };
 	public paddle: Paddle;
 	public paddleWidth: number = 10;
 	public paddleHeight: number = 100;
-
+	private direction: Direction = Direction.NONE;
+	private speed: number = 0;
+	private color = COLORS.PADDLE;
+	private score = 0;
+	private upPressed = false;
+	private downPressed = false;
+	private _name: string = 'Player';
+	private _type: PlayerType;
+	private _position: PlayerPosition;
+	private _upKey: string;
+	private _downKey: string;
+	private _targetY: number;
+	private _lastCollisionTime: number;
+	private prevRenderX: number = 0;
+	private prevRenderY: number = 0;
+	private movementFrozen: number = 0;
+	private readonly startY: number;
+	private readonly currentPosVec: { x: number; y: number };
+	private readonly currentVelVec: { dx: number; dy: number };
+	private readonly collisionPointVec: { x: number; y: number };
+	private predictedBouncePoints: { x: number; y: number }[];
+	private numPredictedBounces: number = 0;
+	private readonly finalPredictedImpactPointVec: { x: number; y: number };
+	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 10;
 
 	/**
 	 * Handles keyboard keydown events for player control
@@ -98,7 +94,6 @@ export class Player implements GraphicalElement {
 		if (!context) {
 			throw new Error('Context must be provided to Player');
 		}
-		this.startX = x;
 		this.startY = context.canvas.height * 0.5 - this.paddleHeight * 0.5;
 		this.y = this.startY;
 		this._position = position;
@@ -176,37 +171,8 @@ export class Player implements GraphicalElement {
 	public draw(ctx: GameContext, alpha: number): void {
 		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
-		ctx.fillStyle = this.colour;
+		ctx.fillStyle = this.color;
 		ctx.fillRect(interpolatedX, interpolatedY, this.paddleWidth, this.paddleHeight);
-		if (!DEBUG.enabled) {
-			return;
-		}
-		const zone = BALL_CONFIG.EDGES.ZONE_SIZE;
-		const yTop = interpolatedY + this.paddleHeight * zone;
-		const yBot = interpolatedY + this.paddleHeight * (1 - zone);
-		ctx.strokeStyle = 'red';
-		ctx.lineWidth = 2;
-		ctx.beginPath();
-		ctx.moveTo(interpolatedX, yTop);
-		ctx.lineTo(interpolatedX + this.paddleWidth, yTop);
-		ctx.moveTo(interpolatedX, yBot);
-		ctx.lineTo(interpolatedX + this.paddleWidth, yBot);
-		ctx.stroke();
-		for (let i = 0; i < this.numPredictedBounces; i++) {
-			const point = this.predictedBouncePoints[i];
-			ctx.fillStyle = Player.BOUNCE_COLORS[i % Player.BOUNCE_COLORS.length];
-			ctx.beginPath();
-			ctx.arc(point.x, point.y, 5, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.closePath();
-		}
-		if (this.finalPredictedImpactPoint && this._position === PlayerPosition.RIGHT) {
-			ctx.fillStyle = 'cyan';
-			ctx.beginPath();
-			ctx.arc(this.finalPredictedImpactPoint.x, this.finalPredictedImpactPoint.y, 6, 0, Math.PI * 2);
-			ctx.fill();
-			ctx.closePath();
-		}
 	}
 
 	/**
@@ -292,7 +258,7 @@ export class Player implements GraphicalElement {
 			this._lastCollisionTime = 0;
 		} else {
 			this.numPredictedBounces = 0;
-			this.finalPredictedImpactPoint = null;
+			// this.finalPredictedImpactPoint = null;
 		}
 	}
 
@@ -310,7 +276,7 @@ export class Player implements GraphicalElement {
 		}
 		this._lastCollisionTime = Date.now();
 		this.numPredictedBounces = 0;
-		this.finalPredictedImpactPoint = null;
+		// this.finalPredictedImpactPoint = null;
 
 		const { width, height } = this.context.canvas;
 		const ballRadius = this.ball.Size;
@@ -374,7 +340,7 @@ export class Player implements GraphicalElement {
 			if (collisionType === 'player') {
 				this.finalPredictedImpactPointVec.x = this.collisionPointVec.x;
 				this.finalPredictedImpactPointVec.y = this.collisionPointVec.y;
-				this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec; // Assign the object itself
+				// this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec; // Assign the object itself
 				const finalPredictedY = this.collisionPointVec.y;
 				const paddleCenterMinY = this.paddleHeight / 2;
 				const paddleCenterMaxY = height - this.paddleHeight / 2;
@@ -428,12 +394,12 @@ export class Player implements GraphicalElement {
 					const finalPredictedXFallback = this.currentPosVec.x + this.currentVelVec.dx * finalTimeToPlayerFallback;
 					this.finalPredictedImpactPointVec.x = finalPredictedXFallback;
 					this.finalPredictedImpactPointVec.y = finalPredictedYFallback;
-					this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec;
+					// this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec;
 					const paddleCenterMinY = this.paddleHeight / 2;
 					const paddleCenterMaxY = height - this.paddleHeight / 2;
 					this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedYFallback));
 				} else {
-					this.finalPredictedImpactPoint = null;
+					// this.finalPredictedImpactPoint = null;
 					this._targetY = this.y + this.paddleHeight / 2;
 				}
 			}

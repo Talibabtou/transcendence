@@ -232,9 +232,9 @@ export class PhysicsManager {
     const ballVelocity = ball.Velocity;
     const paddleVelocity = player.paddle.Velocity;
     const pLeft = player.x;
-    const pRight = player.x + player.paddleWidth;
+    const pRight = player.x + player.paddle.paddleWidth;
     const pTop = player.y;
-    const pBottom = player.y + player.paddleHeight;
+    const pBottom = player.y + player.paddle.paddleHeight;
     let hitOccurred = false;
     const prevBallPos = ball.PrevPosition ? ball.PrevPosition : ballPosition;
     const ballMoveDir = { dx: ballPosition.x - prevBallPos.x, dy: ballPosition.y - prevBallPos.y };

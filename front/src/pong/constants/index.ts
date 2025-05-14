@@ -128,7 +128,6 @@ export const KEYS = {
 	PLAYER_LEFT_DOWN: 'KeyS',
 	PLAYER_RIGHT_UP: 'ArrowUp',
 	PLAYER_RIGHT_DOWN: 'ArrowDown',
-	DEBUG_TOGGLE: 'KeyD',
 	ENTER: 'Enter',
 	ESC: 'Escape'
 } as const;
@@ -176,5 +175,3 @@ export const calculateGameSizes = (width: number, height: number): GameSizes => 
 	}
 };
 
-/** Toggles debug overlays like paddle zones and prediction dots */
-export const DEBUG = { enabled: false };

@@ -1,7 +1,7 @@
 import { Ball, Player } from '@pong/game/objects';
 import { PhysicsManager } from '@pong/game/physics';
 import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
-import { GAME_CONFIG, calculateGameSizes, KEYS, DEBUG } from '@pong/constants';
+import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
 import { PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 import { GameMode } from '@shared/types';
@@ -37,7 +37,6 @@ export class GameScene {
 		this.uiManager = new UIManager(this.context);
 		this.setupScene();
 		this.controlsManager = new ControlsManager(this.player1, this.player2);
-		window.addEventListener('keydown', this.onDebugToggle);
 	}
 
 	
@@ -56,7 +55,6 @@ export class GameScene {
 		this.controlsManager.cleanup();
 		this.cleanupManagers();
 		this.cleanupGameObjects();
-		window.removeEventListener('keydown', this.onDebugToggle);
 	}
 
 	/**
@@ -249,12 +247,6 @@ export class GameScene {
 		this.ball = null as any;
 		this.player1 = null as any;
 		this.player2 = null as any;
-	}
-
-	private onDebugToggle = (evt: KeyboardEvent) => {
-		if (evt.code === KEYS.DEBUG_TOGGLE) {
-			DEBUG.enabled = !DEBUG.enabled;
-		}
 	}
 
 	////////////////////////////////////////////////////////////
