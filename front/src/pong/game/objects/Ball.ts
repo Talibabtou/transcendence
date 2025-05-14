@@ -1,48 +1,26 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
-// const PHYSICS_TIMESTEP = 1000 / GAME_CONFIG.FPS; // Removed: Fixed timestep now handled by GameManager
-// const MAX_DELTA_TIME = 1000 / 120; // Max physics delta allowed per update call - MOVED TO BALL_CONFIG
-
 /**
  * Represents the ball in the game, handling its movement,
  * physics, collisions, and rendering.
  */
 export class Ball implements GraphicalElement, PhysicsObject {
-	// =========================================
-	// Private Properties
-	// =========================================
+
 	private readonly context: GameContext;
-	// Made public for PhysicsManager access
+	private readonly colour = COLORS.BALL;
 	public size!: number;
 	public baseSpeed!: number;
 	public currentSpeed!: number;
-	private readonly colour = COLORS.BALL;
-	
-	// State flags - Made public for PhysicsManager access
 	public destroyed = false;
 	public hitLeftBorder = false;
-	
-	// Speed control - Made public for PhysicsManager access
 	public speedMultiplier: number = BALL_CONFIG.ACCELERATION.INITIAL;
-
-	
-	// =========================================
-	// Public Properties
-	// =========================================
 	public dx = 0;
 	public dy = 0;
-
-	// Pool vector calculations to avoid creating new objects
-	// Position from previous physics step (for swept collision)
-	// Made public for PhysicsManager access
 	public prevPosition: { x: number; y: number } = { x: 0, y: 0 };
-	public prevRenderX: number = 0; // For rendering interpolation
-	public prevRenderY: number = 0; // For rendering interpolation
+	public prevRenderX: number = 0;
+	public prevRenderY: number = 0;
 
-	// =========================================
-	// Constructor
-	// =========================================
 	/**
 	 * Creates a new Ball instance
 	 * @param x The initial x position
@@ -60,23 +38,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.prevPosition.y = this.y;
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
-	}
-
-	// =========================================
-	// Public Methods
-	// =========================================
-	/**
-	 * Gets the rendering context
-	 */
-	public getContext(): GameContext {
-		return this.context;
-	}
-
-	/**
-	 * Gets the ball radius
-	 */
-	public getSize(): number {
-		return this.size;
 	}
 
 	/**
@@ -115,41 +76,28 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 * @param _deltaTime The time elapsed since the last frame.
 	 * @param _state The current game state.
 	 */
-	public update(_context: GameContext, _deltaTime: number, _state: GameState): void {
-	}
+	public update(_context: GameContext, _deltaTime: number, _state: GameState): void {}
+
 	/**
 	 * Launches the ball in a random direction
 	 */
 	public launchBall(): void {
-		// Reset speed state
 		this.currentSpeed = this.baseSpeed;
 		this.speedMultiplier = BALL_CONFIG.ACCELERATION.INITIAL;
-
-		// Get angle range from constants
 		const { MIN, MAX } = BALL_CONFIG.SPEED.RELATIVE.INITIAL_ANGLE;
-		
-		// First decide if we're going up or down
 		const goingUp = Math.random() > 0.5;
-		
 		let angle;
+
 		if (goingUp) {
-			// Choose a random angle within the entire MIN to MAX range
 			angle = (MIN + Math.random() * (MAX - MIN)) * (Math.PI / 180);
 		} else {
-			// Same for downward direction but negative
 			angle = (-MIN - Math.random() * (MAX - MIN)) * (Math.PI / 180);
 		}
-		
-		// Convert angle to direction vector
 		this.dx = Math.cos(angle);
 		this.dy = Math.sin(angle);
-		
-		// Normalize and apply initial speed
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		this.dx = (this.dx / magnitude) * this.currentSpeed;
 		this.dy = (this.dy / magnitude) * this.currentSpeed;
-
-		// Randomize horizontal direction (left/right)
 		if (Math.random() > 0.5) {
 			this.dx = -this.dx;
 		}
@@ -161,26 +109,14 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public updateSizes(): void {
 		const newWidth = this.context.canvas.width;
 		const newHeight = this.context.canvas.height;
-		
-		// Update ball size
 		const sizes = calculateGameSizes(newWidth, newHeight);
 		this.size = sizes.BALL_SIZE;
-		
-		// Calculate the new base speed based on current dimensions
-		// This ensures speed is always proportional to screen size
 		this.baseSpeed = newWidth / BALL_CONFIG.SPEED.RELATIVE.TIME_TO_CROSS;
-		
-		// If the ball is moving, adjust its velocity to maintain relative speed
 		if (this.dx !== 0 || this.dy !== 0) {
-			// Get current direction (normalized vector)
 			const currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 			const normalizedDx = this.dx / currentSpeed;
 			const normalizedDy = this.dy / currentSpeed;
-			
-			// Calculate new speed maintaining the current multiplier
 			const newSpeed = this.baseSpeed * this.speedMultiplier;
-			
-			// Apply new speed while keeping direction
 			this.dx = normalizedDx * newSpeed;
 			this.dy = normalizedDy * newSpeed;
 		}
@@ -196,16 +132,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.dy = 0;
 		this.destroyed = false;
 		this.hitLeftBorder = false;
-		// Snap previous render and physics positions to the new position
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
 		this.prevPosition.x = this.x;
 		this.prevPosition.y = this.y;
 	}
 
-	// =========================================
-	// State Management Methods
-	// =========================================
 	/**
 	 * Saves the ball's current state for serialization
 	 */
@@ -228,22 +160,13 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		const width = newWidth ?? this.context.canvas.width;
 		const height = newHeight ?? this.context.canvas.height;
 
-		// Restore position
 		this.x = width * state.position.x;
 		this.y = height * state.position.y;
-
-		// Restore velocity and speed
 		if (state.velocity.dx !== 0 || state.velocity.dy !== 0) {
-			// First restore the normalized direction
 			this.dx = state.velocity.dx;
 			this.dy = state.velocity.dy;
-			
-			// Then restore speed state
 			this.speedMultiplier = state.speedMultiplier;
 			this.currentSpeed = this.baseSpeed * this.speedMultiplier;
-			
-			// The velocity is already scaled by currentSpeed, so we don't need to normalize and rescale
-			// Just restore the saved direction with the current speed
 			this.dx = state.velocity.dx * this.currentSpeed;
 			this.dy = state.velocity.dy * this.currentSpeed;
 		}
@@ -259,10 +182,15 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.currentSpeed = this.baseSpeed;
 	}
 
-	/**
-	 * Returns the normalized velocity vector (unit vector of direction)
-	 * This is still useful for PhysicsManager.
-	 */
+	////////////////////////////////////////////////////////////
+	// Getters
+	////////////////////////////////////////////////////////////
+	public getVelocity(): { dx: number; dy: number } { return { dx: this.dx, dy: this.dy };	}
+	public getPosition(): { x: number; y: number } { return { x: this.x, y: this.y };	}
+	public getPrevPosition(): { x: number; y: number } { return { x: this.prevPosition.x, y: this.prevPosition.y }; }
+	public getContext(): GameContext { return this.context; }
+	public getSize(): number { return this.size; }
+
 	public getNormalizedVelocity(): { dx: number; dy: number } {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		if (magnitude === 0) return { dx: 0, dy: 0 };
@@ -271,27 +199,4 @@ export class Ball implements GraphicalElement, PhysicsObject {
 			dy: this.dy / magnitude
 		};
 	}
-
-	// =========================================
-	// Interface Implementation Methods
-	// =========================================
-	/**
-	 * Gets the current velocity (required by PhysicsObject interface)
-	 */
-	public getVelocity(): { dx: number; dy: number } {
-		return { dx: this.dx, dy: this.dy };
-	}
-
-	/**
-	 * Gets the current position (required by PhysicsObject interface)
-	 */
-	public getPosition(): { x: number; y: number } {
-		return { x: this.x, y: this.y };
-	}
-
-	/** Returns the position from the last physics step for continuous collision tests */
-	public getPrevPosition(): { x: number; y: number } {
-		return { x: this.prevPosition.x, y: this.prevPosition.y };
-	}
-
 }
