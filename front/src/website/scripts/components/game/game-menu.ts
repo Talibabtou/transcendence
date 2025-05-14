@@ -183,8 +183,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
 			
 			if (hasRestoredTournament) {
-				// Skip the player registration completely
-				console.log("Restored tournament from localStorage");
 				this.onShowTournamentSchedule();
 				this.onTournamentRestored();
 				return;

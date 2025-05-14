@@ -56,7 +56,7 @@ export const GAME_RATIOS = {
 	PADDLE: {
 		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
-		SPEED: 1,     // control speed (fraction of screen height per second)
+		SPEED: 0.8,     // control speed (fraction of screen height per second)
 		PADDING: 0.03   // % from edges
 	},
 	BALL: {
@@ -70,7 +70,7 @@ export const GAME_RATIOS = {
 export const BALL_CONFIG = {
 	SPEED: {
 		RELATIVE: {
-			TIME_TO_CROSS: 2.0,
+			TIME_TO_CROSS: 2.2,
 			INITIAL_ANGLE: {
 				MIN: 30,     // Minimum angle from horizontal
 				MAX: 40      // Maximum angle from horizontal

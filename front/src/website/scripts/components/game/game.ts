@@ -87,8 +87,6 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Set game over callback
 		this.gameManager.setOnGameOverCallback((result) => {
-			// Store the result before changing state
-			console.log("Game over callback with result:", result);
 			
 			// If in tournament mode, process the result in the tournament component
 			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {

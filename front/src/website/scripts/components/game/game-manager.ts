@@ -219,8 +219,6 @@ export class GameManager {
 			if (instance.isActive && instance.engine) {
 				let deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
-				// console.log("deltaTime", deltaTime);
-				// Prevent spiral of death by capping extremely large frame delays
 				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) {
 					deltaTime = GAME_CONFIG.MAX_DELTA_TIME;
 				}
@@ -231,9 +229,7 @@ export class GameManager {
 					let steps = 0;
 					// Perform fixed updates but never more than MAX_STEPS_PER_FRAME per render frame
 					while (accumulator >= GAME_CONFIG.FRAME_TIME && steps < GAME_CONFIG.MAX_STEPS_PER_FRAME) {
-						console.time('GameManager.engine.update');
 						instance.engine.update(GAME_CONFIG.FRAME_TIME/1000);
-						console.timeEnd('GameManager.engine.update');
 						accumulator -= GAME_CONFIG.FRAME_TIME;
 						steps++;
 					}
@@ -246,9 +242,7 @@ export class GameManager {
 					const alpha = accumulator / GAME_CONFIG.FRAME_TIME;
 					
 					// Render the latest state with interpolation
-					console.time('GameManager.engine.draw');
 					instance.engine.draw(alpha);
-					console.timeEnd('GameManager.engine.draw');
 
 				} catch (error) {
 					this.handleGameEngineError(
@@ -625,22 +619,32 @@ export class GameManager {
 	 */
 	public showBackgroundGame(): void {
 		try {
-			// Start if not active, otherwise just show
-			if (!this.backgroundGameInstance.isActive) {
+			// Start if not active or engine is missing, otherwise just show and ensure it's running
+			if (!this.backgroundGameInstance.isActive || !this.backgroundGameInstance.engine) {
+				this.cleanupGame(this.backgroundGameInstance); // Ensure clean state before starting
 				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
 				
-				// Disable keyboard for background game to prevent input conflicts
 				if (this.backgroundGameInstance.engine) {
 					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 				}
-			} else if (this.backgroundGameInstance.canvas) {
-				// Make sure the canvas is properly styled
-				this.backgroundGameInstance.canvas.style.display = 'block';
-				this.backgroundGameInstance.canvas.style.opacity = '0.4';
+			} else {
+				// Instance is active and engine exists, ensure it's visible and playing
+				if (this.backgroundGameInstance.canvas) {
+					this.backgroundGameInstance.canvas.style.display = 'block';
+					this.backgroundGameInstance.canvas.style.opacity = '0.4';
+				}
+
+				// Resume if paused
+				if (this.backgroundGameInstance.engine.isGamePaused()) {
+					this.backgroundGameInstance.engine.togglePause(); // This should trigger resume logic
+				}
 				
-				// Force a redraw of the background game
+				// Ensure the animation loop is running (restarts it if it was stopped)
+				this.startGameLoop(this.backgroundGameInstance);
+
+				// Ensure keyboard is still disabled for background
 				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.draw(1);
+					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 				}
 			}
 		} catch (error) {
@@ -648,7 +652,7 @@ export class GameManager {
 			
 			// On error, try to create a new background game
 			try {
-				this.cleanupBackgroundGame();
+				this.cleanupBackgroundGame(); // This calls cleanupGame which sets isActive to false
 				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
 				if (this.backgroundGameInstance.engine) {
 					this.backgroundGameInstance.engine.setKeyboardEnabled(false);

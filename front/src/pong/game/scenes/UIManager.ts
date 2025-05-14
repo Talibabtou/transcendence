@@ -48,12 +48,8 @@ export class UIManager {
 	 * @param player2 The second player
 	 */
 	public drawBackground(player1: Player, player2: Player): void {
-		console.time('UIManager.drawPlayerNames');
 		this.drawPlayerNames(player1, player2);
-		console.timeEnd('UIManager.drawPlayerNames');
-		console.time('UIManager.drawScores');
 		this.drawScores(player1, player2);
-		console.timeEnd('UIManager.drawScores');
 	}
 
 	/**
@@ -71,16 +67,12 @@ export class UIManager {
 	 */
 	public drawUI(isPaused: boolean, isBackgroundDemo: boolean): void {
 		if (isPaused && !isBackgroundDemo) {
-			console.time('UIManager.drawPause');
 			this.drawPauseOverlay();
 			this.drawPauseText();
-			console.timeEnd('UIManager.drawPause');
 		}
 
 		if (this.shouldDrawCountdown(isBackgroundDemo)) {
-			console.time('UIManager.drawCountdown');
 			this.drawCountdown();
-			console.timeEnd('UIManager.drawCountdown');
 		}
 	}
 
@@ -110,7 +102,6 @@ export class UIManager {
 	 * Draws player names
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
-		console.time('UIManager.drawPlayerNames');
 		const { width, height } = this.context.canvas;
 		const sizes = calculateFontSizes(width, height);
 		const paddingTop = height * 0.02;
@@ -157,8 +148,6 @@ export class UIManager {
 		if (this.player2NameCanvas.width > 0) {
 			this.context.drawImage(this.player2NameCanvas, width - paddingRight - this.player2NameCanvas.width, paddingTop);
 		}
-
-		console.timeEnd('UIManager.drawPlayerNames');
 	}
 
 	/**

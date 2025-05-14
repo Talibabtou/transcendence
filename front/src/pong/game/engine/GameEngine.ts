@@ -128,9 +128,7 @@ export class GameEngine {
 	 */
 	public draw(alpha: number): void {
 		this.clearScreen();
-		console.time('GameEngine.scene.draw');
 		this.scene.draw(alpha);
-		console.timeEnd('GameEngine.scene.draw');
 	}
 
 	/**
@@ -146,9 +144,7 @@ export class GameEngine {
 			}
 			
 			try {
-				console.time('GameEngine.scene.update');
 				this.scene.update(deltaTime);
-				console.timeEnd('GameEngine.scene.update');
 			} catch (error) {
 				console.error('Error updating game scene:', error);
 			}
