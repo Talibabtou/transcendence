@@ -28,8 +28,8 @@ export class PaddleHitbox implements Collidable {
 		return {
 			left: pos.x,
 			right: pos.x + this.paddle.paddleWidth,
-			top: pos.y + this.paddle.paddleHeight * 0.01,
-			bottom: pos.y + this.paddle.paddleHeight - this.paddle.paddleHeight * 0.01
+			top: pos.y + this.paddle.paddleHeight * 0.03,
+			bottom: pos.y + this.paddle.paddleHeight - this.paddle.paddleHeight * 0.03
 		};
 	}
 }

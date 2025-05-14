@@ -8,7 +8,7 @@ import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 export class Ball implements GraphicalElement, PhysicsObject {
 
 	private readonly context: GameContext;
-	private readonly colour = COLORS.BALL;
+	private readonly color = COLORS.BALL;
 	public size!: number;
 	public baseSpeed!: number;
 	public currentSpeed!: number;
@@ -49,7 +49,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
 
 		ctx.beginPath();
-		ctx.fillStyle = this.colour;
+		ctx.fillStyle = this.color;
 		ctx.arc(interpolatedX, interpolatedY, this.size, 0, Math.PI * 2);
 		ctx.fill();
 		ctx.closePath();

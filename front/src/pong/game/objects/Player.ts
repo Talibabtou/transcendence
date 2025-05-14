@@ -14,7 +14,7 @@ export class Player implements GraphicalElement {
 	public paddleHeight: number = 100;
 	private direction: Direction = Direction.NONE;
 	private speed: number = 0;
-	private color = COLORS.PADDLE;
+	private color: string = COLORS.PADDLE;
 	private score = 0;
 	private upPressed = false;
 	private downPressed = false;
@@ -32,8 +32,6 @@ export class Player implements GraphicalElement {
 	private readonly currentPosVec: { x: number; y: number };
 	private readonly currentVelVec: { dx: number; dy: number };
 	private readonly collisionPointVec: { x: number; y: number };
-	private predictedBouncePoints: { x: number; y: number }[];
-	private numPredictedBounces: number = 0;
 	private readonly finalPredictedImpactPointVec: { x: number; y: number };
 	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 10;
 
@@ -107,8 +105,6 @@ export class Player implements GraphicalElement {
 		this.currentVelVec = { dx: 0, dy: 0 };
 		this.collisionPointVec = { x: 0, y: 0 };
 		this.finalPredictedImpactPointVec = { x: 0, y: 0 };
-		this.predictedBouncePoints = Array.from({ length: Player.MAX_PREDICTED_BOUNCES_DISPLAY }, () => ({ x: 0, y: 0 }));
-		this.numPredictedBounces = 0;
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
 			this._downKey = KEYS.PLAYER_LEFT_DOWN;
@@ -214,7 +210,6 @@ export class Player implements GraphicalElement {
 	 * Updates the paddle's position based on input direction
 	 */
 	protected updateMovement(deltaTime: number): void {
-		// if frozen, decrement timer and skip moving
 		if (this.movementFrozen > 0) {
 			this.direction = Direction.NONE;
 			this.movementFrozen -= deltaTime;
@@ -256,9 +251,6 @@ export class Player implements GraphicalElement {
 		if (ballVelocity.dx !== 0 || ballVelocity.dy !== 0) {
 			this.predictBallTrajectory(this.ball.Position, ballVelocity);
 			this._lastCollisionTime = 0;
-		} else {
-			this.numPredictedBounces = 0;
-			// this.finalPredictedImpactPoint = null;
 		}
 	}
 
@@ -275,13 +267,11 @@ export class Player implements GraphicalElement {
 			return;
 		}
 		this._lastCollisionTime = Date.now();
-		this.numPredictedBounces = 0;
-		// this.finalPredictedImpactPoint = null;
 
 		const { width, height } = this.context.canvas;
 		const ballRadius = this.ball.Size;
 		const sizes = calculateGameSizes(width, height);
-		const maxBounces = Player.MAX_PREDICTED_BOUNCES_DISPLAY;
+		const maxBouncesToSimulate = Player.MAX_PREDICTED_BOUNCES_DISPLAY; // This now acts as a simulation depth limit
 
 		this.currentPosVec.x = startPoint.x;
 		this.currentPosVec.y = startPoint.y;
@@ -291,7 +281,6 @@ export class Player implements GraphicalElement {
 		let simulatedCurrentSpeed = Math.sqrt(this.currentVelVec.dx * this.currentVelVec.dx + this.currentVelVec.dy * this.currentVelVec.dy);
 		let simulatedSpeedMultiplier = this.ball.baseSpeed > 0 ? simulatedCurrentSpeed / this.ball.baseSpeed : BALL_CONFIG.ACCELERATION.INITIAL;
 		simulatedSpeedMultiplier = Math.max(BALL_CONFIG.ACCELERATION.INITIAL, simulatedSpeedMultiplier);
-
 		const playerPaddleEdgeX = this._position === PlayerPosition.LEFT
 			? sizes.PLAYER_PADDING + this.paddleWidth
 			: width - (sizes.PLAYER_PADDING + this.paddleWidth);
@@ -299,110 +288,180 @@ export class Player implements GraphicalElement {
 			? width - (sizes.PLAYER_PADDING + this.paddleWidth)
 			: sizes.PLAYER_PADDING + this.paddleWidth;
 
-		for (let bounceCount = 0; bounceCount < maxBounces; bounceCount++) {
-			let timeToCollision = Infinity;
-			let collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' = 'none';
-			let timeToTop = Infinity;
-			if (this.currentVelVec.dy < 0) { timeToTop = (ballRadius - this.currentPosVec.y) / this.currentVelVec.dy; }
-			let timeToBottom = Infinity;
-			if (this.currentVelVec.dy > 0) { timeToBottom = (height - ballRadius - this.currentPosVec.y) / this.currentVelVec.dy; }
-			let timeToOpponent = Infinity;
-			if (this.currentVelVec.dx !== 0) {
-				if ((this._position === PlayerPosition.LEFT && this.currentVelVec.dx > 0)) {
-					const targetX = opponentPaddleEdgeX - ballRadius;
-					if (this.currentVelVec.dx !== 0) timeToOpponent = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-				} else if ((this._position === PlayerPosition.RIGHT && this.currentVelVec.dx < 0)) {
-					const targetX = opponentPaddleEdgeX + ballRadius;
-					if (this.currentVelVec.dx !== 0) timeToOpponent = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-				}
-			}
-			let timeToPlayer = Infinity;
-			if (this.currentVelVec.dx !== 0) {
-				if ((this._position === PlayerPosition.LEFT && this.currentVelVec.dx < 0)) {
-					const targetX = playerPaddleEdgeX + ballRadius;
-					if (this.currentVelVec.dx !== 0) timeToPlayer = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-				} else if ((this._position === PlayerPosition.RIGHT && this.currentVelVec.dx > 0)) {
-					const targetX = playerPaddleEdgeX - ballRadius;
-					if (this.currentVelVec.dx !== 0) timeToPlayer = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-				}
-			}
-			const positiveTimes = [timeToTop, timeToBottom, timeToOpponent, timeToPlayer].filter(t => t > 1e-6);
-			if (positiveTimes.length === 0) break;
-			timeToCollision = Math.min(...positiveTimes);
-			this.collisionPointVec.x = this.currentPosVec.x + this.currentVelVec.dx * timeToCollision;
-			this.collisionPointVec.y = this.currentPosVec.y + this.currentVelVec.dy * timeToCollision;
-			const tolerance = 1e-6;
-			if (Math.abs(timeToCollision - timeToTop) < tolerance) collisionType = 'top';
-			else if (Math.abs(timeToCollision - timeToBottom) < tolerance) collisionType = 'bottom';
-			else if (Math.abs(timeToCollision - timeToOpponent) < tolerance) collisionType = 'opponent';
-			else if (Math.abs(timeToCollision - timeToPlayer) < tolerance) collisionType = 'player';
-			else break;
-			if (collisionType === 'player') {
-				this.finalPredictedImpactPointVec.x = this.collisionPointVec.x;
-				this.finalPredictedImpactPointVec.y = this.collisionPointVec.y;
-				// this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec; // Assign the object itself
-				const finalPredictedY = this.collisionPointVec.y;
-				const paddleCenterMinY = this.paddleHeight / 2;
-				const paddleCenterMaxY = height - this.paddleHeight / 2;
-				this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedY));
+		for (let bounceCount = 0; bounceCount < maxBouncesToSimulate; bounceCount++) {
+			const collisionTimes = this._calculateCollisionTimes(
+				this.currentPosVec,
+				this.currentVelVec,
+				ballRadius,
+				height,
+				playerPaddleEdgeX,
+				opponentPaddleEdgeX
+			);
+
+			const { timeToCollision, collisionType } = this._determineEarliestCollision(collisionTimes);
+
+			if (collisionType === 'none' || timeToCollision === Infinity) {
+				this._targetY = this.y + this.paddleHeight / 2; // Default if no collision
 				break;
 			}
-			let reflected = false;
-			if (collisionType === 'top' || collisionType === 'bottom') {
-				this.currentVelVec.dy *= -1;
-				reflected = true;
-			} else if (collisionType === 'opponent') {
-				this.currentVelVec.dx *= -1;
-				reflected = true;
+
+			this.collisionPointVec.x = this.currentPosVec.x + this.currentVelVec.dx * timeToCollision;
+			this.collisionPointVec.y = this.currentPosVec.y + this.currentVelVec.dy * timeToCollision;
+
+			if (collisionType === 'player') {
+				this._handlePlayerCollision(this.collisionPointVec, height);
+				break;
 			}
-			if (reflected) {
-				simulatedSpeedMultiplier = Math.min(
-					simulatedSpeedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
-					BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
-				);
-				simulatedCurrentSpeed = this.ball.baseSpeed * simulatedSpeedMultiplier;
-				const magnitude = Math.sqrt(this.currentVelVec.dx * this.currentVelVec.dx + this.currentVelVec.dy * this.currentVelVec.dy);
-				if (magnitude > 1e-6) {
-					const normDx = this.currentVelVec.dx / magnitude;
-					const normDy = this.currentVelVec.dy / magnitude;
-					this.currentVelVec.dx = normDx * simulatedCurrentSpeed;
-					this.currentVelVec.dy = normDy * simulatedCurrentSpeed;
-				} else {
-					break;
-				}
-			}
-			if (this.numPredictedBounces < maxBounces) {
-				this.predictedBouncePoints[this.numPredictedBounces].x = this.collisionPointVec.x;
-				this.predictedBouncePoints[this.numPredictedBounces].y = this.collisionPointVec.y;
-				this.numPredictedBounces++;
-			}
+
+			const reflection = this._handleReflection(
+				collisionType as 'top' | 'bottom' | 'opponent',
+				this.currentVelVec,
+				simulatedSpeedMultiplier,
+				this.ball.baseSpeed
+			);
+			this.currentVelVec.dx = reflection.newVel.dx;
+			this.currentVelVec.dy = reflection.newVel.dy;
+			simulatedSpeedMultiplier = reflection.newSpeedMultiplier;
 			this.currentPosVec.x = this.collisionPointVec.x;
 			this.currentPosVec.y = this.collisionPointVec.y;
-			if (bounceCount === maxBounces - 1) {
-				let finalTimeToPlayerFallback = Infinity;
-				if (this.currentVelVec.dx !== 0) {
-					if ((this._position === PlayerPosition.LEFT && this.currentVelVec.dx < 0)) {
-						const targetX = playerPaddleEdgeX + ballRadius;
-						if (this.currentVelVec.dx !== 0) finalTimeToPlayerFallback = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-					} else if ((this._position === PlayerPosition.RIGHT && this.currentVelVec.dx > 0)) {
-						const targetX = playerPaddleEdgeX - ballRadius;
-						if (this.currentVelVec.dx !== 0) finalTimeToPlayerFallback = (targetX - this.currentPosVec.x) / this.currentVelVec.dx;
-					}
-				}
-				if (finalTimeToPlayerFallback > 0 && finalTimeToPlayerFallback !== Infinity) {
-					const finalPredictedYFallback = this.currentPosVec.y + this.currentVelVec.dy * finalTimeToPlayerFallback;
-					const finalPredictedXFallback = this.currentPosVec.x + this.currentVelVec.dx * finalTimeToPlayerFallback;
-					this.finalPredictedImpactPointVec.x = finalPredictedXFallback;
-					this.finalPredictedImpactPointVec.y = finalPredictedYFallback;
-					// this.finalPredictedImpactPoint = this.finalPredictedImpactPointVec;
-					const paddleCenterMinY = this.paddleHeight / 2;
-					const paddleCenterMaxY = height - this.paddleHeight / 2;
-					this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedYFallback));
-				} else {
-					// this.finalPredictedImpactPoint = null;
-					this._targetY = this.y + this.paddleHeight / 2;
-				}
+
+			if (bounceCount === maxBouncesToSimulate - 1) {
+				this._predictTargetYAtMaxBounces(
+					this.currentPosVec,
+					this.currentVelVec,
+					playerPaddleEdgeX,
+					ballRadius,
+					height,
+					this.paddleHeight
+				);
 			}
+		}
+	}
+
+	private _calculateCollisionTimes(
+		currentPos: { x: number; y: number },
+		currentVel: { dx: number; dy: number },
+		ballRadius: number,
+		canvasHeight: number,
+		playerPaddleEdgeX: number,
+		opponentPaddleEdgeX: number
+	): { timeToTop: number; timeToBottom: number; timeToOpponent: number; timeToPlayer: number } {
+		let timeToTop = Infinity;
+		if (currentVel.dy < 0) { timeToTop = (ballRadius - currentPos.y) / currentVel.dy; }
+
+		let timeToBottom = Infinity;
+		if (currentVel.dy > 0) { timeToBottom = (canvasHeight - ballRadius - currentPos.y) / currentVel.dy; }
+
+		let timeToOpponent = Infinity;
+		if (currentVel.dx !== 0) {
+			if ((this._position === PlayerPosition.LEFT && currentVel.dx > 0)) {
+				const targetX = opponentPaddleEdgeX - ballRadius;
+				if (currentVel.dx !== 0) timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
+			} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx < 0)) {
+				const targetX = opponentPaddleEdgeX + ballRadius;
+				if (currentVel.dx !== 0) timeToOpponent = (targetX - currentPos.x) / currentVel.dx;
+			}
+		}
+
+		let timeToPlayer = Infinity;
+		if (currentVel.dx !== 0) {
+			if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) {
+				const targetX = playerPaddleEdgeX + ballRadius;
+				if (currentVel.dx !== 0) timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
+			} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) {
+				const targetX = playerPaddleEdgeX - ballRadius;
+				if (currentVel.dx !== 0) timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
+			}
+		}
+		return { timeToTop, timeToBottom, timeToOpponent, timeToPlayer };
+	}
+
+	private _determineEarliestCollision(times: {
+		timeToTop: number;
+		timeToBottom: number;
+		timeToOpponent: number;
+		timeToPlayer: number;
+	}): { timeToCollision: number; collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' } {
+		const positiveTimes = [times.timeToTop, times.timeToBottom, times.timeToOpponent, times.timeToPlayer].filter(t => t > 1e-6);
+		if (positiveTimes.length === 0) {
+			return { timeToCollision: Infinity, collisionType: 'none' };
+		}
+		const timeToCollision = Math.min(...positiveTimes);
+		const tolerance = 1e-6;
+		if (Math.abs(timeToCollision - times.timeToTop) < tolerance) return { timeToCollision, collisionType: 'top' };
+		if (Math.abs(timeToCollision - times.timeToBottom) < tolerance) return { timeToCollision, collisionType: 'bottom' };
+		if (Math.abs(timeToCollision - times.timeToOpponent) < tolerance) return { timeToCollision, collisionType: 'opponent' };
+		if (Math.abs(timeToCollision - times.timeToPlayer) < tolerance) return { timeToCollision, collisionType: 'player' };
+		return { timeToCollision: Infinity, collisionType: 'none' };
+	}
+
+	private _handlePlayerCollision(collisionPoint: { x: number; y: number }, canvasHeight: number): void {
+		this.finalPredictedImpactPointVec.x = collisionPoint.x;
+		this.finalPredictedImpactPointVec.y = collisionPoint.y;
+		const finalPredictedY = collisionPoint.y;
+		const paddleCenterMinY = this.paddleHeight / 2;
+		const paddleCenterMaxY = canvasHeight - this.paddleHeight / 2;
+		this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedY));
+	}
+
+	private _handleReflection(
+		collisionType: 'top' | 'bottom' | 'opponent',
+		currentVel: { dx: number; dy: number },
+		simulatedSpeedMultiplier: number,
+		baseSpeed: number
+	): { newVel: { dx: number; dy: number }; newSpeedMultiplier: number } {
+		const newVel = { dx: currentVel.dx, dy: currentVel.dy };
+		if (collisionType === 'top' || collisionType === 'bottom') {
+			newVel.dy *= -1;
+		} else if (collisionType === 'opponent') {
+			newVel.dx *= -1;
+		}
+		const newSimulatedSpeedMultiplier = Math.min(
+			simulatedSpeedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
+			BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
+		);
+		const simulatedCurrentSpeed = baseSpeed * newSimulatedSpeedMultiplier;
+		const magnitude = Math.sqrt(newVel.dx * newVel.dx + newVel.dy * newVel.dy);
+		if (magnitude > 1e-6) {
+			const normDx = newVel.dx / magnitude;
+			const normDy = newVel.dy / magnitude;
+			newVel.dx = normDx * simulatedCurrentSpeed;
+			newVel.dy = normDy * simulatedCurrentSpeed;
+		} else {
+			newVel.dx = 0;
+			newVel.dy = 0;
+		}
+		return { newVel, newSpeedMultiplier: newSimulatedSpeedMultiplier };
+	}
+
+	private _predictTargetYAtMaxBounces(
+		currentPos: { x: number; y: number },
+		currentVel: { dx: number; dy: number },
+		playerPaddleEdgeX: number,
+		ballRadius: number,
+		canvasHeight: number,
+		paddleHeight: number
+	): void {
+		let finalTimeToPlayerFallback = Infinity;
+		if (currentVel.dx !== 0) {
+			if ((this._position === PlayerPosition.LEFT && currentVel.dx < 0)) {
+				const targetX = playerPaddleEdgeX + ballRadius;
+				if (currentVel.dx !== 0) finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
+			} else if ((this._position === PlayerPosition.RIGHT && currentVel.dx > 0)) {
+				const targetX = playerPaddleEdgeX - ballRadius;
+				if (currentVel.dx !== 0) finalTimeToPlayerFallback = (targetX - currentPos.x) / currentVel.dx;
+			}
+		}
+		if (finalTimeToPlayerFallback > 0 && finalTimeToPlayerFallback !== Infinity) {
+			const finalPredictedYFallback = currentPos.y + currentVel.dy * finalTimeToPlayerFallback;
+			const finalPredictedXFallback = currentPos.x + currentVel.dx * finalTimeToPlayerFallback;
+			this.finalPredictedImpactPointVec.x = finalPredictedXFallback;
+			this.finalPredictedImpactPointVec.y = finalPredictedYFallback;
+			const paddleCenterMinY = paddleHeight / 2;
+			const paddleCenterMaxY = canvasHeight - paddleHeight / 2;
+			this._targetY = Math.max(paddleCenterMinY, Math.min(paddleCenterMaxY, finalPredictedYFallback));
+		} else {
+			this._targetY = this.y + paddleHeight / 2;
 		}
 	}
 
@@ -427,7 +486,6 @@ export class Player implements GraphicalElement {
 	protected updateBackgroundInputs(ctx: GameContext): void {
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		const centerY = ctx.canvas.height * 0.5 - this.paddleHeight * 0.5;
-
 		if (this.ball.dx === 0 && this.ball.dy === 0) {
 			this.moveTowardsCenter(paddleCenter, centerY);
 			return;
@@ -518,5 +576,5 @@ export class Player implements GraphicalElement {
 	
 	public setName(name: string): void { this._name = name; }
 	public setPlayerType(type: PlayerType): void { this._type = type; }
-	public setColor(color: string): void { (this as any).colour = color; }	
+	public setColor(newColor: string): void { this.color = newColor; }	
 }
