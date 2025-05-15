@@ -28,6 +28,11 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 */
 	private internalStateListeners: Array<(newState: StateType, oldState: StateType) => void> = [];
 
+	/**
+	 * Optional error handler
+	 */
+	private onError?: (componentName: string, message: string) => void;
+
 	// =========================================
 	// LIFECYCLE MANAGEMENT
 	// =========================================
@@ -36,10 +41,12 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 * Creates a new component instance
 	 * @param container - The DOM element to render the component into
 	 * @param initialState - Optional initial state for the component
+	 * @param onError - Optional error handler for the component
 	 */
-	constructor(container: HTMLElement, initialState?: StateType) {
+	constructor(container: HTMLElement, initialState?: StateType, onError?: (componentName: string, message: string) => void) {
 		this.container = container;
 		this.internalState = initialState || {} as StateType;
+		this.onError = onError;
 	}
 
 	/**
@@ -182,7 +189,7 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		
 		Object.entries(data as Record<string, any>).forEach(([key, value]) => {
 			const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-			result = result.replace(regex, String(value));
+			result = result.replace(regex, value);
 		});
 		
 		return result;
@@ -197,10 +204,9 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 */
 	protected setErrorState(message: string): void {
 		this.errorState = { hasError: true, message };
-		const errorEvent = new CustomEvent('component-error', { 
-			detail: { component: this.constructor.name, message } 
-		});
-		this.container.dispatchEvent(errorEvent);
+		if (this.onError) {
+			this.onError(this.constructor.name, message);
+		}
 	}
 	
 	/**
@@ -223,5 +229,25 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 				<button class="error-retry-btn" onclick="window.location.reload()">Retry</button>
 			</div>
 		`;
+	}
+
+	/**
+	 * Public method to refresh the component
+	 * Can be called by router to re-initialize after auth changes
+	 */
+	public refresh(): void {
+		this.render();
+		this.afterRender();
+		
+		// Call setupEventListeners if component implements it
+		if (typeof (this as any).setupEventListeners === 'function') {
+			setTimeout(() => {
+				(this as any).setupEventListeners();
+			}, 0);
+		}
+	}
+
+	public getDOMContainer(): HTMLElement {
+		return this.container;
 	}
 }

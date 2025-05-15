@@ -19,7 +19,7 @@
 			"@pong/*": ["src/pong/*"],
 			"@website/*": ["src/website/*"],
 			"@shared/*": ["src/shared/*"],
-			"plotly.js-dist": ["node_modules/@types/plotly.js"]
+			"@plotly/*": ["node_modules/@types/plotly.js"]
 		}
 	},
 	"include": ["src/**/*.ts"],

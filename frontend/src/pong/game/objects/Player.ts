@@ -113,7 +113,7 @@ export class Player implements GraphicalElement {
 		} else {
 			this._upKey = KEYS.PLAYER_RIGHT_UP;
 			this._downKey = KEYS.PLAYER_RIGHT_DOWN;
-			this._name = this._isAIControlled ? 'Computer' : 'Player 2';
+			this._name = this._isAIControlled ? 'AI' : 'Player 2';
 		}
 		
 		// Initialize paddle first
@@ -280,7 +280,7 @@ export class Player implements GraphicalElement {
 		if (this._position === PlayerPosition.LEFT) {
 			this._name = 'Player 1';
 		} else {
-			this._name = this._isAIControlled ? 'Computer' : 'Player 2';
+			this._name = this._isAIControlled ? 'AI' : 'Player 2';
 		}
 		
 		// Handle control binding/unbinding
@@ -459,8 +459,8 @@ export class Player implements GraphicalElement {
 	}
 
 	/**
-	 * Sets the color of the player's paddle
-	 * @param color New color in hex format (e.g. '#3498db')
+	 * Sets the paddle color
+	 * @param color Hex color string
 	 */
 	public setColor(color: string): void {
 		(this as any).colour = color;

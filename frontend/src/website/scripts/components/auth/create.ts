@@ -1,14 +1,13 @@
-/**
- * Create Account Module
- * Handles user registration functionality
- */
-import { html, ASCII_ART, DbService } from '@website/scripts/utils';
-import { AuthMethod, UserData } from '@shared/types';
+import { html, ASCII_ART, DbService, ApiError, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { AuthMethod, UserData } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
+	private passwordStrength: PasswordStrengthComponent | null = null;
+
 	constructor(
 		private updateState: (state: any) => void,
-		private setCurrentUser: (user: UserData | null) => void,
+		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
 
@@ -38,7 +37,10 @@ export class RegistrationHandler {
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required />
+					<input type="password" id="password" name="password" required 
+						   onInput=${(e: Event) => this.handlePasswordInput(e)}
+						   onFocus=${() => this.initializePasswordStrength()} />
+					<div id="password-strength-container"></div>
 				</div>
 				
 				<button type="submit" class="menu-button">Create Account</button>
@@ -49,14 +51,14 @@ export class RegistrationHandler {
 					class="menu-button auth-social-button google-auth"
 					onClick=${() => initiateGoogleAuth()}
 				>
-					Sign up with Google
+					G
 				</button>
 				
 				<button 
 					class="menu-button auth-social-button forty-two-auth"
 					onClick=${() => initiate42Auth()}
 				>
-					Sign up with 42
+					42
 				</button>
 			</div>
 			
@@ -70,9 +72,47 @@ export class RegistrationHandler {
 	}
 
 	/**
+	 * Initialize password strength component
+	 */
+	private initializePasswordStrength(): void {
+		if (!this.passwordStrength) {
+			const container = document.getElementById('password-strength-container');
+			if (container) {
+				this.passwordStrength = new PasswordStrengthComponent(container);
+			}
+		}
+	}
+
+	/**
+	 * Handle password input to update strength indicator
+	 */
+	handlePasswordInput(e: Event): void {
+		const input = e.target as HTMLInputElement;
+		const password = input.value;
+		
+		// Update password strength indicator
+		if (this.passwordStrength) {
+			this.passwordStrength.updatePassword(password);
+		}
+	}
+
+	/**
+	 * Reset form and password strength component
+	 */
+	private resetForm(): void {
+		const form = document.querySelector('.auth-form') as HTMLFormElement;
+		if (form) {
+			form.reset();
+		}
+		if (this.passwordStrength) {
+			this.passwordStrength = null;
+		}
+	}
+
+	/**
 	 * Handles user registration
 	 */
-	handleRegister(form: HTMLFormElement): void {
+	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
 		const username = formData.get('username') as string;
 		const email = formData.get('email') as string;
@@ -85,93 +125,77 @@ export class RegistrationHandler {
 			return;
 		}
 		
-		// Log registration attempt
-		console.log('Auth: Registration attempt', {
-			username,
-			email
-		});
+		// Validate password requirements
+		const passwordValidation = validatePassword(password);
+		if (!passwordValidation.valid) {
+			this.updateState({
+				error: passwordValidation.message
+			});
+			return;
+		}
 		
 		this.updateState({ isLoading: true, error: null });
 		
-		// Use DbService to simulate API call
-		DbService.register({ username, email, password })
-			.then(() => {
-				// Simulate API call
-				setTimeout(() => {
-					// Check if email already exists
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					const existingUser = users.find((u: any) => u.email === email);
-					
-					if (existingUser) {
-						console.warn('Auth: Registration failed - Email exists', {
-							email
-						});
-						
-						this.updateState({
-							isLoading: false,
-							error: 'Email already registered'
-						});
-						return;
-					}
-					
-					// Create new user
-					const userId = `user_${Date.now()}`;
-					const newUser = {
-						id: userId,
-						username,
-						email,
-						password,
-						authMethod: AuthMethod.EMAIL,
-						createdAt: new Date().toISOString(),
-						lastLogin: new Date()
-					};
-					
-					// Save to localStorage (for simulation)
-					users.push(newUser);
-					localStorage.setItem('auth_users', JSON.stringify(users));
-					
-					// Log successful registration
-					console.log('Auth: Registration successful', {
-						userId,
-						username,
-						email
-					});
-					
-					// Create user in the database
-					DbService.createUser({
-						id: parseInt(userId),
-						pseudo: username,
-						human: true,
-						created_at: new Date(),
-						last_login: new Date()
-					});
-					
-					// Set current user without password
-					const userData: UserData = {
-						id: newUser.id,
-						username: newUser.username,
-						email: newUser.email,
-						authMethod: AuthMethod.EMAIL,
-						lastLogin: new Date()
-					};
-					
-					this.setCurrentUser(userData);
-					
-					// Update component state
-					this.updateState({
-						isLoading: false
-					});
-					
-					// Switch to success state
-					this.switchToSuccessState();
-				}, 100);
-			})
-			.catch(error => {
-				console.error('Auth: Registration error', error);
+		try {
+			const hashedPassword = await hashPassword(password);
+			
+			const response = await DbService.register({ 
+				username, 
+				email, 
+				password: hashedPassword 
+			});
+			
+			if (response.success && response.user && response.token) {
+				const userFromDb = response.user;
+				const token = response.token;
+				
+				// Construct UserData for AuthManager/appState
+				const userData: UserData = {
+					id: userFromDb.id,
+					username: userFromDb.username,
+					email: userFromDb.email || email,
+					authMethod: AuthMethod.EMAIL,
+					lastLogin: new Date()
+				};
+				
+				this.setCurrentUser(userData, token);
+				this.resetForm();
+				
+				this.updateState({ isLoading: false });
+				this.switchToSuccessState();
+			} else {
 				this.updateState({
 					isLoading: false,
 					error: 'Registration failed. Please try again.'
 				});
-			});
+			}
+		} catch (error: unknown) {
+			console.error('Auth: Registration error', error);
+			
+			if (error instanceof ApiError) {
+				// Handle specific API errors
+				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
+					this.updateState({
+						isLoading: false,
+						error: 'Email or username already in use'
+					});
+				} else if (error.isErrorCode(ErrorCodes.INVALID_FIELDS)) {
+					this.updateState({
+						isLoading: false,
+						error: 'Invalid registration information provided'
+					});
+				} else {
+					this.updateState({
+						isLoading: false,
+						error: error.message || 'Registration failed. Please try again.'
+					});
+				}
+			} else {
+				this.updateState({
+					isLoading: false,
+					error: 'Registration failed. Please try again.'
+				});
+			}
+		}
 	}
 }

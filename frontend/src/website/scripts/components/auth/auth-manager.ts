@@ -4,7 +4,7 @@
  */
 import { Component, LoginHandler, RegistrationHandler, GoogleAuthHandler, FortyTwoAuthHandler } from '@website/scripts/components';
 import { html, render, navigate } from '@website/scripts/utils';
-import { AuthState, AuthMethod, AuthComponentState, UserData, IAuthComponent } from '@shared/types';
+import { AuthState, AuthMethod, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
@@ -13,13 +13,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// =========================================
 	
 	private currentUser: UserData | null = null;
-	private redirectAfterAuth: 'game' | 'profile' = 'profile';
+	private activeToken?: string;
 	
 	// Add debouncing for state changes
 	private stateChangeTimeout: number | null = null;
 	
 	// Add a session persistence option
-	private persistSession: boolean = false;
+	private persistSession: boolean = true;
 	
 	// Module handlers
 	private loginHandler: LoginHandler;
@@ -39,38 +39,44 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			currentState: AuthState.LOGIN,
 			isLoading: false,
 			error: null,
-			redirectTarget: null
+			redirectTarget: redirectTarget || 'profile'
 		});
 		
-		if (redirectTarget) {
-			this.redirectAfterAuth = redirectTarget;
-		}
+		this.updateInternalState({ redirectTarget: redirectTarget || 'profile' });
 		
 		this.persistSession = persistSession;
 		
-		// Initialize handlers
+		// Pass the new callback signature
+		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
+			this.currentUser = user;
+			this.activeToken = token;
+			if (!user) { // If user is null (e.g. logout), clear token
+				this.activeToken = undefined;
+			}
+		};
+		
 		this.loginHandler = new LoginHandler(
 			this.updateInternalState.bind(this),
-			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			setUserAndTokenCallback,
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.registrationHandler = new RegistrationHandler(
 			this.updateInternalState.bind(this),
-			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			setUserAndTokenCallback,
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.googleAuthHandler = new GoogleAuthHandler(
 			this.updateInternalState.bind(this),
-			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			setUserAndTokenCallback, // Assuming these also provide token
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		this.fortyTwoAuthHandler = new FortyTwoAuthHandler(
 			this.updateInternalState.bind(this),
-			this.setCurrentUser.bind(this),
-			this.switchToSuccessState.bind(this)
+			setUserAndTokenCallback, // Assuming these also provide token
+			this.handleSuccessfulAuth.bind(this)
 		);
 		
 		// Check if user is already logged in
@@ -95,14 +101,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 				
 				// If already logged in, redirect immediately
 				if (this.currentUser) {
-					// Log the session restoration
-					console.log('Auth: Restored session for user', {
-						userId: this.currentUser.id,
-						username: this.currentUser.username,
-						authMethod: this.currentUser.authMethod || 'unknown',
-						persistent: this.persistSession
-					});
-					
 					this.handleSuccessfulAuth();
 					return;
 				}
@@ -133,23 +131,17 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		}
 		
 		if (code && state) {
-			// We have an OAuth callback
 			this.updateInternalState({ isLoading: true });
 			
-			// Parse the state to determine the provider
 			try {
 				const stateData = JSON.parse(atob(state));
 				const provider = stateData.provider;
 				
-				// In a real app, we would exchange the code for a token
-				// For simulation, we'll create a fake user based on the provider
-				setTimeout(() => {
-					if (provider === AuthMethod.GOOGLE) {
-						this.googleAuthHandler.simulateOAuthLogin();
-					} else if (provider === AuthMethod.FORTY_TWO) {
-						this.fortyTwoAuthHandler.simulateOAuthLogin();
-					}
-				}, 500);
+				if (provider === AuthMethod.GOOGLE) {
+					this.googleAuthHandler.simulateOAuthLogin();
+				} else if (provider === AuthMethod.FORTY_TWO) {
+					this.fortyTwoAuthHandler.simulateOAuthLogin();
+				}
 			} catch (e) {
 				console.error('Failed to parse OAuth state', e);
 				this.updateInternalState({
@@ -163,29 +155,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// =========================================
 	// STATE MANAGEMENT
 	// =========================================
-	
-	/**
-	 * Sets the current user
-	 */
-	private setCurrentUser(user: UserData | null): void {
-		this.currentUser = user;
-	}
-	
-	/**
-	 * Switches to the success state
-	 */
-	private switchToSuccessState(): void {
-		this.updateInternalState({
-			currentState: AuthState.SUCCESS,
-			isLoading: false,
-			error: null
-		});
-
-		// Set a timeout to handle redirection after displaying success message
-		setTimeout(() => {
-			this.handleSuccessfulAuth();
-		}, 500);
-	}
 	
 	/**
 	 * Switches to a different auth state with debouncing
@@ -226,27 +195,19 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// =========================================
 	
 	render(): void {
-		// Add auth-container class to the container
 		this.container.className = 'auth-container';
 		
-		const state = this.getInternalState();
-		
-		// Create the template based on the current state
-		let template;
-		
-		// Create auth form container wrapper with close button
-		template = html`
+		const template = html`
 			<div class="auth-form-container">
 				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
-				${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
+				${this.getInternalState().error ? html`
+					<div class="register-error shake">${this.getInternalState().error}</div>
+				` : ''}
 			</div>
 		`;
 		
-		// Render the template
 		render(template, this.container);
-		
-		// Set up close button reference
 		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
 	
@@ -298,11 +259,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Renders a success message after authentication
 	 */
 	protected renderSuccessMessage(): any {
-		// Set a timeout to trigger redirection
-		setTimeout(() => {
-			this.handleSuccessfulAuth();
-		}, 500);
-		
 		return html`
 			<div class="auth-success">
 				<h2>Authentication Successful</h2>
@@ -316,22 +272,33 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Handles successful authentication
 	 */
 	protected handleSuccessfulAuth(): void {
-		if (!this.currentUser) return;
+		if (!this.currentUser) {
+			console.error("AuthManager: handleSuccessfulAuth called with no currentUser.");
+			return;
+		}
+		if (!this.activeToken) {
+			// This case should ideally not happen for email/password or new OAuth flows if token is always passed.
+			// Could happen if checkExistingSession calls this without a token.
+			// For now, let's log if it's missing during an active auth flow.
+			console.warn("AuthManager: handleSuccessfulAuth called with no activeToken. User might not be fully logged into appState.");
+		}
 		
-		// Use AppState to login
-		appState.login(this.currentUser, undefined, this.persistSession);
+		// Prepare the user object for appState.login.
+		// appState.login expects a simpler user object (id, username, etc.)
+		// and will enrich it with theme from localStorage.
+		const userForAppState = {
+			id: this.currentUser.id,
+			username: this.currentUser.username,
+			email: this.currentUser.email
+			// Any other fields appState's `login` method's `user` parameter expects
+		};
+
+		appState.login(userForAppState, this.activeToken, this.persistSession);
 		
-		// Clean up the auth component
-		setTimeout(() => {
-			this.destroy();
-			
-			// Redirect based on origin using router navigation
-			if (this.redirectAfterAuth === 'game') {
-				navigate('/game');
-			} else {
-				navigate('/profile');
-			}
-		}, 500);
+		this.destroy();
+		
+		const targetPath = this.getInternalState().redirectTarget === 'game' ? '/game' : '/profile';
+		navigate(targetPath);
 	}
 	
 	// =========================================
@@ -370,4 +337,3 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		super.destroy();
 	}
 }
-

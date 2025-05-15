@@ -3,9 +3,10 @@
  * Main component that manages the game interface, state transitions, and sub-components.
  * Handles the complete game lifecycle from menu to gameplay to game over.
  */
-import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent } from '@website/scripts/components';
-import { appState } from '@website/scripts/utils';
-import { GameMode } from '@shared/types';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
+import { appState, MatchCache, TournamentCache, ApiError } from '@website/scripts/utils';
+import { GameMode } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -17,6 +18,7 @@ import { GameMode } from '@shared/types';
 enum GameState {
 	MENU = 'menu',
 	PLAYER_REGISTRATION = 'player_registration',
+	TOURNAMENT = 'tournament',
 	PLAYING = 'playing',
 	GAME_OVER = 'game_over'
 }
@@ -27,8 +29,9 @@ enum GameState {
 interface GameComponentState {
 	currentState: GameState;
 	currentMode: GameMode;
-	playerIds?: number[];
+	playerIds?: string[];
 	playerNames?: string[];
+	playerColors?: string[];
 }
 
 // =========================================
@@ -60,6 +63,11 @@ export class GameComponent extends Component<GameComponentState> {
 	// Add a reference to the player registration component
 	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
 	
+	// Add a reference to the TournamentComponent
+	private TournamentComponent: TournamentComponent | null = null;
+	
+	private lastAuthState: boolean | null = null;
+	
 	// =========================================
 	// INITIALIZATION
 	// =========================================
@@ -71,10 +79,30 @@ export class GameComponent extends Component<GameComponentState> {
 		});
 		
 		this.gameManager = GameManager.getInstance();
+		this.lastAuthState = appState.isAuthenticated();
 		
 		// Subscribe to app state changes
 		this.unsubscribe = appState.subscribe((newState) => {
 			this.handleStateChange(newState);
+		});
+		
+		// Set game over callback
+		this.gameManager.setOnGameOverCallback((result) => {
+			// Store the result before changing state
+			console.log("Game over callback with result:", result);
+			
+			// If in tournament mode, process the result in the tournament component
+			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
+				// Process the game result in the tournament
+				this.TournamentComponent.processGameResult(
+					result.player1Score,
+					result.player2Score,
+					result.matchId
+				);
+			}
+			
+			// Force transition to game over state
+			this.updateGameState(GameState.GAME_OVER);
 		});
 	}
 	
@@ -85,11 +113,7 @@ export class GameComponent extends Component<GameComponentState> {
 	render(): void {
 		// Clear container
 		this.container.innerHTML = '';
-		
-		// Style the main container - match background canvas size
-		this.container.style.height = "100%"; // Change from 700px to match the whole available space
-		
-		// Create container for game components
+		this.container.style.height = "100%";
 		this.gameContainer = document.createElement('div');
 		this.gameContainer.className = 'game-container';
 		this.gameContainer.style.height = "100%";
@@ -148,21 +172,38 @@ export class GameComponent extends Component<GameComponentState> {
 	private initializeComponents(): void {
 		if (!this.gameContainer) return;
 		
+		// Destroy existing components first to prevent duplicate listeners/instances
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = null;
+		}
+		if (this.gameOverComponent) {
+			this.gameOverComponent.destroy();
+			this.gameOverComponent = null;
+		}
+		if (this.canvasComponent) {
+			// Decide if canvas needs full destroy or just stopGame/hide
+			// For safety, let's destroy it if we are re-initializing everything
+			this.canvasComponent.destroy();
+			this.canvasComponent = null;
+		}
+
 		// Create components with proper containers
 		this.menuComponent = new GameMenuComponent(
-			this.gameContainer, 
-			this.handleModeSelected.bind(this)
+			this.gameContainer,
+			this.handleModeSelected.bind(this),
+			this.handleTournamentRestored.bind(this),
+			this.handleShowTournamentSchedule.bind(this)
 		);
-		
+
 		this.gameOverComponent = new GameOverComponent(
 			this.gameContainer,
 			this.handlePlayAgain.bind(this),
-			this.handleBackToMenu.bind(this)
+			this.handleBackToMenu.bind(this),
+			this.handleShowTournamentSchedule.bind(this)
 		);
-		
+
 		this.canvasComponent = new GameCanvasComponent(this.gameContainer);
-		
-		// No explicit renderComponent() calls here - let the state system handle it
 	}
 	
 	// =========================================
@@ -194,6 +235,10 @@ export class GameComponent extends Component<GameComponentState> {
 				this.showPlayerRegistration();
 				break;
 				
+			case GameState.TOURNAMENT:
+				this.showTournamentTransition();
+				break;
+				
 			case GameState.PLAYING:
 				this.startPlaying();
 				break;
@@ -211,23 +256,33 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.canvasComponent) {
 			this.canvasComponent.stopGame();
 		}
-		
+
 		if (this.gameOverComponent) {
 			this.gameOverComponent.hide();
 		}
-		
+
+		// Ensure menu component is destroyed BEFORE creating a new one
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
+			this.menuComponent = null; // Explicitly nullify
+		}
+
+		// Create and show the new menu component
+		if (this.gameContainer) {
 			this.menuComponent = new GameMenuComponent(
-				this.gameContainer!, 
-				this.handleModeSelected.bind(this)
+				this.gameContainer,
+				this.handleModeSelected.bind(this),
+				this.handleTournamentRestored.bind(this),
+				this.handleShowTournamentSchedule.bind(this)
 			);
 			this.menuComponent.show();
+		} else {
+			console.error('Game container not found, cannot create menu.');
 		}
-		
+
 		// Show background game
 		this.gameManager.showBackgroundGame();
-		
+
 		this.stopGameStateMonitoring();
 	}
 	
@@ -240,31 +295,13 @@ export class GameComponent extends Component<GameComponentState> {
 		// Get current user info
 		const currentUser = appState.getCurrentUser();
 		const playerName = currentUser?.username || 'Player 1';
-		const playerColor = appState.getAccentColorHex() || '#3498db';
+		const playerColor = appState.getAccentColorHex() || '#ffffff';
 		
 		// Ensure we have player IDs for single player mode
 		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
 			// For single player, we need to explicitly set the current user's ID
 			if (currentUser && currentUser.id) {
-				// Convert ID to number if it's a string
-				let playerId: number;
-				if (typeof currentUser.id === 'string') {
-					if (currentUser.id.includes('_')) {
-						// Extract numeric part if ID has prefix
-						const parts = currentUser.id.split('_');
-						playerId = parseInt(parts[parts.length - 1], 10);
-					} else {
-						playerId = parseInt(currentUser.id, 10);
-					}
-				} else {
-					playerId = Number(currentUser.id);
-				}
-				
-				// Ensure we have a valid numeric ID
-				if (!isNaN(playerId)) {
-					state.playerIds = [playerId];
-					console.log('Set player ID for single player mode:', playerId);
-				}
+				state.playerIds = [currentUser.id];
 			}
 		}
 		
@@ -295,14 +332,14 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Start the game with selected mode and player info
 		if (this.canvasComponent) {
-			console.log('Starting game with player IDs:', state.playerIds);
-			console.log('Starting game with player names:', state.playerNames || [playerName]);
+			// For single player mode, use the current user's info if playerNames not already set
+			const playerNames = state.playerNames || [playerName];
+			const playerColors = state.playerColors || [playerColor];
 			
 			this.canvasComponent.startGame(state.currentMode, {
-				playerName: playerName,
-				playerColor: playerColor,
 				playerIds: state.playerIds,
-				playerNames: state.playerNames
+				playerNames: playerNames,
+				playerColors: playerColors
 			});
 		}
 		
@@ -314,23 +351,33 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Shows the game over screen while keeping the game visible
 	 */
 	private showGameOver(): void {
-		if (!this.canvasComponent) return;
-
-		const gameState = this.canvasComponent.getGameState();
-		if (!gameState) return;
-
-		// Make sure the game is paused/frozen but still visible
-		// Instead of calling stopGame(), just pause the game
-		const gameEngine = this.canvasComponent.getEngine();
-		if (gameEngine && !gameEngine.isGamePaused()) {
-			gameEngine.togglePause();
+		// Get data from MatchCache instead of canvas component
+		const cachedResult = MatchCache.getLastMatchResult();
+		const gameInfo = MatchCache.getCurrentGameInfo();
+		
+		if (!cachedResult) {
+			console.error('No game result found in cache');
+			return;
+		}
+		
+		// Make sure the game is paused but still visible
+		if (this.canvasComponent) {
+			const gameEngine = this.canvasComponent.getEngine();
+			if (gameEngine && !gameEngine.isGamePaused()) {
+				gameEngine.togglePause();
+			}
 		}
 
-		// Show game over component as an overlay
+		// Show game over component with the cached data
 		if (this.gameOverComponent) {
 			this.gameOverComponent.showGameResult({
-				winner: gameState.winner?.name || 'Unknown',
-				gameMode: this.getInternalState().currentMode
+				winner: cachedResult.winner || 'Unknown',
+				gameMode: gameInfo.gameMode,
+				player1Name: cachedResult.player1Name || 'Player 1',
+				player2Name: cachedResult.player2Name || 'Player 2',
+				player1Score: cachedResult.player1Score || 0,
+				player2Score: cachedResult.player2Score || 0,
+				matchId: cachedResult.matchId
 			});
 		}
 	}
@@ -364,55 +411,67 @@ export class GameComponent extends Component<GameComponentState> {
 
 	/**
 	 * Handles play again button from game over screen
-	 * @param mode - The game mode to restart
 	 */
 	private handlePlayAgain(mode: GameMode): void {
 		// Prevent multiple transitions
-		if (this.isTransitioning) {
-			console.warn('Ignoring play again request - transition already in progress');
+		if (this.isTransitioning === true) {
 			return;
 		}
 		
+		// Set flag immediately to prevent duplicate calls
 		this.isTransitioning = true;
 		
-		// First stop the game state monitoring to prevent race conditions
+		// Stop monitoring game state
 		this.stopGameStateMonitoring();
 		
-		const state = this.getInternalState();
-		
-		// For single player, make sure we have the current user's ID
-		if (mode === GameMode.SINGLE) {
-			const currentUser = appState.getCurrentUser();
-			if (currentUser && currentUser.id) {
-				// Convert ID to number
-				let playerId: number;
-				if (typeof currentUser.id === 'string') {
-					if (currentUser.id.includes('_')) {
-						const parts = currentUser.id.split('_');
-						playerId = parseInt(parts[parts.length - 1], 10);
-					} else {
-						playerId = parseInt(currentUser.id, 10);
-					}
-				} else {
-					playerId = Number(currentUser.id);
-				}
-				
-				if (!isNaN(playerId)) {
-					state.playerIds = [playerId];
-				}
-			}
+		// Hide game over component
+		if (this.gameOverComponent) {
+			this.gameOverComponent.hide();
 		}
 		
-		// Perform the transition to the new game
-		this.cleanupCurrentGame()
-			.then(() => this.startNewGame(mode))
+		// Get player info from MatchCache instead of gameManager
+		const gameInfo = MatchCache.getCurrentGameInfo();
+		
+		// Update state with mode AND player info from cache
+		this.updateInternalState({ 
+			currentMode: mode,
+			playerIds: gameInfo.playerIds,
+			playerNames: gameInfo.playerNames,
+			playerColors: gameInfo.playerColors
+		});
+		
+		// IMPORTANT: Check if we need to clean up first or can start directly
+		const needsCleanup = this.canvasComponent && this.gameManager.isMainGameActive();
+		
+		// Create a promise chain that conditionally includes cleanup
+		let startSequence: Promise<void>;
+		
+		if (needsCleanup) {
+			startSequence = this.cleanupCurrentGame();
+		} else {
+			startSequence = Promise.resolve();
+		}
+		
+		// Continue with starting the new game
+		startSequence
+			.then(() => {
+				// Hide background game before starting new game
+				const gameManager = GameManager.getInstance();
+				gameManager.hideBackgroundGame();
+				
+				// Start the game with the selected mode
+				return this.startNewGame(mode);
+			})
 			.catch(error => {
-				console.error('Error during game transition:', error);
-				// Fallback to menu on error
+				console.error('Error restarting game:', error);
+				// On error, go back to menu
 				this.updateGameState(GameState.MENU);
 			})
 			.finally(() => {
-				this.isTransitioning = false;
+				// Add a small delay before resetting the transition flag
+				setTimeout(() => {
+					this.isTransitioning = false;
+				}, 500);
 			});
 	}
 
@@ -431,10 +490,45 @@ export class GameComponent extends Component<GameComponentState> {
 		// Stop monitoring first
 		this.stopGameStateMonitoring();
 		
+		// Clear the match cache since we're going back to menu
+		MatchCache.clearCache();
+		
+		// Hide tournament transitions component if it exists
+		if (this.TournamentComponent) {
+			this.TournamentComponent.hide();
+			// Destroy it to make sure we create a new one next time
+			this.TournamentComponent.destroy();
+			this.TournamentComponent = null;
+		}
+		
+		// Force a complete recreate of the menu component
+		if (this.menuComponent) {
+			this.menuComponent.destroy();
+			this.menuComponent = null;
+		}
+		
 		// Clean up current game state
 		this.cleanupCurrentGame()
 			.then(() => {
-				this.updateGameState(GameState.MENU);
+				// Create a new menu component
+				if (this.gameContainer) {
+					this.menuComponent = new GameMenuComponent(
+						this.gameContainer,
+						this.handleModeSelected.bind(this),
+						this.handleTournamentRestored.bind(this),
+						this.handleShowTournamentSchedule.bind(this)
+					);
+				}
+				
+				// Update state to menu
+				this.updateInternalState({
+					currentState: GameState.MENU
+				});
+				
+				// Show the menu
+				if (this.menuComponent) {
+					this.menuComponent.show();
+				}
 			})
 			.catch(error => {
 				console.error('Error returning to menu:', error);
@@ -475,6 +569,38 @@ export class GameComponent extends Component<GameComponentState> {
 			// Update state first
 			this.updateInternalState({ currentMode: mode });
 			
+			// Check if we need to create a new canvas component
+			if (!this.canvasComponent && this.gameContainer) {
+				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
+			}
+			
+			// Ensure the canvas component is rendered
+			if (this.canvasComponent) {
+				this.canvasComponent.render();
+				
+				const state = this.getInternalState();
+				const gameInfo = MatchCache.getCurrentGameInfo();
+				
+				// Use cache info if available, fallback to current user info
+				const currentUser = appState.getCurrentUser();
+				const playerName = currentUser?.username || 'Player 1';
+				const playerColor = appState.getAccentColorHex() || '#ffffff';
+				
+				// Prioritize cached info over defaults
+				const playerNames = state.playerNames || gameInfo.playerNames || [playerName];
+				const playerColors = state.playerColors || gameInfo.playerColors || [playerColor];
+				const playerIds = state.playerIds || gameInfo.playerIds;
+				
+				// Start the game with all available info
+				this.canvasComponent.startGame(mode, {
+					playerIds: playerIds,
+					playerNames: playerNames,
+					playerColors: playerColors
+				});
+			} else {
+				console.error('Failed to create canvas component');
+			}
+			
 			// Then transition to playing state
 			this.updateGameState(GameState.PLAYING);
 			
@@ -482,7 +608,7 @@ export class GameComponent extends Component<GameComponentState> {
 			this.gameStartTime = Date.now();
 			
 			// Allow game to initialize fully
-			setTimeout(resolve, 100);
+			setTimeout(resolve, 200);
 		});
 	}
 
@@ -497,7 +623,13 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
+			this.gameOverComponent.destroy();
+			this.gameOverComponent = null;
+		}
+		
+		if (this.TournamentComponent) {
+			this.TournamentComponent.destroy();
+			this.TournamentComponent = null;
 		}
 		
 		// Recreate the menu component from scratch
@@ -509,7 +641,9 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.gameContainer) {
 			this.menuComponent = new GameMenuComponent(
 				this.gameContainer,
-				this.handleModeSelected.bind(this)
+				this.handleModeSelected.bind(this),
+				this.handleTournamentRestored.bind(this),
+				this.handleShowTournamentSchedule.bind(this)
 			);
 		}
 		
@@ -525,6 +659,9 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.menuComponent) {
 			this.menuComponent.show();
 		}
+		
+		// Reset transition flag explicitly
+		this.isTransitioning = false;
 	}
 
 	// =========================================
@@ -586,27 +723,18 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param newState - The updated state properties
 	 */
 	private handleStateChange(newState: Partial<any>): void {
-		// Handle authentication changes
-		if ('auth' in newState) {
-			// Re-render the component
+		const currentAuth = appState.isAuthenticated();
+
+		// Handle authentication changes ONLY if the status has actually changed
+		if ('auth' in newState && currentAuth !== this.lastAuthState) {
+			this.lastAuthState = currentAuth;
 			this.renderComponent();
-			
-			// If we're on the menu, update it to reflect authenticated state
-			if (this.menuComponent) {
-				this.menuComponent.destroy();
-				this.menuComponent = new GameMenuComponent(
-					this.gameContainer!, 
-					this.handleModeSelected.bind(this)
-				);
-				this.menuComponent.show();
-			}
 		}
-		
+
 		// For accent color changes, update the player's color in the game
 		if ('accentColor' in newState) {
 			const accentColorHex = appState.getAccentColorHex();
-			console.log('Accent color changed to:', accentColorHex);
-			
+
 			// Update color using the GameManager
 			if (this.gameManager.isMainGameActive()) {
 				this.gameManager.updateMainGamePlayerColor(accentColorHex);
@@ -638,10 +766,8 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
+			this.gameOverComponent.destroy();
 		}
-		
-		// Keep the background game visible (don't hide it)
 		
 		// Destroy previous player registration component if it exists
 		if (this.playerRegistrationComponent) {
@@ -655,7 +781,8 @@ export class GameComponent extends Component<GameComponentState> {
 				this.gameContainer,
 				state.currentMode,
 				this.handlePlayersRegistered.bind(this),
-				this.handleBackToMenu.bind(this)
+				this.handleBackToMenu.bind(this),
+				this.handleShowTournamentSchedule.bind(this)
 			);
 			
 			// Show the player registration component
@@ -666,22 +793,23 @@ export class GameComponent extends Component<GameComponentState> {
 	/**
 	 * Handles when players are registered
 	 * @param playerIds - The registered player IDs
+	 * @param playerNames - The player names
+	 * @param playerColors - The player colors
 	 */
-	private handlePlayersRegistered(playerIds: number[]): void {
-		console.log('Players registered for game with valid IDs:', playerIds);
-		
+	private handlePlayersRegistered(playerIds: string[], playerNames: string[], playerColors: string[]): void {
 		// Prevent handling if already transitioning
 		if (this.isTransitioning) {
-			console.warn('Already transitioning, ignoring duplicate registration');
 			return;
 		}
 		
 		// Set transitioning flag
 		this.isTransitioning = true;
 		
-		// Store player IDs for the game
+		// Store player information for the game
 		this.updateInternalState({
-			playerIds: playerIds
+			playerIds: playerIds.map(String),
+			playerNames: playerNames,
+			playerColors: playerColors
 		});
 		
 		// Clean up the player registration component
@@ -690,10 +818,107 @@ export class GameComponent extends Component<GameComponentState> {
 			this.playerRegistrationComponent = null;
 		}
 		
-		// Proceed to the game after a short delay to allow cleanup
-		setTimeout(() => {
-			this.updateGameState(GameState.PLAYING);
+		// For tournament mode, initialize tournament data
+		const state = this.getInternalState();
+		if (state.currentMode === GameMode.TOURNAMENT) {
+			// Initialize tournament data
+			TournamentCache.initializeTournament(playerIds, playerNames, playerColors);
+			
+			// Don't show tournament schedule here - wait for the event
 			this.isTransitioning = false;
-		}, 200);
+		} else {
+			// For other modes, proceed directly to game
+			setTimeout(() => {
+				this.updateGameState(GameState.PLAYING);
+				this.isTransitioning = false;
+			}, 10);
+		}
+	}
+
+	// Add a method to handle the tournament transition screen
+	private showTournamentTransition(): void {
+		// Add a small delay to ensure tournament data is initialized
+		setTimeout(() => {
+			if (!this.TournamentComponent && this.gameContainer) {
+				this.TournamentComponent = new TournamentComponent(
+					this.gameContainer,
+					this.handleTournamentContinue.bind(this),
+					this.handleBackToMenu.bind(this)
+				);
+			}
+			
+			// Check tournament phase directly from cache
+			const phase = TournamentCache.getTournamentPhase();
+			
+			// Show the appropriate tournament screen based on phase
+			if (this.TournamentComponent) {
+				if (phase === 'complete') {
+					this.TournamentComponent.showTournamentWinner();
+				} else {
+					this.TournamentComponent.showTournamentSchedule();
+				}
+			}
+			
+			// Reset transition flag
+			this.isTransitioning = false;
+		}, 50);
+	}
+
+	/**
+	 * Handle continue button from tournament screens
+	 */
+	private handleTournamentContinue(): void {
+		if (!this.TournamentComponent) return;
+		
+		try {
+			// Use the tournament component's method to get player info
+			const playerInfo = this.TournamentComponent.handleContinue();
+			
+			if (!playerInfo) {
+				// No more matches, go back to menu
+				this.handleBackToMenu();
+				return;
+			}
+			
+			// Update state with player info for the current match
+			this.updateInternalState({
+				playerIds: playerInfo.playerIds,
+				playerNames: playerInfo.playerNames,
+				playerColors: playerInfo.playerColors
+			});
+			
+			// Start the actual game
+			this.updateGameState(GameState.PLAYING);
+		} catch (error) {
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
+					console.error('Tournament not found:', error.message);
+					// Show error to user or handle gracefully
+					this.handleBackToMenu();
+				} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
+					console.error('Match not found:', error.message);
+					this.handleBackToMenu();
+				} else {
+					console.error('Tournament error:', error.message);
+					this.handleBackToMenu();
+				}
+			} else {
+				console.error('Error continuing tournament:', error);
+				this.handleBackToMenu();
+			}
+		}
+	}
+
+	// Add this method if you don't have it
+	private handleShowTournamentSchedule = (): void => {
+		this.updateGameState(GameState.TOURNAMENT);
+	};
+
+	private handleTournamentRestored(): void {
+		// Set the appropriate game mode
+		this.updateInternalState({ currentMode: GameMode.TOURNAMENT });
+		
+		// Update the game state to show tournament transition
+		this.updateGameState(GameState.TOURNAMENT);
 	}
 }

@@ -3,20 +3,13 @@
  * A standalone component for guest player authentication without affecting the main app state
  */
 import { Component } from '@website/scripts/components';
-import { ASCII_ART, html, render, DbService } from '@website/scripts/utils';
-import { IAuthComponent } from '@shared/types';
-
-// Define a simple state interface
-interface GuestAuthState {
-	isLoading: boolean;
-	error: string | null;
-	isRegisterMode: boolean;
-}
+import { html, render, DbService, ApiError, hashPassword } from '@website/scripts/utils';
+import { IAuthComponent, GuestAuthState } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	constructor(container: HTMLElement) {
 		super(container, {
-			isLoading: false,
 			error: null,
 			isRegisterMode: false
 		});
@@ -29,10 +22,12 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the component
 	 */
 	render(): void {
-		// Create basic container structure
 		const template = html`
 			<div class="auth-form-container simplified-auth-form-container">
 				${this.renderContent()}
+				${this.getInternalState().error ? html`
+					<div class="register-error shake">${this.getInternalState().error}</div>
+				` : ''}
 			</div>
 		`;
 		
@@ -44,10 +39,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderContent(): any {
 		const state = this.getInternalState();
-		
-		if (state.isLoading) {
-			return html`<div class="auth-processing">Verifying...</div>`;
-		}
+
 		
 		if (state.isRegisterMode) {
 			return this.renderRegisterForm();
@@ -60,8 +52,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the login form for guest authentication
 	 */
 	private renderLoginForm(): any {
-		const state = this.getInternalState();
-		
 		return html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleLoginSubmit}>
 				<div class="form-group">
@@ -79,19 +69,17 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			
 			<div class="auth-social-options">
 				<button class="menu-button auth-social-button google-auth" onclick=${this.handleSocialLoginClick}>
-					Login with Google
+					G
 				</button>
 				
 				<button class="menu-button auth-social-button forty-two-auth" onclick=${this.handleSocialLoginClick}>
-					Login with 42
+					42
 				</button>
 			</div>
 			
 			<div class="auth-links">
 				<a href="#" onclick=${this.switchToRegister}>Create account</a>
 			</div>
-			
-			${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
 		`;
 	}
 	
@@ -99,8 +87,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the register form for guest creation
 	 */
 	private renderRegisterForm(): any {
-		const state = this.getInternalState();
-		
 		return html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
@@ -124,8 +110,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			<div class="auth-links">
 				<a href="#" onclick=${this.switchToLogin}>Back to login</a>
 			</div>
-			
-			${state.error ? html`<div class="auth-error">${state.error}</div>` : ''}
 		`;
 	}
 	
@@ -189,122 +173,125 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private handleSocialLoginClick = (e: Event): void => {
 		e.preventDefault();
-		this.updateInternalState({
-			error: 'Social login is not available for guest players.'
-		});
+		this.showError('Social login is not available for guest players.');
 	}
 	
 	/**
 	 * Authenticate a guest using email/password
 	 */
 	private async authenticateGuest(email: string, password: string): Promise<void> {
-		this.updateInternalState({ 
-			isLoading: true,
-			error: null
-		});
+		this.updateInternalState({ error: null });
 		
 		try {
-			// Verify user credentials directly using DbService
-			const response: any = await DbService.verifyUser(email, password);
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
 			
-			if (response && response.success && response.user) {
-				// Extract numeric ID
-				const rawId = response.user.id;
-				let numericId: number;
-				
-				if (typeof rawId === 'string' && rawId.includes('_')) {
-					const parts = rawId.split('_');
-					numericId = parseInt(parts[parts.length - 1], 10);
-				} else if (typeof rawId === 'string') {
-					numericId = parseInt(rawId, 10);
-				} else {
-					numericId = Number(rawId);
-				}
-				
-				if (isNaN(numericId)) {
-					console.error('Invalid guest ID format:', rawId);
-					numericId = Date.now();
-				}
-				
-				// Create user data - handle possible missing properties with fallbacks
+			const response = await DbService.login({ 
+				email, 
+				password: hashedPassword 
+			});
+			
+			if (response.success && response.user) {
 				const userData = {
-					id: numericId,
-					username: response.user.username || response.user.name || 'Guest',
+					id: response.user.id,
+					username: response.user.username,
 					email: response.user.email || '',
-					profilePicture: response.user.profilePicture || response.user.avatar || '/images/default-avatar.svg'
+					avatar: response.user.pfp || `/images/default-avatar.svg`,
+					theme: response.user.theme || '#ffffff'
 				};
 				
-				// Update last connection time
-				await DbService.updateUserLastConnection(String(rawId));
+				const position = this.getPositionFromContainerId();
 				
-				// Dispatch custom event with guest user data
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
-					detail: { user: userData }
+					detail: { user: userData, position }
 				});
-				document.dispatchEvent(authEvent);
+				this.container.dispatchEvent(authEvent);
 				
-				// Hide component
+				// Clear the form fields
+				this.clearFormFields();
+				
 				this.hide();
 			} else {
-				this.updateInternalState({
-					isLoading: false,
-					error: (response && response.error) ? response.error : 'Invalid email or password'
-				});
+				this.showError('Invalid email or password');
 			}
 		} catch (error) {
-			console.error('Guest authentication error:', error);
-			this.updateInternalState({
-				isLoading: false,
-				error: 'Authentication failed. Please try again.'
-			});
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
+					this.showError('Invalid email or password');
+				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
+					this.showError('Invalid two-factor authentication code');
+				} else {
+					this.showError(error.message);
+				}
+			} else {
+				console.error('Guest authentication error:', error);
+				this.showError('Authentication failed. Please try again.');
+			}
 		}
 	}
 	
 	/**
-	 * Register a new guest user
+	 * Register a new guest user directly to the database
 	 */
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
-		this.updateInternalState({
-			isLoading: true,
-			error: null
-		});
+		this.updateInternalState({ error: null });
 		
 		try {
-			// Register user
-			const response: any = await DbService.register({ username, email, password });
+			// Hash the password before sending to the server
+			const hashedPassword = await hashPassword(password);
 			
-			if (response && response.success && response.user) {
-				// Format user data
+			const newUser = await DbService.register({
+				username,
+				email,
+				password: hashedPassword
+			});
+			
+			if (newUser.success && newUser.user) {
 				const userData = {
-					id: response.user.id,
-					username: response.user.username || response.user.name || username,
-					email: response.user.email || email,
-					profilePicture: response.user.profilePicture || response.user.avatar || '/images/default-avatar.svg'
+					id: String(newUser.user.id),
+					username: newUser.user.username,
+					email: newUser.user.email,
+					profilePicture: newUser.user.pfp || `/images/default-avatar.svg`,
+					theme: newUser.user.theme || '#ffffff'
 				};
 				
-				// Dispatch event
+				const position = this.getPositionFromContainerId();
+				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
-					detail: { user: userData }
+					detail: { user: userData, position }
 				});
-				document.dispatchEvent(authEvent);
+				this.container.dispatchEvent(authEvent);
 				
-				// Hide component
 				this.hide();
-			} else {
-				this.updateInternalState({
-					isLoading: false,
-					error: (response && response.error) ? response.error : 'Registration failed'
-				});
 			}
 		} catch (error) {
-			console.error('Guest registration error:', error);
-			this.updateInternalState({
-				isLoading: false,
-				error: 'Registration failed. Please try again.'
-			});
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
+					this.showError('Email already in use');
+				} else {
+					this.showError(error.message);
+				}
+			} else {
+				console.error('Guest registration error:', error);
+				this.showError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+			}
 		}
+	}
+	
+	/**
+	 * Get position from container ID
+	 */
+	private getPositionFromContainerId(): number | undefined {
+		const containerId = this.container.id;
+		if (containerId && containerId.includes('-')) {
+			const parts = containerId.split('-');
+			const positionStr = parts[parts.length - 1];
+			const position = parseInt(positionStr, 10);
+			return isNaN(position) ? undefined : position + 1; // Convert to 1-based index
+		}
+		return undefined;
 	}
 	
 	/**
@@ -330,7 +317,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			bubbles: true,
 			detail: { timestamp: Date.now() }
 		});
-		document.dispatchEvent(cancelEvent);
+		this.container.dispatchEvent(cancelEvent);
 		
 		// Clean up
 		this.destroy();
@@ -344,4 +331,28 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.container.className = '';
 		super.destroy();
 	}
-} 
+	
+	/**
+	 * Add a method to handle error display with animation
+	 */
+	private showError(message: string): void {
+		this.updateInternalState({ error: message });
+		
+		requestAnimationFrame(() => {
+			const errorElement = this.container.querySelector('.register-error') as HTMLElement;
+			if (errorElement) {
+				errorElement.classList.remove('shake');
+				void errorElement.offsetWidth;
+				errorElement.classList.add('shake');
+			}
+		});
+	}
+	
+	// Add a new method to clear form fields
+	private clearFormFields(): void {
+		const form = this.container.querySelector('form') as HTMLFormElement;
+		if (form) {
+			form.reset();
+		}
+	}
+}

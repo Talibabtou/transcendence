@@ -1,2 +1,9 @@
-export { ProfileComponent } from './profile';
-export { ProfileStatsComponent } from './stats';
+export * from './profile';
+export * from './tabs/stats';
+export * from './tabs/charts/dailyActivityChart';
+export * from './tabs/charts/eloChart';
+export * from './tabs/charts/goalDurationChart';
+export * from './tabs/charts/matchDurationChart';
+export * from './tabs/history';
+export * from './tabs/friends';
+export * from './tabs/settings';

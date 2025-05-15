@@ -93,6 +93,37 @@ export class NavbarComponent {
 		
 		// Render navbar
 		render(navbarTemplate, this.container);
+		
+		// Add event listeners after rendering
+		this.setupNavLinks();
+	}
+	
+	/**
+	 * Sets up event listeners for navigation links
+	 */
+	private setupNavLinks(): void {
+		// Find all navigation links
+		const navLinks = this.container.querySelectorAll('a.nav-item, a.nav-logo');
+		
+		// Add click handler to each link
+		navLinks.forEach(link => {
+			// Remove existing handlers to prevent duplicates
+			link.removeEventListener('click', this.handleNavLinkClick);
+			link.addEventListener('click', this.handleNavLinkClick);
+		});
+	}
+	
+	/**
+	 * Handle click on navigation links
+	 */
+	private handleNavLinkClick = (e: Event): void => {
+		e.preventDefault();
+		const link = e.currentTarget as HTMLAnchorElement;
+		const href = link.getAttribute('href');
+		
+		if (href) {
+			navigate(href);
+		}
 	}
 	
 	/**
@@ -105,9 +136,8 @@ export class NavbarComponent {
 		
 		// Navigate to auth with current path as return location
 		navigate('/auth', { 
-			state: { 
-				returnTo: location.pathname 
-			}
+			state: { returnTo: location.pathname },
+			preventReload: true
 		});
 	}
 	

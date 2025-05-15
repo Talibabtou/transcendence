@@ -1,7 +1,10 @@
 import { GameContext, GameState, GameStateInfo } from '@pong/types';
-import { GameScene } from '@pong/game/scenes';
+import { GameScene, GameModeType } from '@pong/game/scenes';
 import { KEYS } from '@pong/constants';
-import { DbService } from '@website/scripts/utils';
+import { DbService, ApiError } from '@website/scripts/utils';
+import { GameMode } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
+
 
 /**
  * Main game engine that coordinates game scenes, handles input,
@@ -13,19 +16,22 @@ export class GameEngine {
 	// =========================================
 	private scene!: GameScene; // Use definite assignment assertion
 	private context: GameContext;
-	private gameMode: 'single' | 'multi' | 'tournament' | 'background_demo' = 'single';
+	private gameMode: GameModeType = 'single';
 	private keyboardEventListener: ((evt: KeyboardEvent) => void) | null = null;
 	private matchStartTime: number = 0;
-	private playerIds: number[] = [];
-	private playerNames: string[] = [];
+	private playerIds: string[] = [];
 	private playerColors: string[] = [];
-	private matchId: number | null = null;
+	private matchId: string | null = null;
 	private goalStartTime: number = 0;
 	private isPaused: boolean = false;
 	private pauseStartTime: number = 0;
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
+	private readonly AI: string = 'computer';
+	private aiPlayerId: string | null = null;
+	public onGameOver?: (detail: any) => void;
+	private matchCreationPromise: Promise<void> | null = null;
 
 	// =========================================
 	// Lifecycle
@@ -60,6 +66,7 @@ export class GameEngine {
 	 * Initializes a single player game
 	 */
 	public initializeSinglePlayer(): void {
+		this.resetGameState();
 		this.gameMode = 'single';
 		this.loadMainScene();
 	}
@@ -68,6 +75,7 @@ export class GameEngine {
 	 * Initializes a multiplayer game
 	 */
 	public initializeMultiPlayer(): void {
+		this.resetGameState();
 		this.gameMode = 'multi';
 		this.loadMainScene();
 	}
@@ -76,9 +84,8 @@ export class GameEngine {
 	 * Initializes a tournament game
 	 */
 	public initializeTournament(): void {
+		this.resetGameState();
 		this.gameMode = 'tournament';
-		// For now, just start a multiplayer game
-		// We'll implement tournament specifics later
 		this.loadMainScene();
 	}
 
@@ -86,8 +93,21 @@ export class GameEngine {
 	 * Initializes a background demo
 	 */
 	public initializeBackgroundDemo(): void {
+		this.resetGameState();
 		this.gameMode = 'background_demo';
 		this.loadMainScene();
+	}
+
+	/**
+	 * Resets the game state for a new game
+	 */
+	private resetGameState(): void {
+		this.matchCreated = false;
+		this.matchCompleted = false;
+		this.matchId = null;
+		this.totalPausedTime = 0;
+		this.isPaused = false;
+		this.matchCreationPromise = null;
 	}
 
 	/**
@@ -136,7 +156,7 @@ export class GameEngine {
 	public update(): void {
 		if (this.scene) {
 			// Only update if the game is active
-			if (this.gameMode === 'background_demo') {
+			if (this.scene.isBackgroundDemo()) {
 				// Background demo has special update rules
 				// For example, ignore certain input checks
 			}
@@ -240,10 +260,26 @@ export class GameEngine {
 	 * Cleans up resources
 	 */
 	public cleanup(): void {
-		if (this.scene) {
-			this.scene.unload();
-			this.scene = null as any;
+		// Stop all timers first to prevent any further recording
+		this.stopAllTimers();
+		
+		// Remove keyboard event listener if it exists
+		if (this.keyboardEventListener) {
+			window.removeEventListener('keydown', this.keyboardEventListener);
+			this.keyboardEventListener = null;
 		}
+		
+		// Clean up the scene
+		if (this.scene) {
+			try {
+				this.scene.unload();
+				this.scene = null as any;
+			} catch (error) {
+				console.error('Error unloading scene:', error);
+			}
+		}
+		
+		// Clear the context reference
 		this.context = null as any;
 	}
 
@@ -265,9 +301,6 @@ export class GameEngine {
 	 * @param player2Name Name for player 2
 	 */
 	public setPlayerNames(player1Name: string, player2Name: string): void {
-		this.playerNames = [player1Name, player2Name];
-		console.log('Player names set:', this.playerNames);
-		
 		if (this.scene) {
 			this.scene.getPlayer1().setName(player1Name);
 			this.scene.getPlayer2().setName(player2Name);
@@ -275,288 +308,171 @@ export class GameEngine {
 	}
 
 	/**
-	 * Sets player colors
-	 * @param playerOneColor Color for player one (hex format)
-	 * @param playerTwoColor Optional color for player two (hex format)
+	 * Update player colors for paddles
+	 * @param p1Color Color for player 1's paddle (hex format)
+	 * @param p2Color Color for player 2's paddle (hex format)
 	 */
-	public updatePlayerColors(playerOneColor: string, playerTwoColor?: string): void {
-		this.playerColors = [playerOneColor, playerTwoColor || '#FF5722'];
-		console.log('Player colors set:', this.playerColors);
-		
-		if (this.scene) {
-			// Update Player 1's color
-			const player1 = this.scene.getPlayer1();
-			if (player1) {
-				player1.setColor(playerOneColor);
+	public updatePlayerColors(p1Color: string, p2Color?: string): void {
+		try {
+			const scene = this.scene;
+			if (!scene) return;
+			
+			// Store colors in the playerColors array for reference
+			this.playerColors[0] = p1Color;
+			if (p2Color) {
+				this.playerColors[1] = p2Color;
 			}
 			
-			// If player two color is provided, update it as well
-			const player2 = this.scene.getPlayer2();
-			if (player2 && playerTwoColor) {
-				player2.setColor(playerTwoColor);
+			const player1 = scene.getPlayer1();
+			const player2 = scene.getPlayer2();
+			
+			if (player1) {
+				// Set player 1's color
+				player1.setColor(p1Color);
 			}
+			
+			if (player2) {
+				if (this.gameMode === 'single' && player2.isAIControlled()) {
+					// For AI in single player mode, always use white
+					player2.setColor('#ffffff');
+					this.playerColors[1] = '#ffffff';
+				} else if (p2Color) {
+					// For human player 2, always use their chosen color
+					player2.setColor(p2Color);
+				} else {
+					// Fallback only if p2Color is undefined/null
+					player2.setColor('#2ecc71');
+					this.playerColors[1] = '#2ecc71';
+				}
+			}
+		} catch (error: any) {
+			console.error('Error updating player colors:', error);
 		}
 	}
 
 	/**
-	 * Sets player IDs for match tracking
+	 * Sets player IDs for match tracking, with optional tournament ID
 	 * @param ids - Array of player IDs
+	 * @param tournamentId - Optional tournament ID
 	 */
-	public setPlayerIds(ids: number[]): void {
-		this.playerIds = ids.map(id => Number(id)); // Ensure all IDs are numbers
-		console.log('Player IDs set in game engine:', this.playerIds);
+	public setPlayerIds(ids: string[], tournamentId?: string): void {
+		this.playerIds = ids;
 		
-		// Create match if we have valid IDs
-		this.createMatch();
+		// Create a promise for match creation and store it
+		if (!this.matchCreationPromise) {
+			this.matchCreationPromise = this.createMatch(tournamentId);
+		}
 	}
 
 	/**
 	 * Creates a match in the database for any game mode
+	 * @param tournamentId - Optional tournament ID
 	 */
-	private createMatch(): void {
-		// Skip if already created or in background demo
-		if (this.matchCreated || this.gameMode === 'background_demo') {
-			console.log('Skipping match creation - already created or background demo');
+	private async createMatch(tournamentId?: string): Promise<void> {
+		// Skip if already created, in background demo, or currently initializing
+		if (this.matchCreated || this.scene.isBackgroundDemo()) {
 			return;
 		}
 
-		// For single player mode, we only need player 1 ID
-		const isSinglePlayer = this.gameMode === 'single';
-		
-		// Ensure we have at least one player ID (for single player)
+		// Check that we have all necessary info
 		if (this.playerIds.length < 1 || this.playerIds[0] === undefined) {
-			console.warn('Cannot create match - missing player IDs', this.playerIds);
 			return;
 		}
 
-		const player1Id = this.playerIds[0];
-		
-		// For single player, create an AI opponent ID
-		let player2Id: number;
-		
-		if (isSinglePlayer) {
-			// Use ID 0 for AI opponent
-			player2Id = 0;
-			console.log('Using AI player ID 0 for single player match');
-		} else {
-			// For multiplayer modes, use the second player's ID
-			if (this.playerIds.length >= 2) {
-				player2Id = this.playerIds[1];
-			} else {
-				console.warn('Missing second player ID for multiplayer match');
-				return;
-			}
-		}
-
-		// Set flag to prevent duplicate creation during async operation
+		// Important: Mark as created before the async operation
 		this.matchCreated = true;
 		
-		// Create match based on game mode
-		const tournamentId = this.gameMode === 'tournament' ? 1 : undefined;
+		const player1Id = this.playerIds[0];
+		let player2Id: string;
 		
-		console.log('Creating match with players:', player1Id, player2Id);
-		
-		DbService.createMatch(player1Id, player2Id, tournamentId)
-			.then(match => {
-				this.matchId = match.id;
-				console.log('Created match in game engine:', match);
-				
-				// Store match ID in localStorage for reference
-				localStorage.setItem('current_match_id', match.id.toString());
-				localStorage.setItem('current_match_start_time', Date.now().toString());
-			})
-			.catch(error => {
+		try {
+			if (this.gameMode === 'single') {
+				// Always fetch the AI player ID fresh to ensure it's accurate
+				this.aiPlayerId = await DbService.getIdByUsername(this.AI);
+				player2Id = this.aiPlayerId;
+			} else {
+				// For multiplayer, get player 2's ID
+				if (this.playerIds.length < 2) {
+					throw new Error('No player 2 ID provided for multiplayer game');
+				}
+				player2Id = this.playerIds[1];
+			}
+
+			// Only proceed if we're still in a valid state
+			if (!this.matchCreated) return;
+			
+			const match = await DbService.createMatch(player1Id, player2Id, tournamentId);
+			this.matchId = match.id;
+		} catch (error) {
+			// Handle errors
+			if (error instanceof ApiError) {
+				console.error(`Failed to create match: ${error.message}`);
+			} else {
 				console.error('Failed to create match:', error);
-				// Reset flag to allow retry
-				this.matchCreated = false;
-			});
+			}
+			// Reset flag to allow retry
+			this.matchCreated = false;
+		}
 	}
 
 	/**
-	 * Starts the match and goal timers
+	 * Starts the match timer - called when actual gameplay begins
+	 * This should be called AFTER the initial countdown
 	 */
 	public startMatchTimer(): void {
 		// Skip for background demo mode
-		if (this.gameMode === 'background_demo') {
-			console.log('Background demo - skipping timer initialization');
+		if (this.scene.isBackgroundDemo()) {
 			return;
 		}
 
+		// Initialize timers
 		this.matchStartTime = Date.now();
 		this.goalStartTime = Date.now();
 		this.totalPausedTime = 0;
 		this.isPaused = false;
 		
-		console.log('Match timer started at:', new Date(this.matchStartTime).toISOString());
-		
-		// Create match if it hasn't been created yet (fallback)
-		if (!this.matchCreated) {
-			this.createMatch();
-		}
+		// Set up match timeout (10 minutes)
+		this.setupMatchTimeout();
 	}
 
 	/**
-	 * Pauses the match timer
+	 * Sets up a timeout to auto-complete matches after 10 minutes
+	 * This prevents abandoned matches from staying open
 	 */
-	public pauseMatchTimer(): void {
-		// Skip for background demo mode
-		if (this.gameMode === 'background_demo') {
-			return;
-		}
-
-		if (!this.isPaused) {
-			this.isPaused = true;
-			this.pauseStartTime = Date.now();
-			console.log('Match timer paused at:', this.getMatchDuration());
-		}
-	}
-
-	/**
-	 * Resumes the match timer
-	 */
-	public resumeMatchTimer(): void {
-		// Skip for background demo mode
-		if (this.gameMode === 'background_demo') {
-			return;
-		}
-
-		if (this.isPaused) {
-			// Add the paused duration to the total paused time
-			this.totalPausedTime += (Date.now() - this.pauseStartTime);
-			this.isPaused = false;
-			console.log('Match timer resumed at:', this.getMatchDuration());
-		}
-	}
-
-	/**
-	 * Starts the goal timer
-	 */
-	public startGoalTimer(): void {
-		this.goalStartTime = Date.now() - this.totalPausedTime;
-		console.log('Goal timer started');
-	}
-	
-	/**
-	 * Records a goal in the database
-	 * @param scoringPlayerIndex - The index of the player who scored (0 for player 1, 1 for player 2)
-	 */
-	public recordGoal(scoringPlayerIndex: number): void {
-		// Skip recording for background demo
-		if (this.gameMode === 'background_demo') {
-			return;
-		}
+	private setupMatchTimeout(): void {
+		// 10 minutes in milliseconds
+		const MAX_MATCH_DURATION = 10 * 60 * 1000;
 		
-		if (!this.matchId) {
-			console.warn('Cannot record goal - missing match ID, attempting to create match');
-			this.createMatch();
-			return;
-		}
-		
-		let scoringPlayerId: number;
-		
-		// Handle single player AI (player 2) specially
-		if (scoringPlayerIndex === 1 && this.gameMode === 'single') {
-			scoringPlayerId = 0; // Use ID 0 for AI
-			console.log('Recording goal for AI player (ID: 0)');
-		} else if (scoringPlayerIndex > 1 || this.playerIds.length <= scoringPlayerIndex) {
-			// This handles invalid indices for real players
-			console.warn('Cannot record goal - invalid player index:', scoringPlayerIndex);
-			return;
-		} else {
-			// Normal goal for human player
-			scoringPlayerId = this.playerIds[scoringPlayerIndex];
-			if (!scoringPlayerId) {
-				console.warn('Cannot record goal - player ID not found for index', scoringPlayerIndex);
-				return;
+		setTimeout(() => {
+			// Only timeout if match is still active and not completed
+			if (!this.matchCompleted && this.matchId && !this.scene.isBackgroundDemo()) {
+				// Determine winner based on current score
+				const winnerIndex = this.scene?.getPlayer1().getScore() > this.scene?.getPlayer2().getScore() ? 0 : 1;
+				
+				// Complete the match with timeout flag
+				this.completeMatch(winnerIndex);
 			}
-		}
-		
-		// Calculate goal duration accounting for pauses
-		const currentTime = Date.now();
-		const goalDuration = ((currentTime - this.goalStartTime) - 
-							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000;
-		
-		console.log('Recording goal:', {
-			matchId: this.matchId,
-			playerId: scoringPlayerId,
-			duration: goalDuration.toFixed(2)
-		});
-		
-		// Record the goal in the database
-		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
-			.then(goal => {
-				console.log('Goal recorded successfully:', goal);
-				// Reset the goal timer for the next goal
-				this.goalStartTime = Date.now() - this.totalPausedTime;
-			})
-			.catch(error => {
-				console.error('Failed to record goal:', error);
-			});
+		}, MAX_MATCH_DURATION);
 	}
-	
+
 	/**
-	 * Completes the match in the database
+	 * Completes the match and handles all game-over logic
 	 * @param winnerIndex - Index of the winning player (0 for player 1, 1 for player 2)
 	 */
-	public completeMatch(winnerIndex: number): void {
-		// Skip recording for background demo
-		if (this.gameMode === 'background_demo') {
+	public completeMatch(_winnerIndex: number): void {
+		// Skip if already completed or in background demo
+		if (this.scene.isBackgroundDemo() || this.matchCompleted) {
 			return;
 		}
 		
-		// Skip if we've already completed this match
-		if (this.matchCompleted) {
-			console.log('Match already completed, skipping duplicate completion');
-			return;
-		}
-		
-		if (!this.matchId && this.gameMode === 'single' && this.playerIds.length > 0) {
-			// Try to create match one last time for single player
-			console.log('Attempting to create match before completion for single player');
-			this.createMatch();
-			
-			// If still no match ID, we can't complete
-			if (!this.matchId) {
-				console.warn('Cannot complete match - still missing match ID after creation attempt');
-				return;
-			}
-		} else if (!this.matchId) {
-			console.warn('Cannot complete match - missing match ID');
-			return;
-		}
-		
-		// Calculate total match duration and stop timer
-		const matchDuration = this.getMatchDuration();
-		this.isPaused = true; // Stop the timer
-		
-		console.log('Completing match:', {
-			matchId: this.matchId,
-			duration: matchDuration.toFixed(2),
-			winner: this.playerIds[winnerIndex] || (winnerIndex === 1 ? 0 : 'unknown')
-		});
-		
-		// Mark match as completed to prevent duplicates
+		// Mark as completed immediately to prevent multiple calls
 		this.matchCompleted = true;
 		
-		// Get winner ID - for AI (player 2 in single player), use 0
-		const winnerId = winnerIndex === 1 && this.gameMode === 'single' ? 
-			0 : // AI ID 
-			(this.playerIds[winnerIndex] || 0);
+		// Store game result in cache
+		this.dispatchGameOver();
 		
-		// Update the match as completed in the database
-		DbService.completeMatch(this.matchId, matchDuration)
-			.then(match => {
-				console.log('Match completed successfully:', match);
-				
-				// Clear the current match ID from localStorage
-				localStorage.removeItem('current_match_id');
-				localStorage.removeItem('current_match_start_time');
-			})
-			.catch(error => {
-				console.error('Failed to complete match:', error);
-				// Reset completed flag to allow retry
-				this.matchCompleted = false;
-			});
+		// Stop the timer
+		this.isPaused = true;
 	}
 	
 	/**
@@ -592,17 +508,125 @@ export class GameEngine {
 	}
 
 	/**
+	 * Pauses the match timer
+	 */
+	public pauseMatchTimer(): void {
+		// Skip for background demo mode
+		if (this.scene.isBackgroundDemo()) {
+			return;
+		}
+
+		if (!this.isPaused) {
+			this.isPaused = true;
+			this.pauseStartTime = Date.now();
+		}
+	}
+
+	/**
+	 * Resumes the match timer
+	 */
+	public resumeMatchTimer(): void {
+		// Skip for background demo mode
+		if (this.scene.isBackgroundDemo()) {
+			return;
+		}
+
+		if (this.isPaused) {
+			// Add the paused duration to the total paused time
+			this.totalPausedTime += (Date.now() - this.pauseStartTime);
+			this.isPaused = false;
+		}
+	}
+
+	/**
+	 * Starts the goal timer
+	 */
+	public startGoalTimer(): void {
+		this.goalStartTime = Date.now() - this.totalPausedTime;
+	}
+	
+	/**
+	 * Records a goal in the database
+	 * @param scoringPlayerIndex - The index of the player who scored (0 for player 1, 1 for player 2)
+	 */
+	public async recordGoal(scoringPlayerIndex: number): Promise<void> {
+		// Skip recording for background demo
+		if (this.scene.isBackgroundDemo()) {
+			return;
+		}
+		
+		// Skip if match is already completed
+		if (this.matchCompleted) {
+			return;
+		}
+		
+		// Determine the scoring player's ID
+		let scoringPlayerId: string;
+		
+		if (scoringPlayerIndex === 0) {
+			// Player 1 scored
+			scoringPlayerId = this.playerIds[0];
+		} else if (scoringPlayerIndex === 1) {
+			// Player 2 or AI scored
+			if (this.gameMode === 'single') {
+				// Use the stored AI player ID instead of fetching it again
+				if (!this.aiPlayerId) {
+					console.error('AI player ID not available for goal recording');
+					return;
+				}
+				scoringPlayerId = this.aiPlayerId;
+			} else if (this.playerIds.length >= 2) {
+				scoringPlayerId = this.playerIds[1];
+			} else {
+				return;
+			}
+		} else {
+			return;
+		}
+		
+		// Calculate goal duration accounting for pauses
+		const currentTime = Date.now();
+		const goalDuration = Math.floor(((currentTime - this.goalStartTime) - 
+							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000);
+		
+		if (!this.matchId) {
+			return;
+		}
+		
+		// Record the goal in the database
+		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
+			.then(() => {
+				this.resetGoalTimer();
+			})
+			.catch((error: any) => {
+				if (error instanceof ApiError) {
+					if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
+						console.error('Cannot record goal: Match no longer exists');
+					} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_ACTIVE)) {
+						// Expected when match is completed, can ignore
+					} else if (error.isErrorCode(ErrorCodes.PLAYER_NOT_IN_MATCH)) {
+						console.error('Cannot record goal: Player not in match');
+					} else {
+						console.error(`Failed to record goal: ${error.message}`);
+					}
+				} else if (!(error && error.message && error.message.includes('already completed'))) {
+					console.error('Failed to record goal:', error);
+				}
+			});
+	}
+
+	/**
 	 * Resets the goal timer for a new point
+	 * Called after a goal is scored or at point start
 	 */
 	public resetGoalTimer(): void {
 		// Skip for background demo mode
-		if (this.gameMode === 'background_demo') {
+		if (this.scene.isBackgroundDemo()) {
 			return;
 		}
 
 		// Account for paused time when resetting
 		this.goalStartTime = Date.now() - this.totalPausedTime;
-		console.log('Goal timer reset for new point');
 	}
 
 	/**
@@ -630,6 +654,97 @@ export class GameEngine {
 	private handleKeydown(evt: KeyboardEvent): void {
 		if (evt.code === KEYS.ENTER || evt.code === KEYS.ESC) {
 			this.togglePause();
+		}
+	}
+
+	/**
+	 * Gets the current match ID
+	 * @returns The current match ID or null
+	 */
+	public getMatchId(): string | null {
+		return this.matchId;
+	}
+
+	/**
+	 * Stops all timers and ongoing processes
+	 * Used during cleanup or when the game ends
+	 */
+	public stopAllTimers(): void {
+		// Flag to prevent further timer updates
+		this.isPaused = true;
+		this.matchCompleted = true;
+	}
+
+	private dispatchGameOver(): void {
+		if (this.scene.isBackgroundDemo()) return;
+
+		const player1 = this.scene.getPlayer1();
+		const player2 = this.scene.getPlayer2();
+		const winner = this.scene.getWinner();
+
+		// Get player names and scores
+		const player1Name = player1.name; 
+		const player2Name = player2.name;
+		const player1Score = player1.getScore();
+		const player2Score = player2.getScore();
+		const winnerName = winner ? winner.name : (player1Score > player2Score ? player1Name : player2Name);
+
+		// Store game result in cache
+		import('@website/scripts/utils').then(({ MatchCache }) => {
+			// Store complete game info in cache
+			MatchCache.setLastMatchResult({
+				winner: winnerName,
+				player1Name: player1Name,
+				player2Name: player2Name,
+				player1Score: player1Score,
+				player2Score: player2Score,
+				isBackgroundGame: false
+			});
+
+			MatchCache.setCurrentGameInfo({
+				gameMode: this.gameMode === 'single' ? GameMode.SINGLE : 
+						 this.gameMode === 'multi' ? GameMode.MULTI : 
+						 this.gameMode === 'tournament' ? GameMode.TOURNAMENT : GameMode.SINGLE,
+				playerIds: this.playerIds,
+				playerNames: [player1Name, player2Name],
+				playerColors: this.playerColors
+			});
+
+			// Call the callback instead of dispatching an event
+			if (this.onGameOver) {
+				this.onGameOver({
+					matchId: this.matchId,
+					gameMode: this.gameMode,
+					isBackgroundGame: false,
+					player1Score: player1Score,
+					player2Score: player2Score,
+					player1Name: player1Name,
+					player2Name: player2Name,
+					winner: winnerName
+				});
+			}
+		});
+	}
+
+	/**
+	 * Checks if the game has reached a win condition and completes the match if needed
+	 * Should be called regularly as part of the game loop
+	 */
+	public checkWinCondition(): void {
+		// Skip if already completed or in background demo
+		if (this.matchCompleted || this.scene.isBackgroundDemo()) {
+			return;
+		}
+		
+		// Use the scene's isGameOver method to check the win condition
+		if (this.scene.isGameOver()) {
+			// Determine winner based on score
+			const player1 = this.scene.getPlayer1();
+			const player2 = this.scene.getPlayer2();
+			const winnerIndex = player1.getScore() > player2.getScore() ? 0 : 1;
+			
+			// Complete the match - this handles all game over logic
+			this.completeMatch(winnerIndex);
 		}
 	}
 }

@@ -2,13 +2,14 @@
  * Login Module
  * Handles email/password login functionality
  */
-import { html, ASCII_ART, DbService } from '@website/scripts/utils';
-import { AuthMethod, UserData } from '@shared/types';
+import { html, ASCII_ART, DbService, ApiError, hashPassword } from '@website/scripts/utils';
+import { AuthMethod, UserData } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class LoginHandler {
 	constructor(
 		private updateState: (state: any) => void,
-		private setCurrentUser: (user: UserData | null) => void,
+		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
 
@@ -27,7 +28,7 @@ export class LoginHandler {
 			
 			<form class="auth-form" onSubmit=${(e: Event) => {
 				e.preventDefault();
-				this.handleEmailLogin(e.target as HTMLFormElement);
+				this.handleEmailLogin(e);
 			}}>
 				<div class="form-group">
 					<label for="email">Email:</label>
@@ -56,14 +57,13 @@ export class LoginHandler {
 					class="menu-button auth-social-button google-auth"
 					onClick=${() => initiateGoogleAuth()}
 				>
-					Login with Google
+					G
 				</button>
-				
 				<button 
 					class="menu-button auth-social-button forty-two-auth"
 					onClick=${() => initiate42Auth()}
 				>
-					Login with 42
+					42
 				</button>
 			</div>
 			
@@ -79,23 +79,16 @@ export class LoginHandler {
 	/**
 	 * Handles login with email/password
 	 */
-	handleEmailLogin(form: HTMLFormElement): void {
+	handleEmailLogin = async (e: Event): Promise<void> => {
+		e.preventDefault();
+		
+		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
 		
-		// Get reference to existing error element or create one if it doesn't exist
-		let errorElement = form.querySelector('.auth-error') as HTMLElement;
-		if (!errorElement) {
-			errorElement = document.createElement('div');
-			errorElement.className = 'auth-error';
-			form.appendChild(errorElement);
-		}
-		
 		if (!email || !password) {
-			// Show error inline instead of updating state
-			errorElement.textContent = 'Please enter both email and password';
-			errorElement.style.display = 'block';
+			this.updateState({ error: 'Please enter both email and password' });
 			return;
 		}
 		
@@ -103,126 +96,81 @@ export class LoginHandler {
 		this.loginAttempts++;
 		this.lastLoginAttempt = new Date();
 		
-		// Rate limiting for security (3 attempts within 5 minutes)
 		if (this.loginAttempts > 5) {
-			const fiveMinutesAgo = new Date(Date.now() - 60 * 1000); // 1 minutes
+			const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
-				// Show error inline instead of updating state
-				errorElement.textContent = 'Too many login attempts. Please try again later.';
-				errorElement.style.display = 'block';
-				
-				console.warn('Auth: Rate limited login attempt', {
-					email,
-					attempts: this.loginAttempts
-				});
-				
+				this.updateState({ error: 'Too many login attempts. Please try again later.' });
 				return;
 			} else {
-				// Reset counter after 5 minutes
 				this.loginAttempts = 1;
 			}
 		}
 		
-		// Hide any previous error message
-		errorElement.style.display = 'none';
-		
-		// Add loading indicator directly to form instead of updating state
-		let loadingIndicator = form.querySelector('.form-loading-indicator') as HTMLElement;
-		if (!loadingIndicator) {
-			loadingIndicator = document.createElement('div');
-			loadingIndicator.className = 'form-loading-indicator';
-			loadingIndicator.innerHTML = 'Verifying...';
-			form.appendChild(loadingIndicator);
-		} else {
-			loadingIndicator.style.display = 'block';
-		}
-		
-		// Disable form buttons during authentication
-		const buttons = form.querySelectorAll('button');
-		buttons.forEach(button => button.disabled = true);
-		
-		// Check if "Remember me" is checked
-		const rememberMe = form.querySelector('#remember-me') as HTMLInputElement;
-		const isPersistent = rememberMe ? rememberMe.checked : false;
-		
-		// Use DbService to simulate API call
-		DbService.login({ email, password })
-			.then(() => {
-				// Simulate API call
-				setTimeout(() => {
-					// Check if user exists in localStorage (for simulation)
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					const user = users.find((u: any) => u.email === email);
-					
-					if (user && user.password === password) {
-						// Login successful
-						const userData: UserData = {
-							id: user.id,
-							username: user.username,
-							email: user.email,
-							authMethod: AuthMethod.EMAIL,
-							lastLogin: new Date(),
-							persistent: isPersistent
-						};
-						
-						// Set current user with persistence flag from checkbox
-						this.setCurrentUser(userData);
-						
-						// Log successful login
-						console.log('Auth: Login successful', {
-							userId: user.id,
-							username: user.username,
-							email: user.email,
-							persistent: isPersistent
-						});
-						
-						// Update last login in the database
-						DbService.updateUser(parseInt(user.id), {
-							last_login: new Date()
-						});
-						
-						// Dispatch an event with the persistence information
-						document.dispatchEvent(new CustomEvent('user-authenticated', {
-							detail: {
-								user: userData,
-								persistent: isPersistent
-							}
-						}));
-						
-						// Just switch to success state directly
-						this.switchToSuccessState();
-						
-					} else {
-						// Login failed - display error inline instead of updating state
-						console.warn('Auth: Login failed', {
-							email,
-							reason: user ? 'Invalid password' : 'User not found'
-						});
-						
-						// Re-enable form buttons
-						buttons.forEach(button => button.disabled = false);
-						
-						// Hide loading indicator
-						if (loadingIndicator) loadingIndicator.style.display = 'none';
-						
-						// Show error message
-						errorElement.textContent = 'Invalid email or password';
-						errorElement.style.display = 'block';
-					}
-				}, 100);
-			})
-			.catch(error => {
-				console.error('Auth: Login error', error);
-				
-				// Re-enable form buttons
-				buttons.forEach(button => button.disabled = false);
-				
-				// Hide loading indicator
-				if (loadingIndicator) loadingIndicator.style.display = 'none';
-				
-				// Show error message inline
-				errorElement.textContent = 'Authentication failed. Please try again.';
-				errorElement.style.display = 'block';
+		try {
+			this.updateState({ isLoading: true, error: null });
+			
+			const hashedPassword = await hashPassword(password);
+			
+			const response = await DbService.login({ 
+				email, 
+				password: hashedPassword 
 			});
+			
+			if (response.success && response.user && response.token) {
+				const userFromDb = response.user;
+				const token = response.token;
+				const rememberMe = form.querySelector('#remember-me') as HTMLInputElement;
+				const isPersistent = rememberMe ? rememberMe.checked : false;
+				
+				const userData: UserData = {
+					id: userFromDb.id,
+					username: userFromDb.username,
+					email: userFromDb.email || email,
+					authMethod: AuthMethod.EMAIL,
+					lastLogin: new Date(),
+					persistent: isPersistent
+				};
+				
+				this.setCurrentUser(userData, token);
+				this.switchToSuccessState();
+				this.updateState({ isLoading: false });
+			} else if (response.requires2FA) {
+				// Handle 2FA flow if implemented
+				this.updateState({ 
+					isLoading: false,
+					requires2FA: true 
+				});
+			} else {
+				this.updateState({ 
+					isLoading: false,
+					error: 'Invalid username or password' 
+				});
+			}
+		} catch (error) {
+			if (error instanceof ApiError) {
+				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
+					this.updateState({ 
+						isLoading: false,
+						error: 'Invalid username or password' 
+					});
+				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
+					this.updateState({ 
+						isLoading: false,
+						error: 'Invalid two-factor authentication code' 
+					});
+				} else {
+					this.updateState({ 
+						isLoading: false,
+						error: error.message 
+					});
+				}
+			} else {
+				console.error('Auth: Login error', error);
+				this.updateState({ 
+					isLoading: false,
+					error: error instanceof Error ? error.message : 'Authentication failed'
+				});
+			}
+		}
 	}
 }

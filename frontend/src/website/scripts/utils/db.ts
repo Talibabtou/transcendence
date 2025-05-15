@@ -1,80 +1,8 @@
-/**
- * Database Service Module
- * Provides interfaces and methods for interacting with the application database.
- * Handles data retrieval, updates, and API communication for persistent storage.
- */
-
-// =========================================
-// DATA MODELS & TYPES
-// =========================================
-
-/**
- * Database schema interfaces
- */
-export interface User {
-	id: number;
-	theme?: string;
-	pfp?: string;
-	human: boolean;
-	pseudo: string;
-	last_login?: Date;
-	created_at: Date;
-	email?: string;
-	auth_method?: string;
-}
-
-export interface Friend {
-	user_id: number;
-	friend_id: number;
-	created_at: Date;
-}
-
-export interface Match {
-	id: number;
-	player_1: number;
-	player_2: number;
-	completed: boolean;
-	duration?: number;
-	timeout: boolean;
-	tournament_id?: number;
-	created_at: Date;
-}
-
-export interface Goal {
-	id: number;
-	match_id: number;
-	player: number;
-	duration: number;
-	created_at: Date;
-	hash: string;
-}
-
-/**
- * Authentication related interfaces
- */
-export interface AuthCredentials {
-	email: string;
-	password: string;
-}
-
-export interface RegisterData {
-	username: string;
-	email: string;
-	password: string;
-}
-
-export interface AuthResponse {
-	user: User;
-	token: string;
-	refreshToken?: string;
-}
-
-export interface OAuthRequest {
-	provider: string;
-	code: string;
-	redirectUri: string;
-	state?: string;
-}
+import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
+import { ApiError, ErrorResponse } from '@website/scripts/utils';
+import { API_PREFIX, AUTH, GAME, USER } from '@shared/constants/path.const';
+import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
+import { IGetPicResponse } from '@shared/types/gateway.types';
 
 // =========================================
 // DATABASE SERVICE
@@ -82,87 +10,202 @@ export interface OAuthRequest {
 
 /**
  * Service class for handling database operations
- * Currently mocks API calls for development purposes
+ * Uses API calls to interact with the backend
  */
 export class DbService {
+	private static async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+		const url = `${API_PREFIX}${endpoint}`;
+		
+		// Get token from the correct storage type - use sessionStorage by default
+		// This ensures each tab can maintain its own session
+		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
+		
+		// Default headers
+		const defaultHeaders: Record<string, string> = {
+			'Content-Type': 'application/json', // Default, will be omitted for FormData
+		};
+		if (token) {
+			defaultHeaders['Authorization'] = `Bearer ${token}`;
+		}
+
+		let effectiveHeaders: HeadersInit = { ...defaultHeaders, ...options.headers };
+
+		// If the body is FormData, DO NOT set Content-Type manually.
+		// The browser will set it correctly with the boundary.
+		if (options.body instanceof FormData) {
+			// Create new headers object, omitting Content-Type if it was the default one
+			const headersForFormData: Record<string, string> = {};
+			if (token) {
+				headersForFormData['Authorization'] = `Bearer ${token}`;
+			}
+			// Add any custom headers from options.headers, *except* Content-Type
+			if (options.headers) {
+				for (const [key, value] of Object.entries(options.headers)) {
+					if (key.toLowerCase() !== 'content-type') {
+						headersForFormData[key] = value as string;
+					}
+				}
+			}
+			effectiveHeaders = headersForFormData;
+		}
+
+		try {
+			const response = await fetch(url, {
+				...options,
+				headers: effectiveHeaders // Use the potentially modified headers
+			});
+
+			return this.handleApiResponse<T>(response);
+		} catch (error) {
+			// Handle token-related errors
+			if (error instanceof ApiError) {
+				// Only clear the token from the current tab's session
+				sessionStorage.removeItem('jwt_token');
+				
+				// Import dynamically to avoid circular dependencies
+				const { appState } = await import('./app-state');
+				appState.logout();
+				throw new Error('Your session has expired. Please log in again.');
+			}
+			throw error;
+		}
+	}
+
+	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (!response.ok) {
+			const errorData: ErrorResponse = await response.json();
+			throw new ApiError(errorData);
+		}
+		const contentType = response.headers.get("content-type");
+		if (response.status === 204) {
+			return Promise.resolve(null as unknown as T);
+		}
+
+		if (contentType && contentType.includes("application/json")) {
+			const text = await response.text();
+			if (text.length === 0 && response.status === 200) {
+				return Promise.resolve({ success: true } as unknown as T);
+			}
+			try {
+				return JSON.parse(text) as T;
+			} catch (e) {
+				console.error("Failed to parse JSON response even though Content-Type was application/json", text);
+				throw new Error("Invalid JSON response from server.");
+			}
+		}
+		return Promise.resolve(null as unknown as T);
+	}
+
 	// =========================================
 	// AUTHENTICATION OPERATIONS
 	// =========================================
 	
 	/**
-	 * Authenticates a user with email and password
-	 * @param credentials - User credentials
-	 */
-	static login(credentials: AuthCredentials): Promise<AuthResponse> {
-		this.logRequest('POST', '/api/auth/login', {
-			email: credentials.email,
-			password: '********' // Don't log actual password
-		});
-		
-		// In a real implementation, this would return a Promise with the auth response
-		return Promise.resolve({
-			user: {
-				id: 1,
-				pseudo: 'User',
-				human: true,
-				created_at: new Date(),
-				last_login: new Date(),
-				email: credentials.email,
-				auth_method: 'email'
-			},
-			token: 'mock-jwt-token'
-		});
-	}
-	
-	/**
 	 * Registers a new user
 	 * @param userData - User registration data
 	 */
-	static register(userData: RegisterData): Promise<AuthResponse> {
-		this.logRequest('POST', '/api/auth/register', {
+	static async register(userData: IAddUser): Promise<AuthResponse> {
+		this.logRequest('POST', `${AUTH.REGISTER}`, {
 			username: userData.username,
 			email: userData.email,
-			password: '********' // Don't log actual password
+			password: '********',
 		});
 		
-		// In a real implementation, this would return a Promise with the auth response
-		return Promise.resolve({
-			user: {
-				id: Date.now(),
-				pseudo: userData.username,
-				human: true,
-				created_at: new Date(),
-				last_login: new Date(),
-				email: userData.email,
-				auth_method: 'email'
-			},
-			token: 'mock-jwt-token'
-		});
+		try {
+			const userResponse = await this.fetchApi<IReplyUser>(`${AUTH.REGISTER}`, {
+				method: 'POST',
+				body: JSON.stringify(userData)
+			});
+			
+			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
+				method: 'POST',
+				body: JSON.stringify({
+					email: userData.email,
+					password: userData.password
+				})
+			});
+			
+			return {
+				success: true,
+				user: {
+					id: userResponse.id,
+					username: userResponse.username,
+					email: userResponse.email,
+					created_at: new Date(),
+					last_login: new Date(),
+					auth_method: 'email',
+					theme: '#ffffff' // Default theme, appState will initialize/override
+				},
+				token: loginResponse.token // Ensure token is returned
+			};
+		} catch (error) {
+			throw error;
+		}
 	}
-	
+
+	/**
+	 * Authenticates a user with email and password
+	 * @param credentials - User credentials
+	 */
+	static async login(credentials: ILogin): Promise<AuthResponse> {
+		this.logRequest('POST', `${AUTH.LOGIN}`, {
+			email: credentials.email,
+			password: '********'
+		});
+		
+		try {
+			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
+				method: 'POST',
+				body: JSON.stringify(credentials)
+			});
+			
+			if (loginResponse.status === '2fa') {
+				return {
+					success: false,
+					requires2FA: true,
+					user: {
+						id: loginResponse.id || '',
+						username: loginResponse.username || 'User',
+						created_at: new Date(),
+						auth_method: 'email'
+					},
+					token: loginResponse.token // Pass token even for 2FA start
+				};
+			}
+			
+			return {
+				success: true,
+				user: {
+					id: loginResponse.id || '',
+					username: loginResponse.username || '',
+					email: credentials.email, // Use email from input as loginResponse might not have it
+					created_at: new Date(), // Or from loginResponse if available
+					last_login: new Date(), // Or from loginResponse if available
+					auth_method: 'email',
+					theme: '#ffffff' // Default theme, appState will initialize/override
+				},
+				token: loginResponse.token // Ensure token is returned
+			};
+		} catch (error) {
+			console.error('Login failed:', error);
+			throw error;
+		}
+	}
+
 	/**
 	 * Authenticates a user with an OAuth provider
 	 * @param oauthData - OAuth authentication data
 	 */
-	static oauthLogin(oauthData: OAuthRequest): Promise<AuthResponse> {
+	static async oauthLogin(oauthData: OAuthRequest): Promise<AuthResponse> {
 		this.logRequest('POST', '/api/auth/oauth', {
 			provider: oauthData.provider,
-			code: oauthData.code.substring(0, 10) + '...', // Don't log full code
+			code: oauthData.code.substring(0, 10) + '...',
 			redirectUri: oauthData.redirectUri
 		});
 		
-		// In a real implementation, this would return a Promise with the auth response
-		return Promise.resolve({
-			user: {
-				id: Date.now(),
-				pseudo: `${oauthData.provider}User`,
-				human: true,
-				created_at: new Date(),
-				last_login: new Date(),
-				auth_method: oauthData.provider,
-				pfp: `https://ui-avatars.com/api/?name=${oauthData.provider}+User&background=random`
-			},
-			token: 'mock-jwt-token'
+		return this.fetchApi<AuthResponse>('/auth/oauth', {
+			method: 'POST',
+			body: JSON.stringify(oauthData)
 		});
 	}
 	
@@ -170,38 +213,20 @@ export class DbService {
 	 * Logs out the current user
 	 * @param userId - The ID of the user to log out
 	 */
-	static logout(userId: number): Promise<void> {
-		this.logRequest('POST', '/api/auth/logout', { userId });
-		return Promise.resolve();
-	}
-	
-	/**
-	 * Refreshes an authentication token
-	 * @param refreshToken - The refresh token
-	 */
-	static refreshToken(refreshToken: string): Promise<{ token: string, refreshToken: string }> {
-		this.logRequest('POST', '/api/auth/refresh', { 
-			refreshToken: refreshToken.substring(0, 10) + '...' // Don't log full token
-		});
+	static async logout(userId: string): Promise<void> {
+		this.logRequest('POST', `${AUTH.LOGOUT}`, { userId });
 		
-		return Promise.resolve({
-			token: 'new-mock-jwt-token',
-			refreshToken: 'new-mock-refresh-token'
-		});
+		try {
+			await this.fetchApi<void>(`${AUTH.LOGOUT}`, {
+				method: 'POST'
+			});
+		} finally {
+			// Always clear tokens on logout regardless of API response
+			localStorage.removeItem('jwt_token');
+			sessionStorage.removeItem('jwt_token');
+		}
 	}
-	
-	/**
-	 * Verifies if a token is valid
-	 * @param token - The token to verify
-	 */
-	static verifyToken(token: string): Promise<boolean> {
-		this.logRequest('POST', '/api/auth/verify', { 
-			token: token.substring(0, 10) + '...' // Don't log full token
-		});
-		
-		return Promise.resolve(true);
-	}
-	
+
 	// =========================================
 	// USER OPERATIONS
 	// =========================================
@@ -210,77 +235,34 @@ export class DbService {
 	 * Retrieves user information by ID
 	 * @param id - The user's ID
 	 */
-	static getUser(id: number): Promise<User> {
-		this.logRequest('GET', `/api/users/${id}`);
-		
-		// Mock user data
-		return Promise.resolve({
-			id,
-			pseudo: `User${id}`,
-			human: true,
-			created_at: new Date(),
-			last_login: new Date()
-		});
+	static async getUser(id: string): Promise<User> {
+		this.logRequest('GET', `${API_PREFIX}${USER.BY_ID(id)}`);
+		return this.fetchApi<User>(USER.BY_ID(id));
+	}
+	
+	/**
+	 * Retrieves user information by ID
+	 * @param id - The user's ID
+	 */
+	static async getIdByUsername(username: string): Promise<string> {
+		this.logRequest('GET', `${API_PREFIX}${USER.BY_USERNAME(username)}`);
+		const user = await this.fetchApi<User>(USER.BY_USERNAME(username));
+		return user.id;
 	}
 
 	/**
 	 * Updates user information
 	 * @param userId - The user's ID
 	 * @param userData - Object containing user data to update
+	 * @returns Promise with updated user data
 	 */
-	static updateUser(userId: number, userData: Partial<User>): Promise<User> {
-		this.logRequest('PUT', `/api/users/${userId}`, userData);
+	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
+		this.logRequest('PATCH', `${API_PREFIX}${USER.ME_UPDATE} (for user ${userId})`, userData);
 		
-		// Mock updated user
-		return Promise.resolve({
-			id: userId,
-			pseudo: userData.pseudo || `User${userId}`,
-			human: true,
-			created_at: new Date(),
-			last_login: userData.last_login || new Date(),
-			...userData
+		return this.fetchApi<User>(USER.ME_UPDATE, {
+			method: 'PATCH',
+			body: JSON.stringify(userData)
 		});
-	}
-
-	/**
-	 * Updates user preferences
-	 * @param userId - The user's ID
-	 * @param preferences - Object containing user preferences
-	 */
-	static updateUserPreferences(userId: number, preferences: Record<string, any>): Promise<void> {
-		this.logRequest('PUT', `/api/users/${userId}/preferences`, preferences);
-		return Promise.resolve();
-	}
-	
-	/**
-	 * Creates a new user
-	 * @param userData - User data to create
-	 */
-	static createUser(userData: Partial<User>): Promise<User> {
-		this.logRequest('POST', '/api/users', userData);
-		
-		// Mock created user
-		return Promise.resolve({
-			id: userData.id || Date.now(),
-			pseudo: userData.pseudo || 'NewUser',
-			human: userData.human !== undefined ? userData.human : true,
-			created_at: userData.created_at || new Date(),
-			last_login: userData.last_login || new Date(),
-			...userData
-		});
-	}
-
-	// =========================================
-	// FRIEND OPERATIONS
-	// =========================================
-	
-	/**
-	 * Retrieves friend list for a user
-	 * @param userId - The user's ID
-	 */
-	static getUserFriends(userId: number): Promise<Friend[]> {
-		this.logRequest('GET', `/api/users/${userId}/friends`);
-		return Promise.resolve([]);
 	}
 
 	// =========================================
@@ -288,12 +270,23 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Retrieves match history for a specific user
+	 * Gets all matches for a user
 	 * @param userId - The user's ID
+	 * @param page - The page number to fetch (0-indexed)
+	 * @param pageSize - The number of items per page
 	 */
-	static getUserMatches(userId: number): Promise<Match[]> {
-		this.logRequest('GET', `/api/users/${userId}/matches`);
-		return Promise.resolve([]);
+	static async getUserMatches(userId: string, page?: number, pageSize?: number): Promise<Match[]> {
+		const queryParams = new URLSearchParams();
+		queryParams.append('player_id', userId);
+		queryParams.append('active', 'false');
+		
+		if (page !== undefined && pageSize !== undefined) {
+			queryParams.append('offset', String(page * pageSize));
+			queryParams.append('limit', String(pageSize));
+		}
+		
+		this.logRequest('GET', `${API_PREFIX}${GAME.BASE}?${queryParams.toString()}`);
+		return this.fetchApi<Match[]>(`${GAME.BASE}?${queryParams.toString()}`);
 	}
 
 	/**
@@ -302,74 +295,16 @@ export class DbService {
 	 * @param player2Id - Second player's ID
 	 * @param tournamentId - Optional tournament ID
 	 */
-	static createMatch(player1Id: number, player2Id: number, tournamentId?: number): Promise<Match> {
-		const matchData: Partial<Match> = {
-			player_1: player1Id,
-			player_2: player2Id,
-			tournament_id: tournamentId
-		};
-		this.logRequest('POST', '/api/matches', matchData);
+	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string): Promise<Match> {
+		this.logRequest('POST', `${API_PREFIX}${GAME.MATCH.BASE}`, { player1Id, player2Id, tournamentId });
 		
-		// Mock created match
-		return Promise.resolve({
-			id: Date.now(),
-			player_1: player1Id,
-			player_2: player2Id,
-			completed: false,
-			timeout: false,
-			tournament_id: tournamentId,
-			created_at: new Date()
-		});
-	}
-
-	/**
-	 * Records a goal in a match
-	 * @param matchId - The match ID
-	 * @param playerId - The scoring player's ID
-	 * @param duration - Time of goal in seconds from match start
-	 * @param hash - The hash of the goal
-	 */
-	static scoreGoal(matchId: number, playerId: number, duration: number, hash: string): Promise<Goal> {
-		const goalData: Partial<Goal> = {
-			match_id: matchId,
-			player: playerId,
-			duration,
-			hash: hash
-		};
-		this.logRequest('POST', '/api/goals', goalData);
-		
-		// Mock created goal
-		return Promise.resolve({
-			id: Date.now(),
-			match_id: matchId,
-			player: playerId,
-			duration,
-			created_at: new Date(),
-			hash
-		});
-	}
-
-	/**
-	 * Marks a match as completed
-	 * @param matchId - The match ID
-	 * @param duration - Match duration in seconds
-	 */
-	static completeMatch(matchId: number, duration: number): Promise<Match> {
-		const updateData = {
-			completed: true,
-			duration
-		};
-		this.logRequest('PUT', `/api/matches/${matchId}`, updateData);
-		
-		// Mock updated match
-		return Promise.resolve({
-			id: matchId,
-			player_1: 1,
-			player_2: 2,
-			completed: true,
-			duration,
-			timeout: false,
-			created_at: new Date()
+		return this.fetchApi<Match>(`${GAME.MATCH.BASE}`, {
+			method: 'POST',
+			body: JSON.stringify({
+				player_1: player1Id,
+				player_2: player2Id,
+				tournament_id: tournamentId || null
+			})
 		});
 	}
 
@@ -379,23 +314,15 @@ export class DbService {
 	 * @param playerId - The scoring player's ID
 	 * @param duration - Time of goal in seconds from match start
 	 */
-	static recordGoal(matchId: number, playerId: number, duration: number): Promise<Goal> {
-		const goalData: Partial<Goal> = {
-			match_id: matchId,
-			player: playerId,
-			duration,
-			created_at: new Date()
-		};
-		this.logRequest('POST', '/api/goals', goalData);
+	static async recordGoal(matchId: string, playerId: string, duration: number): Promise<Goal> {
+		this.logRequest('POST', `${API_PREFIX}${GAME.GOALS.BASE}/${playerId}`, { matchId, duration });
 		
-		// Mock created goal
-		return Promise.resolve({
-			id: Date.now(),
-			match_id: matchId,
-			player: playerId,
-			duration,
-			created_at: new Date(),
-			hash: `goal_${Date.now()}`
+		return this.fetchApi<Goal>(`${GAME.GOALS.BASE}/${playerId}`, {
+			method: 'POST',
+			body: JSON.stringify({
+				match_id: matchId,
+				duration
+			})
 		});
 	}
 
@@ -404,40 +331,131 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Retrieves statistics for a user
+	 * Retrieves detailed statistics for a user
 	 * @param userId - The user's ID
 	 */
-	static getUserStats(userId: number): Promise<any> {
-		this.logRequest('GET', `/api/users/${userId}/stats`);
-		
-		// Mock user stats
-		return Promise.resolve({
-			totalGames: 10,
-			wins: 5,
-			losses: 5,
-			winRate: 0.5,
-			averageScore: 3.2
-		});
+	static async getUserStats(userId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${GAME.MATCH.STATS(userId)}`);
+		return this.fetchApi<any>(`${GAME.MATCH.STATS(userId)}`);
 	}
 
 	/**
 	 * Retrieves global leaderboard data
 	 */
-	static getLeaderboard(): Promise<any[]> {
-		this.logRequest('GET', '/api/leaderboard');
-		
-		// Mock leaderboard data
-		return Promise.resolve([
-			{ id: 1, pseudo: 'Player1', wins: 10, losses: 2 },
-			{ id: 2, pseudo: 'Player2', wins: 8, losses: 3 },
-			{ id: 3, pseudo: 'Player3', wins: 7, losses: 5 }
-		]);
+	static async getLeaderboard(): Promise<LeaderboardEntry[]> {
+		this.logRequest('GET', `${API_PREFIX}${GAME.LEADERBOARD}`);
+		return this.fetchApi<LeaderboardEntry[]>(`${GAME.LEADERBOARD}?limit=100&offset=0`);
 	}
 
-	// =========================================
-	// UTILITY METHODS
-	// =========================================
-	
+	/**
+	 * Gets tournament information
+	 * @param tournamentId - Tournament UUID
+	 */
+	static async getTournament(tournamentId: string): Promise<any> {
+		this.logRequest('GET', `/api/tournaments/${tournamentId}`);
+		return this.fetchApi<any>(`/tournaments/${tournamentId}`);
+	}
+
+	/**
+	 * Gets a player's ELO rating
+	 * @param playerId - Player's UUID
+	 */
+	static async getPlayerElo(playerId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${GAME.ELO.BY_ID(playerId)}`);
+		return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
+	}
+
+	/**
+	 * Get user profile
+	 * @param userId - The UUID of the user
+	 */
+	static async getUserProfile(userId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE}/${userId}`);
+		return this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
+	}
+
+	/**
+	 * Gets the uploaded profile picture link for a user.
+	 * The endpoint is /profile/pics/:id, served by the profile service.
+	 * @param userId - The user's ID
+	 * @returns Promise with the picture link object with a fully qualified path
+	 */
+	static async getPic(userId: string): Promise<IGetPicResponse> {
+		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE_PIC_LINK(userId)}`);
+		const response = await this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
+		
+		if (response && response.link) {
+			// Extract the filename from the path
+			const pathParts = response.link.split('/');
+			const fileName = pathParts[pathParts.length - 1];
+			
+			response.link = `http://localhost:8085/uploads/${fileName}`;
+			console.log(response.link);
+		}
+		
+		return response;
+	}
+
+	/**
+	 * Update user profile picture
+	 * @param imageData - Base64 encoded image data or File object
+	 */
+	static async updateProfilePicture(imageData: string | File): Promise<any> {
+		this.logRequest('POST', `${USER.UPLOADS}`, { imageData: '...[truncated]' });
+		
+		// Handle different types of image data
+		if (typeof imageData === 'string') {
+			return this.fetchApi<any>(`${USER.UPLOADS}`, {
+				method: 'POST',
+				body: JSON.stringify({ image: imageData }),
+			});
+		} else {
+			// File object
+			const formData = new FormData();
+			formData.append('image', imageData);
+			
+			return this.fetchApi<any>(`${USER.UPLOADS}`, {
+				method: 'POST',
+				body: formData,
+				headers: {}
+			});
+		}
+	}
+
+	/**
+	 * Get friendship status
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+	static async getFriendship(userId: string, friendId: string): Promise<any> {
+		this.logRequest('GET', `/api/friends/${userId}/${friendId}`);
+		return this.fetchApi<any>(`/friends/${userId}/${friendId}`);
+	}
+
+		/**
+	 * Get friendship status
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+		static async getHistory(userId: string): Promise<any> {
+			this.logRequest('GET', `/api/friends/${userId}}`);
+			return this.fetchApi<any>(`/friends/${userId}`);
+		}
+
+	/**
+	 * Add a friend
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+	static async addFriend(userId: string, friendId: string): Promise<any> {
+		this.logRequest('POST', `/api/friends`, { user_id: userId, friend_id: friendId });
+		
+		return this.fetchApi<any>('/friends', {
+			method: 'POST',
+			body: JSON.stringify({ user_id: userId, friend_id: friendId })
+		});
+	}
+
 	/**
 	 * Helper method to standardize API request logging
 	 * @param method - HTTP method
@@ -455,124 +473,5 @@ export class DbService {
 			timestamp,
 			requestId
 		});
-	}
-
-	/**
-	 * Verifies user credentials and returns user data
-	 * @param email - User's email
-	 * @param password - User's password
-	 */
-	public static verifyUser(email: string, password: string): Promise<{
-		success: boolean;
-		user?: {
-			id: string;
-			username: string;
-			email: string;
-			profilePicture?: string;
-		};
-	}> {
-		// Log the verification attempt
-		this.logRequest('POST', '/api/auth/verify', { email, password: '********' });
-
-		return new Promise((resolve) => {
-			// Simulate API delay
-			setTimeout(() => {
-				try {
-					// Get users from localStorage
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					
-					// Find user with matching credentials
-					const user = users.find((u: any) => 
-						u.email === email && u.password === password
-					);
-
-					if (user) {
-						// Return success with user data
-						resolve({
-							success: true,
-							user: {
-								id: user.id,
-								username: user.username,
-								email: user.email,
-								profilePicture: user.pfp || '/images/default-avatar.svg'
-							}
-						});
-
-						// Log successful verification
-						console.log('Auth: User verified successfully', {
-							userId: user.id,
-							username: user.username
-						});
-					} else {
-						// User not found or invalid credentials
-						resolve({ success: false });
-						
-						// Log failed verification
-						console.warn('Auth: User verification failed', { email });
-					}
-				} catch (error) {
-					console.error('Auth: Verification error', error);
-					resolve({ success: false });
-				}
-			}, 300); // Simulate network delay
-		});
-	}
-
-	/**
-	 * Updates user's last connection timestamp
-	 * @param userId - The user's ID
-	 */
-	public static updateUserLastConnection(userId: string): Promise<void> {
-		// Log the update attempt
-		this.logRequest('PUT', `/api/users/${userId}/last-connection`);
-
-		return new Promise((resolve, reject) => {
-			setTimeout(() => {
-				try {
-					// Get users from localStorage
-					const users = JSON.parse(localStorage.getItem('auth_users') || '[]');
-					
-					// Find and update user
-					const userIndex = users.findIndex((u: any) => u.id === userId);
-					
-					if (userIndex !== -1) {
-						// Update last login time
-						users[userIndex].lastLogin = new Date().toISOString();
-						
-						// Save back to localStorage
-						localStorage.setItem('auth_users', JSON.stringify(users));
-						
-						// Log successful update
-						console.log('Auth: Updated user last connection', {
-							userId,
-							timestamp: users[userIndex].lastLogin
-						});
-						
-						resolve();
-					} else {
-						// User not found
-						console.warn('Auth: User not found for last connection update', { userId });
-						reject(new Error('User not found'));
-					}
-				} catch (error) {
-					console.error('Auth: Last connection update error', error);
-					reject(error);
-				}
-			}, 200); // Simulate network delay
-		});
-	}
-
-	/**
-	 * Helper method to ensure auth_users exists in localStorage
-	 */
-	private static initializeAuthUsers(): void {
-		if (!localStorage.getItem('auth_users')) {
-			localStorage.setItem('auth_users', '[]');
-		}
-	}
-
-	// Call this in the constructor or as a static initialization
-	static {
-		DbService.initializeAuthUsers();
 	}
 }

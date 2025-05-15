@@ -5,7 +5,7 @@
  */
 import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
-import { GameMode } from '@shared/types';
+import { GameMode } from '@website/types';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -31,6 +31,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	
 	private canvas: HTMLCanvasElement | null = null;
 	private gameManager: GameManager;
+	private gameEngine: GameEngine | null = null;
 
 	// =========================================
 	// INITIALIZATION
@@ -74,10 +75,9 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	startGame(
 		mode: GameMode,
 		playerInfo?: { 
-			playerName?: string,
-			playerColor?: string,
-			playerIds?: number[],
-			playerNames?: string[] 
+			playerIds?: string[],
+			playerNames?: string[],
+			playerColors?: string[]
 		}
 	): void {
 		this.updateInternalState({
@@ -87,6 +87,29 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 
 		// Tell the game manager to start the game in our container with player info
 		this.gameManager.startMainGame(mode, this.container, playerInfo);
+
+		if (this.gameEngine) {
+			// Set player names if available
+			if (playerInfo?.playerNames && playerInfo.playerNames.length > 0) {
+				const player1Name = playerInfo.playerNames[0] || 'Player 1';
+				const player2Name = playerInfo.playerNames.length > 1 ? playerInfo.playerNames[1] : 'Player 2';
+				this.gameEngine.setPlayerNames(player1Name, player2Name);
+			}
+			
+			// Set player colors
+			if (playerInfo?.playerColors && playerInfo.playerColors.length > 0) {
+				const player1Color = playerInfo.playerColors[0] || '#ffffff';
+				const player2Color = playerInfo.playerColors.length > 1 ? playerInfo.playerColors[1] : '#ffffff';
+				
+				// Pass both colors to the game engine
+				this.gameEngine.updatePlayerColors(player1Color, player2Color);
+			}
+			
+			// Set player IDs if available
+			if (playerInfo?.playerIds && playerInfo.playerIds.length > 0) {
+				this.gameEngine.setPlayerIds(playerInfo.playerIds);
+			}
+		}
 	}
 
 	/**

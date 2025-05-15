@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
 	root: 'src/website',
 	server: {
-		port: 3001,
+		port: 3000,
 		open: true,
 		watch: {
 			ignored: ['!**/node_modules/**', '**/dist/**']

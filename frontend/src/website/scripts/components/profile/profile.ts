@@ -1,21 +1,26 @@
 /**
  * Profile Component Module
- * Displays and manages user profile information, game history, friends, and settings.
- * Provides tabbed interface for different sections of user data.
+ * Parent component that manages tab navigation and profile summary
  */
-import { Component } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, appState, AccentColor } from '@website/scripts/utils';
-import { UserProfile, FriendProfile, ProfileState } from '@shared/types';
-import { ProfileStatsComponent } from './stats';
+import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
+import { DbService, html, render, navigate, ASCII_ART, ApiError, AppStateManager } from '@website/scripts/utils';
+import { UserProfile, ProfileState, User } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 /**
  * Component that displays and manages user profiles
  * Provides tabbed interface for different sections of user data
  */
 export class ProfileComponent extends Component<ProfileState> {
-	// =========================================
-	// INITIALIZATION
-	// =========================================
+	// Tab component instances
+	private statsComponent?: ProfileStatsComponent;
+	private historyComponent?: ProfileHistoryComponent;
+	private friendsComponent?: ProfileFriendsComponent;
+	private settingsComponent?: ProfileSettingsComponent;
+	private lastSettingsProfileId?: string; // To track the profile ID for the current settingsComponent
+	
+	// Track if initial render has occurred
+	private initialRenderComplete = false;
 	
 	/**
 	 * Creates a new ProfileComponent
@@ -26,18 +31,24 @@ export class ProfileComponent extends Component<ProfileState> {
 			profile: null,
 			isLoading: false,
 			isEditing: false,
-			activeTab: 'summary',
-			initialized: false
+			activeTab: 'stats',
+			initialized: false,
+			historyPage: 0,
+			historyPageSize: 20,
+			historyIsLoading: false,
+			tabsLoading: {
+				summary: false,
+				stats: false,
+				history: false,
+				friends: false,
+				settings: false
+			},
+			matchesCache: new Map()
 		});
 	}
 	
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
-	
 	/**
 	 * Initializes the component by fetching data
-	 * Separated from render to prevent recursion
 	 */
 	async initialize(): Promise<void> {
 		const state = this.getInternalState();
@@ -55,6 +66,15 @@ export class ProfileComponent extends Component<ProfileState> {
 			this.updateInternalState({ 
 				isLoading: false 
 			});
+			
+			// Directly render view after data is loaded
+			this.renderView();
+			
+			// Set flag to indicate we need to render active tab
+			this.initialRenderComplete = true;
+			
+			// Check if tab content exists and render into it
+			this.initializeTabContent();
 		} catch (error) {
 			console.error('Error initializing profile:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load profile data';
@@ -67,33 +87,115 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 	
 	/**
-	 * Renders the component based on current state
-	 * Only handles UI rendering, not data fetching
+	 * Initialize the active tab content after the first render
 	 */
-	render(): void {
-		this.renderView();
+	private initializeTabContent(): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		// Use requestAnimationFrame to ensure DOM is ready
+		requestAnimationFrame(() => {
+			const tabContainer = this.container.querySelector(`.tab-content`);
+			if (!tabContainer) return;
+			
+			// Create and initialize the active tab component
+			this.createTabComponent(state.activeTab);
+		});
 	}
 	
 	/**
-	 * Called after initial render
-	 * This is where we trigger data fetching
+	 * Create and initialize a tab component based on tab name
 	 */
-	afterRender(): void {
-		if (!this.getInternalState().initialized) {
-			this.initialize();
+	private createTabComponent(tabName: string): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		const tabContentDiv = this.container.querySelector(`.tab-content`);
+		if (!tabContentDiv) return;
+		
+		// --- Conditional reuse for settings tab ---
+		if (tabName === 'settings' && this.settingsComponent && this.lastSettingsProfileId === state.profile.id) {
+			// Settings tab is the target, an instance exists, and it's for the *same profile ID*.
+
+			// Use the public getter method
+			const settingsContainer = this.settingsComponent.getDOMContainer();
+			
+			if (settingsContainer.parentElement !== tabContentDiv) {
+				// This implies tabContentDiv was cleared, or settingsComponent was detached.
+				// Clear tabContentDiv and re-append the existing settingsComponent's container.
+				tabContentDiv.innerHTML = ''; 
+				tabContentDiv.appendChild(settingsContainer);
+			}
+			// else, settingsComponent.container is already in place.
+
+			this.settingsComponent.setProfile(state.profile); // Pass the (potentially updated) profile data
+			settingsContainer.classList.add('active'); // Ensure its container is styled as active
+			return; // Instance reused.
+		}
+		// --- End of conditional reuse ---
+
+		// If we reach here, we're creating a tab fresh.
+		tabContentDiv.innerHTML = ''; // Clear content for the new tab.
+		const tabContainer = document.createElement('div');
+		tabContainer.className = 'tab-pane active';
+		tabContainer.id = `tab-content-${tabName}`;
+		tabContentDiv.appendChild(tabContainer);
+
+		// Destroy previous settings component if we are navigating away from it, 
+		// or creating settings for a different user.
+		if (this.settingsComponent && (tabName !== 'settings' || this.lastSettingsProfileId !== state.profile.id)) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+			this.lastSettingsProfileId = undefined;
+		}
+		// Similar logic for other components if they need explicit destruction or state saving.
+		
+		switch (tabName) {
+			case 'stats':
+				this.statsComponent = new ProfileStatsComponent(tabContainer);
+				this.statsComponent.setProfile(state.profile);
+				break;
+			case 'history':
+				this.historyComponent = new ProfileHistoryComponent(tabContainer);
+				this.historyComponent.setProfile(state.profile);
+				this.historyComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
+				break;
+			case 'friends':
+				this.friendsComponent = new ProfileFriendsComponent(tabContainer);
+				this.friendsComponent.setProfile(state.profile);
+				this.friendsComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
+				break;
+			case 'settings':
+				this.settingsComponent = new ProfileSettingsComponent(tabContainer);
+				this.settingsComponent.setProfile(state.profile); // Uses the refined setProfile
+				this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
+				this.lastSettingsProfileId = state.profile.id; // Track ID for this new instance
+				break;
 		}
 	}
 	
 	/**
-	 * Cleans up the component when it's destroyed
+	 * Renders the component based on current state
 	 */
-	destroy(): void {
-		super.destroy();
+	render(): void {
+		if (!this.getInternalState().initialized) {
+			this.initialize();
+		} else {
+			this.renderView();
+		}
 	}
-
-	// =========================================
-	// DATA MANAGEMENT
-	// =========================================
+	
+	/**
+	 * Called after initial render
+	 */
+	afterRender(): void {
+		// If this is the first render and we have a profile, initialize tab content
+		if (this.initialRenderComplete && this.getInternalState().profile) {
+			this.initializeTabContent();
+		}
+	}
 	
 	/**
 	 * Fetches profile data from the database
@@ -101,277 +203,158 @@ export class ProfileComponent extends Component<ProfileState> {
 	private async fetchProfileData(): Promise<void> {
 		try {
 			const url = new URL(window.location.href);
-			const userId = url.searchParams.get('id') || 'current';
-			const numericId = userId === 'current' ? 1 : parseInt(userId, 10);
+			let userId = url.searchParams.get('id');
 			
-			// SIMULATION: API calls
-			DbService.getUser(numericId);
-			DbService.getUserMatches(numericId);
-			DbService.getUserFriends(numericId);
-			
-			/* 
-			FUTURE IMPLEMENTATION:
-			
-			// 1. Get basic user data
-			const userData = await api.getUser(numericId);
-			// 2. Get user's match history
-			const matches = await api.getUserMatches(numericId);
-			// 3. Get user's friend relationships
-			const friendRelationships = await api.getUserFriends(numericId);
-			// 4. For each friend relationship, get the friend's profile data
-			const friendProfiles: FriendProfile[] = await Promise.all(
-				friendRelationships.map(async (relationship) => {
-					const friendId = relationship.friend_id;
-					const friendData = await api.getUser(friendId);
-					
-					return {
-						id: friendId,
-						username: friendData.pseudo,
-						avatarUrl: friendData.pfp || '../../public/images/default-avatar.svg',
-						lastLogin: friendData.last_login
-					};
-				})
-			);
-			// 5. Build game history from matches
-			const gameHistory = matches.map(match => ({
-				id: match.id.toString(),
-				date: match.created_at,
-				opponent: match.player_1 === numericId ? 
-						  (await api.getUser(match.player_2)).pseudo : 
-						  (await api.getUser(match.player_1)).pseudo,
-				playerScore: (await api.getMatchGoals(match.id, numericId)).length,
-				opponentScore: (await api.getMatchGoals(match.id, 
-							   match.player_1 === numericId ? match.player_2 : match.player_1)).length,
-				result: playerScore > opponentScore ? 'win' : 'loss'
-			}));
-			// 6. Construct the complete profile
-			const profile: UserProfile = {
-				id: userId,
-				username: userData.pseudo,
-				avatarUrl: userData.pfp || '../../public/images/default-avatar.svg',
-				level: calculateLevel(matches), // Calculate level based on matches
-				experience: calculateExperience(matches), // Calculate XP based on matches
-				totalGames: matches.length,
-				wins: matches.filter(m => isWin(m, numericId)).length,
-				losses: matches.filter(m => !isWin(m, numericId)).length,
-				gameHistory: gameHistory,
-				friends: friendProfiles,
-				preferences: {
-					accentColor: userData.theme || '#7cf'
+			if (!userId || userId === 'current') {
+				const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+				if (currentUserJson) {
+					try {
+						const currentUser = JSON.parse(currentUserJson);
+						if (currentUser && currentUser.id) {
+							userId = currentUser.id.toString();
+						}
+					} catch (error) {
+						console.error('Error parsing current user data:', error);
+					}
 				}
-			};
-			*/
-			
-			// SIMULATION: Use mock data for now
-			await new Promise(resolve => setTimeout(resolve, 750));
-			const profile = this.createMockProfile(userId);
-			
-			// Update state with profile data
-			this.updateInternalState({ profile });
-		} catch (error) {
-			console.error('Error fetching profile data:', error);
-			throw new Error('Failed to fetch profile data');
-		}
-	}
-
-	/**
-	 * Creates mock profile data for development
-	 * Will be replaced with real API data in production
-	 * @param userId - User ID to create mock data for
-	 */
-	private createMockProfile(userId: string): UserProfile {
-		const isCurrentUser = userId === 'current';
-		const id = isCurrentUser ? 'current' : userId;
-		
-		// Create mock friends - simulating fetching friend data from DB
-		const mockFriendIds = [101, 102, 103]; // Simulated friend IDs from DB
-		
-		// Simulate fetching friend profiles from the database
-		const mockFriends: FriendProfile[] = mockFriendIds.map((friendId, index) => {
-			// In a real implementation, you would fetch each friend's data using DbService
-			// DbService.getUser(friendId) would return username, avatar, last_login
-			
-			// For mock data, create some sample friends
-			const friendNames = ['PongMaster', 'RetroGamer', 'PixelPro'];
-			const lastLoginDays = [0, 2, 5]; // days ago
-			
-			return {
-				id: friendId,
-				username: friendNames[index],
-				avatarUrl: '../../public/images/default-avatar.svg',
-				lastLogin: new Date(Date.now() - 1000 * 60 * 60 * 24 * lastLoginDays[index])
-			};
-		});
-
-		return {
-			id,
-			username: isCurrentUser ? 'CurrentUser' : `Player${userId}`,
-			avatarUrl: '../../public/images/default-avatar.svg',
-			level: Math.floor(Math.random() * 50) + 1,
-			experience: Math.floor(Math.random() * 10000),
-			totalGames: Math.floor(Math.random() * 100),
-			wins: Math.floor(Math.random() * 50),
-			losses: Math.floor(Math.random() * 50),
-			gameHistory: Array.from({ length: 5 }, (_, i) => ({
-				id: `game-${i}`,
-				date: new Date(Date.now() - 1000 * 60 * 60 * 24 * i), // i days ago
-				opponent: `Opponent${i + 1}`,
-				playerScore: Math.floor(Math.random() * 10),
-				opponentScore: Math.floor(Math.random() * 10),
-				result: Math.random() > 0.5 ? 'win' : 'loss'
-			})),
-			friends: mockFriends,
-			preferences: {
-				accentColor: '#7cf'
 			}
-		};
-	}
+			
+			if (!userId) {
+				this.updateInternalState({ errorMessage: 'No user ID provided', isLoading: false });
+				return;
+			}
 
-	/**
-	 * Saves profile changes to the database
-	 */
-	private saveProfileChanges(): void {
-		const state = this.getInternalState();
-		// Get form data
-		const form = this.container.querySelector('.settings-form') as HTMLFormElement;
-		if (!form || !state.profile) return;
-		
-		// Example of getting form values
-		const username = (form.querySelector('[name="username"]') as HTMLInputElement)?.value;
-		
-		// Update profile data
-		if (username) {
-			const updatedProfile = {
-				...state.profile,
-				username
-			};
-			
-			// Simulate saving to database
-			DbService.updateUser(parseInt(state.profile.id), {
-				pseudo: username
-			});
-			
-			// Update state and exit edit mode
+			try {
+				// Fetch main user profile details
+				const user = await DbService.getUserProfile(userId); // Contains username, summary etc.
+				if (!user) {
+					throw new Error(`User with ID ${userId} not found`);
+				}
+				
+				// Fetch the profile picture URL using DbService.getPic
+				let avatarUrl = '/images/default-avatar.svg'; // Default
+				try {
+					const picResponse = await DbService.getPic(userId);
+					if (picResponse && picResponse.link) {
+						avatarUrl = picResponse.link;
+					}
+				} catch (picError) {
+					console.warn(`Could not fetch profile picture for user ${userId}. Using default.`, picError);
+					// Keep default avatarUrl
+				}
+
+				const userAccentColor = AppStateManager.getUserAccentColor(user.id);
+
+				const userProfile: UserProfile = {
+					id: String(user.id),
+					username: user.username,
+					avatarUrl: avatarUrl, // Use the fetched or default avatar URL
+					totalGames: user.summary?.total_matches || 0,
+					wins: user.summary?.victories || 0,
+					losses: (user.summary?.total_matches || 0) - (user.summary?.victories || 0),
+					gameHistory: [], 
+					friends: [], 
+					preferences: {
+						accentColor: userAccentColor
+					},
+					elo: user.summary?.elo || 1000
+				};
+				
+				this.updateInternalState({ profile: userProfile, isLoading: false, errorMessage: undefined });
+			} catch (error) {
+				let specificErrorMessage = 'Failed to load profile data.';
+				if (error instanceof ApiError) {
+					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+						specificErrorMessage = `User with ID ${userId} not found`;
+					} else {
+						specificErrorMessage = error.message;
+					}
+				} else if (error instanceof Error) {
+					specificErrorMessage = error.message;
+				}
+				console.error('Error fetching user data from DB:', error);
+				this.updateInternalState({ 
+					errorMessage: specificErrorMessage,
+					isLoading: false 
+				});
+			}
+		} catch (error) { // Catches errors from URL parsing or lack of userId before DB calls
+			console.error('Error in fetchProfileData setup:', error);
 			this.updateInternalState({ 
-				profile: updatedProfile,
-				isEditing: false 
+				errorMessage: error instanceof Error ? error.message : 'Failed to determine user for profile',
+				isLoading: false 
 			});
 		}
 	}
 
-	// =========================================
-	// EVENT HANDLERS
-	// =========================================
+	/**
+	 * Handle tab changes with callback
+	 */
+	private handleTabChange = (tabId: string): void => {
+		if (this.getInternalState().activeTab === tabId) return;
+		
+		// Update the active tab state
+		this.updateInternalState({ activeTab: tabId });
+		
+		// Create the new tab component
+		this.createTabComponent(tabId);
+	}
 	
 	/**
-	 * Handles clicks on player names
-	 * Navigates to the clicked player's profile
-	 * @param username - Username of the clicked player
+	 * Handle player profile clicks with callback
 	 */
-	private handlePlayerClick(username: string): void {
-		navigate(`/profile?username=${username}`);
-	}
-
-	/**
-	 * Sets the active tab and re-renders the view
-	 * @param tabId - ID of the tab to activate
-	 */
-	private setActiveTab(tabId: string): void {
-		this.updateInternalState({ activeTab: tabId });
-	}
-
-	/**
-	 * Toggles edit mode for profile settings
-	 */
-	private toggleEditMode(): void {
-		const state = this.getInternalState();
-		this.updateInternalState({ isEditing: !state.isEditing });
-		
-		// After state update and re-render, update form elements
-		setTimeout(() => {
-			// Toggle form fields
-			const formInputs = this.container.querySelectorAll('.settings-form input');
-			const saveButton = this.container.querySelector('.save-settings-button');
-			
-			formInputs.forEach(input => {
-				(input as HTMLInputElement).disabled = !state.isEditing;
-			});
-			
-			if (saveButton) {
-				(saveButton as HTMLButtonElement).disabled = !state.isEditing;
-			}
-			
-			// Toggle edit button text
-			const editButton = this.container.querySelector('.edit-profile-button');
-			if (editButton) {
-				editButton.textContent = state.isEditing ? 'Cancel' : 'Edit Profile';
-			}
-			
-			// Select the settings tab when entering edit mode
-			if (state.isEditing) {
-				this.setActiveTab('settings');
-			}
-		}, 0);
-	}
-
-	/**
-	 * Sets up event listeners after rendering
-	 */
-	private setupEventListeners(): void {
-		const state = this.getInternalState();
-		
-		// Set up tab switching
-		const tabButtons = this.container.querySelectorAll('.nav-button');
-		tabButtons.forEach(button => {
-			button.addEventListener('click', () => {
-				const tabId = button.getAttribute('data-tab');
-				if (tabId) {
-					this.setActiveTab(tabId);
-				}
-			});
-		});
-		
-		// Set up edit profile button
-		const editButton = this.container.querySelector('.edit-profile-button');
-		if (editButton) {
-			editButton.addEventListener('click', () => {
-				this.toggleEditMode();
-			});
+	private handlePlayerClick = (username: string): void => {
+		// Find user by username to get ID
+		const dbData = localStorage.getItem('pong_db');
+		if (!dbData) {
+			console.error('DB not found in localStorage');
+			return;
 		}
 		
-		// Game history player links
-		this.container.querySelectorAll('.opponent-cell').forEach(cell => {
-			cell.addEventListener('click', () => {
-				const opponentUsername = (cell as HTMLElement).textContent;
-				if (opponentUsername) {
-					this.handlePlayerClick(opponentUsername);
-				}
-			});
-		});
+		const users = JSON.parse(dbData).users;
+		const user = users.find((u: any) => u.pseudo === username);
 		
-		// If in edit mode, set up form submission
-		if (state.isEditing) {
-			const form = this.container.querySelector('.settings-form');
-			if (form) {
-				form.addEventListener('submit', (e) => {
-					e.preventDefault();
-					this.saveProfileChanges();
-				});
-			}
-			
-			// Cancel button
-			const cancelButton = this.container.querySelector('.save-settings-button');
-			if (cancelButton) {
-				cancelButton.addEventListener('click', () => {
-					this.updateInternalState({ isEditing: false });
-				});
-			}
+		if (user) {
+			navigate(`/profile?id=${user.id}`);
+		} else {
+			console.error(`Could not find user with username: ${username}`);
+			// Navigate by username as fallback
+			navigate(`/profile?id=${username}`);
 		}
 	}
+	
+	/**
+	 * Handles updates from the ProfileSettingsComponent
+	 */
+	private handleProfileSettingsUpdate = async (updatedFields: Partial<User>): Promise<void> => {
+		const state = this.getInternalState();
+		if (!state.profile) return;
 
-	// =========================================
-	// RENDERING
-	// =========================================
+		let profileWasActuallyUpdatedInParent = false;
+		const newProfileDataForParent = { ...state.profile };
+
+		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
+			newProfileDataForParent.username = updatedFields.username;
+			profileWasActuallyUpdatedInParent = true;
+		}
+		
+		// If avatar was updated, settings component handles its own display.
+		// We need to re-fetch to update the summary in ProfileComponent.
+		// A simpler way is to just re-trigger fetchProfileData if any sensitive field changed.
+		// For now, we only explicitly handle username.
+		// If `updatedFields` contained an avatar change indicator, we would also set `profileWasActuallyUpdatedInParent = true;`
+		// or directly call `await this.fetchProfileData();` and then `this.renderView();`
+
+		if (profileWasActuallyUpdatedInParent) {
+			this.updateInternalState({ profile: newProfileDataForParent });
+			// This state update triggers ProfileComponent.render() -> renderView().
+			// renderView() will redraw the summary with the new username.
+			// If the settings tab is active, it should be reused correctly.
+		}
+		// If an avatar was changed in settings, the settings tab updates its own image.
+		// To update the main profile summary avatar, we would need a more robust refresh or direct update.
+		// The `triggerProfileRefresh` event from settings.ts can be listened to here.
+	}
 	
 	/**
 	 * Renders the profile view based on current state
@@ -380,7 +363,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		
 		const template = html`
-			<div class="ascii-container">
+			<div class="component-container profile-container">
 				<div class="ascii-title-container">
 					<pre class="ascii-title">${ASCII_ART.PROFILE}</pre>
 				</div>
@@ -393,14 +376,7 @@ export class ProfileComponent extends Component<ProfileState> {
 							<button class="retry-button" onClick=${() => this.render()}>Retry</button>
 						` :
 						html`
-							<div class="profile-layout">
-								<nav class="profile-nav">
-									${this.renderNavigation()}
-								</nav>
-								<main class="profile-main">
-									${this.renderActiveTab()}
-								</main>
-							</div>
+							<div class="profile-content"></div>
 						`
 				}
 			</div>
@@ -408,298 +384,118 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		render(template, this.container);
 		
-		if (!state.isLoading && !state.errorMessage) {
-			this.setupEventListeners();
-		}
-	}
+		// After render, manually add summary if profile exists
+		if (!state.isLoading && !state.errorMessage && state.profile) {
+			const profileContent = this.container.querySelector('.profile-content');
+			if (profileContent) {
+				// If profileContent already has children from a previous render,
+				// we might want to update them instead of clearing and re-adding,
+				// or ensure this part only runs once for initial setup of the summary structure.
+				// For simplicity in this example, let's assume it's safe to clear and re-add if called multiple times,
+				// but for precise DOM update, you'd be more surgical.
+				
+				// Check if summary already exists to avoid re-creating basic structure if only content needs update
+				let summaryElement = profileContent.querySelector('.profile-hero') as HTMLElement;
+				if (!summaryElement) {
+					profileContent.innerHTML = '';
+					summaryElement = document.createElement('div');
+					summaryElement.className = 'profile-hero';
+					profileContent.appendChild(summaryElement);
+				}
 
-	/**
-	 * Renders the navigation tabs
-	 */
-	private renderNavigation() {
-		const state = this.getInternalState();
-		const tabs = [
-			{ id: 'summary', label: 'SUMMARY', icon: '📊' },
-			{ id: 'stats', label: 'STATS', icon: '📈' },
-			{ id: 'history', label: 'HISTORY', icon: '🕒' },
-			{ id: 'friends', label: 'FRIENDS', icon: '👥' },
-			{ id: 'settings', label: 'SETTINGS', icon: '⚙️' }
-		];
-
-		return html`
-			<ul class="nav-list">
-				${tabs.map(tab => html`
-					<li class="nav-item ${state.activeTab === tab.id ? 'active' : ''}">
-						<button 
-							class="nav-button" 
-							data-tab="${tab.id}"
-							onClick=${() => this.setActiveTab(tab.id)}
-						>
-							<span class="nav-icon">${tab.icon}</span>
-							<span class="nav-label">${tab.label}</span>
-						</button>
-					</li>
-				`)}
-			</ul>
-		`;
-	}
-
-	/**
-	 * Renders the active tab content
-	 */
-	private renderActiveTab() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-
-		switch (state.activeTab) {
-			case 'summary':
-				return this.renderSummary();
-			case 'stats':
-				return this.renderStats();
-			case 'history':
-				return this.renderHistory();
-			case 'friends':
-				return this.renderFriends();
-			case 'settings':
-				return this.renderSettings();
-			default:
-				return this.renderSummary();
-		}
-	}
-
-	// =========================================
-	// TAB CONTENT RENDERING
-	// =========================================
-
-	/**
-	 * Renders the summary tab content
-	 */
-	private renderSummary() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-		
-		return html`
-			<div class="summary-container">
-				<div class="profile-hero">
-					<div class="profile-avatar-large">
+				// Update or create summary content
+				// Using textContent for dynamic parts to prevent XSS if data is ever user-supplied directly here
+				summaryElement.innerHTML = `
+					<div class="profile-avatar">
 						<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
 					</div>
-					<div class="profile-info-large">
-						<h2 class="username-large">${state.profile.username}</h2>
-						<div class="profile-stats-large">
-							<div class="stat-large">
-								<span class="stat-value-large">${state.profile.level}</span>
-								<span class="stat-label-large">LEVEL</span>
+					<div class="profile-info">
+						<h2 class="username">${state.profile.username}</h2>
+						<div class="summary-stats">
+							<div class="stat">
+								<span class="stat-value elo-value">${state.profile.elo || 1000}</span>
+								<span class="stat-label">ELO</span>
 							</div>
-							<div class="stat-large">
-								<span class="stat-value-large wins-value">${state.profile.wins}</span>
-								<span class="stat-label-large">WINS</span>
+							<div class="stat">
+								<span class="stat-value wins-value">${state.profile.wins || 0}</span>
+								<span class="stat-label">WINS</span>
 							</div>
-							<div class="stat-large">
-								<span class="stat-value-large losses-value">${state.profile.losses}</span>
-								<span class="stat-label-large">LOSSES</span>
-							</div>
-						</div>
-					</div>
-				</div>
-				<div class="recent-activity">
-					<h3>Recent Activity</h3>
-					${this.renderRecentGames(3)}
-				</div>
-			</div>
-		`;
-	}
-
-	/**
-	 * Renders the game history tab content
-	 */
-	private renderHistory() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-		
-		return html`
-			<div class="tab-pane active" id="game-history">
-				<table class="game-history-table">
-					<thead>
-						<tr>
-							<th>DATE</th>
-							<th>OPPONENT</th>
-							<th>RESULT</th>
-							<th>SCORE</th>
-						</tr>
-					</thead>
-					<tbody>
-						${state.profile.gameHistory.map(game => html`
-							<tr class="game-${game.result}">
-								<td>${game.date.toLocaleDateString()}</td>
-								<td class="opponent-cell" onClick=${() => this.handlePlayerClick(game.opponent)}>
-									${game.opponent}
-								</td>
-								<td class="result-cell-${game.result}">${game.result.toUpperCase()}</td>
-								<td>${game.playerScore} - ${game.opponentScore}</td>
-							</tr>
-						`)}
-					</tbody>
-				</table>
-			</div>
-		`;
-	}
-
-	/**
-	 * Renders the friends tab content
-	 */
-	private renderFriends() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-		
-		return html`
-			<div class="friends-container">
-				<h3>Friends</h3>
-				<div class="friends-list">
-					${state.profile.friends.map(friend => html`
-						<div class="friend-card">
-							<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
-							<div class="friend-info">
-								<span class="friend-name">${friend.username}</span>
-								<span class="friend-last-login">
-									Last seen: ${friend.lastLogin ? this.formatLastSeen(friend.lastLogin) : 'Unknown'}
-								</span>
+							<div class="stat">
+								<span class="stat-value losses-value">${state.profile.losses || 0}</span>
+								<span class="stat-label">LOSSES</span>
 							</div>
 						</div>
-					`)}
-				</div>
-			</div>
-		`;
-	}
+					</div>
+				`;
+				
+				let tabsOuterContainer = profileContent.querySelector('.profile-tabs-outer-container') as HTMLElement;
+				if (!tabsOuterContainer) {
+					tabsOuterContainer = document.createElement('div');
+					tabsOuterContainer.className = 'profile-tabs-outer-container'; // Wrapper for tabs + content
 
-	/**
-	 * Renders the settings tab content
-	 */
-	private renderSettings() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-		
-		// Get available colors from app state
-		const availableColors = appState.getAvailableColors();
-		const currentColor = appState.getAccentColor();
-		
-		return html`
-			<div class="tab-pane" id="settings">
-				<h4>Account Settings</h4>
-				<form class="settings-form">
-					<div class="form-group">
-						<label for="username">Username</label>
-						<input type="text" id="username" name="username" value="${state.profile.username}" disabled>
-					</div>
-					<div class="form-group">
-						<label for="avatar">Avatar URL</label>
-						<input type="text" id="avatar" name="avatar" value="${state.profile.avatarUrl}" disabled>
-					</div>
-					<div class="form-group">
-						<label for="password">Change Password</label>
-						<input type="password" id="password" name="password" placeholder="New password" disabled>
-					</div>
-					<div class="form-group">
-						<label>Accent Color</label>
-						<div class="color-picker">
-							${Object.entries(availableColors).map(([colorName, colorHex]) => html`
-								<div 
-									class="color-option ${colorName === currentColor ? 'selected' : ''}"
-									style="background-color: ${colorHex}"
-									onClick=${() => this.handleColorSelect(colorName as AccentColor)}
-									title="${colorName}"
-								></div>
-							`)}
+					const isCurrentUserProfile = this.isCurrentUserProfile(state.profile.id);
+					const tabsHTML = `
+						<div class="profile-tabs">
+							<ul class="tabs-list">
+								<li class="tab-item ${state.activeTab === 'stats' ? 'active' : ''}" data-tab="stats">
+									<button class="tab-button">Statistics</button>
+								</li>
+								<li class="tab-item ${state.activeTab === 'history' ? 'active' : ''}" data-tab="history">
+									<button class="tab-button">Match History</button>
+								</li>
+								<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
+									<button class="tab-button">Friends</button>
+								</li>
+								${isCurrentUserProfile ? `
+									<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
+										<button class="tab-button">Settings</button>
+									</li>
+								` : ''}
+							</ul>
 						</div>
-					</div>
-					<button type="button" class="save-settings-button" disabled>Save Changes</button>
-				</form>
-			</div>
-		`;
-	}
+						<div class="tab-content"></div> <!-- Tab content will be rendered here by createTabComponent -->
+					`;
+					tabsOuterContainer.innerHTML = tabsHTML;
+					profileContent.appendChild(tabsOuterContainer);
 
-	/**
-	 * Renders a subset of recent games
-	 * @param limit - Maximum number of games to display
-	 */
-	private renderRecentGames(limit: number) {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-		
-		const recentGames = state.profile.gameHistory.slice(0, limit);
-		
-		return html`
-			<table class="game-history-table recent-games">
-				<thead>
-					<tr>
-						<th>DATE</th>
-						<th>OPPONENT</th>
-						<th>RESULT</th>
-						<th>SCORE</th>
-					</tr>
-				</thead>
-				<tbody>
-					${recentGames.map(game => html`
-						<tr class="game-${game.result}">
-							<td>${game.date.toLocaleDateString()}</td>
-							<td class="opponent-cell" onClick=${() => this.handlePlayerClick(game.opponent)}>
-								${game.opponent}
-							</td>
-							<td class="result-cell-${game.result}">${game.result.toUpperCase()}</td>
-							<td>${game.playerScore} - ${game.opponentScore}</td>
-						</tr>
-					`)}
-				</tbody>
-			</table>
-		`;
-	}
-
-	// Helper function to format the last seen date in a user-friendly way
-	private formatLastSeen(date: Date): string {
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-		
-		if (diffDays === 0) {
-			const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-			if (diffHours === 0) {
-				const diffMinutes = Math.floor(diffMs / (1000 * 60));
-				return diffMinutes <= 5 ? 'Just now' : `${diffMinutes} minutes ago`;
+					// Add event listeners to tab buttons
+					tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
+						tabItem.addEventListener('click', () => {
+							const tabId = (tabItem as HTMLElement).dataset.tab;
+							if (tabId) {
+								this.handleTabChange(tabId);
+							}
+						});
+					});
+				} else {
+					// If tabs structure already exists, just update active class
+					tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
+						const tabId = (tabItem as HTMLElement).dataset.tab;
+						if (tabId === state.activeTab) {
+							tabItem.classList.add('active');
+						} else {
+							tabItem.classList.remove('active');
+						}
+					});
+				}
+				// The active tab content itself is managed by createTabComponent via handleTabChange
 			}
-			return `${diffHours} hours ago`;
-		} else if (diffDays === 1) {
-			return 'Yesterday';
-		} else if (diffDays < 7) {
-			return `${diffDays} days ago`;
-		} else {
-			return date.toLocaleDateString();
 		}
 	}
 
-	// Add a method to handle color selection
-	private handleColorSelect(color: AccentColor): void {
-		// Update app state
-		appState.setAccentColor(color);
-		// Re-render settings to show the selection
-		this.renderSettings();
-	}
-
 	/**
-	 * Renders the stats tab content
+	 * Checks if the profile being viewed belongs to the current user
 	 */
-	private renderStats() {
-		const state = this.getInternalState();
-		if (!state.profile) return html``;
-
-		const container = document.createElement('div');
-		container.className = 'stats-container';
+	private isCurrentUserProfile(profileId: string): boolean {
+		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		if (!currentUserJson) return false;
 		
-		// Import ProfileStatsComponent directly at the top of the file, not inside the method
-		const statsComponent = new ProfileStatsComponent(container);
-		// Ensure the component is initialized with profile data
-		statsComponent.setProfile(state.profile);
-		statsComponent.render();
-		
-		return container;
+		try {
+			const currentUser = JSON.parse(currentUserJson);
+			return currentUser && currentUser.id && currentUser.id.toString() === profileId;
+		} catch (error) {
+			console.error('Error parsing current user data:', error);
+			return false;
+		}
 	}
 }
