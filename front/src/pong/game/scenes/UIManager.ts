@@ -149,10 +149,11 @@ export class UIManager {
 	private drawCountdownMessages(sizes: ReturnType<typeof calculateFontSizes>): void {
 		if (!Array.isArray(this.countdownText)) return;
 		this.context.font = `${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`;
-		const pausePos = this.getTextPosition(0, 2);
+		const customCenterY = this.context.canvas.height * 0.25;
+		const pausePos = this.getTextPosition(0, 2, customCenterY);
 		this.context.fillText(this.countdownText[0], pausePos.x, pausePos.y);
 		this.context.font = `${sizes.RESUME_PROMPT_SIZE} ${FONTS.FAMILIES.PAUSE}`;
-		const promptPos = this.getTextPosition(1, 2);
+		const promptPos = this.getTextPosition(1, 2, customCenterY);
 		this.context.fillText(this.countdownText[1], promptPos.x, promptPos.y);
 	}
 
@@ -160,7 +161,8 @@ export class UIManager {
 	 * Draws countdown number with stroke effect
 	 */
 	private drawCountdownNumber(): void {
-		const pos = this.getTextPosition(0, 1);
+		const customCenterY = this.context.canvas.height * 0.25;
+		const pos = this.getTextPosition(0, 1, customCenterY);
 		const text = this.countdownText!.toString();
 		
 		this.context.strokeStyle = UI_CONFIG.TEXT.STROKE.COLOR;
@@ -192,12 +194,14 @@ export class UIManager {
 	////////////////////////////////////////////////////////////
 	private getTextPosition(
 		lineIndex: number = 0,
-		totalLines: number = 1
+		totalLines: number = 1,
+		customCenterY?: number
 	): { x: number; y: number } {
 		const { width, height } = this.context.canvas;
 		const spacing = height * UI_CONFIG.LAYOUT.VERTICAL_SPACING;
 		const totalHeight = spacing * (totalLines - 1);
-		const startY = height * 0.5 - totalHeight * 0.5;
+		const centerY = customCenterY !== undefined ? customCenterY : height * 0.5;
+		const startY = centerY - totalHeight * 0.5;
 		
 		return {
 			x: width * 0.5,
