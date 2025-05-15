@@ -218,7 +218,7 @@ export class Router {
 		// Create auth component with the correct redirect
 		// Determine the redirect target based on return path
 		const redirectTarget = returnTo === '/game' ? 'game' : 'profile';
-		const authManager = new AuthManager(section, redirectTarget, false);
+		const authManager = new AuthManager(section, redirectTarget, true);
 		this.components.set(Route.AUTH, authManager);
 		authManager.show();
 		

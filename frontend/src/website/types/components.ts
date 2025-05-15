@@ -50,3 +50,24 @@ export interface AppState {
 		[playerId: string]: PlayerData;
 	};
 }
+
+export interface ProfileSettingsState {
+	profile: UserProfile | null;
+	isUploading: boolean;
+	uploadSuccess: boolean;
+	uploadError: string | null;
+	saveSuccess: boolean;
+	formData: {
+		username: string;
+		email: string;
+		password: string;
+		confirmPassword: string;
+	};
+	formErrors: {
+		username?: string;
+		email?: string;
+		password?: string;
+		confirmPassword?: string;
+		form?: string;
+	};
+}

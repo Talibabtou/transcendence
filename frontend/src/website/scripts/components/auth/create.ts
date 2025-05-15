@@ -7,7 +7,7 @@ export class RegistrationHandler {
 
 	constructor(
 		private updateState: (state: any) => void,
-		private setCurrentUser: (user: UserData | null) => void,
+		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
 
@@ -137,37 +137,31 @@ export class RegistrationHandler {
 		this.updateState({ isLoading: true, error: null });
 		
 		try {
-			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
 			
-			// Use DbService with hashed password
 			const response = await DbService.register({ 
 				username, 
 				email, 
 				password: hashedPassword 
 			});
 			
-			if (response.success && response.user) {
-				const user = response.user;
+			if (response.success && response.user && response.token) {
+				const userFromDb = response.user;
+				const token = response.token;
 				
-				// Set current user without password
+				// Construct UserData for AuthManager/appState
 				const userData: UserData = {
-					id: user.id,
-					username: user.pseudo, 
-					email: user.email || email,
+					id: userFromDb.id,
+					username: userFromDb.username,
+					email: userFromDb.email || email,
 					authMethod: AuthMethod.EMAIL,
-					lastLogin: user.last_login ? new Date(user.last_login) : new Date()
+					lastLogin: new Date()
 				};
 				
-				this.setCurrentUser(userData);
-				this.resetForm(); // Reset form after successful registration
+				this.setCurrentUser(userData, token);
+				this.resetForm();
 				
-				// Update component state
-				this.updateState({
-					isLoading: false
-				});
-				
-				// Switch to success state
+				this.updateState({ isLoading: false });
 				this.switchToSuccessState();
 			} else {
 				this.updateState({

@@ -32,20 +32,27 @@ export async function initDb() {
     `);
         const computer = await db.get('SELECT id FROM users WHERE username = "computer"');
         if (!computer) {
-            await db.run('INSERT INTO users (role, username, password, email, created_at) VALUES ("admin", "computer", "computer", "computer@computer.com", CURRENT_TIMESTAMP);');
-            const computer = await db.get('SELECT id FROM users WHERE username = "computer"');
-            if (!computer) {
-                throw new Error('Get id ia failed');
-            }
-            const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${computer.id}`;
-            const response = await fetch(eloUrl, { method: 'POST' });
-            if (response.status !== 201) {
-                throw new Error('Create elo failed');
+            await db.run('INSERT INTO users (id, role, username, password, email, created_at) VALUES ("b36c8474-a8a6-b889-af67-08ccca5a7593" ,"admin", "computer", "computer", "computer@computer.com", CURRENT_TIMESTAMP);');
+            let gameState = false;
+            console.log("Waiting for service GAME...");
+            while (!gameState) {
+                try {
+                    const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/b36c8474-a8a6-b889-af67-08ccca5a7593`;
+                    const response = await fetch(eloUrl, { method: 'POST' });
+                    if (response.status !== 201) {
+                        throw new Error('Create elo failed');
+                    }
+                    gameState = true;
+                }
+                catch (err) {
+                    gameState = false;
+                }
             }
         }
         else {
             throw new Error('Create user failed');
         }
+        console.log("Db successfully created");
         return db;
     }
     catch (err) {

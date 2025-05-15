@@ -4,29 +4,9 @@
  */
 import { Component } from '@website/scripts/components';
 import { html, render, DbService, appState, ApiError } from '@website/scripts/utils';
-import { UserProfile } from '@website/types';
+import { UserProfile, ProfileSettingsState } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
-
-interface ProfileSettingsState {
-	profile: UserProfile | null;
-	isUploading: boolean;
-	uploadSuccess: boolean;
-	uploadError: string | null;
-	saveSuccess: boolean;
-	formData: {
-		username: string;
-		email: string;
-		password: string;
-		confirmPassword: string;
-	};
-	formErrors: {
-		username?: string;
-		email?: string;
-		password?: string;
-		confirmPassword?: string;
-		form?: string;
-	};
-}
+import { AppStateManager } from '@website/scripts/utils/app-state';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	constructor(container: HTMLElement) {
@@ -44,34 +24,52 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			},
 			formErrors: {}
 		});
+		window.addEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
+	}
+	
+	private handleExternalThemeUpdate(event: Event): void {
+		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
+		if (customEvent.detail && this.getInternalState().profile) {
+			if (customEvent.detail.userId === this.getInternalState().profile!.id) {
+				this.render();
+			}
+		}
 	}
 	
 	public setProfile(profile: UserProfile): void {
-		// Initialize form data with profile data
+		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
+
 		const formData = {
 			username: profile.username || '',
 			email: '',
 			password: '',
 			confirmPassword: '',
 		};
-		
-		// Get email from DB if not in profile
+
+		const updatedProfile = {
+			...profile,
+			preferences: {
+				...profile.preferences,
+				accentColor: userAccentColor
+			}
+		};
+
 		DbService.getUser(profile.id)
 			.then(user => {
 				if (user && user.email) {
 					this.updateInternalState({
-						profile,
+						profile: updatedProfile,
 						formData: {
 							...formData,
 							email: user.email
 						}
 					});
 				} else {
-					this.updateInternalState({ profile, formData });
+					this.updateInternalState({ profile: updatedProfile, formData });
 				}
 			})
 			.catch(() => {
-				this.updateInternalState({ profile, formData });
+				this.updateInternalState({ profile: updatedProfile, formData });
 			});
 	}
 	
@@ -79,15 +77,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
-		// Get available colors from app state
 		const availableColors = Object.entries(appState.getAvailableColors());
-		
-		// Split colors into two rows
 		const firstRowColors = availableColors.slice(0, 6);
 		const secondRowColors = availableColors.slice(6);
 		
-		// Get current color from profile
-		const currentColor = state.profile.preferences.accentColor;
+		const currentColor = AppStateManager.getUserAccentColor(state.profile.id);
 		
 		const template = html`
 			<div class="settings-content">
@@ -128,7 +122,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								<div class="color-row">
 									${firstRowColors.map(([colorName, colorHex]) => html`
 										<div 
-											class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+											class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
 											style="background-color: ${colorHex}"
 											onClick=${() => this.handleColorSelect(colorHex)}
 											title="${colorName}"
@@ -138,7 +132,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								<div class="color-row">
 									${secondRowColors.map(([colorName, colorHex]) => html`
 										<div 
-											class="color-option ${colorHex === currentColor ? 'selected' : ''}"
+											class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
 											style="background-color: ${colorHex}"
 											onClick=${() => this.handleColorSelect(colorHex)}
 											title="${colorName}"
@@ -280,7 +274,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					// Simulate server-side upload success
 					setTimeout(() => {
 						// Update user profile in database
-						DbService.updateProfilePicture(parseInt(state.profile!.id), newAvatarUrl)
+						DbService.updateProfilePicture(state.profile!.id, newAvatarUrl)
 						.then(() => {
 							// Update local state
 							this.updateInternalState({
@@ -298,7 +292,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							});
 							
 							// Update global game state for player avatars
-							appState.setPlayerAvatar(parseInt(state.profile!.id), newAvatarUrl);
+							appState.setPlayerAvatar(state.profile!.id, newAvatarUrl);
 							
 							// Trigger profile summary refresh
 							this.triggerProfileRefresh();
@@ -349,45 +343,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private handleColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
+
+		AppStateManager.setUserAccentColor(state.profile.id, colorHex);
 		
-		// Update user theme in database
-		DbService.updateUserTheme(parseInt(state.profile.id), colorHex)
-			.then(() => {
-				// Update local state
-				const updatedProfile = {
-					...state.profile!,
-					preferences: {
-						...state.profile!.preferences,
-						accentColor: colorHex
-					}
-				};
-				
-				this.updateInternalState({
-					profile: updatedProfile
-				});
-				
-				// Update global app state for immediate visual feedback
-				appState.setPlayerAccentColor(state.profile!.id, colorHex);
-				
-				// Apply directly to CSS for immediate effect
-				document.documentElement.style.setProperty('--accent1-color', colorHex);
-				
-				// Update global game state for player colors
-				const userId = parseInt(state.profile!.id);
-				appState.updatePlayerTheme(userId, colorHex);
-				
-				// Trigger profile summary refresh
-				this.triggerProfileRefresh();
-				
-				this.render();
-			})
-			.catch(error => {
-				if (error instanceof ApiError) {
-					console.error(`Failed to update color: ${error.message}`);
-				} else {
-					console.error('Failed to update color:', error);
-				}
-			});
+		// For current user (Player 1 equivalent), also update the session slot color.
+		appState.setPlayerAccentColor(1, colorHex, state.profile.id);
+
+		// No need to call appState.updatePlayerTheme here, as setUserAccentColor is the new source of truth.
+		// No need to directly update this.updateInternalState({ profile: updatedProfile }) here
+		// because the 'user:theme-updated' event + handleExternalThemeUpdate + this.render() will handle it.
 	}
 	
 	// Handle form input changes
@@ -449,54 +413,64 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		// Prepare update data
 		const updateData: any = {};
 		
-		// Only include fields that have changed
+		// Only include fields that have changed or are being set
 		if (state.formData.username !== state.profile.username) {
-			updateData.pseudo = state.formData.username;
+			updateData.username = state.formData.username;
 		}
 		
+		// Send email if it's provided in the form.
+		// The backend controller auth.controller.ts checks `if (email)` before updating.
 		if (state.formData.email) {
+			// To send email only if it changed from initial, you'd need to store initialEmail.
+			// Current logic sends it if non-empty. Assuming this is fine.
 			updateData.email = state.formData.email;
 		}
 		
+		// Send password if it's provided in the form.
 		if (state.formData.password) {
 			updateData.password = state.formData.password;
 		}
 		
 		// If nothing has changed, don't make an API call
 		if (Object.keys(updateData).length === 0) {
-			// Show success message or just return
+			// Optionally, show a message "No changes to save"
+			this.updateInternalState({ saveSuccess: true, formErrors: { form: 'No changes detected.' } });
+			setTimeout(() => {
+				this.updateInternalState({ saveSuccess: false, formErrors: { form: undefined } });
+			}, 2000);
 			return;
 		}
 		
 		// Update user data in database
-		DbService.updateUser(parseInt(state.profile.id), updateData)
+		DbService.updateUser(state.profile.id, updateData)
 			.then((updatedUser) => {
-				// Update local state with new user data
+				// Assuming updatedUser is the User object returned by the server
 				const updatedProfile = {
 					...state.profile!,
-					username: updatedUser.pseudo
+					username: updatedUser.username
 				};
 				
 				this.updateInternalState({
 					profile: updatedProfile,
 					formData: {
 						...state.formData,
-						username: updatedUser.pseudo,
-						email: updatedUser.email || state.formData.email,
+						username: updatedUser.username,
+						email: updatedUser.email || '',
 						password: '',
 						confirmPassword: ''
 					},
-					saveSuccess: true
+					saveSuccess: true,
+					formErrors: { form: undefined }
 				});
 				
 				// Update AppState
 				appState.updateUserData({
-					username: updatedUser.pseudo,
+					username: updatedUser.username,
 					email: updatedUser.email
 				});
 				
 				// Update global game state for player names
-				appState.setPlayerName(parseInt(state.profile!.id), updatedUser.pseudo);
+				appState.setPlayerName(state.profile!.id, updatedUser.username);
 				
 				// Update auth user in localStorage/sessionStorage
 				this.updateAuthUserInStorage(updatedUser);
@@ -514,48 +488,25 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.render();
 			})
 			.catch(error => {
+				const currentFormErrors = { ...state.formErrors };
 				if (error instanceof ApiError) {
 					switch(error.code) {
 						case ErrorCodes.SQLITE_CONSTRAINT:
-							this.updateInternalState({
-								formErrors: {
-									...state.formErrors,
-									form: 'Username or email already in use'
-								}
-							});
+							currentFormErrors.form = 'Username or email already in use';
 							break;
 						case ErrorCodes.INVALID_FIELDS:
-							this.updateInternalState({
-								formErrors: {
-									...state.formErrors,
-									form: 'Invalid user information provided'
-								}
-							});
+							currentFormErrors.form = 'Invalid user information provided';
 							break;
 						case ErrorCodes.PLAYER_NOT_FOUND:
-							this.updateInternalState({
-								formErrors: {
-									...state.formErrors,
-									form: 'User not found'
-								}
-							});
+							currentFormErrors.form = 'User not found';
 							break;
 						default:
-							this.updateInternalState({
-								formErrors: {
-									...state.formErrors,
-									form: `Failed to update profile: ${error.message}`
-								}
-							});
+							currentFormErrors.form = `Failed to update profile: ${error.message}`;
 					}
 				} else {
-					this.updateInternalState({
-						formErrors: {
-							...state.formErrors,
-							form: `Failed to update profile: ${error.message}`
-						}
-					});
+					currentFormErrors.form = `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`;
 				}
+				this.updateInternalState({ formErrors: currentFormErrors, saveSuccess: false });
 			});
 	}
 	
@@ -569,7 +520,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				// Update relevant fields
 				const updatedAuthUser = {
 					...authUser,
-					pseudo: updatedUser.pseudo,
+					pseudo: updatedUser.username,
+					username: updatedUser.username,
 					email: updatedUser.email || authUser.email
 				};
 				
@@ -588,6 +540,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	// Helper method to trigger profile summary refresh
 	private triggerProfileRefresh(): void {
 		// Dispatch a custom event that the profile component can listen for
+		// This event may still be useful if other parts of the profile summary
+		// not directly handled by this settings tab need to react to general data updates.
 		const event = new CustomEvent('profile-data-updated');
 		document.dispatchEvent(event);
 		
@@ -595,8 +549,14 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const profileComponent = document.querySelector('.profile-component');
 		if (profileComponent && profileComponent.parentElement) {
 			// This assumes the profile component has a refresh or reload method
+			// This is likely still fine for username/avatar changes from settings.
 			const event = new CustomEvent('refresh-profile-data');
 			profileComponent.dispatchEvent(event);
 		}
+	}
+	
+	destroy(): void {
+		window.removeEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
+		super.destroy();
 	}
 }

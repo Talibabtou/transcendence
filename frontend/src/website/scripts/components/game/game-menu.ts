@@ -185,17 +185,11 @@ export class GameMenuComponent extends Component<GameMenuState> {
 				const localUser = localStorage.getItem('auth_user');
 				const sessionUser = sessionStorage.getItem('auth_user');
 				const storedUser = localUser || sessionUser;
-				let currentUserId: number | null = null;
+				let currentUserId: string | null = null;
+				
 				if (storedUser) {
 					const user = JSON.parse(storedUser);
-					if (typeof user.id === 'string' && user.id.includes('_')) {
-						const parts = user.id.split('_');
-						currentUserId = parseInt(parts[parts.length - 1], 10);
-					} else if (typeof user.id === 'string') {
-						currentUserId = parseInt(user.id, 10);
-					} else {
-						currentUserId = Number(user.id);
-					}
+					currentUserId = user.id;
 				}
 
 				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
@@ -204,8 +198,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 					this.onTournamentRestored();
 					return;
 				} else {
-					// Not a participant: just show registration, but DO NOT clear tournament
-					this.onModeSelected(mode); // This will show the registration page
+					this.onModeSelected(mode);
 					return;
 				}
 			}

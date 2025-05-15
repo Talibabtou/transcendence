@@ -369,7 +369,7 @@ export class GameManager {
 		if (playerInfo) {
 			const playerNames = playerInfo.playerNames || [];
 			const currentUser = playerInfo.playerName || playerNames[0] || 'Player 1';
-			let opponent = 'Computer';
+			let opponent = 'AI';
 			
 			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
 				opponent = playerNames[1] || 'Player 2';

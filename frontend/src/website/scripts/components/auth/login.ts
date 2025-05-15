@@ -9,7 +9,7 @@ import { ErrorCodes } from '@shared/constants/error.const';
 export class LoginHandler {
 	constructor(
 		private updateState: (state: any) => void,
-		private setCurrentUser: (user: UserData | null) => void,
+		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
 
@@ -109,7 +109,6 @@ export class LoginHandler {
 		try {
 			this.updateState({ isLoading: true, error: null });
 			
-			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
 			
 			const response = await DbService.login({ 
@@ -117,21 +116,22 @@ export class LoginHandler {
 				password: hashedPassword 
 			});
 			
-			if (response.success && response.user) {
-				const user = response.user;
+			if (response.success && response.user && response.token) {
+				const userFromDb = response.user;
+				const token = response.token;
 				const rememberMe = form.querySelector('#remember-me') as HTMLInputElement;
 				const isPersistent = rememberMe ? rememberMe.checked : false;
 				
 				const userData: UserData = {
-					id: user.id,
-					username: user.username,
-					email: user.email || '',
+					id: userFromDb.id,
+					username: userFromDb.username,
+					email: userFromDb.email || email,
 					authMethod: AuthMethod.EMAIL,
-					lastLogin: user.last_login ? new Date(user.last_login) : new Date(),
+					lastLogin: new Date(),
 					persistent: isPersistent
 				};
 				
-				this.setCurrentUser(userData);
+				this.setCurrentUser(userData, token);
 				this.switchToSuccessState();
 				this.updateState({ isLoading: false });
 			} else if (response.requires2FA) {

@@ -3,7 +3,7 @@
  * Parent component that manages tab navigation and profile summary
  */
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, ApiError } from '@website/scripts/utils';
+import { DbService, html, render, navigate, ASCII_ART, ApiError, AppStateManager } from '@website/scripts/utils';
 import { UserProfile, ProfileState } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -179,9 +179,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			const url = new URL(window.location.href);
 			let userId = url.searchParams.get('id');
 			
-			// If no ID parameter is provided, use the current logged-in user
 			if (!userId || userId === 'current') {
-				// Get the current user from localStorage or sessionStorage
 				const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 				if (currentUserJson) {
 					try {
@@ -196,7 +194,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			}
 			
 			try {
-				// Fetch core user data
 				if (!userId) {
 					throw new Error('No user ID provided');
 				}
@@ -205,7 +202,8 @@ export class ProfileComponent extends Component<ProfileState> {
 					throw new Error(`User with ID ${userId} not found`);
 				}
 				
-				// Initialize UserProfile with data from the API response
+				const userAccentColor = AppStateManager.getUserAccentColor(user.id);
+
 				const userProfile: UserProfile = {
 					id: String(user.id),
 					username: user.username,
@@ -218,12 +216,11 @@ export class ProfileComponent extends Component<ProfileState> {
 					gameHistory: [], 
 					friends: [], 
 					preferences: {
-						accentColor: user.theme || '#ffffff'
+						accentColor: userAccentColor
 					},
 					elo: user.summary?.elo || 1000
 				};
 				
-				// Set initial profile with basic data
 				this.updateInternalState({ profile: userProfile });
 			} catch (error) {
 				if (error instanceof ApiError) {

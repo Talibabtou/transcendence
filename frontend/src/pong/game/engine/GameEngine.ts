@@ -28,8 +28,10 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
-	private readonly AI_PLAYER_ID: string = 'f701f644-d187-8f1d-11fe-7c139fd94591';
+	private readonly AI: string = 'computer';
+	private aiPlayerId: string | null = null;
 	public onGameOver?: (detail: any) => void;
+	private matchCreationPromise: Promise<void> | null = null;
 
 	// =========================================
 	// Lifecycle
@@ -64,6 +66,7 @@ export class GameEngine {
 	 * Initializes a single player game
 	 */
 	public initializeSinglePlayer(): void {
+		this.resetGameState();
 		this.gameMode = 'single';
 		this.loadMainScene();
 	}
@@ -72,6 +75,7 @@ export class GameEngine {
 	 * Initializes a multiplayer game
 	 */
 	public initializeMultiPlayer(): void {
+		this.resetGameState();
 		this.gameMode = 'multi';
 		this.loadMainScene();
 	}
@@ -80,6 +84,7 @@ export class GameEngine {
 	 * Initializes a tournament game
 	 */
 	public initializeTournament(): void {
+		this.resetGameState();
 		this.gameMode = 'tournament';
 		this.loadMainScene();
 	}
@@ -88,8 +93,21 @@ export class GameEngine {
 	 * Initializes a background demo
 	 */
 	public initializeBackgroundDemo(): void {
+		this.resetGameState();
 		this.gameMode = 'background_demo';
 		this.loadMainScene();
+	}
+
+	/**
+	 * Resets the game state for a new game
+	 */
+	private resetGameState(): void {
+		this.matchCreated = false;
+		this.matchCompleted = false;
+		this.matchId = null;
+		this.totalPausedTime = 0;
+		this.isPaused = false;
+		this.matchCreationPromise = null;
 	}
 
 	/**
@@ -340,67 +358,61 @@ export class GameEngine {
 	public setPlayerIds(ids: string[], tournamentId?: string): void {
 		this.playerIds = ids;
 		
-		// Create match with the optional tournament ID
-		this.createMatch(tournamentId);
+		// Create a promise for match creation and store it
+		if (!this.matchCreationPromise) {
+			this.matchCreationPromise = this.createMatch(tournamentId);
+		}
 	}
 
 	/**
 	 * Creates a match in the database for any game mode
 	 * @param tournamentId - Optional tournament ID
 	 */
-	private createMatch(tournamentId?: string): void {
-		// Skip if already created or in background demo
+	private async createMatch(tournamentId?: string): Promise<void> {
+		// Skip if already created, in background demo, or currently initializing
 		if (this.matchCreated || this.scene.isBackgroundDemo()) {
 			return;
 		}
 
-		// Ensure we have at least one player ID (for player 1)
+		// Check that we have all necessary info
 		if (this.playerIds.length < 1 || this.playerIds[0] === undefined) {
 			return;
 		}
 
-		const player1Id = this.playerIds[0];
-		
-		// For single player, use the AI player ID; otherwise use player 2's ID
-		let player2Id: string;
-		
-		if (this.gameMode === 'single') {
-			player2Id = this.AI_PLAYER_ID;
-		} else {
-			// For multiplayer modes, ensure we have player 2's ID
-			if (this.playerIds.length >= 2) {
-				player2Id = this.playerIds[1];
-			} else {
-				return;
-			}
-		}
-
-		// Set flag to prevent duplicate creation during async operation
+		// Important: Mark as created before the async operation
 		this.matchCreated = true;
 		
-		DbService.createMatch(player1Id, player2Id, tournamentId)
-			.then(match => {
-				this.matchId = match.id;
-				
-				// Store match ID in localStorage for reference
-				localStorage.setItem('current_match_id', match.id.toString());
-				localStorage.setItem('current_match_start_time', Date.now().toString());
-			})
-			.catch(error => {
-				if (error instanceof ApiError) {
-					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-						console.error('Player not found when creating match');
-					} else if (error.isErrorCode(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
-						console.error('Tournament not found when creating match');
-					} else {
-						console.error(`Failed to create match: ${error.message}`);
-					}
-				} else {
-					console.error('Failed to create match:', error);
+		const player1Id = this.playerIds[0];
+		let player2Id: string;
+		
+		try {
+			if (this.gameMode === 'single') {
+				// Always fetch the AI player ID fresh to ensure it's accurate
+				this.aiPlayerId = await DbService.getIdByUsername(this.AI);
+				player2Id = this.aiPlayerId;
+			} else {
+				// For multiplayer, get player 2's ID
+				if (this.playerIds.length < 2) {
+					throw new Error('No player 2 ID provided for multiplayer game');
 				}
-				// Reset flag to allow retry
-				this.matchCreated = false;
-			});
+				player2Id = this.playerIds[1];
+			}
+
+			// Only proceed if we're still in a valid state
+			if (!this.matchCreated) return;
+			
+			const match = await DbService.createMatch(player1Id, player2Id, tournamentId);
+			this.matchId = match.id;
+		} catch (error) {
+			// Handle errors
+			if (error instanceof ApiError) {
+				console.error(`Failed to create match: ${error.message}`);
+			} else {
+				console.error('Failed to create match:', error);
+			}
+			// Reset flag to allow retry
+			this.matchCreated = false;
+		}
 	}
 
 	/**
@@ -418,11 +430,6 @@ export class GameEngine {
 		this.goalStartTime = Date.now();
 		this.totalPausedTime = 0;
 		this.isPaused = false;
-		
-		// Create match record in database if needed
-		if (!this.matchCreated) {
-			this.createMatch();
-		}
 		
 		// Set up match timeout (10 minutes)
 		this.setupMatchTimeout();
@@ -542,7 +549,7 @@ export class GameEngine {
 	 * Records a goal in the database
 	 * @param scoringPlayerIndex - The index of the player who scored (0 for player 1, 1 for player 2)
 	 */
-	public recordGoal(scoringPlayerIndex: number): void {
+	public async recordGoal(scoringPlayerIndex: number): Promise<void> {
 		// Skip recording for background demo
 		if (this.scene.isBackgroundDemo()) {
 			return;
@@ -562,7 +569,12 @@ export class GameEngine {
 		} else if (scoringPlayerIndex === 1) {
 			// Player 2 or AI scored
 			if (this.gameMode === 'single') {
-				scoringPlayerId = this.AI_PLAYER_ID;
+				// Use the stored AI player ID instead of fetching it again
+				if (!this.aiPlayerId) {
+					console.error('AI player ID not available for goal recording');
+					return;
+				}
+				scoringPlayerId = this.aiPlayerId;
 			} else if (this.playerIds.length >= 2) {
 				scoringPlayerId = this.playerIds[1];
 			} else {

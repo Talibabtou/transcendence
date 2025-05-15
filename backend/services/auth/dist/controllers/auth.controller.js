@@ -79,8 +79,10 @@ export async function addUser(request, reply) {
     try {
         const { username, password, email } = request.body;
         const ip = request.headers['from'];
-        await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [username.toLowerCase(), password, email.toLowerCase(), ip]);
-        const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [username]);
+        const userLower = username.toLowerCase();
+        const emailLower = email.toLowerCase();
+        await request.server.db.run('INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);', [userLower, password, emailLower, ip]);
+        const user = await request.server.db.get('SELECT username, email, id FROM users WHERE username = ?', [userLower]);
         if (user !== undefined) {
             const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
             const response = await fetch(serviceUrl, { method: 'POST' });

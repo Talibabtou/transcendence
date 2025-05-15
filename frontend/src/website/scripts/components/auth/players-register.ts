@@ -4,8 +4,9 @@
  * Provides a split interface showing host and registering guests
  */
 import { Component, GuestAuthComponent } from '@website/scripts/components';
-import { html, render, ASCII_ART, DbService, appState, TournamentCache } from '@website/scripts/utils';
+import { html, render, ASCII_ART, DbService, appState, TournamentCache, AppStateManager, ApiError } from '@website/scripts/utils';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManagers: Map<string, IAuthComponent> = new Map();
@@ -63,62 +64,61 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private initializeHost(): void {
 		const currentUser = appState.getCurrentUser();
 		
-		if (currentUser) {
-			// Use the string ID directly
+		if (currentUser && currentUser.id) {
 			const hostId = currentUser.id;
+			const hostTheme = AppStateManager.getUserAccentColor(hostId);
 			
-			// Fetch the user's ELO and latest data from the database
+			// Initialize hostData with available information and defaults
+			const hostData: PlayerData = {
+				id: hostId,
+				username: currentUser.username || 'Player 1',
+				pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+				isConnected: true,
+				theme: hostTheme,
+				elo: 0 // Default ELO
+			};
+
+			// Chain promises to fetch detailed information
 			DbService.getUser(hostId)
-				.then(user => {
-					// Get theme from app state first (most up-to-date), then user object, then DB
-					const hostTheme = appState.getPlayerAccentColor(1) || currentUser.theme || user.theme || '#ffffff';
-					
-					// Get profile picture - try from currentUser first, then from DB
-					const profilePicture = currentUser.profilePicture || user.pfp || '/images/default-avatar.svg';
-					
-					const host: PlayerData = {
-						id: hostId,
-						username: currentUser.username || user.username,
-						pfp: profilePicture,
-						isConnected: true,
-						theme: hostTheme,
-						elo: user.elo
-					};
-					
-					// IMPORTANT: Explicitly set player accent1 color
-					appState.setPlayerAccentColor(1, hostTheme);
-					
-					// Apply directly to CSS for immediate effect
-					document.documentElement.style.setProperty('--accent1-color', hostTheme);
-					
-					this.updateInternalState({ host });
+				.then(userFromDb => {
+					hostData.username = userFromDb.username || hostData.username;
+					// Use pfp from userFromDb as a fallback if getPic fails
+					hostData.pfp = userFromDb.pfp || hostData.pfp;
+					// Use elo from userFromDb as a fallback if getPlayerElo fails
+					hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
+					return DbService.getPlayerElo(hostId);
 				})
-				.catch(_ => {
-					// If we can't fetch from DB, use current user data
-					const hostTheme = appState.getPlayerAccentColor(1) || currentUser.theme || '#ffffff';
-					
-					const host: PlayerData = {
-						id: hostId,
-						username: currentUser.username,
-						pfp: currentUser.profilePicture || '/images/default-avatar.svg',
-						isConnected: true,
-						theme: hostTheme
-					};
-					
-					// IMPORTANT: Explicitly set player accent1 color
-					appState.setPlayerAccentColor(1, hostTheme);
-					
-					// Apply directly to CSS for immediate effect
-					document.documentElement.style.setProperty('--accent1-color', hostTheme);
-					
-					this.updateInternalState({ host });
+				.then(eloResponse => {
+					// eloResponse is expected to be an object like { elo: number, ... }
+					if (eloResponse && eloResponse.elo !== undefined) {
+						hostData.elo = eloResponse.elo;
+					}
+					return DbService.getPic(hostId);
+				})
+				.then(picResponse => {
+					// picResponse is { link: string }
+					// The link should be a relative path like /uploads/image.png
+					if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
+                        // The backend might return API_PREFIX in the link, ensure it's a relative path for the client
+                        // However, profile service getPic returns `/uploads/${existingFile}` which is already correct.
+						hostData.pfp = picResponse.link;
+					}
+				})
+				.catch(error => {
+					// Check if it's an ApiError for PICTURE_NOT_FOUND
+					if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PICTURE_NOT_FOUND)) {
+					} else {
+						// For any other error, log a warning.
+						console.warn(`Error fetching full details for host ${hostId}. Using fallbacks.`, error);
+					}
+				})
+				.finally(() => {
+					appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
+					this.updateInternalState({ host: { ...hostData } });
 				});
 		} else {
-			// This shouldn't happen as the host should be authenticated
-			console.error('No authenticated host found');
-			this.updateInternalState({ 
-				error: 'Host authentication required'
-			});
+			console.error('No authenticated host found or host ID missing');
+			this.updateInternalState({ error: 'Host authentication required' });
 		}
 	}
 	
@@ -252,15 +252,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders the host player with color selection
 	 */
 	private renderHostPlayer(host: PlayerData | null): any {
-		if (!host) return '';
+		if (!host || !host.id) return '';
 		
-		// Get available colors from app state
 		const availableColors = Object.entries(appState.getAvailableColors());
+		const currentColor = AppStateManager.getUserAccentColor(host.id);
 		
-		// Get host's current color directly from appState
-		const currentColor = host.theme || appState.getPlayerAccentColor(1);
-		
-		// Split colors into two rows (6 in first row, 5 in second row)
 		const firstRowColors = availableColors.slice(0, 6);
 		const secondRowColors = availableColors.slice(6);
 		
@@ -302,11 +298,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders a connected guest with color selection
 	 */
 	private renderConnectedGuest(guest: PlayerData | null): any {
-		if (!guest) return '';
+		if (!guest || !guest.id) return '';
 		
 		const availableColors = Object.entries(appState.getAvailableColors());
 		const firstRowColors = availableColors.slice(0, 6);
 		const secondRowColors = availableColors.slice(6);
+		const guestColor = AppStateManager.getUserAccentColor(guest.id);
 		
 		return html`
 			<div class="player-avatar">
@@ -320,7 +317,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					<div class="color-row">
 						${firstRowColors.map(([colorName, colorHex]) => html`
 							<div 
-								class="color-option ${guest.theme === colorHex ? 'selected' : ''}"
+								class="color-option ${guestColor === colorHex ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
 								onclick="${() => this.handleGuestColorSelect(colorHex, guest.id)}"
 								title="${colorName}"
@@ -330,7 +327,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					<div class="color-row">
 						${secondRowColors.map(([colorName, colorHex]) => html`
 							<div 
-								class="color-option ${guest.theme === colorHex ? 'selected' : ''}"
+								class="color-option ${guestColor === colorHex ? 'selected' : ''}"
 								style="background-color: ${colorHex}"
 								onclick="${() => this.handleGuestColorSelect(colorHex, guest.id)}"
 								title="${colorName}"
@@ -498,99 +495,82 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleUserThemeUpdated(event: Event): void {
 		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
-		if (customEvent.detail) {
-			const { userId, theme } = customEvent.detail;
+		if (!customEvent.detail) return;
+
+		const { userId, theme } = customEvent.detail;
+		const state = this.getInternalState();
+		let needsRender = false;
 			
-			const state = this.getInternalState();
-			const currentUser = appState.getCurrentUser();
-			const currentUserId = currentUser ? currentUser.id : null;
-			
-			// Only update the host's theme if the event is for the current user (host)
-			if (state.host && state.host.id === userId && currentUserId === userId) {
-				// Update host theme in local state
-				this.updateInternalState({
-					host: {
-						...state.host,
-						theme: theme
-					}
-				});
-				
-				// Update app state
-				appState.setPlayerAccentColor(1, theme);
-				
-				// Apply directly to CSS
-				document.documentElement.style.setProperty('--accent1-color', theme);
-				
-				// Re-render to show updated color selection
-				this.renderComponent();
-			} 
-			// Check if this is one of the guests and only update if they changed their own theme
-			else {
-				const guestIndex = state.guests.findIndex(g => g && g.id === userId);
-				if (guestIndex >= 0) {
-					// Update guest theme
-					const updatedGuests = [...state.guests];
-					updatedGuests[guestIndex] = {
-						...updatedGuests[guestIndex],
-						theme: theme
-					};
-					
-					// Update player accent color
-					const playerPosition = guestIndex + 2;
-					appState.setPlayerAccentColor(playerPosition, theme);
-					
-					// Update state and re-render
-					this.updateInternalState({ guests: updatedGuests });
-					
-					// Update CSS variable
-					document.documentElement.style.setProperty(
-						`--accent${playerPosition}-color`, 
-						theme
-					);
-					
-					this.renderComponent();
-				}
+		if (state.host && state.host.id === userId) {
+			if (state.host.theme !== theme) {
+				this.updateInternalState({ host: { ...state.host, theme: theme } });
+				needsRender = true;
 			}
+		} else {
+			const guestIndex = state.guests.findIndex(g => g && g.id === userId);
+			if (guestIndex >= 0 && state.guests[guestIndex].theme !== theme) {
+				const updatedGuests = [...state.guests];
+				updatedGuests[guestIndex] = { ...updatedGuests[guestIndex], theme: theme };
+				this.updateInternalState({ guests: updatedGuests });
+				needsRender = true;
+			}
+		}
+		if (needsRender) {
+			this.render();
 		}
 	}
 	
 	/**
 	 * Handle guest authenticated - receives data directly from GuestAuthComponent
 	 */
-	private handleGuestAuthenticated(guestData: PlayerData): void {
-		if (!guestData) {
-			console.error('No guest data received');
+	private handleGuestAuthenticated(guestDataFromEvent: PlayerData): void {
+		if (!guestDataFromEvent || !guestDataFromEvent.id) {
+			console.error('No guest data or guest ID received from auth event');
 			return;
 		}
 		
-		// Set default theme for guest if not present
-		if (!guestData.theme) {
-			// Default white for guest
-			guestData.theme = '#ffffff';
-			
-			// Update this in the database - use the exact ID format (don't convert)
-			DbService.updateUserTheme(guestData.id, guestData.theme);
-		}
-		
-		// Check if we need to fetch ELO from DB if not already provided
-		if (guestData.elo === undefined) {
-			DbService.getUser(guestData.id)
-				.then(user => {
-					if (user.elo !== undefined) {
-						guestData.elo = user.elo;
-					}
-					this.continueGuestAuthentication(guestData);
-				})
-				.catch(_ => {
-					this.continueGuestAuthentication(guestData);
-				});
-		} else {
-			this.continueGuestAuthentication(guestData);
-		}
+		const guestData: PlayerData = {
+			...guestDataFromEvent,
+			theme: guestDataFromEvent.theme || AppStateManager.initializeUserAccentColor(guestDataFromEvent.id),
+			pfp: guestDataFromEvent.pfp || '/images/default-avatar.svg',
+			elo: guestDataFromEvent.elo !== undefined ? guestDataFromEvent.elo : 0,
+			isConnected: true
+		};
+
+		DbService.getUser(guestData.id)
+			.then(userFromDb => {
+				guestData.username = userFromDb.username || guestData.username;
+				guestData.pfp = userFromDb.pfp || guestData.pfp;
+				guestData.elo = userFromDb.elo !== undefined ? userFromDb.elo : guestData.elo;
+				return DbService.getPlayerElo(guestData.id);
+			})
+			.then(eloResponse => {
+				if (eloResponse && eloResponse.elo !== undefined) {
+					guestData.elo = eloResponse.elo;
+				}
+				return DbService.getPic(guestData.id);
+			})
+			.then(picResponse => {
+				if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
+					guestData.pfp = picResponse.link;
+				}
+			})
+			.catch(error => {
+				if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PICTURE_NOT_FOUND)) {
+				} else {
+					console.warn(`Error fetching full details for guest ${guestData.id}. Using fallbacks.`, error);
+				}
+			})
+			.finally(() => {
+				guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
+				guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
+				guestData.username = guestData.username || 'Player';
+				this.continueGuestAuthentication(guestData);
+			});
 	}
 	
 	/**
-	 * Continue guest authentication after potentially fetching ELO
+	 * Continue guest authentication after fetching all details
 	 */
 	private continueGuestAuthentication(guestData: PlayerData): void {
 		const state = this.getInternalState();
@@ -620,61 +600,48 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 
+		// Final defaults before adding to state (should be mostly covered by .finally() in handleGuestAuthenticated)
+		guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
+		guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
+		guestData.username = guestData.username || 'Player';
+
+
 		let updatedGuests: PlayerData[] = [...state.guests];
-		let isReadyToPlay = state.isReadyToPlay;
+		let isReadyToPlay = state.isReadyToPlay; // This probably should be re-evaluated based on connected players
 
 		if (state.gameMode === GameMode.MULTI) {
-			// For multiplayer, just replace the entire guests array
-			updatedGuests = [guestData];
-			
-			// Set player 2's accent color
-			appState.setPlayerAccentColor(2, guestData.theme || '#ffffff');
-			
-			// Calculate readiness here
-			const connectedGuestsCount = (state.host ? 1 : 0) + updatedGuests.filter(g => g && g.isConnected).length;
-			isReadyToPlay = connectedGuestsCount >= this.maxPlayers;
-			
+			updatedGuests = [guestData]; // Replace existing or add new
+			appState.setPlayerAccentColor(2, guestData.theme as string, guestData.id);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
-			// For tournament, add player to the next available slot
-			const nextIndex = state.guests.filter(g => g && g.isConnected).length;
-			
-			if (nextIndex >= 3) {
+			const nextIndex = updatedGuests.filter(g => g && g.isConnected).length;
+			if (nextIndex >= 3) { // Max 3 guests (players 2, 3, 4)
 				this.updateInternalState({
 					error: 'All player slots are filled'
 				});
-				return;
+				return; // Exit if tournament is full
 			}
-			
-			// Create a new guests array with the new player added at the correct position
-			// Ensure the array is big enough
+			// Fill any gaps if players disconnected and reconnected out of order (less likely with current UI)
 			while (updatedGuests.length <= nextIndex) {
-				updatedGuests.push({} as PlayerData); // Add placeholders if needed
+				updatedGuests.push({} as PlayerData); 
 			}
-			
-			// Add the new guest at the next position
 			updatedGuests[nextIndex] = guestData;
-			
-			// Set the accent color for this player position
-			const playerPosition = nextIndex + 2; // Player positions: 2, 3, 4
-			appState.setPlayerAccentColor(playerPosition, guestData.theme || '#ffffff');
-			
-			// Also update the CSS variable directly for immediate effect
-			const cssVarName = `--accent${playerPosition}-color`;
-			document.documentElement.style.setProperty(cssVarName, guestData.theme || '#ffffff');
-
-			// Calculate readiness here
-			const connectedGuestsCount = (state.host ? 1 : 0) + updatedGuests.filter(g => g && g.isConnected).length;
-			isReadyToPlay = connectedGuestsCount >= this.maxPlayers;
+			const playerPosition = nextIndex + 2; // Host is 1, guests start at 2
+			appState.setPlayerAccentColor(playerPosition, guestData.theme as string, guestData.id);
 		}
 
-		// Update state with both guest list and readiness in one go
+		// Re-evaluate readiness
+		const connectedCount = (state.host ? 1 : 0) + 
+			updatedGuests.filter(g => g && g.isConnected).length;
+		isReadyToPlay = connectedCount >= this.maxPlayers;
+
+
 		this.updateInternalState({
 			guests: updatedGuests,
 			isReadyToPlay: isReadyToPlay,
-			error: null
+			error: null // Clear any previous error
 		});
 
-		this.renderComponent();
+		this.renderComponent(); // Re-render to show the new player or updated details
 	}
 	
 	/**
@@ -779,65 +746,27 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleHostColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
-		if (!state.host) return;
+		if (!state.host || !state.host.id) return;
 		
-		// Update host's theme in the local state to trigger re-render
-		this.updateInternalState({
-			host: {
-				...state.host,
-				theme: colorHex
-			}
-		});
+		AppStateManager.setUserAccentColor(state.host.id, colorHex);
 		
-		// Update theme in database for persistence
-		DbService.updateUserTheme(state.host.id, colorHex);
-		
-		// Update app state
-		appState.setPlayerAccentColor(1, colorHex);
-		
-		// Apply directly to CSS for immediate effect
-		document.documentElement.style.setProperty('--accent1-color', colorHex);
+		appState.setPlayerAccentColor(1, colorHex, state.host.id);
 	}
 	
 	/**
 	 * Handle guest color selection
 	 */
 	private handleGuestColorSelect(colorHex: string, guestId: string): void {
+		if (!guestId) return;
 		const state = this.getInternalState();
-		if (!state.guests || !state.guests.length) return;
-		
-		// Update guest's theme in the database
-		DbService.updateUserTheme(guestId, colorHex);
-		
-		// Find guest index
-		const guestIndex = state.guests.findIndex(g => g && g.id === guestId);
-		
-		if (guestIndex >= 0) {
-			// Calculate player position (2, 3, or 4)
-			const playerPosition = guestIndex + 2;
-			
-			// Update accent color in the app state
-			appState.setPlayerAccentColor(playerPosition, colorHex);
-			
-			// Update guest's theme in the local state
-			const updatedGuests = [...state.guests];
-			updatedGuests[guestIndex] = {
-				...updatedGuests[guestIndex],
-				theme: colorHex
-			};
-			
-			this.updateInternalState({
-				guests: updatedGuests
-			});
-			
-			// Update CSS variable for immediate effect
-			document.documentElement.style.setProperty(
-				`--accent${playerPosition}-color`, 
-				colorHex
-			);
-		}
 
-		this.renderComponent();
+		AppStateManager.setUserAccentColor(guestId, colorHex);
+		
+		const guestIndex = state.guests.findIndex(g => g && g.id === guestId);
+		if (guestIndex >= 0) {
+			const playerPosition = guestIndex + 2;
+			appState.setPlayerAccentColor(playerPosition, colorHex, guestId);
+		}
 	}
 	
 	/**

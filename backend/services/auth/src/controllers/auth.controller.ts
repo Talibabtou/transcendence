@@ -108,13 +108,15 @@ export async function addUser(
   try {
     const { username, password, email } = request.body;
     const ip = request.headers['from'];
+    const userLower = username.toLowerCase();
+    const emailLower = email.toLowerCase();
     await request.server.db.run(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
-      [username.toLowerCase(), password, email.toLowerCase(), ip]
+      [userLower, password, emailLower, ip]
     );
     const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE username = ?',
-      [username]
+      [userLower]
     );
     if (user !== undefined) {
       const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;

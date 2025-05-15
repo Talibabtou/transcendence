@@ -132,6 +132,7 @@
 	-webkit-appearance: none;
 	cursor: pointer;
 	position: relative;
+	vertical-align: middle;
 }
 
 .checkbox-label input[type="checkbox"]:checked::after {
@@ -148,6 +149,11 @@
 	outline: none;
 	border-color: var(--text-color);
 	box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.checkbox-label span {
+	padding: var(--spacing-sm);
+	vertical-align: middle;
 }
 
 /* ===== MESSAGES ===== */

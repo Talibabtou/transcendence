@@ -41,9 +41,11 @@ export const GAME = {
 export const USER = {
 	BASE: '/auth/users',
 	BY_ID: (id: string | number) => `/auth/user/${id}`,
+	BY_USERNAME: (username: string) => `/auth/id/${username}`,
 	ME: '/auth/user/me',
 	PROFILE: '/profile/summary',
 	UPLOADS: '/profile/uploads',
+	PROFILE_PIC_LINK: (id: string) => `/profile/pics/${id}`,
 };
 
 // Authentication paths

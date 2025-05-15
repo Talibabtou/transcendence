@@ -2,6 +2,7 @@ import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from 
 import { ApiError, ErrorResponse } from '@website/scripts/utils';
 import { API_PREFIX, AUTH, GAME, USER } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
+import { IGetPicResponse } from '@shared/types/gateway.types';
 
 // =========================================
 // DATABASE SERVICE
@@ -71,13 +72,11 @@ export class DbService {
 		});
 		
 		try {
-			// Call the backend register endpoint
 			const userResponse = await this.fetchApi<IReplyUser>(`${AUTH.REGISTER}`, {
 				method: 'POST',
 				body: JSON.stringify(userData)
 			});
 			
-			// Login to get the token
 			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
 				method: 'POST',
 				body: JSON.stringify({
@@ -86,17 +85,6 @@ export class DbService {
 				})
 			});
 			
-			// Store the token based on persistence preference
-			if (loginResponse.token) {
-				const isPersistent = localStorage.getItem('auth_persistent') === 'true';
-				if (isPersistent) {
-					localStorage.setItem('jwt_token', loginResponse.token);
-				} else {
-					sessionStorage.setItem('jwt_token', loginResponse.token);
-				}
-			}
-			
-			// Return properly formatted AuthResponse
 			return {
 				success: true,
 				user: {
@@ -106,9 +94,9 @@ export class DbService {
 					created_at: new Date(),
 					last_login: new Date(),
 					auth_method: 'email',
-					theme: '#ffffff'
+					theme: '#ffffff' // Default theme, appState will initialize/override
 				},
-				token: loginResponse.token
+				token: loginResponse.token // Ensure token is returned
 			};
 		} catch (error) {
 			throw error;
@@ -126,13 +114,11 @@ export class DbService {
 		});
 		
 		try {
-			// Call the backend login endpoint
 			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
 				method: 'POST',
 				body: JSON.stringify(credentials)
 			});
 			
-			// Handle 2FA if needed
 			if (loginResponse.status === '2fa') {
 				return {
 					success: false,
@@ -143,35 +129,22 @@ export class DbService {
 						created_at: new Date(),
 						auth_method: 'email'
 					},
-					token: loginResponse.token
+					token: loginResponse.token // Pass token even for 2FA start
 				};
 			}
 			
-			// Save token based on persistence preference
-			if (loginResponse.token) {
-				const isPersistent = localStorage.getItem('auth_persistent') === 'true';
-				if (isPersistent) {
-					localStorage.setItem('jwt_token', loginResponse.token);
-				} else {
-					// For non-persistent logins, always use sessionStorage
-					// This allows multiple tabs with different sessions
-					sessionStorage.setItem('jwt_token', loginResponse.token);
-				}
-			}
-			
-			// Return properly formatted AuthResponse
 			return {
 				success: true,
 				user: {
 					id: loginResponse.id || '',
 					username: loginResponse.username || '',
-					email: credentials.email,
-					created_at: new Date(),
-					last_login: new Date(),
+					email: credentials.email, // Use email from input as loginResponse might not have it
+					created_at: new Date(), // Or from loginResponse if available
+					last_login: new Date(), // Or from loginResponse if available
 					auth_method: 'email',
-					theme: '#ffffff'
+					theme: '#ffffff' // Default theme, appState will initialize/override
 				},
-				token: loginResponse.token
+				token: loginResponse.token // Ensure token is returned
 			};
 		} catch (error) {
 			console.error('Login failed:', error);
@@ -226,6 +199,16 @@ export class DbService {
 		this.logRequest('GET', `${API_PREFIX}${USER.BY_ID(id)}`);
 		return this.fetchApi<User>(USER.BY_ID(id));
 	}
+	
+	/**
+	 * Retrieves user information by ID
+	 * @param id - The user's ID
+	 */
+	static async getIdByUsername(username: string): Promise<string> {
+		this.logRequest('GET', `${API_PREFIX}${USER.BY_USERNAME(username)}`);
+		const user = await this.fetchApi<User>(USER.BY_USERNAME(username));
+		return user.id;
+	}
 
 	/**
 	 * Updates user information
@@ -234,32 +217,12 @@ export class DbService {
 	 * @returns Promise with updated user data
 	 */
 	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
-		this.logRequest('PUT', `${API_PREFIX}${USER.BY_ID(userId)}`, userData);
+		this.logRequest('PATCH', `${API_PREFIX}${USER.BY_ID(userId)}`, userData);
 		
 		return this.fetchApi<User>(USER.BY_ID(userId), {
-			method: 'PUT',
+			method: 'PATCH',
 			body: JSON.stringify(userData)
 		});
-	}
-
-	/**
-	 * Updates user theme/paddle color
-	 * @param userId - The user's ID
-	 * @param theme - Color value for the theme/paddle
-	 */
-	static async updateUserTheme(userId: string, theme: string): Promise<void> {
-		this.logRequest('PUT', `${API_PREFIX}${USER.BY_ID(userId)}/theme`, { theme });
-		
-		await this.fetchApi<void>(`${USER.BY_ID(userId)}/theme`, {
-			method: 'PUT',
-			body: JSON.stringify({ theme })
-		});
-		
-		// Dispatch theme update event for app state synchronization
-		const event = new CustomEvent('user:theme-updated', {
-			detail: { userId, theme }
-		});
-		window.dispatchEvent(event);
 	}
 
 	// =========================================
@@ -345,49 +308,6 @@ export class DbService {
 	}
 
 	/**
-	 * Gets a match by ID with detailed information
-	 * @param matchId The match ID to retrieve
-	 * @returns Promise with the match details
-	 */
-	static async getMatchDetails(matchId: string): Promise<any> {
-		this.logRequest('GET', `${API_PREFIX}${GAME.MATCH.BY_ID(matchId)}`);
-		return this.fetchApi<any>(`${GAME.MATCH.BY_ID(matchId)}`);
-	}
-
-	/**
-	 * Gets all goals for a specific match
-	 * @param matchId - ID of the match to get goals for
-	 */
-	static async getMatchGoals(matchId: string): Promise<any[]> {
-		this.logRequest('GET', `${API_PREFIX}${GAME.GOALS.BASE}?match_id=${matchId}`);
-		return this.fetchApi<any[]>(`${GAME.GOALS.BASE}?match_id=${matchId}`);
-	}
-
-	/**
-	 * Gets all matches for a tournament
-	 * @param tournamentId - The tournament ID
-	 */
-	static async getTournamentMatches(tournamentId: string): Promise<Match[]> {
-		this.logRequest('GET', `/api/tournaments/${tournamentId}/matches`);
-		return this.fetchApi<Match[]>(`/matches?tournament_id=${tournamentId}`);
-	}
-
-	/**
-	 * Updates match status (active/completed)
-	 * @param matchId - The match ID
-	 * @param active - Whether the match is active 
-	 * @param duration - Duration of the match in seconds
-	 */
-	static async updateMatchStatus(matchId: string, active: boolean, duration: number): Promise<Match> {
-		this.logRequest('PUT', `/api/matches/${matchId}`, { active, duration });
-		
-		return this.fetchApi<Match>(`/matches/${matchId}`, {
-			method: 'PUT',
-			body: JSON.stringify({ active, duration })
-		});
-	}
-
-	/**
 	 * Gets tournament information
 	 * @param tournamentId - Tournament UUID
 	 */
@@ -415,6 +335,17 @@ export class DbService {
 	}
 
 	/**
+	 * Gets the uploaded profile picture link for a user.
+	 * The endpoint is /profile/pics/:id, served by the profile service.
+	 * @param userId - The user's ID
+	 * @returns Promise with the picture link object e.g. { link: "/uploads/picture.jpg" }
+	 */
+	static async getPic(userId: string): Promise<IGetPicResponse> {
+		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE_PIC_LINK(userId)}`);
+		return this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
+	}
+
+	/**
 	 * Update user profile picture
 	 * @param userId - The UUID of the user
 	 * @param imageData - Base64 encoded image data or File object
@@ -437,7 +368,7 @@ export class DbService {
 			return this.fetchApi<any>(`/profile/${userId}/picture`, {
 				method: 'PUT',
 				body: formData,
-				headers: {} // Let browser set proper content-type for form data
+				headers: {}
 			});
 		}
 	}
