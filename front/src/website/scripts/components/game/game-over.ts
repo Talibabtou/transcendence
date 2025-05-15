@@ -17,6 +17,7 @@ export class GameOverComponent extends Component<GameOverState> {
 	private onShowTournamentSchedule: () => void;
 	private inTransition: boolean = false;
 	private boundGameOverHandler: EventListener;
+	private boundResizeHandler: EventListener;
 	
 	// =========================================
 	// INITIALIZATION
@@ -45,9 +46,11 @@ export class GameOverComponent extends Component<GameOverState> {
 		
 		// Store the bound handler reference for proper cleanup
 		this.boundGameOverHandler = this.handleGameOver.bind(this) as EventListener;
+		this.boundResizeHandler = this.handleResize.bind(this) as EventListener;
 		
 		// Listen for game end events
 		window.addEventListener('gameOver', this.boundGameOverHandler);
+		window.addEventListener('resize', this.boundResizeHandler);
 	}
 	
 	// =========================================
@@ -63,13 +66,32 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 		
 		// Get dimensions for positioning
-		const gameCanvas = document.querySelector('canvas');
-		let canvasWidth = this.container.clientWidth;
-		let canvasHeight = this.container.clientHeight;
-		
-		if (gameCanvas) {
-			canvasWidth = gameCanvas.width;
-			canvasHeight = gameCanvas.height;
+		let canvasWidth: number;
+		let canvasHeight: number;
+
+		const backgroundGameCanvas = document.getElementById('background-game-canvas') as HTMLCanvasElement | null;
+
+		if (backgroundGameCanvas && backgroundGameCanvas.width > 0 && backgroundGameCanvas.height > 0) {
+			canvasWidth = backgroundGameCanvas.width;
+			canvasHeight = backgroundGameCanvas.height;
+		} else {
+			// If background canvas isn't available or has no dimensions,
+			// fall back to the component's container size.
+			canvasWidth = this.container.clientWidth;
+			canvasHeight = this.container.clientHeight;
+
+			// If container size is also zero, try any canvas.
+			if (canvasWidth === 0 || canvasHeight === 0) {
+				const genericCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+				if (genericCanvas && genericCanvas.width > 0 && genericCanvas.height > 0) {
+					canvasWidth = genericCanvas.width;
+					canvasHeight = genericCanvas.height;
+				} else if (canvasWidth === 0 || canvasHeight === 0) {
+					// If still zero, default to window size to prevent errors with calculateUIPositions(0,0)
+					canvasWidth = window.innerWidth;
+					canvasHeight = window.innerHeight;
+				}
+			}
 		}
 		
 		const ui = calculateUIPositions(canvasWidth, canvasHeight);
@@ -149,6 +171,7 @@ export class GameOverComponent extends Component<GameOverState> {
 	destroy(): void {
 		// Use the stored reference for proper removal
 		window.removeEventListener('gameOver', this.boundGameOverHandler);
+		window.removeEventListener('resize', this.boundResizeHandler);
 		
 		// Also clean up button event listeners if any are still attached
 		const playAgainButton = this.container.querySelector('.play-again-button');
@@ -167,6 +190,15 @@ export class GameOverComponent extends Component<GameOverState> {
 	// =========================================
 	// EVENT HANDLING
 	// =========================================
+	
+	/**
+	 * Handles window resize events to re-render the component if visible.
+	 */
+	private handleResize(): void {
+		if (this.getInternalState().visible && !this.inTransition) {
+			this.renderComponent();
+		}
+	}
 	
 	/**
 	 * Shows the game over screen with results
