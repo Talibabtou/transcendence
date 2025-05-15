@@ -1,4 +1,4 @@
-import databaseConnector from './db.js';
+import { dbConnector } from './db.js';
 import { routes } from './routes/index.js';
 import fastify, { FastifyInstance } from 'fastify';
 import { startTelemetry } from './telemetry/telemetry.js';
@@ -20,7 +20,7 @@ class Server {
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
-      await server.register(databaseConnector);
+      await dbConnector(server);
       await server.register(routes);
       await server.listen({
         port: Number(process.env.AUTH_PORT) || 8083,
@@ -31,7 +31,8 @@ class Server {
       );
       server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
-      server.log.error('Startup error:', err);
+      server.log.error('Startup error:');
+      server.log.error(err);
     }
   }
 

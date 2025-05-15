@@ -3,8 +3,6 @@ import path from 'path';
 import qrcode from 'qrcode';
 import { v4 as uuid } from 'uuid';
 import speakeasy from 'speakeasy';
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 import {
   IAddUser,
   ILogin,
@@ -17,6 +15,8 @@ import {
   IReplyQrCode,
   IUsername,
 } from '../shared/types/auth.types.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
 export async function getId(
   request: FastifyRequest<{ Params: IUsername }>,

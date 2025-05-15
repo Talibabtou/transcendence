@@ -74,7 +74,7 @@ export async function createElo(
   try {
     const startTime = performance.now(); // Start timer
     const newElo = (await request.server.db.get(
-      'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+      'INSERT OR IGNORE INTO elo (player, elo) VALUES (?, ?) RETURNING *',
       player,
       elo
     )) as Elo;

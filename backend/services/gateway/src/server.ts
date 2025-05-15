@@ -12,7 +12,8 @@ import {
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
-import { routes } from './routes/index.js';
+import errorHandler from './config/errorHandler.js';
+import routes from './routes/index.js';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
 // import { Http2SecureServer } from 'http2';
@@ -42,6 +43,7 @@ export class Server {
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
+      server.setErrorHandler(errorHandler);
       server.addHook('onRequest', jwtPluginHook);
       server.addHook('onRequest', blockHeaders);
       server.addHook('preValidation', checkMicroservicesHook);
@@ -64,7 +66,7 @@ export class Server {
       );
       setInterval(checkMicroservices, 2000);
     } catch (err) {
-      server.log.error('Startup error:', err);
+      server.log.error(err);
     }
   }
 

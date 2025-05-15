@@ -5,7 +5,7 @@ import {
   uploadSchema,
   getPicSchema,
   summarySchema,
-  // getHistorySchema,
+  getHistorySchema,
 } from '../schemas/profile.schemas.js';
 import { IUpload } from '../shared/types/profile.type.js';
 
@@ -27,10 +27,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/profile/history/:id',
     {
-      // schema: {
-      //   ...getHistorySchema,
-      //   tags: ['profile'],
-      // },
+      schema: {
+        ...getHistorySchema,
+        tags: ['profile'],
+      },
       config: auth,
     },
     getHistory

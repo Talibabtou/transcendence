@@ -16,7 +16,6 @@ export const swaggerConfig = {
     },
     security: [{ bearerAuth: [] }],
     tags: [
-      { name: 'gateway', description: 'Main API endpoints' },
       {
         name: 'auth',
         description: 'Authentication and authorization endpoints',

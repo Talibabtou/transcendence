@@ -1,7 +1,7 @@
-import { initDb } from './db.js';
 import { fastify, FastifyInstance } from 'fastify';
 import friendsRoutes from './routes/friends.routes.js';
 import { fastifyConfig } from './config/fastify.js';
+import { dbConnector } from './db.js';
 
 class Server {
   private static instance: FastifyInstance;
@@ -18,7 +18,7 @@ class Server {
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
-      server.decorate('db', await initDb());
+      await dbConnector(server);
       await server.register(friendsRoutes);
       await server.listen({
         port: Number(process.env.AUTH_PORT) || 8084,
@@ -28,7 +28,8 @@ class Server {
         `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8084}`
       );
     } catch (err) {
-      server.log.error('Startup error:', err);
+      server.log.error('Startup error:');
+      server.log.error(err);
     }
   }
 

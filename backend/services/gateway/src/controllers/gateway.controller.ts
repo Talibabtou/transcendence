@@ -1,6 +1,3 @@
-import path from 'path';
-import fs from 'node:fs';
-import { IId } from '../shared/types/gateway.types.js';
 import { Server } from '../server.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';

@@ -105,31 +105,31 @@ export async function getMatchHistory(
       return reply.code(404).send(errorResponse);
     }
     const matchesHistory: MatchHistory[] = [];
-    for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
-      const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
-      const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
-      const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
-      const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
-      const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
-      const serviceUrlGoal1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_1}`;
-      const responseGoal1 = await fetch(serviceUrlGoal1, { method: 'GET' });
-      const responseDataGoal1 = (await responseGoal1.json()) as Goal[];
-      const serviceUrlGoal2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_2}`;
-      const responseGoal2 = await fetch(serviceUrlGoal2, { method: 'GET' });
-      const responseDataGoal2 = (await responseGoal2.json()) as Goal[];
-      const matchHistory: MatchHistory = {
-        matchId: matches[i].id || 'undefined',
-        username1: responseDataUsername1.username || 'undefined',
-        id1: matches[i].player_1 || 'undefined',
-        goals1: responseDataGoal1,
-        username2: responseDataUsername2.username || 'undefined',
-        id2: matches[i].player_2 || 'undefined',
-        goals2: responseDataGoal2,
-        created_at: matches[i].created_at || 'undefined',
-      };
-      matchesHistory.push(matchHistory);
-    }
+    // for (let i = 0; i < matches.length; i++) {
+    //   const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+    //   const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
+    //   const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
+    //   const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+    //   const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
+    //   const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
+    //   const serviceUrlGoal1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_1}`;
+    //   const responseGoal1 = await fetch(serviceUrlGoal1, { method: 'GET' });
+    //   const responseDataGoal1 = (await responseGoal1.json()) as Goal[];
+    //   const serviceUrlGoal2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_2}`;
+    //   const responseGoal2 = await fetch(serviceUrlGoal2, { method: 'GET' });
+    //   const responseDataGoal2 = (await responseGoal2.json()) as Goal[];
+    //   const matchHistory: MatchHistory = {
+    //     matchId: matches[i].id || 'undefined',
+    //     username1: responseDataUsername1.username || 'undefined',
+    //     id1: matches[i].player_1 || 'undefined',
+    //     goals1: responseDataGoal1,
+    //     username2: responseDataUsername2.username || 'undefined',
+    //     id2: matches[i].player_2 || 'undefined',
+    //     goals2: responseDataGoal2,
+    //     created_at: matches[i].created_at || 'undefined',
+    //   };
+    //   matchesHistory.push(matchHistory);
+    // }
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

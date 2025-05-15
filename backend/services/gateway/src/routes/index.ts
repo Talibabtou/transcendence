@@ -9,7 +9,7 @@ import friendsRoutes from '../routes/friends.routes.js';
 import tournamentRoutes from '../routes/tournament.routes.js';
 import { API_PREFIX } from '../shared/constants/path.const.js';
 
-export async function routes(server: FastifyInstance) {
+export default async function routes(server: FastifyInstance) {
   await server.register(eloRoutes, { prefix: API_PREFIX });
   await server.register(gatewayRoutes, { prefix: API_PREFIX });
   await server.register(authRoutes, { prefix: API_PREFIX });

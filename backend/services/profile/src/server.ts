@@ -29,7 +29,8 @@ class Server {
         `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8081}`
       );
     } catch (err) {
-      server.log.error('Startup error:', err);
+      server.log.error('Startup error:');
+      server.log.error(err);
     }
   }
 

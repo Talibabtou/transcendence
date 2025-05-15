@@ -1,4 +1,4 @@
-import { initDb } from './db.js';
+import { dbConnector } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
 import { fastify, FastifyInstance } from 'fastify';
@@ -22,7 +22,7 @@ class Server {
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
-      server.decorate('db', await initDb());
+      await dbConnector(server);
       await server.register(routes);
       await server.register(fastifyJwt, jwtPluginRegister);
       await server.listen({
@@ -34,7 +34,8 @@ class Server {
       );
       server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
-      server.log.error('Startup error:', err);
+      server.log.error('Startup error:');
+      server.log.error(err);
     }
   }
 
