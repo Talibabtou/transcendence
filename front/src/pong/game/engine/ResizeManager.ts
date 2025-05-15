@@ -79,19 +79,20 @@ export class ResizeManager {
 		const isBackgroundMode = this.isInBackgroundDemo();
 		const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
 		const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
-		if (wasInCountdown && this.pauseManager) {
-			this.pauseManager.setPendingPauseRequest(true);
+
+		if (!isBackgroundMode && this.pauseManager) {
+			if (wasPlaying) {
+				this.pauseManager.pause(); // Saves state, sets to PAUSED
+			} else if (wasInCountdown) {
+				// Cleanly stop countdown, set to PAUSED, keep existing snapshot if any.
+				this.pauseManager.forcePauseFromCountdownKeepSnapshot();
+			}
 		}
-		if (!isBackgroundMode && wasPlaying && this.pauseManager) {
-			this.pauseManager.pause();
-		}
+
 		requestAnimationFrame(() => {
 			this.updateCanvasSize();
 			this.resizeGameObjects();
 			this.isResizing = false;
-			if (!isBackgroundMode && wasPlaying && this.pauseManager) {
-							this.pauseManager.resume();
-			}
 		});
 	}
 

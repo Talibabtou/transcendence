@@ -188,6 +188,30 @@ export class PauseManager {
 	}
 
 	/**
+	 * Forces a pause if the game is in countdown state.
+	 * Cleans up countdown and transitions to PAUSED state, keeping any existing snapshot.
+	 * Ensures the match timer reflects the paused state.
+	 */
+	public forcePauseFromCountdownKeepSnapshot(): void {
+		if (!this.states.has(GameState.COUNTDOWN)) {
+			return; // Only act if in countdown
+		}
+
+		this.cleanupCountdown(); // Stops interval, clears countdown UI text (sets to null via callback)
+		
+		this.states.delete(GameState.COUNTDOWN);
+		this.states.add(GameState.PAUSED);
+		
+		this.isCountingDown = false; // Ensure this is reset
+		this.pendingPauseRequest = false; // Clear any pending request
+
+		// Ensure the match timer reflects the paused state.
+		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
+			this.gameEngine.pauseMatchTimer();
+		}
+	}
+
+	/**
 	 * Maintains player and ball positions from the snapshot if available.
 	 */
 	private maintainPositionsFromSnapshot(): void {
