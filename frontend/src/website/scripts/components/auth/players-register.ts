@@ -529,9 +529,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 		
+		// Retrieve the guest's stored accent color preference FIRST
+		const guestSelectedTheme = AppStateManager.getUserAccentColor(guestDataFromEvent.id);
+
 		const guestData: PlayerData = {
 			...guestDataFromEvent,
-			theme: guestDataFromEvent.theme || AppStateManager.initializeUserAccentColor(guestDataFromEvent.id),
+			// Use the retrieved theme. If guestSelectedTheme is a default/fallback from AppStateManager, that's fine.
+			theme: guestSelectedTheme, 
 			pfp: guestDataFromEvent.pfp || '/images/default-avatar.svg',
 			elo: guestDataFromEvent.elo !== undefined ? guestDataFromEvent.elo : 0,
 			isConnected: true
@@ -565,6 +569,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
 				guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
 				guestData.username = guestData.username || 'Player';
+				// guestData.theme is now correctly set before this call
 				this.continueGuestAuthentication(guestData);
 			});
 	}
@@ -604,6 +609,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
 		guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
 		guestData.username = guestData.username || 'Player';
+		// Ensure theme is still what we expect, though it should be set by handleGuestAuthenticated
+		guestData.theme = guestData.theme || AppStateManager.getUserAccentColor(guestData.id);
 
 
 		let updatedGuests: PlayerData[] = [...state.guests];
@@ -611,6 +618,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 
 		if (state.gameMode === GameMode.MULTI) {
 			updatedGuests = [guestData]; // Replace existing or add new
+			// Ensure appState also knows about this theme for player 2
 			appState.setPlayerAccentColor(2, guestData.theme as string, guestData.id);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const nextIndex = updatedGuests.filter(g => g && g.isConnected).length;
@@ -626,6 +634,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			}
 			updatedGuests[nextIndex] = guestData;
 			const playerPosition = nextIndex + 2; // Host is 1, guests start at 2
+			// Ensure appState also knows about this theme for the correct tournament position
 			appState.setPlayerAccentColor(playerPosition, guestData.theme as string, guestData.id);
 		}
 

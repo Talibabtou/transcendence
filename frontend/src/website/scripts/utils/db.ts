@@ -20,16 +20,39 @@ export class DbService {
 		// This ensures each tab can maintain its own session
 		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
 		
-		const headers = {
-			'Content-Type': 'application/json',
-			...(token && { 'Authorization': `Bearer ${token}` }),
-			...options.headers
+		// Default headers
+		const defaultHeaders: Record<string, string> = {
+			'Content-Type': 'application/json', // Default, will be omitted for FormData
 		};
+		if (token) {
+			defaultHeaders['Authorization'] = `Bearer ${token}`;
+		}
+
+		let effectiveHeaders: HeadersInit = { ...defaultHeaders, ...options.headers };
+
+		// If the body is FormData, DO NOT set Content-Type manually.
+		// The browser will set it correctly with the boundary.
+		if (options.body instanceof FormData) {
+			// Create new headers object, omitting Content-Type if it was the default one
+			const headersForFormData: Record<string, string> = {};
+			if (token) {
+				headersForFormData['Authorization'] = `Bearer ${token}`;
+			}
+			// Add any custom headers from options.headers, *except* Content-Type
+			if (options.headers) {
+				for (const [key, value] of Object.entries(options.headers)) {
+					if (key.toLowerCase() !== 'content-type') {
+						headersForFormData[key] = value as string;
+					}
+				}
+			}
+			effectiveHeaders = headersForFormData;
+		}
 
 		try {
 			const response = await fetch(url, {
 				...options,
-				headers
+				headers: effectiveHeaders // Use the potentially modified headers
 			});
 
 			return this.handleApiResponse<T>(response);
@@ -53,7 +76,24 @@ export class DbService {
 			const errorData: ErrorResponse = await response.json();
 			throw new ApiError(errorData);
 		}
-		return response.json();
+		const contentType = response.headers.get("content-type");
+		if (response.status === 204) {
+			return Promise.resolve(null as unknown as T);
+		}
+
+		if (contentType && contentType.includes("application/json")) {
+			const text = await response.text();
+			if (text.length === 0 && response.status === 200) {
+				return Promise.resolve({ success: true } as unknown as T);
+			}
+			try {
+				return JSON.parse(text) as T;
+			} catch (e) {
+				console.error("Failed to parse JSON response even though Content-Type was application/json", text);
+				throw new Error("Invalid JSON response from server.");
+			}
+		}
+		return Promise.resolve(null as unknown as T);
 	}
 
 	// =========================================
@@ -217,9 +257,9 @@ export class DbService {
 	 * @returns Promise with updated user data
 	 */
 	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
-		this.logRequest('PATCH', `${API_PREFIX}${USER.BY_ID(userId)}`, userData);
+		this.logRequest('PATCH', `${API_PREFIX}${USER.ME_UPDATE} (for user ${userId})`, userData);
 		
-		return this.fetchApi<User>(USER.BY_ID(userId), {
+		return this.fetchApi<User>(USER.ME_UPDATE, {
 			method: 'PATCH',
 			body: JSON.stringify(userData)
 		});
@@ -338,26 +378,35 @@ export class DbService {
 	 * Gets the uploaded profile picture link for a user.
 	 * The endpoint is /profile/pics/:id, served by the profile service.
 	 * @param userId - The user's ID
-	 * @returns Promise with the picture link object e.g. { link: "/uploads/picture.jpg" }
+	 * @returns Promise with the picture link object with a fully qualified path
 	 */
 	static async getPic(userId: string): Promise<IGetPicResponse> {
 		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE_PIC_LINK(userId)}`);
-		return this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
+		const response = await this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
+		
+		if (response && response.link) {
+			// Extract the filename from the path
+			const pathParts = response.link.split('/');
+			const fileName = pathParts[pathParts.length - 1];
+			
+			response.link = `http://localhost:8085/uploads/${fileName}`;
+			console.log(response.link);
+		}
+		
+		return response;
 	}
 
 	/**
 	 * Update user profile picture
-	 * @param userId - The UUID of the user
 	 * @param imageData - Base64 encoded image data or File object
 	 */
-	static async updateProfilePicture(userId: string, imageData: string | File): Promise<any> {
-		this.logRequest('PUT', `/api/profile/${userId}/picture`, { imageData: '...[truncated]' });
+	static async updateProfilePicture(imageData: string | File): Promise<any> {
+		this.logRequest('POST', `${USER.UPLOADS}`, { imageData: '...[truncated]' });
 		
 		// Handle different types of image data
 		if (typeof imageData === 'string') {
-			// Base64 encoded string
-			return this.fetchApi<any>(`/profile/${userId}/picture`, {
-				method: 'PUT',
+			return this.fetchApi<any>(`${USER.UPLOADS}`, {
+				method: 'POST',
 				body: JSON.stringify({ image: imageData }),
 			});
 		} else {
@@ -365,8 +414,8 @@ export class DbService {
 			const formData = new FormData();
 			formData.append('image', imageData);
 			
-			return this.fetchApi<any>(`/profile/${userId}/picture`, {
-				method: 'PUT',
+			return this.fetchApi<any>(`${USER.UPLOADS}`, {
+				method: 'POST',
 				body: formData,
 				headers: {}
 			});
@@ -382,6 +431,16 @@ export class DbService {
 		this.logRequest('GET', `/api/friends/${userId}/${friendId}`);
 		return this.fetchApi<any>(`/friends/${userId}/${friendId}`);
 	}
+
+		/**
+	 * Get friendship status
+	 * @param userId - Current user UUID
+	 * @param friendId - Friend's UUID
+	 */
+		static async getHistory(userId: string): Promise<any> {
+			this.logRequest('GET', `/api/friends/${userId}}`);
+			return this.fetchApi<any>(`/friends/${userId}`);
+		}
 
 	/**
 	 * Add a friend

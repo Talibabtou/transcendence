@@ -4,7 +4,7 @@
  */
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
 import { DbService, html, render, navigate, ASCII_ART, ApiError, AppStateManager } from '@website/scripts/utils';
-import { UserProfile, ProfileState } from '@website/types';
+import { UserProfile, ProfileState, User } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 /**
@@ -17,6 +17,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	private historyComponent?: ProfileHistoryComponent;
 	private friendsComponent?: ProfileFriendsComponent;
 	private settingsComponent?: ProfileSettingsComponent;
+	private lastSettingsProfileId?: string; // To track the profile ID for the current settingsComponent
 	
 	// Track if initial render has occurred
 	private initialRenderComplete = false;
@@ -112,40 +113,65 @@ export class ProfileComponent extends Component<ProfileState> {
 		const tabContentDiv = this.container.querySelector(`.tab-content`);
 		if (!tabContentDiv) return;
 		
-		// Clear previous content
-		tabContentDiv.innerHTML = '';
-		
-		// Create container for the new tab
+		// --- Conditional reuse for settings tab ---
+		if (tabName === 'settings' && this.settingsComponent && this.lastSettingsProfileId === state.profile.id) {
+			// Settings tab is the target, an instance exists, and it's for the *same profile ID*.
+
+			// Use the public getter method
+			const settingsContainer = this.settingsComponent.getDOMContainer();
+			
+			if (settingsContainer.parentElement !== tabContentDiv) {
+				// This implies tabContentDiv was cleared, or settingsComponent was detached.
+				// Clear tabContentDiv and re-append the existing settingsComponent's container.
+				tabContentDiv.innerHTML = ''; 
+				tabContentDiv.appendChild(settingsContainer);
+			}
+			// else, settingsComponent.container is already in place.
+
+			this.settingsComponent.setProfile(state.profile); // Pass the (potentially updated) profile data
+			settingsContainer.classList.add('active'); // Ensure its container is styled as active
+			return; // Instance reused.
+		}
+		// --- End of conditional reuse ---
+
+		// If we reach here, we're creating a tab fresh.
+		tabContentDiv.innerHTML = ''; // Clear content for the new tab.
 		const tabContainer = document.createElement('div');
 		tabContainer.className = 'tab-pane active';
 		tabContainer.id = `tab-content-${tabName}`;
 		tabContentDiv.appendChild(tabContainer);
+
+		// Destroy previous settings component if we are navigating away from it, 
+		// or creating settings for a different user.
+		if (this.settingsComponent && (tabName !== 'settings' || this.lastSettingsProfileId !== state.profile.id)) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+			this.lastSettingsProfileId = undefined;
+		}
+		// Similar logic for other components if they need explicit destruction or state saving.
 		
 		switch (tabName) {
 			case 'stats':
 				this.statsComponent = new ProfileStatsComponent(tabContainer);
 				this.statsComponent.setProfile(state.profile);
 				break;
-				
 			case 'history':
 				this.historyComponent = new ProfileHistoryComponent(tabContainer);
 				this.historyComponent.setProfile(state.profile);
-				this.historyComponent.setHandlers({
-					onPlayerClick: this.handlePlayerClick
-				});
+				this.historyComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
 				break;
-				
 			case 'friends':
 				this.friendsComponent = new ProfileFriendsComponent(tabContainer);
 				this.friendsComponent.setProfile(state.profile);
-				this.friendsComponent.setHandlers({
-					onPlayerClick: this.handlePlayerClick
-				});
+				this.friendsComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
 				break;
-				
 			case 'settings':
 				this.settingsComponent = new ProfileSettingsComponent(tabContainer);
-				this.settingsComponent.setProfile(state.profile);
+				this.settingsComponent.setProfile(state.profile); // Uses the refined setProfile
+				this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
+				this.lastSettingsProfileId = state.profile.id; // Track ID for this new instance
 				break;
 		}
 	}
@@ -193,23 +219,36 @@ export class ProfileComponent extends Component<ProfileState> {
 				}
 			}
 			
+			if (!userId) {
+				this.updateInternalState({ errorMessage: 'No user ID provided', isLoading: false });
+				return;
+			}
+
 			try {
-				if (!userId) {
-					throw new Error('No user ID provided');
-				}
-				const user = await DbService.getUserProfile(userId);
+				// Fetch main user profile details
+				const user = await DbService.getUserProfile(userId); // Contains username, summary etc.
 				if (!user) {
 					throw new Error(`User with ID ${userId} not found`);
 				}
 				
+				// Fetch the profile picture URL using DbService.getPic
+				let avatarUrl = '/images/default-avatar.svg'; // Default
+				try {
+					const picResponse = await DbService.getPic(userId);
+					if (picResponse && picResponse.link) {
+						avatarUrl = picResponse.link;
+					}
+				} catch (picError) {
+					console.warn(`Could not fetch profile picture for user ${userId}. Using default.`, picError);
+					// Keep default avatarUrl
+				}
+
 				const userAccentColor = AppStateManager.getUserAccentColor(user.id);
 
 				const userProfile: UserProfile = {
 					id: String(user.id),
 					username: user.username,
-					avatarUrl: user.pics?.link && user.pics.link !== "undefined" 
-						? user.pics.link 
-						: '/images/default-avatar.svg',
+					avatarUrl: avatarUrl, // Use the fetched or default avatar URL
 					totalGames: user.summary?.total_matches || 0,
 					wins: user.summary?.victories || 0,
 					losses: (user.summary?.total_matches || 0) - (user.summary?.victories || 0),
@@ -221,28 +260,30 @@ export class ProfileComponent extends Component<ProfileState> {
 					elo: user.summary?.elo || 1000
 				};
 				
-				this.updateInternalState({ profile: userProfile });
+				this.updateInternalState({ profile: userProfile, isLoading: false, errorMessage: undefined });
 			} catch (error) {
+				let specificErrorMessage = 'Failed to load profile data.';
 				if (error instanceof ApiError) {
 					if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-						this.updateInternalState({ 
-							errorMessage: `User with ID ${userId} not found`
-						});
+						specificErrorMessage = `User with ID ${userId} not found`;
 					} else {
-						this.updateInternalState({ 
-							errorMessage: error.message
-						});
+						specificErrorMessage = error.message;
 					}
-				} else {
-					console.error('Error fetching user data from DB:', error);
-					this.updateInternalState({ 
-						errorMessage: `Error loading user profile: ${error instanceof Error ? error.message : 'Unknown error'}`
-					});
+				} else if (error instanceof Error) {
+					specificErrorMessage = error.message;
 				}
+				console.error('Error fetching user data from DB:', error);
+				this.updateInternalState({ 
+					errorMessage: specificErrorMessage,
+					isLoading: false 
+				});
 			}
-		} catch (error) {
-			console.error('Error in fetchProfileData:', error);
-			throw new Error('Failed to fetch profile data');
+		} catch (error) { // Catches errors from URL parsing or lack of userId before DB calls
+			console.error('Error in fetchProfileData setup:', error);
+			this.updateInternalState({ 
+				errorMessage: error instanceof Error ? error.message : 'Failed to determine user for profile',
+				isLoading: false 
+			});
 		}
 	}
 
@@ -283,6 +324,39 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 	
 	/**
+	 * Handles updates from the ProfileSettingsComponent
+	 */
+	private handleProfileSettingsUpdate = async (updatedFields: Partial<User>): Promise<void> => {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+
+		let profileWasActuallyUpdatedInParent = false;
+		const newProfileDataForParent = { ...state.profile };
+
+		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
+			newProfileDataForParent.username = updatedFields.username;
+			profileWasActuallyUpdatedInParent = true;
+		}
+		
+		// If avatar was updated, settings component handles its own display.
+		// We need to re-fetch to update the summary in ProfileComponent.
+		// A simpler way is to just re-trigger fetchProfileData if any sensitive field changed.
+		// For now, we only explicitly handle username.
+		// If `updatedFields` contained an avatar change indicator, we would also set `profileWasActuallyUpdatedInParent = true;`
+		// or directly call `await this.fetchProfileData();` and then `this.renderView();`
+
+		if (profileWasActuallyUpdatedInParent) {
+			this.updateInternalState({ profile: newProfileDataForParent });
+			// This state update triggers ProfileComponent.render() -> renderView().
+			// renderView() will redraw the summary with the new username.
+			// If the settings tab is active, it should be reused correctly.
+		}
+		// If an avatar was changed in settings, the settings tab updates its own image.
+		// To update the main profile summary avatar, we would need a more robust refresh or direct update.
+		// The `triggerProfileRefresh` event from settings.ts can be listened to here.
+	}
+	
+	/**
 	 * Renders the profile view based on current state
 	 */
 	private renderView(): void {
@@ -314,11 +388,23 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (!state.isLoading && !state.errorMessage && state.profile) {
 			const profileContent = this.container.querySelector('.profile-content');
 			if (profileContent) {
-				profileContent.innerHTML = '';
+				// If profileContent already has children from a previous render,
+				// we might want to update them instead of clearing and re-adding,
+				// or ensure this part only runs once for initial setup of the summary structure.
+				// For simplicity in this example, let's assume it's safe to clear and re-add if called multiple times,
+				// but for precise DOM update, you'd be more surgical.
 				
-				// Render summary
-				const summaryElement = document.createElement('div');
-				summaryElement.className = 'profile-hero';
+				// Check if summary already exists to avoid re-creating basic structure if only content needs update
+				let summaryElement = profileContent.querySelector('.profile-hero') as HTMLElement;
+				if (!summaryElement) {
+					profileContent.innerHTML = '';
+					summaryElement = document.createElement('div');
+					summaryElement.className = 'profile-hero';
+					profileContent.appendChild(summaryElement);
+				}
+
+				// Update or create summary content
+				// Using textContent for dynamic parts to prevent XSS if data is ever user-supplied directly here
 				summaryElement.innerHTML = `
 					<div class="profile-avatar">
 						<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
@@ -342,55 +428,57 @@ export class ProfileComponent extends Component<ProfileState> {
 					</div>
 				`;
 				
-				profileContent.appendChild(summaryElement);
-				
-				// Check if this is the current user's profile
-				const isCurrentUserProfile = this.isCurrentUserProfile(state.profile.id);
-				
-				// Add tabs - only show settings for current user
-				const tabsHTML = `
-					<div class="profile-tabs">
-						<ul class="tabs-list">
-							<li class="tab-item ${state.activeTab === 'stats' ? 'active' : ''}">
-								<button class="tab-button">Statistics</button>
-							</li>
-							<li class="tab-item ${state.activeTab === 'history' ? 'active' : ''}">
-								<button class="tab-button">Match History</button>
-							</li>
-							<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}">
-								<button class="tab-button">Friends</button>
-							</li>
-							${isCurrentUserProfile ? `
-								<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}">
-									<button class="tab-button">Settings</button>
+				let tabsOuterContainer = profileContent.querySelector('.profile-tabs-outer-container') as HTMLElement;
+				if (!tabsOuterContainer) {
+					tabsOuterContainer = document.createElement('div');
+					tabsOuterContainer.className = 'profile-tabs-outer-container'; // Wrapper for tabs + content
+
+					const isCurrentUserProfile = this.isCurrentUserProfile(state.profile.id);
+					const tabsHTML = `
+						<div class="profile-tabs">
+							<ul class="tabs-list">
+								<li class="tab-item ${state.activeTab === 'stats' ? 'active' : ''}" data-tab="stats">
+									<button class="tab-button">Statistics</button>
 								</li>
-							` : ''}
-						</ul>
-					</div>
-					<div class="tab-content"></div>
-				`;
-				
-				const tabsContainer = document.createElement('div');
-				tabsContainer.innerHTML = tabsHTML;
-				
-				// Add event listeners to tabs - adjust for possible missing settings tab
-				const tabButtons = tabsContainer.querySelectorAll('.tab-button');
-				Array.from(tabButtons).forEach((button, index) => {
-					button.addEventListener('click', () => {
-						const tabNames = ['stats', 'history', 'friends'];
-						if (isCurrentUserProfile) {
-							tabNames.push('settings');
-						}
-						if (index < tabNames.length) {
-							this.handleTabChange(tabNames[index]);
+								<li class="tab-item ${state.activeTab === 'history' ? 'active' : ''}" data-tab="history">
+									<button class="tab-button">Match History</button>
+								</li>
+								<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
+									<button class="tab-button">Friends</button>
+								</li>
+								${isCurrentUserProfile ? `
+									<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
+										<button class="tab-button">Settings</button>
+									</li>
+								` : ''}
+							</ul>
+						</div>
+						<div class="tab-content"></div> <!-- Tab content will be rendered here by createTabComponent -->
+					`;
+					tabsOuterContainer.innerHTML = tabsHTML;
+					profileContent.appendChild(tabsOuterContainer);
+
+					// Add event listeners to tab buttons
+					tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
+						tabItem.addEventListener('click', () => {
+							const tabId = (tabItem as HTMLElement).dataset.tab;
+							if (tabId) {
+								this.handleTabChange(tabId);
+							}
+						});
+					});
+				} else {
+					// If tabs structure already exists, just update active class
+					tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
+						const tabId = (tabItem as HTMLElement).dataset.tab;
+						if (tabId === state.activeTab) {
+							tabItem.classList.add('active');
+						} else {
+							tabItem.classList.remove('active');
 						}
 					});
-				});
-				
-				// Add tabs to content
-				while (tabsContainer.firstChild) {
-					profileContent.appendChild(tabsContainer.firstChild);
 				}
+				// The active tab content itself is managed by createTabComponent via handleTabChange
 			}
 		}
 	}
@@ -399,7 +487,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Checks if the profile being viewed belongs to the current user
 	 */
 	private isCurrentUserProfile(profileId: string): boolean {
-		// Get the current user from local storage
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (!currentUserJson) return false;
 		

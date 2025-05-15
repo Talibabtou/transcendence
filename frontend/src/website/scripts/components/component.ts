@@ -246,4 +246,8 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 			}, 0);
 		}
 	}
+
+	public getDOMContainer(): HTMLElement {
+		return this.container;
+	}
 }

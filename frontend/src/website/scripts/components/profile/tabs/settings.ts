@@ -3,12 +3,16 @@
  * Allows users to update their profile settings
  */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, appState, ApiError } from '@website/scripts/utils';
-import { UserProfile, ProfileSettingsState } from '@website/types';
+import { html, render, DbService, appState, ApiError, hashPassword } from '@website/scripts/utils';
+import { UserProfile, ProfileSettingsState, User } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { AppStateManager } from '@website/scripts/utils/app-state';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
+	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
+	private initialDbUsername: string | null = null;
+	private initialDbEmail: string | null = null;
+
 	constructor(container: HTMLElement) {
 		super(container, {
 			profile: null,
@@ -16,6 +20,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			uploadSuccess: false,
 			uploadError: null,
 			saveSuccess: false,
+			noChangesMessage: null,
 			formData: {
 				username: '',
 				email: '',
@@ -37,40 +42,81 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	public setProfile(profile: UserProfile): void {
+		const currentComponentState = this.getInternalState();
 		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
-
-		const formData = {
-			username: profile.username || '',
-			email: '',
-			password: '',
-			confirmPassword: '',
-		};
-
-		const updatedProfile = {
+		const newProfileDataForComponentState = {
 			...profile,
 			preferences: {
-				...profile.preferences,
+				...(profile.preferences || {}),
 				accentColor: userAccentColor
 			}
 		};
 
-		DbService.getUser(profile.id)
-			.then(user => {
-				if (user && user.email) {
-					this.updateInternalState({
-						profile: updatedProfile,
-						formData: {
-							...formData,
-							email: user.email
-						}
-					});
-				} else {
-					this.updateInternalState({ profile: updatedProfile, formData });
-				}
-			})
-			.catch(() => {
-				this.updateInternalState({ profile: updatedProfile, formData });
+		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
+			this.initialDbUsername = profile.username || '';
+			this.initialDbEmail = null;
+
+			const initialFormData = {
+				username: profile.username || '',
+				email: '',
+				password: '',
+				confirmPassword: '',
+			};
+
+			this.updateInternalState({
+				profile: newProfileDataForComponentState,
+				formData: initialFormData,
+				formErrors: {},
+				saveSuccess: false,
+				noChangesMessage: null,
 			});
+
+			if (profile.id) {
+				DbService.getUser(profile.id)
+					.then(userFromDb => {
+						this.initialDbUsername = userFromDb.username;
+						this.initialDbEmail = userFromDb.email || null;
+						
+						this.updateInternalState({
+
+							profile: {
+								...this.getInternalState().profile!,
+								username: userFromDb.username
+							},
+							formData: {
+
+								...this.getInternalState().formData, 
+								username: userFromDb.username,
+								email: userFromDb.email || ''
+							}
+						});
+					})
+					.catch((err) => {
+						console.warn(`Settings: Could not fetch full user details for ${profile.id}. Username/email comparisons might be based on initial prop.`, err);
+						this.updateInternalState({
+							profile: newProfileDataForComponentState,
+							formData: {
+                                ...this.getInternalState().formData,
+                                username: profile.username || '',
+                            }
+						});
+					});
+			}
+		} else {
+			this.updateInternalState({
+				profile: newProfileDataForComponentState,
+				formData: {
+					...currentComponentState.formData,
+					username: profile.username || '', 
+				}
+			});
+		}
+	}
+	
+	public setHandlers(handlers: { onProfileUpdate?: (updatedFields: Partial<User>) => void }): void {
+		if (handlers.onProfileUpdate) {
+			this.onProfileUpdate = handlers.onProfileUpdate;
+		}
 	}
 	
 	render(): void {
@@ -85,9 +131,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		const template = html`
 			<div class="settings-content">
-				<!-- Grid layout with 4 equal sections -->
 				<div class="settings-grid">
-					<!-- Section 1: Profile Picture -->
 					<div class="settings-section">
 						<h3 class="section-title">Profile Picture</h3>
 						<div class="profile-picture-container">
@@ -114,7 +158,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						</div>
 					</div>
 					
-					<!-- Section 2: Accent Color -->
 					<div class="settings-section">
 						<h3 class="section-title">Accent Color</h3>
 						<div class="player-color-selection settings-color-selection">
@@ -143,10 +186,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						</div>
 					</div>
 					
-					<!-- Section 3: Account Information -->
 					<div class="settings-section">
 						<h3 class="section-title">Account Information</h3>
-						<!-- Username -->
 						<div class="form-group">
 							<label for="username">Username</label>
 							<input 
@@ -160,7 +201,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								html`<div class="form-error">${state.formErrors.username}</div>` : ''}
 						</div>
 						
-						<!-- Email -->
 						<div class="form-group">
 							<label for="email">Email</label>
 							<input 
@@ -175,10 +215,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						</div>
 					</div>
 					
-					<!-- Section 4: Change Password -->
 					<div class="settings-section">
 						<h3 class="section-title">Change Password</h3>
-						<!-- New Password -->
 						<div class="form-group">
 							<label for="password">New Password</label>
 							<input 
@@ -192,7 +230,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								html`<div class="form-error">${state.formErrors.password}</div>` : ''}
 						</div>
 						
-						<!-- Confirm Password -->
 						<div class="form-group">
 							<label for="confirmPassword">Confirm Password</label>
 							<input 
@@ -208,15 +245,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					</div>
 				</div>
 				
-				<!-- Save Button - Centered Below All Sections -->
 				<form class="settings-form" onsubmit=${(e: Event) => this.handleSubmit(e)}>
 					<div class="form-actions">
 						<button type="submit" class="save-settings-button">
 							Save Changes
 						</button>
-						${state.saveSuccess ? html`<span class="save-success-icon">✓</span>` : ''}
-						${state.formErrors.form ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
+						${state.saveSuccess && !state.noChangesMessage ? html`<span class="save-success-icon">✓</span>` : ''}
+						${state.formErrors.form && !state.noChangesMessage ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
 					</div>
+					${state.noChangesMessage ? html`<div class="no-changes-message">${state.noChangesMessage}</div>` : ''}
 				</form>
 			</div>
 		`;
@@ -224,142 +261,115 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		render(template, this.container);
 	}
 	
-	// Handle file upload for profile picture
+	/**
+	 * Handle file upload for profile picture
+	 */
 	private handleFileChange(event: Event): void {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
 		
 		if (file) {
 			const state = this.getInternalState();
+			if (!state.profile) return; // Ensure profile exists
 			
-			// Validate file type
 			const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
 			if (!validTypes.includes(file.type)) {
 				this.updateInternalState({
 					uploadError: 'Invalid file type. Please use JPG, PNG, or SVG.',
-					uploadSuccess: false
+					uploadSuccess: false,
+					isUploading: false
 				});
 				return;
 			}
 			
-			// Validate file size (max 2MB)
-			if (file.size > 2 * 1024 * 1024) {
+			if (file.size > 2 * 1024 * 1024) { // 2MB
 				this.updateInternalState({
 					uploadError: 'File too large. Maximum size is 2MB.',
-					uploadSuccess: false
+					uploadSuccess: false,
+					isUploading: false
 				});
 				return;
 			}
 			
-			// Start upload
 			this.updateInternalState({
 				isUploading: true,
 				uploadError: null,
 				uploadSuccess: false
 			});
 			
-			// Create a new file with user ID as the name
-			const fileExtension = file.name.split('.').pop();
-			const newFileName = `${state.profile?.id}.${fileExtension}`;
+			// No need for FileReader or newFileName for display if DbService handles it all
 			
-			// In a real implementation, we would use FormData to upload to server
-			// For our mock, we'll use FileReader to simulate upload
-			const reader = new FileReader();
-			reader.onload = (e) => {
-				const result = e.target?.result;
-				if (result && state.profile) {
-					// Update db with new profile picture URL
-					const newAvatarUrl = `/images/${newFileName}`;
-					
-					// Simulate server-side upload success
-					setTimeout(() => {
-						// Update user profile in database
-						DbService.updateProfilePicture(state.profile!.id, newAvatarUrl)
-						.then(() => {
-							// Update local state
-							this.updateInternalState({
-								isUploading: false,
-								uploadSuccess: true,
-								profile: {
-									...state.profile!,
-									avatarUrl: newAvatarUrl
-								}
-							});
-							
-							// Update AppState to propagate changes to all components
-							appState.updateUserData({
-								profilePicture: newAvatarUrl
-							});
-							
-							// Update global game state for player avatars
-							appState.setPlayerAvatar(state.profile!.id, newAvatarUrl);
-							
-							// Trigger profile summary refresh
-							this.triggerProfileRefresh();
-							
-							this.render();
-						})
-						.catch(error => {
-							if (error instanceof ApiError) {
-								if (error.isErrorCode(ErrorCodes.INVALID_TYPE)) {
-									this.updateInternalState({
-										isUploading: false,
-										uploadError: 'Invalid image format'
-									});
-								} else if (error.isErrorCode(ErrorCodes.NO_FILE_PROVIDED)) {
-									this.updateInternalState({
-										isUploading: false,
-										uploadError: 'No file provided'
-									});
-								} else {
-									this.updateInternalState({
-										isUploading: false,
-										uploadError: `Upload failed: ${error.message}`
-									});
-								}
-							} else {
-								this.updateInternalState({
-									isUploading: false,
-									uploadError: `Upload failed: ${error.message}`
-								});
+			DbService.updateProfilePicture(file) 
+				.then((responseFromUpload) => {
+					// responseFromUpload.link is the fully qualified URL from DbService
+					if (responseFromUpload && responseFromUpload.link && state.profile) {
+						this.updateInternalState({
+							isUploading: false,
+							uploadSuccess: true,
+							uploadError: null, // Clear previous errors
+							profile: { // Update the local avatar URL for immediate display in settings
+								...state.profile,
+								avatarUrl: responseFromUpload.link 
 							}
 						});
-					}, 1000); // Simulate upload delay
-				}
-			};
-			
-			reader.onerror = () => {
-				this.updateInternalState({
-					isUploading: false,
-					uploadError: 'Error reading file.'
+						
+						// Update global app state (for other components that might use it directly)
+						appState.updateUserData({
+							profilePicture: responseFromUpload.link
+						});
+						appState.setPlayerAvatar(state.profile.id, responseFromUpload.link);
+						
+						// Notify parent (ProfileComponent) to refresh its data, including the summary avatar
+						if (this.onProfileUpdate) {
+							// Pass an indicator that the avatar changed, or let ProfileComponent always refetch on any setting update.
+							// For simplicity here, we rely on triggerProfileRefresh which ProfileComponent should listen to.
+						}
+						this.triggerProfileRefresh(); // This event should cause ProfileComponent to re-fetch and re-render
+					} else {
+						throw new Error("Profile picture upload succeeded but no valid link was returned.");
+					}
+				})
+				.catch(error => {
+					let specificError = "Upload failed. Please try again.";
+					if (error instanceof ApiError) {
+						if (error.isErrorCode(ErrorCodes.INVALID_TYPE)) {
+							specificError = 'Invalid image format';
+						} else if (error.isErrorCode(ErrorCodes.NO_FILE_PROVIDED)) {
+							specificError = 'No file provided for upload';
+						} else {
+							specificError = `Upload failed: ${error.message}`;
+						}
+					} else if (error instanceof Error) {
+						specificError = error.message;
+					}
+					this.updateInternalState({
+						isUploading: false,
+						uploadError: specificError,
+						uploadSuccess: false
+					});
 				});
-			};
-			
-			reader.readAsDataURL(file);
 		}
 	}
 	
-	// Handle color selection
+	/**
+	 * Handle color selection
+	 */
 	private handleColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 
 		AppStateManager.setUserAccentColor(state.profile.id, colorHex);
 		
-		// For current user (Player 1 equivalent), also update the session slot color.
 		appState.setPlayerAccentColor(1, colorHex, state.profile.id);
-
-		// No need to call appState.updatePlayerTheme here, as setUserAccentColor is the new source of truth.
-		// No need to directly update this.updateInternalState({ profile: updatedProfile }) here
-		// because the 'user:theme-updated' event + handleExternalThemeUpdate + this.render() will handle it.
 	}
 	
-	// Handle form input changes
+	/**
+	 * Handle form input changes
+	 */
 	private handleInputChange(event: Event): void {
 		const input = event.target as HTMLInputElement;
 		const { name, value } = input;
 		
-		// Update form data
 		this.updateInternalState({
 			formData: {
 				...this.getInternalState().formData,
@@ -368,29 +378,27 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		});
 	}
 	
-	// Handle form submission
-	private handleSubmit(event: Event): void {
+	/**
+	 * Handle form submission
+	 */
+	private async handleSubmit(event: Event): Promise<void> {
 		event.preventDefault();
 		
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
-		// Validate form
 		const errors: { [key: string]: string } = {};
 		
-		// Username validation
 		if (!state.formData.username) {
 			errors.username = 'Username is required';
 		} else if (state.formData.username.length < 3) {
 			errors.username = 'Username must be at least 3 characters';
 		}
 		
-		// Email validation
 		if (state.formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.formData.email)) {
 			errors.email = 'Please enter a valid email address';
 		}
 		
-		// Password validation
 		if (state.formData.password || state.formData.confirmPassword) {
 			if (state.formData.password.length < 6) {
 				errors.password = 'Password must be at least 6 characters';
@@ -401,93 +409,86 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			}
 		}
 		
-		// If there are errors, update state and stop
 		if (Object.keys(errors).length > 0) {
-			this.updateInternalState({ formErrors: errors });
+			this.updateInternalState({ formErrors: errors, saveSuccess: false, noChangesMessage: null });
 			return;
 		}
+		this.updateInternalState({ formErrors: {}, noChangesMessage: null });
+		const updateData: Partial<User> = {};
 		
-		// Clear any previous errors
-		this.updateInternalState({ formErrors: {} });
-		
-		// Prepare update data
-		const updateData: any = {};
-		
-		// Only include fields that have changed or are being set
-		if (state.formData.username !== state.profile.username) {
+		if (state.formData.username !== this.initialDbUsername) {
 			updateData.username = state.formData.username;
 		}
-		
-		// Send email if it's provided in the form.
-		// The backend controller auth.controller.ts checks `if (email)` before updating.
-		if (state.formData.email) {
-			// To send email only if it changed from initial, you'd need to store initialEmail.
-			// Current logic sends it if non-empty. Assuming this is fine.
+		if (state.formData.email !== this.initialDbEmail) {
+
 			updateData.email = state.formData.email;
 		}
-		
-		// Send password if it's provided in the form.
 		if (state.formData.password) {
-			updateData.password = state.formData.password;
+			// Hash the password before sending to the database
+			updateData.password = await hashPassword(state.formData.password);
 		}
 		
-		// If nothing has changed, don't make an API call
 		if (Object.keys(updateData).length === 0) {
-			// Optionally, show a message "No changes to save"
-			this.updateInternalState({ saveSuccess: true, formErrors: { form: 'No changes detected.' } });
+			this.updateInternalState({ 
+				saveSuccess: false,
+				noChangesMessage: 'No changes detected.',
+				formErrors: { form: undefined }
+			});
 			setTimeout(() => {
-				this.updateInternalState({ saveSuccess: false, formErrors: { form: undefined } });
+				this.updateInternalState({ noChangesMessage: null });
 			}, 2000);
 			return;
 		}
+
+		const newUsername = updateData.username || state.profile.username;
+		const newEmail = updateData.email !== undefined ? updateData.email : this.initialDbEmail;
+
+		this.initialDbUsername = newUsername;
+		this.initialDbEmail = newEmail;
 		
-		// Update user data in database
+		this.updateInternalState({
+			profile: {
+				...state.profile,
+				username: newUsername,
+			},
+			formData: {
+				username: newUsername,
+				email: newEmail || '',
+				password: '',
+				confirmPassword: ''
+			},
+			saveSuccess: true,
+			noChangesMessage: null,
+			formErrors: { form: undefined }
+		});
+		
+		// Propagate necessary changes
+		const actualChangesForParent: Partial<User> = {};
+		if (updateData.username) actualChangesForParent.username = newUsername;
+		if (updateData.email !== undefined) actualChangesForParent.email = newEmail || undefined;
+		
+		if (Object.keys(actualChangesForParent).length > 0) {
+			appState.updateUserData(actualChangesForParent);
+			if (actualChangesForParent.username) {
+				appState.setPlayerName(state.profile.id, actualChangesForParent.username);
+			}
+			this.updateAuthUserInStorage(actualChangesForParent);
+			if (this.onProfileUpdate) {
+				this.onProfileUpdate(actualChangesForParent);
+			}
+		}
+		
+		// Hide the green success ticker after 2 seconds for actual saves
+		setTimeout(() => {
+			this.updateInternalState({ saveSuccess: false });
+		}, 2000);
+
 		DbService.updateUser(state.profile.id, updateData)
-			.then((updatedUser) => {
-				// Assuming updatedUser is the User object returned by the server
-				const updatedProfile = {
-					...state.profile!,
-					username: updatedUser.username
-				};
-				
-				this.updateInternalState({
-					profile: updatedProfile,
-					formData: {
-						...state.formData,
-						username: updatedUser.username,
-						email: updatedUser.email || '',
-						password: '',
-						confirmPassword: ''
-					},
-					saveSuccess: true,
-					formErrors: { form: undefined }
-				});
-				
-				// Update AppState
-				appState.updateUserData({
-					username: updatedUser.username,
-					email: updatedUser.email
-				});
-				
-				// Update global game state for player names
-				appState.setPlayerName(state.profile!.id, updatedUser.username);
-				
-				// Update auth user in localStorage/sessionStorage
-				this.updateAuthUserInStorage(updatedUser);
-				
-				// Trigger profile summary refresh
-				this.triggerProfileRefresh();
-				
-				// Set timeout to hide success indicator after 2 seconds
-				setTimeout(() => {
-					this.updateInternalState({
-						saveSuccess: false
-					});
-				}, 2000);
-				
-				this.render();
-			})
 			.catch(error => {
+				// Rollback optimistic updates
+				this.initialDbUsername = this.initialDbUsername;
+				this.initialDbEmail = this.initialDbEmail;
+
 				const currentFormErrors = { ...state.formErrors };
 				if (error instanceof ApiError) {
 					switch(error.code) {
@@ -506,18 +507,31 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				} else {
 					currentFormErrors.form = `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`;
 				}
-				this.updateInternalState({ formErrors: currentFormErrors, saveSuccess: false });
+				this.updateInternalState({ 
+					formErrors: currentFormErrors, 
+					saveSuccess: false,
+					formData: {
+						username: this.initialDbUsername || '',
+						email: this.initialDbEmail || '',
+						password: '',
+						confirmPassword: ''
+					},
+					profile: {
+						...state.profile!,
+						username: this.initialDbUsername || '',
+					}
+				});
 			});
 	}
 	
-	// Helper method to update auth user in storage
+	/**
+	 * Helper method to update auth user in storage
+	 */
 	private updateAuthUserInStorage(updatedUser: any): void {
-		// Get current auth user from storage
 		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (authUserJson) {
 			try {
 				const authUser = JSON.parse(authUserJson);
-				// Update relevant fields
 				const updatedAuthUser = {
 					...authUser,
 					pseudo: updatedUser.username,
@@ -525,7 +539,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					email: updatedUser.email || authUser.email
 				};
 				
-				// Save back to the same storage
 				if (localStorage.getItem('auth_user')) {
 					localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 				} else if (sessionStorage.getItem('auth_user')) {
@@ -537,22 +550,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 	
-	// Helper method to trigger profile summary refresh
+	/**
+	 * Helper method to trigger profile summary refresh
+	 */
 	private triggerProfileRefresh(): void {
-		// Dispatch a custom event that the profile component can listen for
-		// This event may still be useful if other parts of the profile summary
-		// not directly handled by this settings tab need to react to general data updates.
-		const event = new CustomEvent('profile-data-updated');
-		document.dispatchEvent(event);
-		
-		// Also try to find and refresh the profile component directly
-		const profileComponent = document.querySelector('.profile-component');
-		if (profileComponent && profileComponent.parentElement) {
-			// This assumes the profile component has a refresh or reload method
-			// This is likely still fine for username/avatar changes from settings.
-			const event = new CustomEvent('refresh-profile-data');
-			profileComponent.dispatchEvent(event);
-		}
+		// This event should be listened to by the parent ProfileComponent
+		const event = new CustomEvent('refresh-profile-data', { bubbles: true, composed: true });
+		this.container.dispatchEvent(event); // Dispatch from the component's container
+	}
+	
+	public getDOMContainer(): HTMLElement {
+		return this.container;
 	}
 	
 	destroy(): void {

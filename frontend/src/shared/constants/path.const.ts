@@ -43,6 +43,7 @@ export const USER = {
 	BY_ID: (id: string | number) => `/auth/user/${id}`,
 	BY_USERNAME: (username: string) => `/auth/id/${username}`,
 	ME: '/auth/user/me',
+	ME_UPDATE: '/auth/user',
 	PROFILE: '/profile/summary',
 	UPLOADS: '/profile/uploads',
 	PROFILE_PIC_LINK: (id: string) => `/profile/pics/${id}`,

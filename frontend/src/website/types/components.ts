@@ -57,6 +57,7 @@ export interface ProfileSettingsState {
 	uploadSuccess: boolean;
 	uploadError: string | null;
 	saveSuccess: boolean;
+	noChangesMessage: string | null;
 	formData: {
 		username: string;
 		email: string;
