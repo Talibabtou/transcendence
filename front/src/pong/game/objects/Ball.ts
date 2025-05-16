@@ -37,6 +37,10 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	private _prevPositionObj: PositionValue;
 	private _normalizedVelocity: VelocityValue;
 
+	// Path2D for drawing
+	private ballPath: Path2D | null = null;
+	private static readonly UNIT_CIRCLE_RADIUS = 1;
+
 	/**
 	 * Creates a new Ball instance
 	 * @param x The initial x position
@@ -66,21 +70,37 @@ export class Ball implements GraphicalElement, PhysicsObject {
 			this._normalizedVelocity.dx = this.dx / magnitude;
 			this._normalizedVelocity.dy = this.dy / magnitude;
 		}
+
+		this.createBallPath();
+	}
+
+	private createBallPath(): void {
+		this.ballPath = new Path2D();
+		this.ballPath.arc(0, 0, Ball.UNIT_CIRCLE_RADIUS, 0, Math.PI * 2);
+		// No closePath needed for a full arc that fills
 	}
 
 	/**
-	 * Draws the ball on the canvas using interpolation
+	 * Draws the ball on the canvas using interpolation and Path2D
 	 * @param alpha Interpolation factor (0 to 1)
 	 */
 	public draw(ctx: GameContext, alpha: number): void {
+		if (!this.ballPath) {
+			this.createBallPath(); // Should have been created in constructor
+			if (!this.ballPath) return; // Still null, something went wrong
+		}
+
 		const interpolatedX = this.prevRenderX * (1 - alpha) + this.x * alpha;
 		const interpolatedY = this.prevRenderY * (1 - alpha) + this.y * alpha;
 
-		ctx.beginPath();
+		ctx.save();
+		ctx.translate(interpolatedX, interpolatedY);
+		// Scale the unit circle path to the current ball size
+		// this.size is the actual radius desired.
+		ctx.scale(this.size / Ball.UNIT_CIRCLE_RADIUS, this.size / Ball.UNIT_CIRCLE_RADIUS);
 		ctx.fillStyle = this.color;
-		ctx.arc(interpolatedX, interpolatedY, this.size, 0, Math.PI * 2);
-		ctx.fill();
-		ctx.closePath();
+		ctx.fill(this.ballPath);
+		ctx.restore();
 	}
 
 	/**

@@ -269,8 +269,13 @@ export class PhysicsManager {
             player.freezeMovement(0.2);
           }
           const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+
+          // Reuse tmpPos for the contact point argument
+          this.tmpPos.x = contactX;
+          this.tmpPos.y = contactY;
+
           const finalVel = applyPaddleDeflection(
-            { x: contactX, y: contactY },
+            this.tmpPos, // Pass pre-allocated tmpPos
             reflectedVel,
             pTop, pBottom
           );

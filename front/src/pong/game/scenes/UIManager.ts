@@ -24,6 +24,12 @@ export class UIManager {
 	// Reusable object for getTextPosition
 	private _reusableTextPosition = { x: 0, y: 0 };
 
+	// Offscreen canvas for countdown numbers
+	private countdownNumberCanvas: HTMLCanvasElement;
+	private countdownNumberContext: CanvasRenderingContext2D | null;
+	private cachedCountdownNumberString: string = "";
+	private cachedCountdownNumberFont: string = "";
+
 	/**
 	 * Creates a new UIManager instance
 	 * @param context The canvas rendering context
@@ -45,6 +51,15 @@ export class UIManager {
 		if (this.player2NameContext) {
 			this.player2NameCanvas.width = initialNameCanvasWidth;
 			this.player2NameCanvas.height = initialNameCanvasHeight;
+		}
+
+		// Initialize countdown number offscreen canvas
+		this.countdownNumberCanvas = document.createElement('canvas');
+		this.countdownNumberContext = this.countdownNumberCanvas.getContext('2d');
+		if (this.countdownNumberContext) {
+			// Fixed size, large enough for biggest number/style
+			this.countdownNumberCanvas.width = 150; 
+			this.countdownNumberCanvas.height = 150;
 		}
 	}
 
@@ -151,15 +166,17 @@ export class UIManager {
 			this.context.canvas.width,
 			this.context.canvas.height
 		);
-		this.setTextStyle(
-			`${sizes.COUNTDOWN_SIZE} ${FONTS.FAMILIES.COUNTDOWN}`,
-			UI_CONFIG.TEXT.COLOR,
-			UI_CONFIG.TEXT.ALIGN
-		);
+
 		if (Array.isArray(this.countdownText)) {
+			// Direct drawing for messages, ensure style is set on main context
+			this.setTextStyle(
+				`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`, // Example, adjust as needed for messages
+				UI_CONFIG.TEXT.COLOR,
+				UI_CONFIG.TEXT.ALIGN
+			);
 			this.drawCountdownMessages(sizes);
 		} else if (typeof this.countdownText === 'number') {
-			this.drawCountdownNumber();
+			this.drawCountdownNumber(sizes); // Pass sizes to get the font
 		}
 	}
 
@@ -178,17 +195,47 @@ export class UIManager {
 	}
 
 	/**
-	 * Draws countdown number with stroke effect
+	 * Draws countdown number with stroke effect using an offscreen canvas
 	 */
-	private drawCountdownNumber(): void {
+	private drawCountdownNumber(sizes: ReturnType<typeof calculateFontSizes>): void {
+		if (!this.countdownNumberContext || typeof this.countdownText !== 'number') return;
+
+		const text = this.countdownText.toString();
+		const font = `${sizes.COUNTDOWN_SIZE} ${FONTS.FAMILIES.COUNTDOWN}`;
+
+		// Redraw to offscreen canvas only if text or font changes
+		if (text !== this.cachedCountdownNumberString || font !== this.cachedCountdownNumberFont) {
+			this.cachedCountdownNumberString = text;
+			this.cachedCountdownNumberFont = font;
+
+			this.countdownNumberContext.clearRect(0, 0, this.countdownNumberCanvas.width, this.countdownNumberCanvas.height);
+			// Style for the offscreen canvas context, text centered
+			this.setTextStyleHelper(
+				this.countdownNumberContext,
+				font,
+				UI_CONFIG.TEXT.COLOR,
+				'center',
+				'middle'
+			);
+			// Draw centered in the offscreen canvas
+			const offscreenCenterX = this.countdownNumberCanvas.width / 2;
+			const offscreenCenterY = this.countdownNumberCanvas.height / 2;
+
+			this.countdownNumberContext.strokeStyle = UI_CONFIG.TEXT.STROKE.COLOR;
+			this.countdownNumberContext.lineWidth = UI_CONFIG.TEXT.STROKE.WIDTH;
+			this.countdownNumberContext.strokeText(text, offscreenCenterX, offscreenCenterY);
+			this.countdownNumberContext.fillText(text, offscreenCenterX, offscreenCenterY);
+		}
+
+		// Draw the offscreen canvas onto the main canvas
 		const customCenterY = this.context.canvas.height * 0.25;
 		const pos = this.getTextPosition(0, 1, customCenterY);
-		const text = this.countdownText!.toString();
-		
-		this.context.strokeStyle = UI_CONFIG.TEXT.STROKE.COLOR;
-		this.context.lineWidth = UI_CONFIG.TEXT.STROKE.WIDTH;
-		this.context.strokeText(text, pos.x, pos.y);
-		this.context.fillText(text, pos.x, pos.y);
+
+		this.context.drawImage(
+			this.countdownNumberCanvas,
+			pos.x - this.countdownNumberCanvas.width / 2,
+			pos.y - this.countdownNumberCanvas.height / 2
+		);
 	}
 
 		
