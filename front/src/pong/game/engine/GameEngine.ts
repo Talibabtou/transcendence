@@ -144,8 +144,9 @@ export class GameEngine {
 			this.context.canvas.height = height;
 		}
 		if (this.scene instanceof GameScene) {
-			this.scene.Player1?.updateSizes();
-			this.scene.Player2?.updateSizes();
+			if (this.scene.ResizeManager) {
+				this.scene.ResizeManager.onCanvasResizedByEngine();
+			}
 		}
 		this.draw(1);
 	}

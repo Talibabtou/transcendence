@@ -17,9 +17,9 @@ export class ResizeManager {
 	private player1: Player | null;
 	private player2: Player | null;
 	private pauseManager: PauseManager | null;
-	private boundResizeHandler: () => void;
 	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
 	private lastResizeEvt = 0;
+	private resizeTimeoutId: number | null = null;
 
 	/**
 	 * Creates a new ResizeManager
@@ -44,8 +44,6 @@ export class ResizeManager {
 		this.player1 = player1;
 		this.player2 = player2;
 		this.pauseManager = pauseManager;
-		this.boundResizeHandler = this.handleResize.bind(this);
-		this.setupResizeHandler();
 	}
 
 
@@ -53,77 +51,56 @@ export class ResizeManager {
 	 * Cleans up resources and event listeners
 	 */
 	public cleanup(): void {
-		window.removeEventListener('resize', this.boundResizeHandler);
+		if (this.resizeTimeoutId !== null) {
+			clearTimeout(this.resizeTimeoutId);
+			this.resizeTimeoutId = null;
+		}
 		this.context = null as any;
 		this.scene = null as any;
 		this.ball = null as any;
 		this.player1 = null as any;
 		this.player2 = null as any;
 		this.pauseManager = null as any;
-		this.boundResizeHandler = null as any;
 	}
 
 
 
 	/**
-	 * Main resize handler that orchestrates the resize process
+	 * Called by GameEngine when the canvas has been resized.
+	 * Orchestrates the resize process for game objects.
 	 */
-	public handleResize(): void {
-		const now = performance.now();
-		if (now - this.lastResizeEvt < this.DEBOUNCE_MS) {
-			this.isResizing = false;
-			return;
+	public onCanvasResizedByEngine(): void {
+		if (this.resizeTimeoutId !== null) {
+			clearTimeout(this.resizeTimeoutId);
 		}
-		this.lastResizeEvt = now;
-		this.isResizing   = true;
-		const isBackgroundMode = this.isInBackgroundDemo();
-		const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
-		const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
 
-		if (!isBackgroundMode && this.pauseManager) {
-			if (wasPlaying) {
-				this.pauseManager.pause(); // Saves state, sets to PAUSED
-			} else if (wasInCountdown) {
-				// Cleanly stop countdown, set to PAUSED, keep existing snapshot if any.
-				this.pauseManager.forcePauseFromCountdownKeepSnapshot();
+		this.resizeTimeoutId = window.setTimeout(() => {
+			this.isResizing = true;
+			const isBackgroundMode = this.isInBackgroundDemo();
+			const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
+			const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
+
+			if (!isBackgroundMode && this.pauseManager) {
+				if (wasPlaying) {
+					this.pauseManager.pause();
+				} else if (wasInCountdown) {
+					this.pauseManager.forcePauseFromCountdownKeepSnapshot();
+				}
 			}
-		}
 
-		requestAnimationFrame(() => {
-			this.updateCanvasSize();
-			this.resizeGameObjects();
-			this.isResizing = false;
-		});
-	}
-
-	/**
-	 * Updates the canvas size while preserving context properties
-	 */
-	private updateCanvasSize(): void {
-		const targetWidth = window.innerWidth;
-		const targetHeight = window.innerHeight;
-		
-		if (this.context.canvas.width !== targetWidth || 
-				this.context.canvas.height !== targetHeight) {
-			const contextProps = {
-					fillStyle: this.context.fillStyle,
-					strokeStyle: this.context.strokeStyle,
-					lineWidth: this.context.lineWidth,
-					font: this.context.font,
-					textAlign: this.context.textAlign,
-					textBaseline: this.context.textBaseline,
-					globalAlpha: this.context.globalAlpha,
-			};
-			this.context.canvas.width = targetWidth;
-			this.context.canvas.height = targetHeight;
-			Object.assign(this.context, contextProps);
-		}
+			requestAnimationFrame(() => {
+				this.resizeGameObjects();
+				this.isResizing = false;
+				this.resizeTimeoutId = null;
+			});
+		}, this.DEBOUNCE_MS);
 	}
 
 	/**
 	 * Resizes all game objects while maintaining proper proportions
 	 */
 	private resizeGameObjects(): void {
+		console.log('[ResizeManager] resizeGameObjects: Called.');
 		if (!this.isGameScene()) {
 			this.scene.draw(1);
 			return;
@@ -132,6 +109,7 @@ export class ResizeManager {
 		const sizes = calculateGameSizes(newWidth, newHeight);
 		if (!this.ball || !this.player1 || !this.player2) return;
 		const gameSnapshot = this.pauseManager?.GameSnapshot;
+		console.log('[ResizeManager] resizeGameObjects: Game snapshot:', gameSnapshot);
 		this.ball.updateSizes();
 		this.player1.updateSizes();
 		this.player2.updateSizes();
@@ -197,6 +175,5 @@ export class ResizeManager {
 	////////////////////////////////////////////////////////////
 	private isGameScene(): boolean { return !!(this.ball && this.player1 && this.player2 && this.pauseManager); }
 	private isInBackgroundDemo(): boolean { return this.scene.isBackgroundDemo(); }
-	private setupResizeHandler(): void { window.addEventListener('resize', this.boundResizeHandler); }
 	public isCurrentlyResizing(): boolean { return this.isResizing; }
 }

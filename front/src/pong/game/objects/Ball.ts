@@ -128,6 +128,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	 */
 	public saveState(): BallState {
 		const { width, height } = this.context.canvas;
+		console.log('[Ball] saveState: Called. Canvas dimensions:', { x: this.x/width, y: this.y/height, width, height });
 		return {
 			position: {
 				x: this.x / width,
@@ -147,6 +148,13 @@ export class Ball implements GraphicalElement, PhysicsObject {
 
 		this.x = width * state.position.x;
 		this.y = height * state.position.y;
+
+		// Sync previous render and physics positions to the new state
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
+		this.prevPosition.x = this.x;
+		this.prevPosition.y = this.y;
+
 		if (state.velocity.dx !== 0 || state.velocity.dy !== 0) {
 			this.dx = state.velocity.dx;
 			this.dy = state.velocity.dy;
@@ -154,6 +162,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 			this.currentSpeed = this.baseSpeed * this.speedMultiplier;
 			this.dx = state.velocity.dx * this.currentSpeed;
 			this.dy = state.velocity.dy * this.currentSpeed;
+		}
+		// Add an else case to ensure velocity is zeroed out if state.velocity is zero
+		else {
+			this.dx = 0;
+			this.dy = 0;
+			this.currentSpeed = 0; // Or adjust based on how speedMultiplier affects zero velocity
 		}
 	}
 

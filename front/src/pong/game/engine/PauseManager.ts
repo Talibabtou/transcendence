@@ -48,7 +48,7 @@ export class PauseManager {
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
 		this.startCountdown(() => {
-			this.ball.launchBall();
+			// this.ball.launchBall();
 			this.states.delete(GameState.COUNTDOWN);
 			this.states.add(GameState.PLAYING);
 			this.isFirstStart = false;
