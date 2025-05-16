@@ -7,23 +7,11 @@ import {
     correctPosition,
     checkCircleAABBOverlap,
     applyPaddleDeflection,
-    sweepCircleVsMovingRect
+    sweepCircleVsMovingRect,
+		SweepResult,
+		CircleAABBOverlapResult
 } from './PhysicsUtils';
 
-// =========================================
-// Result Interfaces for Physics Calculations
-// =========================================
-export interface SweepResult {
-  t: number;
-  normal: { nx: number; ny: number };
-  collided: boolean;
-}
-
-export interface CircleAABBOverlapResult {
-  penetration: { dx: number; dy: number };
-  normal: { nx: number; ny: number };
-  collided: boolean;
-}
 
 export class PhysicsManager {
   private ball: Ball;

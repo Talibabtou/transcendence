@@ -1,6 +1,18 @@
 import { Ball } from '../objects';
 import { BALL_CONFIG } from '@pong/constants';
-import { SweepResult, CircleAABBOverlapResult } from './PhysicsManager'; // Assuming interfaces are exported from PhysicsManager
+
+
+export interface SweepResult {
+  t: number;
+  normal: { nx: number; ny: number };
+  collided: boolean;
+}
+
+export interface CircleAABBOverlapResult {
+  penetration: { dx: number; dy: number };
+  normal: { nx: number; ny: number };
+  collided: boolean;
+}
 
 /**
  * Helper for basic velocity reflection.
