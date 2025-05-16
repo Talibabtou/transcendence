@@ -5,9 +5,9 @@ import { GameSizes } from '@pong/types';
 // =========================================
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
-	MAX_STEPS_PER_FRAME: 8,
-	FRAME_TIME: 1000 / 50,
-	MAX_DELTA_TIME: 60, // Maximum delta time to prevent spiral of death (increased from 10 to 100)
+	MAX_STEPS_PER_FRAME: 4,
+	FRAME_TIME: 1000 / 60,
+	MAX_DELTA_TIME: 30, // Maximum delta time to prevent spiral of death (increased from 10 to 100)
 	MAX_MATCH_DURATION: 1000 * 60 * 10, // 10 minutes
 	MIN_SIZES: {
 		BALL_SIZE: 5

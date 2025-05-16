@@ -3,6 +3,11 @@ import { Paddle } from './Paddle';
 import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
 import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
 
+// Assuming VelocityValue is defined as: interface VelocityValue { dx: number; dy: number; }
+// For the purpose of this edit, we'll assume it (or a similar type) is available.
+// If not, it should be defined here or imported.
+interface VelocityValue { dx: number; dy: number; }
+
 /**
  * Represents a player in the game, managing paddle movement,
  * input handling, scoring, and AI behavior.
@@ -34,6 +39,7 @@ export class Player implements GraphicalElement {
 	private readonly collisionPointVec: { x: number; y: number };
 	private readonly finalPredictedImpactPointVec: { x: number; y: number };
 	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 10;
+	private _reusableVelocityVector: VelocityValue;
 
 	/**
 	 * Handles keyboard keydown events for player control
@@ -105,6 +111,7 @@ export class Player implements GraphicalElement {
 		this.currentVelVec = { dx: 0, dy: 0 };
 		this.collisionPointVec = { x: 0, y: 0 };
 		this.finalPredictedImpactPointVec = { x: 0, y: 0 };
+		this._reusableVelocityVector = { dx: 0, dy: 0 };
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
 			this._downKey = KEYS.PLAYER_LEFT_DOWN;
@@ -409,29 +416,31 @@ export class Player implements GraphicalElement {
 		currentVel: { dx: number; dy: number },
 		simulatedSpeedMultiplier: number,
 		baseSpeed: number
-	): { newVel: { dx: number; dy: number }; newSpeedMultiplier: number } {
-		const newVel = { dx: currentVel.dx, dy: currentVel.dy };
+	): { newVel: VelocityValue; newSpeedMultiplier: number } {
+		this._reusableVelocityVector.dx = currentVel.dx;
+		this._reusableVelocityVector.dy = currentVel.dy;
+
 		if (collisionType === 'top' || collisionType === 'bottom') {
-			newVel.dy *= -1;
+			this._reusableVelocityVector.dy *= -1;
 		} else if (collisionType === 'opponent') {
-			newVel.dx *= -1;
+			this._reusableVelocityVector.dx *= -1;
 		}
 		const newSimulatedSpeedMultiplier = Math.min(
 			simulatedSpeedMultiplier + BALL_CONFIG.ACCELERATION.RATE,
 			BALL_CONFIG.ACCELERATION.MAX_MULTIPLIER
 		);
 		const simulatedCurrentSpeed = baseSpeed * newSimulatedSpeedMultiplier;
-		const magnitude = Math.sqrt(newVel.dx * newVel.dx + newVel.dy * newVel.dy);
+		const magnitude = Math.sqrt(this._reusableVelocityVector.dx * this._reusableVelocityVector.dx + this._reusableVelocityVector.dy * this._reusableVelocityVector.dy);
 		if (magnitude > 1e-6) {
-			const normDx = newVel.dx / magnitude;
-			const normDy = newVel.dy / magnitude;
-			newVel.dx = normDx * simulatedCurrentSpeed;
-			newVel.dy = normDy * simulatedCurrentSpeed;
+			const normDx = this._reusableVelocityVector.dx / magnitude;
+			const normDy = this._reusableVelocityVector.dy / magnitude;
+			this._reusableVelocityVector.dx = normDx * simulatedCurrentSpeed;
+			this._reusableVelocityVector.dy = normDy * simulatedCurrentSpeed;
 		} else {
-			newVel.dx = 0;
-			newVel.dy = 0;
+			this._reusableVelocityVector.dx = 0;
+			this._reusableVelocityVector.dy = 0;
 		}
-		return { newVel, newSpeedMultiplier: newSimulatedSpeedMultiplier };
+		return { newVel: this._reusableVelocityVector, newSpeedMultiplier: newSimulatedSpeedMultiplier };
 	}
 
 	private _predictTargetYAtMaxBounces(

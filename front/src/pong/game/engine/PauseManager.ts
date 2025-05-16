@@ -260,7 +260,6 @@ export class PauseManager {
 			player1RelativeY: p1Center,
 			player2RelativeY: p2Center
 		};
-		console.log('[PauseManager] saveGameState: Snapshot created with effectiveHeight:', effectiveCanvasHeight, 'P1 RelY:', p1Center, 'P2 RelY:', p2Center, 'Snapshot:', JSON.stringify(this.gameSnapshot));
 	}
 
 	/**

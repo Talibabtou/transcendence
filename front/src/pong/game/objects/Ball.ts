@@ -1,6 +1,16 @@
 import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
+interface PositionValue {
+	x: number;
+	y: number;
+}
+
+interface VelocityValue {
+	dx: number;
+	dy: number;
+}
+
 /**
  * Represents the ball in the game, handling its movement,
  * physics, collisions, and rendering.
@@ -21,6 +31,12 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public prevRenderX: number = 0;
 	public prevRenderY: number = 0;
 
+	// Pre-allocated objects for getters
+	private _currentPosition: PositionValue;
+	private _currentVelocity: VelocityValue;
+	private _prevPositionObj: PositionValue;
+	private _normalizedVelocity: VelocityValue;
+
 	/**
 	 * Creates a new Ball instance
 	 * @param x The initial x position
@@ -38,6 +54,18 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this.prevPosition.y = this.y;
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
+
+		// Initialize pre-allocated objects
+		this._currentPosition = { x: this.x, y: this.y };
+		this._currentVelocity = { dx: this.dx, dy: this.dy };
+		this._prevPositionObj = { x: this.prevPosition.x, y: this.prevPosition.y };
+		this._normalizedVelocity = { dx: 0, dy: 0 };
+		// Initial calculation for normalized velocity if needed, or done on first get
+		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+		if (magnitude !== 0) {
+			this._normalizedVelocity.dx = this.dx / magnitude;
+			this._normalizedVelocity.dy = this.dy / magnitude;
+		}
 	}
 
 	/**
@@ -136,7 +164,6 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		const currentX = Math.max(0, Math.min(this.x, width));
 		const currentY = Math.max(0, Math.min(this.y, height));
 
-		console.log('[Ball] saveState: Called. Effective dimensions for save:', { x: currentX/width, y: currentY/height, width, height });
 		return {
 			position: {
 				x: currentX / width,
@@ -199,17 +226,32 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	////////////////////////////////////////////////////////////
 	// Getters
 	////////////////////////////////////////////////////////////
-	public get Velocity(): { dx: number; dy: number } { return { dx: this.dx, dy: this.dy };	}
-	public get Position(): { x: number; y: number } { return { x: this.x, y: this.y };	}
-	public get PrevPosition(): { x: number; y: number } { return { x: this.prevPosition.x, y: this.prevPosition.y }; }
+	public get Velocity(): VelocityValue {
+		this._currentVelocity.dx = this.dx;
+		this._currentVelocity.dy = this.dy;
+		return this._currentVelocity;
+	}
+	public get Position(): PositionValue {
+		this._currentPosition.x = this.x;
+		this._currentPosition.y = this.y;
+		return this._currentPosition;
+	}
+	public get PrevPosition(): PositionValue {
+		this._prevPositionObj.x = this.prevPosition.x;
+		this._prevPositionObj.y = this.prevPosition.y;
+		return this._prevPositionObj;
+	}
 	public get Context(): GameContext { return this.context; }
 	public get Size(): number { return this.size; }
-	public get NormalizedVelocity(): { dx: number; dy: number } {
+	public get NormalizedVelocity(): VelocityValue {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
-		if (magnitude === 0) return { dx: 0, dy: 0 };
-		return {
-			dx: this.dx / magnitude,
-			dy: this.dy / magnitude
-		};
+		if (magnitude === 0) {
+			this._normalizedVelocity.dx = 0;
+			this._normalizedVelocity.dy = 0;
+		} else {
+			this._normalizedVelocity.dx = this.dx / magnitude;
+			this._normalizedVelocity.dy = this.dy / magnitude;
+		}
+		return this._normalizedVelocity;
 	}
 }

@@ -16,6 +16,14 @@ export class UIManager {
 	private player1CachedName: string = '';
 	private player2CachedName: string = '';
 
+	// Cached dimensions and font sizes
+	private cachedCanvasWidth: number = 0;
+	private cachedCanvasHeight: number = 0;
+	private cachedFontSizes: ReturnType<typeof calculateFontSizes> | null = null;
+
+	// Reusable object for getTextPosition
+	private _reusableTextPosition = { x: 0, y: 0 };
+
 	/**
 	 * Creates a new UIManager instance
 	 * @param context The canvas rendering context
@@ -26,6 +34,18 @@ export class UIManager {
 		this.player1NameContext = this.player1NameCanvas.getContext('2d');
 		this.player2NameCanvas = document.createElement('canvas');
 		this.player2NameContext = this.player2NameCanvas.getContext('2d');
+
+		// Initialize name canvases to a fixed size
+		const initialNameCanvasWidth = 250; // Adjust as needed
+		const initialNameCanvasHeight = 60; // Adjust as needed
+		if (this.player1NameContext) {
+			this.player1NameCanvas.width = initialNameCanvasWidth;
+			this.player1NameCanvas.height = initialNameCanvasHeight;
+		}
+		if (this.player2NameContext) {
+			this.player2NameCanvas.width = initialNameCanvasWidth;
+			this.player2NameCanvas.height = initialNameCanvasHeight;
+		}
 	}
 
 	/**
@@ -48,7 +68,7 @@ export class UIManager {
 	 */
 	private drawScores(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.getFontSizes(width, height);
 
 		this.setTextStyle(
 			`${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`,
@@ -65,7 +85,7 @@ export class UIManager {
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.getFontSizes(width, height);
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
 		const paddingRight = width * 0.06;
@@ -74,10 +94,10 @@ export class UIManager {
 		if (player1.name !== this.player1CachedName || this.player1NameCanvas.width === 0) {
 			if (this.player1NameContext) {
 				this.player1CachedName = player1.name;
-				this.setTextStyleHelper(this.player1NameContext, nameFont, COLORS.NAMES, 'left', 'top');
-				const p1NameMetrics = this.player1NameContext.measureText(player1.name);
-				this.player1NameCanvas.width = p1NameMetrics.width * 1.1;
-				this.player1NameCanvas.height = parseInt(sizes.SUBTITLE_SIZE, 10) * 1.5;
+				if (this.player1NameCanvas.width === 0 || this.player1NameCanvas.height === 0) {
+					this.player1NameCanvas.width = 250;
+					this.player1NameCanvas.height = 60;
+				}
 				this.player1NameContext.clearRect(0, 0, this.player1NameCanvas.width, this.player1NameCanvas.height);
 				this.setTextStyleHelper(this.player1NameContext, nameFont, COLORS.NAMES, 'left', 'top');
 				this.player1NameContext.fillText(player1.name, 0, 0);
@@ -86,10 +106,10 @@ export class UIManager {
 		if (player2.name !== this.player2CachedName || this.player2NameCanvas.width === 0) {
 			if (this.player2NameContext) {
 				this.player2CachedName = player2.name;
-				this.setTextStyleHelper(this.player2NameContext, nameFont, COLORS.NAMES, 'left', 'top');
-				const p2NameMetrics = this.player2NameContext.measureText(player2.name);
-				this.player2NameCanvas.width = p2NameMetrics.width * 1.1;
-				this.player2NameCanvas.height = parseInt(sizes.SUBTITLE_SIZE, 10) * 1.5;
+				if (this.player2NameCanvas.width === 0 || this.player2NameCanvas.height === 0) {
+					this.player2NameCanvas.width = 250;
+					this.player2NameCanvas.height = 60;
+				}
 				this.player2NameContext.clearRect(0, 0, this.player2NameCanvas.width, this.player2NameCanvas.height);
 				this.setTextStyleHelper(this.player2NameContext, nameFont, COLORS.NAMES, 'left', 'top');
 				this.player2NameContext.fillText(player2.name, 0, 0);
@@ -108,7 +128,7 @@ export class UIManager {
 	 */
 	private drawPauseText(): void {
 		const { width, height } = this.context.canvas;
-		const sizes = calculateFontSizes(width, height);
+		const sizes = this.getFontSizes(width, height);
 
 		this.setTextStyle(
 			`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`,
@@ -127,7 +147,7 @@ export class UIManager {
 	 */
 	private drawCountdown(): void {
 		if (this.countdownText === null) return;
-		const sizes = calculateFontSizes(
+		const sizes = this.getFontSizes(
 			this.context.canvas.width,
 			this.context.canvas.height
 		);
@@ -203,10 +223,9 @@ export class UIManager {
 		const centerY = customCenterY !== undefined ? customCenterY : height * 0.5;
 		const startY = centerY - totalHeight * 0.5;
 		
-		return {
-			x: width * 0.5,
-			y: startY + (lineIndex * spacing)
-		};
+		this._reusableTextPosition.x = width * 0.5;
+		this._reusableTextPosition.y = startY + (lineIndex * spacing);
+		return this._reusableTextPosition;
 	}
 
 	public setCountdownText(text: string | number | string[] | null): void { this.countdownText = text; }
@@ -233,5 +252,15 @@ export class UIManager {
 		ctx.fillStyle = color;
 		ctx.textAlign = align;
 		ctx.textBaseline = baseline;
+	}
+
+	private getFontSizes(currentWidth: number, currentHeight: number): ReturnType<typeof calculateFontSizes> {
+		if (this.cachedFontSizes && this.cachedCanvasWidth === currentWidth && this.cachedCanvasHeight === currentHeight) {
+			return this.cachedFontSizes;
+		}
+		this.cachedCanvasWidth = currentWidth;
+		this.cachedCanvasHeight = currentHeight;
+		this.cachedFontSizes = calculateFontSizes(currentWidth, currentHeight);
+		return this.cachedFontSizes;
 	}
 }

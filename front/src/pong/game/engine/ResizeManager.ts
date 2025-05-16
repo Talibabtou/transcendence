@@ -118,7 +118,6 @@ export class ResizeManager {
 	 * Resizes all game objects while maintaining proper proportions
 	 */
 	private resizeGameObjects(): void {
-		console.log('[ResizeManager] resizeGameObjects: Called.');
 		if (!this.isGameScene() || !this.ball || !this.player1 || !this.player2) {
 			if (this.scene) this.scene.draw(1);
 			return;

@@ -12,6 +12,15 @@ import {
 		CircleAABBOverlapResult
 } from './PhysicsUtils';
 
+interface PositionVector {
+  x: number;
+  y: number;
+}
+
+interface DirectionVector {
+  dx: number;
+  dy: number;
+}
 
 export class PhysicsManager {
   private ball: Ball;
@@ -19,6 +28,8 @@ export class PhysicsManager {
   private player2: Player;
   private gameEngine: any;
   private gameScene: GameScene;
+  private tmpPos: PositionVector;
+  private tmpDir: DirectionVector;
 
   private sweepResult: SweepResult = { t: 0, normal: { nx: 0, ny: 0 }, collided: false };
   private overlapResult: CircleAABBOverlapResult = {
@@ -33,6 +44,8 @@ export class PhysicsManager {
     this.player2 = player2;
     this.gameEngine = gameEngine;
     this.gameScene = gameScene;
+    this.tmpPos = { x: 0, y: 0 };
+    this.tmpDir = { dx: 0, dy: 0 };
   }
 
   /**
@@ -79,14 +92,20 @@ export class PhysicsManager {
 			let reflectedOffVerticalWall = false;
 			const epsilon = ballRadius * 0.01;
 			const p0 = ball.prevPosition;
-			const p1 = { x: ball.x, y: ball.y };
-			const dir = { dx: p1.x - p0.x, dy: p1.y - p0.y };
-			if (Math.abs(dir.dx) > 1e-6 || Math.abs(dir.dy) > 1e-6) {
+
+      // Use pre-allocated vectors
+      this.tmpPos.x = ball.x;
+      this.tmpPos.y = ball.y;
+
+      this.tmpDir.dx = this.tmpPos.x - p0.x;
+      this.tmpDir.dy = this.tmpPos.y - p0.y;
+
+			if (Math.abs(this.tmpDir.dx) > 1e-6 || Math.abs(this.tmpDir.dy) > 1e-6) {
 				const topWallY = ballRadius;
-				if (p0.y > topWallY && p1.y <= topWallY) {
-					const t = (topWallY - p0.y) / dir.dy;
+				if (p0.y > topWallY && this.tmpPos.y <= topWallY) {
+					const t = (topWallY - p0.y) / this.tmpDir.dy;
 					if (t >= 0 && t <= 1) {
-						const hitX = p0.x + dir.dx * t;
+						const hitX = p0.x + this.tmpDir.dx * t;
 						ball.dy = Math.abs(ball.dy);
 						ball.y = topWallY + epsilon;
 						ball.x = hitX;
@@ -94,10 +113,10 @@ export class PhysicsManager {
 					}
 				}
 				const bottomWallY = canvas.height - ballRadius;
-				if (p0.y < bottomWallY && p1.y >= bottomWallY) {
-					const t = (bottomWallY - p0.y) / dir.dy;
+				if (p0.y < bottomWallY && this.tmpPos.y >= bottomWallY) {
+					const t = (bottomWallY - p0.y) / this.tmpDir.dy;
 					if (t >= 0 && t <= 1) {
-						const hitX = p0.x + dir.dx * t;
+						const hitX = p0.x + this.tmpDir.dx * t;
 						ball.dy = -Math.abs(ball.dy);
 						ball.y = bottomWallY - epsilon;
 						ball.x = hitX;
@@ -215,7 +234,7 @@ export class PhysicsManager {
     player: Player
   ): boolean {
     const ballRadius = ball.Size;
-    const epsilon = 0.01;
+    const epsilon = 0.02;
     const ballPosition = ball.Position;
     const ballVelocity = ball.Velocity;
     const paddleVelocity = player.paddle.Velocity;
@@ -225,11 +244,16 @@ export class PhysicsManager {
     const pBottom = player.y + player.paddle.paddleHeight;
     let hitOccurred = false;
     const prevBallPos = ball.PrevPosition ? ball.PrevPosition : ballPosition;
-    const ballMoveDir = { dx: ballPosition.x - prevBallPos.x, dy: ballPosition.y - prevBallPos.y };
+    
+    this.tmpDir.dx = ballPosition.x - prevBallPos.x;
+    this.tmpDir.dy = ballPosition.y - prevBallPos.y;
+    const ballMoveDir = this.tmpDir;
 
     if (Math.abs(ballMoveDir.dx) > 1e-6 || Math.abs(ballMoveDir.dy) > 1e-6) {
       sweepCircleVsMovingRect(
-        prevBallPos, ballMoveDir, ballRadius,
+        prevBallPos, 
+        ballMoveDir,
+        ballRadius,
         pLeft, pRight, pTop, pBottom,
         paddleVelocity,
         this.sweepResult

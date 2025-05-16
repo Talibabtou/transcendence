@@ -25,6 +25,7 @@ export class GameEngine {
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
 	public onGameOver?: (detail: any) => void;
+	private _gameStateInfo: GameStateInfo;
 
 	/**
 	 * Creates a new GameEngine.
@@ -33,6 +34,12 @@ export class GameEngine {
 	constructor(ctx: GameContext) {
 		this.context = ctx;
 		this.boundKeydownHandler = this.handleKeydown.bind(this);
+		this._gameStateInfo = {
+			player1Score: 0,
+			player2Score: 0,
+			isGameOver: false,
+			winner: null
+		};
 	}
 
 	/**
@@ -477,12 +484,11 @@ export class GameEngine {
 	////////////////////////////////////////////////////////////
 	public get MatchId(): number | null { return this.matchId; }
 	public get GameState(): GameStateInfo {
-		return {
-			player1Score: this.scene.Player1?.Score ?? 0,
-			player2Score: this.scene.Player2?.Score ?? 0,
-			isGameOver: this.scene.isGameOver(),
-			winner: this.scene.Winner
-		};
+		this._gameStateInfo.player1Score = this.scene?.Player1?.Score ?? 0;
+		this._gameStateInfo.player2Score = this.scene?.Player2?.Score ?? 0;
+		this._gameStateInfo.isGameOver = this.scene?.isGameOver() ?? false;
+		this._gameStateInfo.winner = this.scene?.Winner ?? null;
+		return this._gameStateInfo;
 	}
 	public get MatchDuration(): number {
 		if (!this.matchStartTime) return 0;
