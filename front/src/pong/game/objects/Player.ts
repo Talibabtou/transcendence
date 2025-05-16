@@ -566,6 +566,20 @@ export class Player implements GraphicalElement {
 		this.paddle.setPosition(this.x, this.y);
 	}
 
+	/**
+	 * Synchronizes the previous render state (prevRenderX, prevRenderY)
+	 * to the current x and y positions. This is crucial for correct drawing
+	 * when the game is paused and Player.update() might not be called,
+	 * but the player's position has been updated by external logic like ResizeManager.
+	 */
+	public syncPrevRenderStates(): void {
+		this.prevRenderX = this.x;
+		this.prevRenderY = this.y;
+		// If the Paddle object itself had its own prevRenderX/Y for interpolation,
+		// you might sync it here too, e.g., this.paddle.syncPrevRenderStates()
+		// For now, assuming Player's own prevRenderX/Y are primary for its drawing.
+	}
+
 	////////////////////////////////////////////////////////////
 	// Getters and setters
 	////////////////////////////////////////////////////////////

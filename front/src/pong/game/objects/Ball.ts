@@ -126,13 +126,21 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	/**
 	 * Saves the ball's current state for serialization
 	 */
-	public saveState(): BallState {
-		const { width, height } = this.context.canvas;
-		console.log('[Ball] saveState: Called. Canvas dimensions:', { x: this.x/width, y: this.y/height, width, height });
+	public saveState(canvasWidthOverride?: number, canvasHeightOverride?: number): BallState {
+		const width = canvasWidthOverride ?? this.context.canvas.width;
+		const height = canvasHeightOverride ?? this.context.canvas.height;
+		
+		// Ensure x and y are within bounds if overrides are significantly different, though usually,
+		// the ball's x,y should be valid for the dimensions it's currently operating in.
+		// This check is more of a safeguard if overrides are used in unusual ways.
+		const currentX = Math.max(0, Math.min(this.x, width));
+		const currentY = Math.max(0, Math.min(this.y, height));
+
+		console.log('[Ball] saveState: Called. Effective dimensions for save:', { x: currentX/width, y: currentY/height, width, height });
 		return {
 			position: {
-				x: this.x / width,
-				y: this.y / height
+				x: currentX / width,
+				y: currentY / height
 			},
 			velocity: this.NormalizedVelocity,
 			speedMultiplier: this.speedMultiplier

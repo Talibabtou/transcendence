@@ -86,7 +86,7 @@ export class ResizeManager {
 
 			if (!isBackgroundMode && this.pauseManager) {
 				if (wasPlaying) {
-					this.pauseManager.pause();
+					this.pauseManager.pause(this.previousCanvasWidth, this.previousCanvasHeight);
 				} else if (wasInCountdown) {
 					this.pauseManager.forcePauseFromCountdownKeepSnapshot();
 				}
@@ -96,7 +96,6 @@ export class ResizeManager {
 				this.resizeGameObjects();
 				this.isResizing = false;
 				this.resizeTimeoutId = null;
-				// Update previous dimensions after resize is complete
 				if (this.context && this.context.canvas) {
 					this.previousCanvasWidth = this.context.canvas.width;
 					this.previousCanvasHeight = this.context.canvas.height;
@@ -176,8 +175,10 @@ export class ResizeManager {
 		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
 		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
 
-		// playerN.updateHorizontalPosition() is typically called within playerN.updateSizes().
-		// If not, they would be needed here. Given current Player.ts, it is handled.
+		// Sync player's prevRender states AFTER their x,y are finalized for this resize step.
+		// Player.x is updated within player.updateSizes() via updateHorizontalPosition().
+		this.player1.syncPrevRenderStates();
+		this.player2.syncPrevRenderStates();
 
 		this.handleResizeDuringCountdown();
 		this.scene.draw(1);

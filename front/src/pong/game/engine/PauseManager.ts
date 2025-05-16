@@ -48,7 +48,7 @@ export class PauseManager {
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
 		this.startCountdown(() => {
-			// this.ball.launchBall();
+			this.ball.launchBall();
 			this.states.delete(GameState.COUNTDOWN);
 			this.states.add(GameState.PLAYING);
 			this.isFirstStart = false;
@@ -64,8 +64,9 @@ export class PauseManager {
 
 	/**
 	 * Pauses the current game state.
+	 * Accepts optional old canvas dimensions for accurate state saving during resize.
 	 */
-	public pause(): void {
+	public pause(oldCanvasWidth?: number, oldCanvasHeight?: number): void {
 		if (this.states.has(GameState.PAUSED)) {
 			return;
 		}
@@ -73,7 +74,7 @@ export class PauseManager {
 			this.pendingPauseRequest = true;
 			return;
 		}
-		this.saveGameState();
+		this.saveGameState(oldCanvasWidth, oldCanvasHeight);
 		this.states.delete(GameState.PLAYING);
 		this.states.add(GameState.PAUSED);
 		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
@@ -226,17 +227,25 @@ export class PauseManager {
 
 	/**
 	 * Saves the current game state into a snapshot.
+	 * Uses provided old canvas dimensions if available (e.g., during resize).
 	 */
-	private saveGameState(): void {
-		const canvas = this.ball.Context.canvas;
-		const p1Center = (this.player1.y + this.player1.paddleHeight * 0.5) / canvas.height;
-		const p2Center = (this.player2.y + this.player2.paddleHeight * 0.5) / canvas.height;
+	private saveGameState(oldCanvasWidth?: number, oldCanvasHeight?: number): void {
+		const effectiveCanvasHeight = oldCanvasHeight ?? this.ball.Context.canvas.height;
+		// Player paddle heights used here should be their current (pre-resize) heights.
+		// If updateSizes() has already run on players due to ResizeManager structure, this might need adjustment
+		// However, Player.paddleHeight is typically updated in Player.updateSizes(), which ResizeManager calls *after* pause.
+		const p1PaddleHeight = this.player1.paddleHeight; // Assuming this is pre-resize height
+		const p2PaddleHeight = this.player2.paddleHeight; // Assuming this is pre-resize height
+
+		const p1Center = (this.player1.y + p1PaddleHeight * 0.5) / effectiveCanvasHeight;
+		const p2Center = (this.player2.y + p2PaddleHeight * 0.5) / effectiveCanvasHeight;
 		
 		this.gameSnapshot = {
-			ballState: this.ball.saveState(),
+			ballState: this.ball.saveState(oldCanvasWidth, oldCanvasHeight), // Pass overrides
 			player1RelativeY: p1Center,
 			player2RelativeY: p2Center
 		};
+		console.log('[PauseManager] saveGameState: Snapshot created with effectiveHeight:', effectiveCanvasHeight, 'P1 RelY:', p1Center, 'P2 RelY:', p2Center, 'Snapshot:', JSON.stringify(this.gameSnapshot));
 	}
 
 	/**

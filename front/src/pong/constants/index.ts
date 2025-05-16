@@ -71,7 +71,7 @@ export const GAME_RATIOS = {
 export const BALL_CONFIG = {
 	SPEED: {
 		RELATIVE: {
-			TIME_TO_CROSS: 2.2,
+			TIME_TO_CROSS: 4.5,
 			INITIAL_ANGLE: {
 				MIN: 30,     // Minimum angle from horizontal
 				MAX: 40      // Maximum angle from horizontal
@@ -79,7 +79,7 @@ export const BALL_CONFIG = {
 		}
 	},
 	ACCELERATION: {
-		MAX_MULTIPLIER: 3.0,    // Maximum speed (4x initial speed)
+		MAX_MULTIPLIER: 1.0,    // Maximum speed (4x initial speed)
 		RATE: 0.05,             // 5% speed increase per hit
 		INITIAL: 1.0           // Initial speed multiplier
 	},
