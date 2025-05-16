@@ -36,7 +36,7 @@ export class UIManager {
 		this.player2NameContext = this.player2NameCanvas.getContext('2d');
 
 		// Initialize name canvases to a fixed size
-		const initialNameCanvasWidth = 250; // Adjust as needed
+		const initialNameCanvasWidth = 350; // Increased width for longer names
 		const initialNameCanvasHeight = 60; // Adjust as needed
 		if (this.player1NameContext) {
 			this.player1NameCanvas.width = initialNameCanvasWidth;
@@ -95,7 +95,7 @@ export class UIManager {
 			if (this.player1NameContext) {
 				this.player1CachedName = player1.name;
 				if (this.player1NameCanvas.width === 0 || this.player1NameCanvas.height === 0) {
-					this.player1NameCanvas.width = 250;
+					this.player1NameCanvas.width = 350;
 					this.player1NameCanvas.height = 60;
 				}
 				this.player1NameContext.clearRect(0, 0, this.player1NameCanvas.width, this.player1NameCanvas.height);
@@ -107,7 +107,7 @@ export class UIManager {
 			if (this.player2NameContext) {
 				this.player2CachedName = player2.name;
 				if (this.player2NameCanvas.width === 0 || this.player2NameCanvas.height === 0) {
-					this.player2NameCanvas.width = 250;
+					this.player2NameCanvas.width = 350;
 					this.player2NameCanvas.height = 60;
 				}
 				this.player2NameContext.clearRect(0, 0, this.player2NameCanvas.width, this.player2NameCanvas.height);
