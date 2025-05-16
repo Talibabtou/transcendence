@@ -1,33 +1,51 @@
+import { FastifyInstance } from 'fastify';
+import * as fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { Database } from 'sqlite';
+import { open, Database } from 'sqlite';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Define database interface for TypeScript
 declare module 'fastify' {
   interface FastifyInstance {
     db: Database;
   }
 }
 
-const dirname: string = path.resolve();
-const filepath: string = path.join(dirname, process.env.DB_FRIENDS || '/db/friends.sqlite');
+// Initialize database connection
+export async function dbConnector(fastify: FastifyInstance) {
+  // Select database based on environment
+  const dbPath: string = path.join(path.resolve(), 'db/friends.sqlite');
 
-export async function initDb(): Promise<Database<sqlite3.Database, sqlite3.Statement>> {
-  try {
-    const db: Database<sqlite3.Database, sqlite3.Statement> = await open({
-      filename: filepath,
-      driver: sqlite3.Database,
-    });
-    await db.exec(`
-        CREATE TABLE IF NOT EXISTS friends (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        id_1 VARCHAR(32) NOT NULL,
-        id_2 VARCHAR(32) NOT NULL,
-        accepted BOOLEAN NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP)
-    `);
-    return db;
-  } catch (err) {
-    throw new Error(`Database initialization failed: ${err}`);
-  }
+  fastify.log.info(`Connecting to database: ${dbPath}`);
+
+  // Open SQLite database connection
+  const db = await open({
+    filename: dbPath,
+    driver: sqlite3.Database,
+  });
+  // Increase busy timeout to 30 seconds
+  await db.exec('PRAGMA busy_timeout = 30000');
+  // Enable Write-Ahead Logging (WAL) mode
+  await db.exec('PRAGMA journal_mode = WAL');
+  // Set synchronous mode to NORMAL for better performance
+  await db.exec('PRAGMA synchronous = NORMAL');
+  // Set locking mode to EXCLUSIVE
+  // await db.exec('PRAGMA locking_mode = EXCLUSIVE');
+  await db.exec('PRAGMA foreign_keys = ON');
+
+  // Read SQL commands from files
+  const friendsSql = fs.readFileSync(path.join(__dirname, '../src/config/friends.sql'), 'utf-8');
+  // Initialize tables if they don't exist
+  await db.exec(friendsSql);
+  // Make database connection available through fastify instance
+  fastify.decorate('db', db);
+  // Close database connection when Fastify server closes
+  fastify.addHook('onClose', async (instance) => {
+    await instance.db.close();
+  });
+  console.log(`Database ${dbPath} successfully created`);
 }

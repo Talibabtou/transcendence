@@ -1,11 +1,13 @@
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { postPic, deletePic, getSummary, getPic } from '../controllers/profile.controller.js';
+import { postPic, deletePic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
 
 export default async function profilRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>('/pics/:id', getPic);
 
   fastify.get<{ Params: IId }>('/summary/:id', getSummary);
+
+  fastify.get<{ Params: IId }>('/history/: id', getHistory);
 
   fastify.post<{ Body: FormData; Params: IId }>('/uploads/:id', postPic);
 

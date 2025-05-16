@@ -74,7 +74,7 @@ export async function createElo(
   try {
     const startTime = performance.now(); // Start timer
     const newElo = (await request.server.db.get(
-      'INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+      'INSERT OR IGNORE INTO elo (player, elo) VALUES (?, ?) RETURNING *',
       player,
       elo
     )) as Elo;
@@ -152,6 +152,7 @@ export async function dailyElo(
   }
 }
 
+// Add this new function that doesn't handle HTTP responses
 export async function updateEloRatings(
   db: Database,
   winner: string,
@@ -192,6 +193,7 @@ export async function updateEloRatings(
   return { newWinnerElo, newLoserElo };
 }
 
+// Get a single elo by ID
 export async function getLeaderboard(
   request: FastifyRequest<{
     Querystring: GetLeaderboardQuery;

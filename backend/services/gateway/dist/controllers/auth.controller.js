@@ -13,6 +13,20 @@ export async function getId(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
+export async function getUsername(request, reply) {
+    try {
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const username = (await response.json());
+        return reply.code(response.status).send(username);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function getUsers(request, reply) {
     try {
         const subpath = request.url.split('/auth')[1];
@@ -222,6 +236,29 @@ export async function postLogin(request, reply) {
         }
         const data = (await response.json());
         return reply.code(response.status).send(data);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function postLoginGuest(request, reply) {
+    try {
+        const subpath = request.url.split('/auth')[1];
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+        const response = await fetch(serviceUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(request.body),
+        });
+        if (response.status >= 400) {
+            const responseData = (await response.json());
+            return reply.code(response.status).send(responseData);
+        }
+        return reply.code(response.status).send();
     }
     catch (err) {
         request.server.log.error(err);

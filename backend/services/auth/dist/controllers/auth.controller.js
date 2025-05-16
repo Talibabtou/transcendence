@@ -7,12 +7,30 @@ import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const
 export async function getId(request, reply) {
     try {
         const username = request.params.username;
-        const id = await request.server.db.get('SELECT id FROM users WHERE username = ?', [username]);
+        const id = await request.server.db.get('SELECT id FROM users WHERE username = ?', [
+            username,
+        ]);
         if (!id) {
             const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
             return reply.code(404).send(errorMessage);
         }
         return reply.code(200).send(id);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function getUsername(request, reply) {
+    try {
+        const id = request.params.id;
+        const username = await request.server.db.get('SELECT username FROM users WHERE id = ?', [id]);
+        if (!username) {
+            const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+            return reply.code(404).send(errorMessage);
+        }
+        return reply.code(200).send(username);
     }
     catch (err) {
         request.server.log.error(err);
@@ -248,6 +266,22 @@ export async function login(request, reply) {
             username: data.username,
         };
         return reply.code(200).send(user);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function loginGuest(request, reply) {
+    try {
+        const { email, password } = request.body;
+        const data = await request.server.db.get('SELECT id, role, username, two_factor_enabled, verified FROM users WHERE email = ? AND password = ?;', [email, password]);
+        if (!data) {
+            const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+            return reply.code(401).send(errorMessage);
+        }
+        return reply.code(200).send();
     }
     catch (err) {
         request.server.log.error(err);

@@ -162,6 +162,7 @@ try {
         const method = 'POST';
         const path = '/match';
         const match = {
+            player_1: userId1,
             player_2: userId2,
         };
         const response = await fetch(gameUrl + path, {
@@ -195,7 +196,7 @@ try {
         const name = 'Create goal success';
         count += 1;
         const method = 'POST';
-        const path = '/goal';
+        const path = `/goal/${userId1}`;
         const goal = {
             match_id: matchId,
             duration: 1,

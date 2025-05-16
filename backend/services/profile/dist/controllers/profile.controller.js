@@ -6,16 +6,33 @@ export async function getPic(request, reply) {
         const id = request.params.id;
         const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
         const existingFile = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
-        const link = {
-            link: `/uploads/${existingFile}`,
-        };
         if (existingFile) {
+            const link = {
+                link: `/uploads/${existingFile}`,
+            };
             return reply.code(200).send(link);
         }
         else {
-            const errorMessage = createErrorResponse(404, ErrorCodes.PICTURE_NOT_FOUND);
-            return reply.code(404).send(errorMessage);
+            const link = {
+                link: 'default',
+            };
+            return reply.code(200).send(link);
         }
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
+export async function getHistory(request, reply) {
+    try {
+        const id = request.params.id;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const responseData = (await response.json());
+        console.log(responseData);
+        return reply.code(200).send(responseData);
     }
     catch (err) {
         request.server.log.error(err);

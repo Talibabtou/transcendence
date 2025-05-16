@@ -13,6 +13,20 @@ export async function getPic(request, reply) {
         return reply.code(500).send(errorMessage);
     }
 }
+export async function getHistory(request, reply) {
+    try {
+        const subpath = request.url.split('/profile')[1];
+        const serviceUrl = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
+        const response = await fetch(serviceUrl, { method: 'GET' });
+        const responseData = (await response.json());
+        return reply.code(response.status).send(responseData);
+    }
+    catch (err) {
+        request.server.log.error(err);
+        const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+        return reply.code(500).send(errorMessage);
+    }
+}
 export async function getSummary(request, reply) {
     try {
         const subpath = request.url.split('/profile')[1];

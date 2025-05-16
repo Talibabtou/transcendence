@@ -385,12 +385,14 @@ export class DbService {
 		const response = await this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
 		
 		if (response && response.link) {
-			// Extract the filename from the path
 			const pathParts = response.link.split('/');
 			const fileName = pathParts[pathParts.length - 1];
 			
-			response.link = `http://localhost:8085/uploads/${fileName}`;
-			console.log(response.link);
+			if (fileName === 'default') {
+				response.link = '/public/images/default-avatar.svg';
+			} else {
+				response.link = `http://localhost:8085/uploads/${fileName}`;
+			}
 		}
 		
 		return response;
@@ -407,12 +409,12 @@ export class DbService {
 		if (typeof imageData === 'string') {
 			return this.fetchApi<any>(`${USER.UPLOADS}`, {
 				method: 'POST',
-				body: JSON.stringify({ image: imageData }),
+				body: JSON.stringify({ file: imageData }),
 			});
 		} else {
 			// File object
 			const formData = new FormData();
-			formData.append('image', imageData);
+			formData.append('file', imageData);
 			
 			return this.fetchApi<any>(`${USER.UPLOADS}`, {
 				method: 'POST',
@@ -432,15 +434,15 @@ export class DbService {
 		return this.fetchApi<any>(`/friends/${userId}/${friendId}`);
 	}
 
-		/**
+	/**
 	 * Get friendship status
 	 * @param userId - Current user UUID
 	 * @param friendId - Friend's UUID
 	 */
-		static async getHistory(userId: string): Promise<any> {
-			this.logRequest('GET', `/api/friends/${userId}}`);
-			return this.fetchApi<any>(`/friends/${userId}`);
-		}
+	static async getHistory(userId: string): Promise<any> {
+		this.logRequest('GET', `/api/friends/${userId}}`);
+		return this.fetchApi<any>(`/friends/${userId}`);
+	}
 
 	/**
 	 * Add a friend

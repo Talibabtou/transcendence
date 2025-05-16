@@ -162,6 +162,7 @@ try {
         const method = 'POST';
         const path = '/match';
         const match = {
+            player_1: userId1,
             player_2: userId2,
             tournament_id: 'ee39d4ea-bca8-b517-1fd6-168def8e547f',
         };

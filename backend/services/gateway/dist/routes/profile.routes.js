@@ -1,5 +1,5 @@
-import { deletePic, postPic, getSummary, getPic } from '../controllers/profile.controller.js';
-import { deleteSchema, getPicSchema } from '../schemas/profile.schemas.js';
+import { deletePic, postPic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
+import { deleteSchema, uploadSchema, getPicSchema, summarySchema, getHistorySchema, } from '../schemas/profile.schemas.js';
 const auth = { auth: true, roles: ['user', 'admin'] };
 export default async function profileRoutes(fastify) {
     fastify.get('/profile/pics/:id', {
@@ -9,18 +9,25 @@ export default async function profileRoutes(fastify) {
         },
         config: auth,
     }, getPic);
+    fastify.get('/profile/history/:id', {
+        schema: {
+            ...getHistorySchema,
+            tags: ['profile'],
+        },
+        config: auth,
+    }, getHistory);
     fastify.get('/profile/summary/:id', {
-        // schema: {
-        //   ...summarySchema,
-        //   tags: ['profile'],
-        // },
+        schema: {
+            ...summarySchema,
+            tags: ['profile'],
+        },
         config: auth,
     }, getSummary);
     fastify.post('/profile/uploads', {
-        // schema: {
-        //   ...uploadSchema,
-        //   tags: ['profile'],
-        // },
+        schema: {
+            ...uploadSchema,
+            tags: ['profile'],
+        },
         config: auth,
     }, postPic);
     fastify.delete('/profile/uploads', {

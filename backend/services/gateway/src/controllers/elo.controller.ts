@@ -46,3 +46,4 @@ export async function getLeaderboard(request: FastifyRequest, reply: FastifyRepl
     return reply.code(500).send(errorMessage);
   }
 }
+

@@ -1,4 +1,3 @@
-import fastifyPlugin from 'fastify-plugin';
 import { FastifyInstance } from 'fastify';
 import * as fs from 'node:fs';
 import path from 'node:path';
@@ -17,7 +16,7 @@ declare module 'fastify' {
 }
 
 // Initialize database connection
-async function dbConnector(fastify: FastifyInstance) {
+export async function dbConnector(fastify: FastifyInstance) {
   // Select database based on environment
   const dbPath: string = path.join(path.resolve(), 'db/game.dev.sqlite');
 
@@ -39,6 +38,9 @@ async function dbConnector(fastify: FastifyInstance) {
   await db.exec('PRAGMA foreign_keys = ON');
 
   // Read SQL commands from files
+  console.log({
+    matchSql: path.join(__dirname, '../config/match.sql'),
+  });
   const matchSql = fs.readFileSync(path.join(__dirname, '../config/match.sql'), 'utf-8');
   const goalSql = fs.readFileSync(path.join(__dirname, '../config/goal.sql'), 'utf-8');
   const eloSql = fs.readFileSync(path.join(__dirname, '../config/elo.sql'), 'utf-8');
@@ -56,6 +58,5 @@ async function dbConnector(fastify: FastifyInstance) {
   fastify.addHook('onClose', async (instance) => {
     await instance.db.close();
   });
+  console.log(`Database ${dbPath} successfully created`);
 }
-
-export default fastifyPlugin(dbConnector);

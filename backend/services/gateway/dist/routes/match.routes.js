@@ -1,5 +1,9 @@
-import { getMatch, getMatches, createMatch, matchTimeline, matchStats, matchSummary, } from '../controllers/match.controller.js';
-import { getMatchSchema, getMatchesSchema, createMatchSchema, matchTimelineSchema, matchStatsSchema, matchSummarySchema, } from '../schemas/match.schemas.js';
+import { getMatch, getMatches, createMatch, 
+// matchTimeline,
+matchStats, matchSummary, } from '../controllers/match.controller.js';
+import { getMatchSchema, getMatchesSchema, createMatchSchema, 
+// matchTimelineSchema,
+matchStatsSchema, matchSummarySchema, } from '../schemas/match.schemas.js';
 const auth = { auth: true, roles: ['user', 'admin'] };
 export default async function matchRoutes(fastify) {
     fastify.get('/game/matches', {
@@ -16,13 +20,17 @@ export default async function matchRoutes(fastify) {
         },
         config: auth,
     }, getMatch);
-    fastify.get('/game/match/:id/stats', {
-        schema: {
-            ...matchTimelineSchema,
-            tags: ['matches'],
-        },
-        config: auth,
-    }, matchTimeline);
+    // fastify.get<{ Params: IId }>(
+    //   '/game/match/:id/stats',
+    //   {
+    //     schema: {
+    //       ...matchTimelineSchema,
+    //       tags: ['matches'],
+    //     },
+    //     config: auth,
+    //   },
+    //   matchTimeline
+    // );
     fastify.get('/game/match/stats/:id', {
         schema: {
             ...matchStatsSchema,

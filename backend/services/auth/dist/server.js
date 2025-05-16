@@ -1,7 +1,8 @@
-import { initDb } from './db.js';
+import { dbConnector } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
 import { fastify } from 'fastify';
+import { fastifyConfig } from './config/fastify.js';
 import { startTelemetry } from './telemetry/telemetry.js';
 import { jwtPluginRegister } from './plugins/jwtPlugin.js';
 class Server {
@@ -9,46 +10,28 @@ class Server {
     constructor() { }
     static getInstance() {
         if (!Server.instance)
-            Server.instance = fastify({
-                logger: {
-                    transport: {
-                        target: 'pino-pretty',
-                        options: {
-                            colorize: true,
-                            translateTime: 'SYS:standard',
-                            ignore: 'pid,hostname',
-                        },
-                    },
-                },
-            });
+            Server.instance = fastify(fastifyConfig);
         return Server.instance;
     }
     static async start() {
         const server = Server.getInstance();
         const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
         try {
-            process.on('SIGINT', () => Server.shutdown('SIGINT'));
-            process.on('SIGTERM', () => Server.shutdown('SIGTERM'));
-            server.decorate('db', await initDb());
+            process.once('SIGINT', () => Server.shutdown('SIGINT'));
+            process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
+            await dbConnector(server);
             await server.register(routes);
             await server.register(fastifyJwt, jwtPluginRegister);
-            server.listen({
+            await server.listen({
                 port: Number(process.env.AUTH_PORT) || 8082,
                 host: process.env.AUTH_ADDR || 'localhost',
-            }, (err, address) => {
-                if (err) {
-                    server.log.error(`Failed to start server: ${err.message}`);
-                    if (err instanceof Error && err.message.includes('EADDRINUSE'))
-                        server.log.error(`Port ${Number(process.env.AUTH_PORT) || 8082} is already in use`);
-                    process.exit(1);
-                }
-                server.log.info(`Server listening at ${address}`);
-                server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
             });
+            server.log.info(`Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}`);
+            server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
         }
         catch (err) {
+            server.log.error('Startup error:');
             server.log.error(err);
-            process.exit(1);
         }
     }
     static async shutdown(signal) {

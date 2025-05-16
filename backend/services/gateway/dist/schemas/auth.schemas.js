@@ -41,6 +41,47 @@ export const getIdSchema = {
         },
     },
 };
+export const getUsernameSchema = {
+    querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {},
+    },
+    params: {
+        type: 'object',
+        properties: {
+            id: {
+                type: 'string',
+                format: 'uuid',
+                pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+            },
+        },
+        required: ['id'],
+        additionalProperties: false,
+    },
+    response: {
+        200: {
+            type: 'object',
+            properties: {
+                username: { type: 'string' },
+            },
+            required: ['username'],
+            additionalProperties: false,
+        },
+        404: {
+            ...errorResponseSchema,
+            example: ErrorExamples.playerNotFound,
+        },
+        400: {
+            ...errorResponseSchema,
+            example: ErrorExamples.sqliteMismatch,
+        },
+        500: {
+            ...errorResponseSchema,
+            example: ErrorExamples.internalError,
+        },
+    },
+};
 export const getUserSchema = {
     querystring: {
         type: 'object',
@@ -299,6 +340,43 @@ export const loginSchema = {
             required: ['token'],
             additionalProperties: false,
         },
+        401: {
+            ...errorResponseSchema,
+            example: ErrorExamples.loginFailure,
+        },
+        500: {
+            ...errorResponseSchema,
+            example: ErrorExamples.internalError,
+        },
+    },
+};
+export const loginGuestSchema = {
+    querystring: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {},
+    },
+    body: {
+        type: 'object',
+        properties: {
+            email: {
+                type: 'string',
+                format: 'email',
+                maxLength: 255,
+                description: 'Registered email address for login',
+            },
+            password: {
+                type: 'string',
+                pattern: '^[a-f0-9]{64}$',
+                description: 'Hash SHA-256',
+            },
+        },
+        required: ['password', 'email'],
+        additionalProperties: false,
+        description: 'Schema for user login authentication',
+    },
+    response: {
+        200: {},
         401: {
             ...errorResponseSchema,
             example: ErrorExamples.loginFailure,

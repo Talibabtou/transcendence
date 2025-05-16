@@ -161,6 +161,7 @@ try {
         const method = 'POST';
         const path = '/match';
         const match = {
+            player_1: userId1,
             player_2: userId2,
         };
         const response = await fetch(gameUrl + path, {
@@ -266,32 +267,36 @@ try {
             console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`);
         }
     }
-    //Get specific match matchTimeline success
-    {
-        const name = 'Get specific match matchTimeline success';
-        count += 1;
-        const method = 'GET';
-        const path = `/match/${matchId}/stats`;
-        const response = await fetch(gameUrl + path, {
-            method: method,
-            headers: {
-                Authorization: `Bearer ${token1}`,
-            },
-        });
-        if (response.status === 500) {
-            severalIssues += 1;
-            countFailed += 1;
-            issuesList.push(name);
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`);
-        }
-        else if (response.status !== 200) {
-            countFailed += 1;
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`);
-        }
-        else {
-            console.log(`   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`);
-        }
-    }
+    // //Get specific match matchTimeline success
+    // {
+    //   const name = 'Get specific match matchTimeline success';
+    //   count += 1;
+    //   const method = 'GET';
+    //   const path = `/match/${matchId}/stats`;
+    //   const response = await fetch(gameUrl + path, {
+    //     method: method,
+    //     headers: {
+    //       Authorization: `Bearer ${token1}`,
+    //     },
+    //   });
+    //   if (response.status === 500) {
+    //     severalIssues += 1;
+    //     countFailed += 1;
+    //     issuesList.push(name);
+    //     console.log(
+    //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+    //     );
+    //   } else if (response.status !== 200) {
+    //     countFailed += 1;
+    //     console.log(
+    //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+    //     );
+    //   } else {
+    //     console.log(
+    //       `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+    //     );
+    //   }
+    // }
     //Get match statistics for a player success
     {
         const name = 'Get match statistics for a player success';

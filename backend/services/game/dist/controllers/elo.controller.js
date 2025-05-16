@@ -42,7 +42,7 @@ export async function createElo(request, reply) {
     });
     try {
         const startTime = performance.now(); // Start timer
-        const newElo = (await request.server.db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', player, elo));
+        const newElo = (await request.server.db.get('INSERT OR IGNORE INTO elo (player, elo) VALUES (?, ?) RETURNING *', player, elo));
         recordMediumDatabaseMetrics('INSERT', 'elo', performance.now() - startTime); // Record metric
         eloHistogram.record(elo);
         return reply.code(201).send(newElo);
