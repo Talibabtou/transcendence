@@ -74,28 +74,38 @@ export class ResizeManager {
 	 * Orchestrates the resize process for game objects.
 	 */
 	public onCanvasResizedByEngine(): void {
+		// Immediate actions on resize start
+		const isBackgroundMode = this.isInBackgroundDemo();
+		if (!isBackgroundMode && this.pauseManager) {
+			const wasPlaying = this.pauseManager.hasState(GameState.PLAYING);
+			const wasInCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
+
+			if (wasPlaying) {
+				// Pass previous dimensions to pause() immediately
+				this.pauseManager.pause(this.previousCanvasWidth, this.previousCanvasHeight);
+			} else if (wasInCountdown) {
+				// forcePauseFromCountdownKeepSnapshot relies on an existing snapshot.
+				// If a resize happens during countdown, we want to pause immediately.
+				// The snapshot it keeps should be correct if it was made with old dimensions.
+				this.pauseManager.forcePauseFromCountdownKeepSnapshot();
+			}
+		}
+
+		// Debounced actions for actual object resizing
 		if (this.resizeTimeoutId !== null) {
 			clearTimeout(this.resizeTimeoutId);
 		}
 
 		this.resizeTimeoutId = window.setTimeout(() => {
-			this.isResizing = true;
-			const isBackgroundMode = this.isInBackgroundDemo();
-			const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
-			const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
-
-			if (!isBackgroundMode && this.pauseManager) {
-				if (wasPlaying) {
-					this.pauseManager.pause(this.previousCanvasWidth, this.previousCanvasHeight);
-				} else if (wasInCountdown) {
-					this.pauseManager.forcePauseFromCountdownKeepSnapshot();
-				}
-			}
+			this.isResizing = true; // Indicates that the heavy work of resizing objects is now happening
 
 			requestAnimationFrame(() => {
-				this.resizeGameObjects();
+				this.resizeGameObjects(); // This recalculates and repositions everything
+				
 				this.isResizing = false;
 				this.resizeTimeoutId = null;
+				
+				// Update previous dimensions after the debounced resize operation is complete
 				if (this.context && this.context.canvas) {
 					this.previousCanvasWidth = this.context.canvas.width;
 					this.previousCanvasHeight = this.context.canvas.height;
