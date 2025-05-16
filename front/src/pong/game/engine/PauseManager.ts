@@ -22,6 +22,7 @@ export class PauseManager {
 	private gameEngine: any;
 	private pointStartedCallback: (() => void) | null = null;
 	private gameScene: GameScene;
+	private isNextCountdownForNewPoint: boolean = false;
 
 	/**
 	 * Creates a new PauseManager.
@@ -47,11 +48,13 @@ export class PauseManager {
 	public startGame(): void {
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
+		this.isNextCountdownForNewPoint = true;
 		this.startCountdown(() => {
 			this.ball.launchBall();
 			this.states.delete(GameState.COUNTDOWN);
 			this.states.add(GameState.PLAYING);
 			this.isFirstStart = false;
+			this.isNextCountdownForNewPoint = false;
 			if (this.pointStartedCallback) {
 				this.pointStartedCallback();
 			}
@@ -77,6 +80,7 @@ export class PauseManager {
 		this.saveGameState(oldCanvasWidth, oldCanvasHeight);
 		this.states.delete(GameState.PLAYING);
 		this.states.add(GameState.PAUSED);
+		this.isNextCountdownForNewPoint = false;
 		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
 			this.gameEngine.pauseMatchTimer();
 		}
@@ -94,15 +98,26 @@ export class PauseManager {
 		}
 		if (this.isFirstStart) {
 			this.startGame();
-		} else if (this.states.has(GameState.COUNTDOWN)) {
 		} else {
 			this.states.add(GameState.COUNTDOWN);
-			this.startCountdown(() => {
-				this.restoreGameState();
-				this.states.delete(GameState.COUNTDOWN);
-				this.states.add(GameState.PLAYING);
-				this.pendingPauseRequest = false;
-			});
+			if (this.isNextCountdownForNewPoint) {
+				this.startCountdown(() => {
+					this.ball.launchBall();
+					this.states.delete(GameState.COUNTDOWN);
+					this.states.add(GameState.PLAYING);
+					this.isNextCountdownForNewPoint = false;
+					if (this.pointStartedCallback) {
+						this.pointStartedCallback();
+					}
+				});
+			} else {
+				this.startCountdown(() => {
+					this.restoreGameState();
+					this.states.delete(GameState.COUNTDOWN);
+					this.states.add(GameState.PLAYING);
+					this.pendingPauseRequest = false;
+				});
+			}
 		}
 	}
 
@@ -131,8 +146,10 @@ export class PauseManager {
 	public handlePointScored(): void {
 		const isBackground = this.gameScene?.isBackgroundDemo();
 		if (isBackground) {
+			this.isNextCountdownForNewPoint = true;
 			this.startCountdown(() => {
 				this.ball.launchBall();
+				this.isNextCountdownForNewPoint = false;
 			});
 			return;
 		}
@@ -145,11 +162,13 @@ export class PauseManager {
 		}
 		this.states.clear();
 		this.states.add(GameState.COUNTDOWN);
+		this.isNextCountdownForNewPoint = true;
 		setTimeout(() => {
 			this.startCountdown(() => {
 				this.ball.launchBall();
 				this.states.delete(GameState.COUNTDOWN);
 				this.states.add(GameState.PLAYING);
+				this.isNextCountdownForNewPoint = false;
 				if (this.pointStartedCallback) {
 					this.pointStartedCallback();
 				}
@@ -195,18 +214,17 @@ export class PauseManager {
 	 */
 	public forcePauseFromCountdownKeepSnapshot(): void {
 		if (!this.states.has(GameState.COUNTDOWN)) {
-			return; // Only act if in countdown
+			return;
 		}
 
-		this.cleanupCountdown(); // Stops interval, clears countdown UI text (sets to null via callback)
+		this.cleanupCountdown();
 		
 		this.states.delete(GameState.COUNTDOWN);
 		this.states.add(GameState.PAUSED);
 		
-		this.isCountingDown = false; // Ensure this is reset
-		this.pendingPauseRequest = false; // Clear any pending request
+		this.isCountingDown = false;
+		this.pendingPauseRequest = false;
 
-		// Ensure the match timer reflects the paused state.
 		if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
 			this.gameEngine.pauseMatchTimer();
 		}
@@ -231,17 +249,14 @@ export class PauseManager {
 	 */
 	private saveGameState(oldCanvasWidth?: number, oldCanvasHeight?: number): void {
 		const effectiveCanvasHeight = oldCanvasHeight ?? this.ball.Context.canvas.height;
-		// Player paddle heights used here should be their current (pre-resize) heights.
-		// If updateSizes() has already run on players due to ResizeManager structure, this might need adjustment
-		// However, Player.paddleHeight is typically updated in Player.updateSizes(), which ResizeManager calls *after* pause.
-		const p1PaddleHeight = this.player1.paddleHeight; // Assuming this is pre-resize height
-		const p2PaddleHeight = this.player2.paddleHeight; // Assuming this is pre-resize height
+		const p1PaddleHeight = this.player1.paddleHeight;
+		const p2PaddleHeight = this.player2.paddleHeight;
 
 		const p1Center = (this.player1.y + p1PaddleHeight * 0.5) / effectiveCanvasHeight;
 		const p2Center = (this.player2.y + p2PaddleHeight * 0.5) / effectiveCanvasHeight;
 		
 		this.gameSnapshot = {
-			ballState: this.ball.saveState(oldCanvasWidth, oldCanvasHeight), // Pass overrides
+			ballState: this.ball.saveState(oldCanvasWidth, oldCanvasHeight),
 			player1RelativeY: p1Center,
 			player2RelativeY: p2Center
 		};
