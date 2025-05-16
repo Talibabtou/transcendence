@@ -18,8 +18,10 @@ export class ResizeManager {
 	private player2: Player | null;
 	private pauseManager: PauseManager | null;
 	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
-	private lastResizeEvt = 0;
 	private resizeTimeoutId: number | null = null;
+
+	private previousCanvasWidth: number;
+	private previousCanvasHeight: number;
 
 	/**
 	 * Creates a new ResizeManager
@@ -44,6 +46,8 @@ export class ResizeManager {
 		this.player1 = player1;
 		this.player2 = player2;
 		this.pauseManager = pauseManager;
+		this.previousCanvasWidth = ctx.canvas.width;
+		this.previousCanvasHeight = ctx.canvas.height;
 	}
 
 
@@ -92,6 +96,11 @@ export class ResizeManager {
 				this.resizeGameObjects();
 				this.isResizing = false;
 				this.resizeTimeoutId = null;
+				// Update previous dimensions after resize is complete
+				if (this.context && this.context.canvas) {
+					this.previousCanvasWidth = this.context.canvas.width;
+					this.previousCanvasHeight = this.context.canvas.height;
+				}
 			});
 		}, this.DEBOUNCE_MS);
 	}
@@ -101,36 +110,75 @@ export class ResizeManager {
 	 */
 	private resizeGameObjects(): void {
 		console.log('[ResizeManager] resizeGameObjects: Called.');
-		if (!this.isGameScene()) {
-			this.scene.draw(1);
+		if (!this.isGameScene() || !this.ball || !this.player1 || !this.player2) {
+			if (this.scene) this.scene.draw(1);
 			return;
 		}
-		const { width: newWidth, height: newHeight } = this.context.canvas;
+
+		const newWidth = this.context.canvas.width;
+		const newHeight = this.context.canvas.height;
+		const oldWidth = this.previousCanvasWidth;
+		const oldHeight = this.previousCanvasHeight;
+
 		const sizes = calculateGameSizes(newWidth, newHeight);
-		if (!this.ball || !this.player1 || !this.player2) return;
 		const gameSnapshot = this.pauseManager?.GameSnapshot;
-		console.log('[ResizeManager] resizeGameObjects: Game snapshot:', gameSnapshot);
-		this.ball.updateSizes();
-		this.player1.updateSizes();
-		this.player2.updateSizes();
-		this.player1.x = sizes.PLAYER_PADDING;
-		this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
+
 		if (gameSnapshot) {
+			// Ball: update sizes first, then restore state which includes position.
+			this.ball.updateSizes(); // Updates size, baseSpeed based on newWidth, newHeight
+			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
+
+			// Players: update sizes, then set position from snapshot.
+			this.player1.updateSizes(); // Updates paddle dimensions, speed based on newW, newH
+			this.player2.updateSizes();
+			
+			this.player1.x = sizes.PLAYER_PADDING;
+			this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
+			
+			// Y positions from snapshot (relative) applied to new height
 			this.player1.y = gameSnapshot.player1RelativeY * newHeight - this.player1.paddleHeight * 0.5;
 			this.player2.y = gameSnapshot.player2RelativeY * newHeight - this.player2.paddleHeight * 0.5;
-			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
+			
+			// Update snapshot with new relative positions for consistency if needed later
 			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
 			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
 		} else {
-			this.updatePaddleVerticalPositions(newHeight);
-			const ballState = this.ball.saveState();
-			this.ball.restoreState(ballState, newWidth, newHeight);
+			// No snapshot - maintain relative positions
+
+			// Ball
+			const ballRelativeX = this.ball.x / oldWidth;
+			const ballRelativeY = this.ball.y / oldHeight;
+			this.ball.updateSizes(); // Updates size, baseSpeed
+			this.ball.x = ballRelativeX * newWidth;
+			this.ball.y = ballRelativeY * newHeight;
+			this.ball.prevRenderX = this.ball.x;
+			this.ball.prevRenderY = this.ball.y;
+			this.ball.prevPosition.x = this.ball.x;
+			this.ball.prevPosition.y = this.ball.y;
+
+			// Player 1
+			const p1CurrentCenterY = this.player1.y + this.player1.paddleHeight * 0.5; // Use old paddleHeight
+			const p1RelativeY = p1CurrentCenterY / oldHeight;
+			this.player1.updateSizes(); // Updates paddle W/H, speed. Also updates player1.x via updateHorizontalPosition.
+			const p1NewCenterY = p1RelativeY * newHeight;
+			this.player1.y = p1NewCenterY - this.player1.paddleHeight * 0.5; // Use new paddleHeight
+
+			// Player 2
+			const p2CurrentCenterY = this.player2.y + this.player2.paddleHeight * 0.5; // Use old paddleHeight
+			const p2RelativeY = p2CurrentCenterY / oldHeight;
+			this.player2.updateSizes(); // Updates paddle W/H, speed. Also updates player2.x.
+			const p2NewCenterY = p2RelativeY * newHeight;
+			this.player2.y = p2NewCenterY - this.player2.paddleHeight * 0.5; // Use new paddleHeight
 		}
-		const maxY = newHeight - this.player1.paddleHeight;
+
+		// Common adjustments for players after positions are set (either from snapshot or relative logic)
+		const maxY = newHeight - this.player1.paddleHeight; // Use new paddleHeight
 		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
 		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
-		this.player1.updateHorizontalPosition();
-		this.player2.updateHorizontalPosition();
+
+		// playerN.updateHorizontalPosition() is typically called within playerN.updateSizes().
+		// If not, they would be needed here. Given current Player.ts, it is handled.
+
 		this.handleResizeDuringCountdown();
 		this.scene.draw(1);
 	}
@@ -149,31 +197,10 @@ export class ResizeManager {
 		}
 	}
 
-	/**
-	 * Updates paddle vertical positions while maintaining proportionality
-	 * @param newHeight The new canvas height
-	 */
-	private updatePaddleVerticalPositions(newHeight: number): void {
-		if (!this.player1 || !this.player2) return;
-		
-		const p1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / this.context.canvas.height;
-		const p2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / this.context.canvas.height;
-		this.player1.y = (p1RelativeY * newHeight) - (this.player1.paddleHeight * 0.5);
-		this.player2.y = (p2RelativeY * newHeight) - (this.player2.paddleHeight * 0.5);
-		const maxY = newHeight - this.player1.paddleHeight;
-		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
-		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
-		const gameSnapshot = this.pauseManager?.GameSnapshot;
-		if (gameSnapshot) {
-			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
-			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
-		}
-	}
-
 	////////////////////////////////////////////////////////////
 	// Helper methods
 	////////////////////////////////////////////////////////////
-	private isGameScene(): boolean { return !!(this.ball && this.player1 && this.player2 && this.pauseManager); }
-	private isInBackgroundDemo(): boolean { return this.scene.isBackgroundDemo(); }
+	private isGameScene(): boolean { return !!(this.context && this.scene && this.ball && this.player1 && this.player2 && this.pauseManager); }
+	private isInBackgroundDemo(): boolean { return this.scene?.isBackgroundDemo() ?? false; }
 	public isCurrentlyResizing(): boolean { return this.isResizing; }
 }
