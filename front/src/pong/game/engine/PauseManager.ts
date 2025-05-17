@@ -18,6 +18,7 @@ export class PauseManager {
 	private countInterval: NodeJS.Timeout | null = null;
 	private gameSnapshot: GameSnapshot | null = null;
 	private countdownCallback: CountdownCallback | null = null;
+	private currentCountdownValue: string | number | string[] | null = null;
 	private pendingPauseRequest: boolean = false;
 	private gameEngine: any;
 	private pointStartedCallback: (() => void) | null = null;
@@ -279,6 +280,8 @@ export class PauseManager {
 		const isBackground = this.gameScene?.isBackgroundDemo();
 		if (isBackground) {
 			this.isCountingDown = true;
+			this.currentCountdownValue = null;
+			this.countdownCallback?.(this.currentCountdownValue);
 			this.countInterval = setTimeout(() => {
 				this.cleanupCountdown();
 				this.isCountingDown = false;
@@ -289,13 +292,15 @@ export class PauseManager {
 		let count = 3;
 		const intervalTime = 1000;
 		this.isCountingDown = true;
+		this.currentCountdownValue = count;
 		if (this.countdownCallback) {
 			this.countdownCallback(count);
 		}
 		this.countInterval = setInterval(() => {
 			count--;
+			this.currentCountdownValue = count > 0 ? count : null;
 			if (this.countdownCallback) {
-				this.countdownCallback(count > 0 ? count : null);
+				this.countdownCallback(this.currentCountdownValue);
 			}
 			if (count <= 0) {
 				this.cleanupCountdown();
@@ -330,6 +335,7 @@ export class PauseManager {
 			this.countInterval = null;
 		}
 		this.isCountingDown = false;
+		this.currentCountdownValue = null;
 		this.countdownCallback?.(null);
 	}
 
@@ -351,6 +357,10 @@ export class PauseManager {
 	public get StatesArray(): GameState[] { return Array.from(this.states); }
 	public get IsCountingDown(): boolean { return this.isCountingDown; }
 	public get PendingPauseRequest(): boolean { return this.pendingPauseRequest; }
+
+	public getCountdownText(): string | number | string[] | null {
+		return this.currentCountdownValue;
+	}
 
 	public setCountdownCallback(callback: CountdownCallback): void { this.countdownCallback = callback; }
 	public setPointStartedCallback(callback: () => void): void { this.pointStartedCallback = callback; }

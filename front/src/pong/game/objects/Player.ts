@@ -30,8 +30,8 @@ export class Player implements GraphicalElement {
 	private _downKey: string;
 	private _targetY: number;
 	private _lastCollisionTime: number;
-	private prevRenderX: number = 0;
-	private prevRenderY: number = 0;
+	public prevRenderX: number = 0;
+	public prevRenderY: number = 0;
 	private movementFrozen: number = 0;
 	private readonly startY: number;
 	private readonly currentPosVec: { x: number; y: number };
@@ -599,5 +599,6 @@ export class Player implements GraphicalElement {
 	
 	public setName(name: string): void { this._name = name; }
 	public setPlayerType(type: PlayerType): void { this._type = type; }
-	public setColor(newColor: string): void { this.color = newColor; }	
+	public setColor(newColor: string): void { this.color = newColor; }
+	public getColor(): string { return this.color; }
 }

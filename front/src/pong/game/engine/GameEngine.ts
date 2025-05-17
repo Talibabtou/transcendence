@@ -27,12 +27,19 @@ export class GameEngine {
 	public onGameOver?: (detail: any) => void;
 	private _gameStateInfo: GameStateInfo;
 
+	private isOffscreenRendering: boolean = false;
+	private renderWorker: Worker | null = null;
+
 	/**
 	 * Creates a new GameEngine.
-	 * @param ctx Canvas rendering context.
+	 * @param ctx Canvas rendering context for the main canvas.
+	 * @param isOffscreen Flag indicating if rendering is offloaded to a worker.
+	 * @param worker Reference to the render worker if isOffscreen is true.
 	 */
-	constructor(ctx: GameContext) {
+	constructor(ctx: GameContext, isOffscreen: boolean, worker: Worker | null) {
 		this.context = ctx;
+		this.isOffscreenRendering = isOffscreen;
+		this.renderWorker = worker;
 		this.boundKeydownHandler = this.handleKeydown.bind(this);
 		this._gameStateInfo = {
 			player1Score: 0,
@@ -78,8 +85,65 @@ export class GameEngine {
 	 * @param alpha Interpolation factor (0 to 1).
 	 */
 	public draw(alpha: number): void {
-		this.clearScreen();
-		this.scene.draw(alpha);
+		if (this.isOffscreenRendering && this.renderWorker) {
+			if (!this.scene) return;
+
+			const p1 = this.scene.Player1;
+			const p2 = this.scene.Player2;
+			const ball = this.scene.Ball;
+			const pauseManager = this.scene.PauseManager;
+
+			const sceneData: /* FullSceneRenderData (type to be defined/imported) */ any = {
+				ball: ball ? {
+					x: ball.x,
+					y: ball.y,
+					prevRenderX: ball.prevRenderX,
+					prevRenderY: ball.prevRenderY,
+					radius: ball.Size,
+					color: ball.getColor(),
+				} : null,
+				player1: p1 ? {
+					x: p1.x,
+					y: p1.y,
+					prevRenderX: p1.prevRenderX,
+					prevRenderY: p1.prevRenderY,
+					width: p1.paddleWidth,
+					height: p1.paddleHeight,
+					color: p1.getColor(),
+					name: p1.name,
+					score: p1.Score,
+				} : null,
+				player2: p2 ? {
+					x: p2.x,
+					y: p2.y,
+					prevRenderX: p2.prevRenderX,
+					prevRenderY: p2.prevRenderY,
+					width: p2.paddleWidth,
+					height: p2.paddleHeight,
+					color: p2.getColor(),
+					name: p2.name,
+					score: p2.Score,
+				} : null,
+				ui: {
+					countdownText: pauseManager?.getCountdownText ? pauseManager.getCountdownText() : null,
+					isPaused: pauseManager?.hasState(GameState.PAUSED) ?? false,
+				},
+				isBackgroundDemo: this.scene.isBackgroundDemo(),
+			};
+
+			this.renderWorker.postMessage({
+				type: 'render',
+				sceneData: sceneData, 
+				alpha: alpha, 
+				canvasWidth: this.context.canvas.width, 
+				canvasHeight: this.context.canvas.height 
+			});
+		} else if (this.scene) {
+			this.clearScreen();
+			this.scene.draw(alpha);
+		} else {
+			// console.warn("GameEngine.draw: Scene not initialized.");
+		}
 	}
 
 	/**
@@ -146,22 +210,29 @@ export class GameEngine {
 	 * @param height The new canvas height.
 	 */
 	public resize(width: number, height: number): void {
-		if (this.context && this.context.canvas) {
+		if (!this.isOffscreenRendering) {
 			this.context.canvas.width = width;
 			this.context.canvas.height = height;
 		}
+
 		if (this.scene instanceof GameScene) {
 			if (this.scene.ResizeManager) {
 				this.scene.ResizeManager.onCanvasResizedByEngine();
 			}
 		}
-		this.draw(1);
+
+		if (!this.isOffscreenRendering) {
+			this.draw(1);
+		}
 	}
 
 	/**
 	 * Clears the canvas for a new frame.
 	 */
 	private clearScreen(): void {
+		if (this.isOffscreenRendering) {
+			return;
+		}
 		const { width, height } = this.context.canvas;
 		this.context.beginPath();
 		this.context.clearRect(0, 0, width, height);

@@ -1,7 +1,7 @@
 import { GameEngine } from '@pong/game/engine';
 import { MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@shared/types';
-import { GAME_CONFIG } from '@pong/constants';
+import { GAME_CONFIG, COLORS, FONTS, MESSAGES, UI_CONFIG } from '@pong/constants';
 
 declare global {
 	interface Window {
@@ -55,6 +55,9 @@ export class GameManager {
 	private isCleaningUp: boolean = false;
 	private onGameOverCallback: ((result: any) => void) | null = null;
 	
+	private renderWorker: Worker | null = null;
+	private offscreenRenderingActive: boolean = false;
+	
 	private constructor() {
 		GameManager.isBootstrapping = true;
 		this.mainGameInstance = this.createEmptyGameInstance(GameInstanceType.MAIN);
@@ -106,7 +109,7 @@ export class GameManager {
 				console.error('No container provided for main game');
 				return;
 			}
-		} else {
+		} else { 
 			canvas.id = 'background-game-canvas';
 			const existingBgCanvas = document.getElementById('background-game-canvas');
 			if (existingBgCanvas) {
@@ -118,14 +121,76 @@ export class GameManager {
 			canvas.style.left = '0';
 			document.body.insertBefore(canvas, document.body.firstChild);
 		}
-		this.resizeCanvas(canvas);
-		const ctx = canvas.getContext('2d');
-		if (!ctx) {
-			console.error(`Could not get canvas context for ${instance.type} game`);
-			return;
+		this.resizeCanvas(canvas); 
+
+		let mainThreadCtx: CanvasRenderingContext2D | null = null;
+		this.offscreenRenderingActive = false; // Default to false
+
+		if (instance.type === GameInstanceType.MAIN) {
+			mainThreadCtx = canvas.getContext('2d');
+			if (!mainThreadCtx) {
+				console.error('CRITICAL: Failed to get main canvas context for main game.');
+				return; 
+			}
+
+			if (typeof canvas.transferControlToOffscreen === 'function' && typeof Worker !== 'undefined') {
+				try {
+					this.renderWorker = new Worker(new URL('./render.worker.ts', import.meta.url), { type: 'module' });
+					const offscreenCanvas = canvas.transferControlToOffscreen();
+					
+					this.renderWorker.postMessage({
+						type: 'init',
+						canvas: offscreenCanvas,
+						gameConfig: GAME_CONFIG,
+						colors: COLORS,
+						fonts: FONTS,
+						messages: MESSAGES,
+						uiConfig: UI_CONFIG
+					}, [offscreenCanvas]);
+
+					this.renderWorker.onmessage = (event) => {
+						if (event.data && event.data.type === 'worker_initialized') {
+							if (event.data.status === 'success') {
+								console.log('Render worker initialized successfully.');
+								// mainThreadCtx is already set. offscreenRenderingActive will be true.
+							} else {
+								console.error('Render worker initialization failed:', event.data.message);
+								this.offscreenRenderingActive = false; 
+								this.cleanupRenderWorker();
+								// Fallback: mainThreadCtx is already set, and offscreenRenderingActive is now false.
+							}
+						}
+					};
+					this.renderWorker.onerror = (error) => {
+						console.error('Render worker error:', error);
+						this.offscreenRenderingActive = false; 
+						this.cleanupRenderWorker();
+						// Fallback: mainThreadCtx is already set, and offscreenRenderingActive is now false.
+					};
+					this.offscreenRenderingActive = true;
+				} catch (e) {
+					console.error("Failed to initialize OffscreenCanvas worker:", e);
+					this.offscreenRenderingActive = false;
+					this.cleanupRenderWorker(); 
+					// mainThreadCtx is already set. offscreenRenderingActive is false.
+				}
+			} else {
+				// OffscreenCanvas or Worker not supported
+				this.offscreenRenderingActive = false;
+				// mainThreadCtx is already set.
+			}
+		} else { // Background Game
+			mainThreadCtx = canvas.getContext('2d');
+			if (!mainThreadCtx) {
+				console.error('CRITICAL: Failed to get canvas context for background game.');
+				return;
+			}
+			this.offscreenRenderingActive = false; 
 		}
 
-		const gameEngine = new GameEngine(ctx);
+		// At this point, mainThreadCtx must be valid if we are here.
+		// The GameEngine constructor expects a non-null context.
+		const gameEngine = new GameEngine(mainThreadCtx!, this.offscreenRenderingActive, this.renderWorker);
 		gameEngine.onGameOver = (detail) => {
 			if (instance.isActive && instance.engine) {
 				this.notifyGameEnded(detail);
@@ -228,6 +293,9 @@ export class GameManager {
 		if (!instance.isActive || !instance.engine) {
 			this.isCleaningUp = false;
 			return;
+		}
+		if (instance.type === GameInstanceType.MAIN && this.renderWorker) {
+			this.cleanupRenderWorker();
 		}
 		if (instance.engine && !instance.engine.isGamePaused()) {
 			this.pauseGame(instance);
@@ -357,6 +425,9 @@ export class GameManager {
 			const canvas = this.mainGameInstance.canvas;
 			if (canvas) {
 				this.resizeCanvas(canvas);
+				if (this.offscreenRenderingActive && this.renderWorker) {
+					this.renderWorker.postMessage({ type: 'update_dimensions', width: canvas.width, height: canvas.height });
+				}
 				this.mainGameInstance.engine.resize(canvas.width, canvas.height);
 			}
 		}
@@ -367,6 +438,7 @@ export class GameManager {
 				this.backgroundGameInstance.engine.resize(canvas.width, canvas.height);
 			}
 		}
+		this.cleanupRenderWorker();
 	}
 
 	private resizeCanvas(canvas: HTMLCanvasElement): void {
@@ -393,6 +465,7 @@ export class GameManager {
 		this.cleanupMainGame();
 		this.cleanupBackgroundGame();
 		window.removeEventListener('resize', this.handleResize.bind(this));
+		this.cleanupRenderWorker();
 	}
 
 	private setupVisibilityHandling(): void {
@@ -614,5 +687,13 @@ export class GameManager {
 				console.error('Error setting player names:', error);
 			}
 		}
+	}
+
+	private cleanupRenderWorker(): void {
+		if (this.renderWorker) {
+			this.renderWorker.terminate();
+			this.renderWorker = null;
+		}
+		this.offscreenRenderingActive = false;
 	}
 }

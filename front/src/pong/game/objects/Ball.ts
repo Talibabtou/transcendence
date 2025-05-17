@@ -274,4 +274,5 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 		return this._normalizedVelocity;
 	}
+	public getColor(): string { return this.color; }
 }
