@@ -1,6 +1,6 @@
 import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
 import { ApiError, ErrorResponse } from '@website/scripts/utils';
-import { API_PREFIX, AUTH, GAME, USER } from '@shared/constants/path.const';
+import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
 
@@ -424,37 +424,98 @@ export class DbService {
 		}
 	}
 
+	// =========================================
+	// FRIEND OPERATIONS
+	// =========================================
+
 	/**
-	 * Get friendship status
+	 * Get friendship status between two users
 	 * @param userId - Current user UUID
-	 * @param friendId - Friend's UUID
+	 * @param friendId - Friend's UUID to check
+	 * @returns Promise with friendship status data
 	 */
-	static async getFriendship(userId: string, friendId: string): Promise<any> {
-		this.logRequest('GET', `/api/friends/${userId}/${friendId}`);
-		return this.fetchApi<any>(`/friends/${userId}/${friendId}`);
+	static async getFriendship(friendId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.CHECK(friendId)}`);
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
 	}
 
 	/**
-	 * Get friendship status
-	 * @param userId - Current user UUID
-	 * @param friendId - Friend's UUID
+	 * Get all friends for a user
+	 * @param userId - User's UUID
+	 * @returns Promise with list of friends
 	 */
-	static async getHistory(userId: string): Promise<any> {
-		this.logRequest('GET', `/api/friends/${userId}}`);
-		return this.fetchApi<any>(`/friends/${userId}`);
+	static async getFriendList(userId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
 	}
 
 	/**
-	 * Add a friend
+	 * Get current user's friends
+	 * @returns Promise with list of the current user's friends
+	 */
+	static async getMyFriends(): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.ME}`);
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ALL.ME}`);
+	}
+
+	/**
+	 * Send a friend request to another user
 	 * @param userId - Current user UUID
 	 * @param friendId - Friend's UUID
+	 * @returns Promise with request status
 	 */
-	static async addFriend(userId: string, friendId: string): Promise<any> {
-		this.logRequest('POST', `/api/friends`, { user_id: userId, friend_id: friendId });
+	static async addFriend(friendId: string): Promise<any> {
+		this.logRequest('POST', `${API_PREFIX}${SOCIAL.FRIENDS.CREATE}`, { 
+			friend_id: friendId 
+		});
 		
-		return this.fetchApi<any>('/friends', {
+		// Try both parameter formats since we're getting errors
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.CREATE}`, {
 			method: 'POST',
+			body: JSON.stringify({ 
+				id: friendId
+			})
+		});
+	}
+
+	/**
+	 * Accept a friend request
+	 * @param userId - User accepting the request
+	 * @param friendId - User who sent the request
+	 * @returns Promise with acceptance status
+	 */
+	static async acceptFriendRequest(userId: string, friendId: string): Promise<any> {
+		this.logRequest('PATCH', `${API_PREFIX}${SOCIAL.FRIENDS.ACCEPT}`, { user_id: userId, friend_id: friendId });
+		
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ACCEPT}`, {
+			method: 'PATCH',
 			body: JSON.stringify({ user_id: userId, friend_id: friendId })
+		});
+	}
+
+	/**
+	 * Remove an existing friend
+	 * @param friendId - Friend's UUID to remove
+	 * @returns Promise with removal status
+	 */
+	static async removeFriend(friendId: string): Promise<any> {
+		this.logRequest('DELETE', `${API_PREFIX}${SOCIAL.FRIENDS.DELETE.BY_ID(friendId)}`);
+		
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.BY_ID(friendId)}`, {
+			method: 'DELETE',
+			body: JSON.stringify({})
+		});
+	}
+
+	/**
+	 * Remove all friends
+	 * @returns Promise with removal status
+	 */
+	static async removeAllFriends(): Promise<any> {
+		this.logRequest('DELETE', `${API_PREFIX}${SOCIAL.FRIENDS.DELETE.ALL}`);
+		
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.ALL}`, {
+			method: 'DELETE'
 		});
 	}
 

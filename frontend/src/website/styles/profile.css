@@ -675,3 +675,58 @@
 	70% { opacity: 1; }
 	100% { opacity: 0; }
 }
+
+/* Friend Button */
+.friend-button-container {
+	margin-top: 1.5rem;
+	display: flex;
+	justify-content: center;
+}
+
+.friend-button {
+	color: var(--win-color);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--win-color);
+	padding: 0.8rem 1.5rem;
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.friend-button:hover:not(:disabled) {
+	text-shadow: 0 0 10px var(--win-color);
+	box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+.friend-button:disabled {
+	opacity: 1;
+}
+
+.friend-button.pending {
+	color: rgb(255, 205, 112);
+	border-color: rgb(255, 205, 112);
+}
+
+.friend-button.is-friend {
+	color: #888; /* Gray for already friends */
+	border-color: #888;
+	background-color: rgba(136, 136, 136, 0.1);
+	cursor: default;
+}
+
+.remove-friend-button {
+	color: var(--loss-color);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--loss-color);
+	padding: 0.4rem 0.8rem;
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.remove-friend-button:hover {
+	text-shadow: 0 0 10px var(--loss-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+	background-color: rgba(255, 0, 0, 0.1);
+}
