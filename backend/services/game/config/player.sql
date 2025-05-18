@@ -59,7 +59,7 @@ SELECT
 	p2_score,	
 	created_at,
   DATE(m.created_at) AS match_date, -- Date of the match
-  COUNT(DISTINCT m.id) AS matches_played, -- Number of matches played on this date
+  COUNT(DISTINCT match_id) AS matches_played, -- Number of matches played on this date
   SUM(CASE WHEN m.active = FALSE AND 
            ((player_id = m.player_1 AND p1_score > p2_score) OR 
             (player_id = m.player_2 AND p2_score > p1_score)) 
