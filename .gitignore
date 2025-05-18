@@ -1,5 +1,11 @@
 .DS_STORE
 node_modules
-package-lock.son
+package-lock.json
+*.lock
 .vite
 .cursorignore
+dist
+db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

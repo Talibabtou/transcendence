@@ -85,7 +85,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	private async fetchLeaderboardData(): Promise<void> {
 		try {
 			const apiResponse = await DbService.getLeaderboard();
-			
+			console.log({apiResponse})
 			// Map the API response to the format expected by the component
 			// Sort by ELO first to ensure proper ranking
 			const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);

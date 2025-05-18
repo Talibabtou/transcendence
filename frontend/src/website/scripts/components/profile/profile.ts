@@ -209,6 +209,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			
 			// Get profile data
 			const userProfile = await DbService.getUserProfile(userId);
+			console.log({userId})
+			console.log({userProfile})
 			if (!userProfile) {
 				throw new Error(`User with ID ${userId} not found`);
 			}
@@ -240,9 +242,9 @@ export class ProfileComponent extends Component<ProfileState> {
 				id: String(userProfile.id),
 				username: userProfile.username,
 				avatarUrl,
-				totalGames: userProfile.summary?.total_matches || 0,
+				totalGames: userProfile.summary?.total_matches - userProfile.summary?.active_matches || 0,
 				wins: userProfile.summary?.victories || 0,
-				losses: (userProfile.summary?.total_matches || 0) - (userProfile.summary?.victories || 0),
+				losses: userProfile.summary?.defeats || 0,
 				gameHistory: [],
 				friends: [],
 				preferences: {

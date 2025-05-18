@@ -87,7 +87,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			
 			// Fetch real stats data from API
 			const playerStats = await DbService.getUserStats(profile.id);
-			
+			console.log('playerStats', {playerStats})
 			this.updateInternalState({ 
 				isLoading: false,
 				playerStats
