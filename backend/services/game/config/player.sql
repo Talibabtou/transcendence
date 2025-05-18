@@ -51,7 +51,13 @@ GROUP BY player_id; -- Group results by player ID
 -- Daily win/loss ratio for line plot
 CREATE VIEW IF NOT EXISTS player_daily_performance AS
 SELECT
+	match_id,
   player_id, -- The player ID to filter by in your query
+	player_1,
+	player_2,
+	p1_score,
+	p2_score,	
+	created_at,
   DATE(m.created_at) AS match_date, -- Date of the match
   COUNT(DISTINCT m.id) AS matches_played, -- Number of matches played on this date
   SUM(CASE WHEN m.active = FALSE AND 
@@ -70,12 +76,12 @@ SELECT
 FROM (
   -- Player 1 perspective
   SELECT 
-    m.id,
+    m.id AS match_id,
     m.player_1 AS player_id,
-    m.player_1,
-    m.player_2,
+    m.player_1 AS player_1,
+    m.player_2 AS player_2,
     m.active,
-    m.created_at,
+    m.created_at AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
   FROM matches m
@@ -84,12 +90,12 @@ FROM (
   
   -- Player 2 perspective
   SELECT 
-    m.id,
+    m.id AS match_id,
     m.player_2 AS player_id,
     m.player_1,
     m.player_2,
     m.active,
-    m.created_at,
+    m.created_at AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
   FROM matches m

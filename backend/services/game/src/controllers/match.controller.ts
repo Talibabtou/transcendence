@@ -88,11 +88,13 @@ export async function getMatchHistory(
     const matches = await request.server.db.all(
       `
       SELECT 
-        id, 
+        match_id, 
         player_1, 
-        player_2, 
+        player_2,
+				p1_score,
+				p2_score,
         created_at
-      FROM matches
+      FROM player_daily_performance
       WHERE 
         (player_1 = ? OR player_2 = ?)
         AND active = FALSE;
@@ -111,24 +113,20 @@ export async function getMatchHistory(
       const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
       const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
       const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
-      const serviceUrlGoal1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_1}`;
-      const responseGoal1 = await fetch(serviceUrlGoal1, { method: 'GET' });
-      const responseDataGoal1 = (await responseGoal1.json()) as Goal[];
-      const serviceUrlGoal2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_2}`;
-      const responseGoal2 = await fetch(serviceUrlGoal2, { method: 'GET' });
-      const responseDataGoal2 = (await responseGoal2.json()) as Goal[];
+
       const matchHistory: MatchHistory = {
-        matchId: matches[i].id || 'undefined',
+        matchId: matches[i].match_id || 'undefined',
         username1: responseDataUsername1.username || 'undefined',
-        id1: matches[i].player_1 || 'undefined',
-        goals1: responseDataGoal1,
+        id1: request.params.id === matches[i].player_1 ? matches[i].player_1 : matches[i].player_2 || 'undefined',
+        goals1: request.params.id === matches[i].player_1 ? matches[i].p1_score : matches[i].p2_score || 'undefined',
         username2: responseDataUsername2.username || 'undefined',
-        id2: matches[i].player_2 || 'undefined',
-        goals2: responseDataGoal2,
+        id2: request.params.id === matches[i].player_1 ? matches[i].player_2 : matches[i].player_1 || 'undefined',
+        goals2: request.params.id === matches[i].player_1 ? matches[i].p2_score : matches[i].p1_score || 'undefined',
         created_at: matches[i].created_at || 'undefined',
       };
       matchesHistory.push(matchHistory);
     }
+		console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
