@@ -24,6 +24,7 @@ interface ProfileFriendsState {
 	handlers: {
 		onPlayerClick: (username: string) => void;
 	};
+	dataLoadInProgress: boolean;
 }
 
 export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
@@ -37,13 +38,16 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			isCurrentUser: false,
 			handlers: {
 				onPlayerClick: () => {}
-			}
+			},
+			dataLoadInProgress: false
 		});
 	}
 	
 	public setProfile(profile: UserProfile): void {
 		this.updateInternalState({ profile });
-		this.loadFriendsData();
+		if (!this.getInternalState().dataLoadInProgress) {
+			this.loadFriendsData();
+		}
 	}
 	
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
@@ -56,9 +60,12 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	
 	private async loadFriendsData(): Promise<void> {
 		const state = this.getInternalState();
-		if (!state.profile) return;
+		if (!state.profile || state.dataLoadInProgress) return;
 		
-		this.updateInternalState({ isLoading: true });
+		this.updateInternalState({ 
+			isLoading: true,
+			dataLoadInProgress: true
+		});
 		
 		// Check if this is the current user's profile
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
@@ -142,7 +149,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				pendingFriends,
 				acceptedFriends,
 				friends: [...pendingFriends, ...acceptedFriends],
-				isLoading: false
+				isLoading: false,
+				dataLoadInProgress: false
 			});
 			
 			this.render();
@@ -152,7 +160,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				pendingFriends: [],
 				acceptedFriends: [],
 				friends: [],
-				isLoading: false
+				isLoading: false,
+				dataLoadInProgress: false
 			});
 			this.render();
 		}

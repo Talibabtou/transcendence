@@ -430,13 +430,28 @@ export class DbService {
 
 	/**
 	 * Get friendship status between two users
-	 * @param userId - Current user UUID
 	 * @param friendId - Friend's UUID to check
-	 * @returns Promise with friendship status data
+	 * @returns Promise with friendship status:
+	 * - null: no friendship exists
+	 * - { status: false }: pending friendship
+	 * - { status: true }: accepted friendship
 	 */
-	static async getFriendship(friendId: string): Promise<any> {
+	static async getFriendship(friendId: string): Promise<{ status: boolean } | null> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.CHECK(friendId)}`);
-		return this.fetchApi<any>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
+		try {
+			const response = await this.fetchApi<any>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
+			if (!response || Object.keys(response).length === 0) {
+				console.log("Friendship doesn't exist");
+				
+				return null;
+			}
+			console.log("Friendship exists");
+			console.log(response);
+			return { status: response.status === true };
+		} catch (error) {
+			console.log("Friendship check error:", error);
+			return null;
+		}
 	}
 
 	/**

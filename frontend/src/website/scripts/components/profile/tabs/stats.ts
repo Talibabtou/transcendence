@@ -24,6 +24,7 @@ interface ProfileStatsState {
 		dailyActivityChart?: () => void;
 		goalDurationChart?: () => void;
 	};
+	dataLoadInProgress: boolean;
 }
 
 /**
@@ -44,7 +45,8 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			goalDurationChartRendered: false,
 			profile: null,
 			playerStats: null,
-			cleanup: {}
+			cleanup: {},
+			dataLoadInProgress: false
 		});
 	}
 	
@@ -77,6 +79,14 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 * Loads the statistics data
 	 */
 	private async loadData(): Promise<void> {
+		const state = this.getInternalState();
+		if (state.dataLoadInProgress) return;
+		
+		this.updateInternalState({ 
+			isLoading: true,
+			dataLoadInProgress: true
+		});
+		
 		try {
 			const profile = this.getInternalState().profile;
 			if (!profile || !profile.id) {
@@ -90,6 +100,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			console.log('playerStats', {playerStats})
 			this.updateInternalState({ 
 				isLoading: false,
+				dataLoadInProgress: false,
 				playerStats
 			});
 			
@@ -106,6 +117,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';
 			this.updateInternalState({ 
 				isLoading: false, 
+				dataLoadInProgress: false,
 				errorMessage
 			});
 			this.render();
@@ -280,9 +292,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		
 		render(template, this.container);
 		
-		// Only attempt to render charts if container exists and data is loaded
 		if (!state.isLoading && !state.errorMessage) {
-			// Use requestAnimationFrame to ensure DOM is ready
 			requestAnimationFrame(() => {
 				this.renderCharts();
 			});
@@ -308,5 +318,13 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		if (state.cleanup?.goalDurationChart) {
 			state.cleanup.goalDurationChart();
 		}
+	}
+	
+	public refreshData(): void {
+		// Skip if already loading
+		if (this.getInternalState().dataLoadInProgress) return;
+		
+		// Load fresh data
+		this.loadData();
 	}
 }

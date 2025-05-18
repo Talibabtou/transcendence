@@ -11,6 +11,19 @@ import Plotly from 'plotly.js-dist';
  * @returns A cleanup function to purge the chart
  */
 export function renderGoalDurationChart(container: HTMLElement, goalDurations: number[]): () => void {
+	// Check if we have data to display
+	if (!goalDurations || goalDurations.length === 0) {
+		container.innerHTML = '<div class="no-data-message">No goal data available</div>';
+		return () => { container.innerHTML = ''; };
+	}
+	
+	// Calculate appropriate bin size based on data range
+	const maxDuration = Math.max(...goalDurations);
+	const minDuration = Math.min(...goalDurations);
+	const range = maxDuration - minDuration;
+	
+	const binSize = range <= 5 ? 0.5 : Math.max(1, Math.ceil(range / 10));
+	
 	// Create the trace for the histogram
 	const trace = {
 		x: goalDurations,
@@ -24,10 +37,11 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			}
 		},
 		opacity: 0.9,
+		autobinx: false,
 		xbins: {
-			size: 1,
-			start: 0,
-			end: Math.ceil(Math.max(...goalDurations))
+			size: binSize,
+			start: Math.floor(minDuration),
+			end: Math.ceil(maxDuration) + binSize
 		},
 		hovertemplate: '%{x} second(s), %{y} goal(s)<extra></extra>',
 		hoverlabel: {
