@@ -244,7 +244,8 @@
 .friends-list {
 	display: grid;
 	gap: 1rem;
-	grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	width: 10%;
 }
 
 .friend-card {
@@ -255,27 +256,88 @@
 	background: rgba(0, 0, 0, 0.3);
 	border-radius: 4px;
 	border: 1px solid rgba(255, 255, 255, 0.1);
+	width: 100%; /* Ensure the card takes full width of its grid cell */
+}
+
+.friend-card.pending {
+	border-left: 2px solid rgb(255, 205, 112);
+	background: rgba(255, 205, 112, 0.05);
+}
+
+.friend-info {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
 	cursor: pointer;
+	padding: 0.5rem;
+	border-radius: 4px;
+	transition: background-color 0.2s;
 }
 
 .friend-avatar {
 	width: 48px;
 	height: 48px;
 	border-radius: 50%;
+	object-fit: cover;
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-.friend-info {
-	flex: 1;
+.friend-details {
+	display: flex;
+	flex-direction: column;
 }
 
 .friend-name {
 	display: block;
 	color: var(--text-color);
 	font-family: var(--font-family);
+	font-weight: bold;
+	margin-bottom: 0.25rem;
 }
 
 .friend-last-login {
 	font-size: 0.8rem;
+	opacity: 0.7;
+}
+
+/* Friend action buttons */
+.remove-friend-button, .cancel-friend-button {
+	color: var(--loss-color);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--loss-color);
+	padding: 0.4rem 0.8rem;
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+}
+
+.cancel-friend-button {
+	color: rgb(255, 205, 112);
+	border-color: rgb(255, 205, 112);
+}
+
+.remove-friend-button:hover {
+	text-shadow: 0 0 10px var(--loss-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+	background-color: rgba(255, 0, 0, 0.1);
+}
+
+.cancel-friend-button:hover {
+	text-shadow: 0 0 10px rgb(255, 205, 112);
+	box-shadow: 0 0 20px rgba(255, 205, 112, 0.2);
+	background-color: rgba(255, 205, 112, 0.1);
+}
+
+/* Empty states */
+.no-data {
+	text-align: center;
+	padding: 1.5rem;
+	color: var(--text-color);
+	font-style: italic;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 4px;
 }
 
 /* Settings Panel */
@@ -729,4 +791,37 @@
 	text-shadow: 0 0 10px var(--loss-color);
 	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
 	background-color: rgba(255, 0, 0, 0.1);
+}
+
+/* Friend Sections */
+.friends-section {
+	margin-bottom: 2rem;
+}
+
+.friends-section h3 {
+	margin-bottom: 1rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 1.2rem;
+}
+
+.pending-friends-section h3 {
+	color: rgb(255, 205, 112); /* Orange-yellow for pending */
+}
+
+/* Notification dot for pending requests */
+.notification-dot {
+	position: absolute;
+	top: 0.3rem;
+	right: 0.3rem;
+	width: 0.6rem;
+	height: 0.6rem;
+	background-color: var(--loss-color);
+	border-radius: 50%;
+	display: block;
+}
+
+/* Ensure tab button position is relative so the dot is positioned correctly */
+.tab-button {
+	position: relative;
 }

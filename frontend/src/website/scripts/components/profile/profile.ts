@@ -44,7 +44,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			},
 			matchesCache: new Map(),
 			currentProfileId: null,
-			friendshipStatus: false
+			friendshipStatus: false,
+			pendingFriends: []
 		});
 		
 		// Listen for URL changes to reset the component when navigating between profiles
@@ -250,27 +251,38 @@ export class ProfileComponent extends Component<ProfileState> {
 				elo
 			};
 			
+			// Check for pending friend requests if this is the current user's profile
+			const isOwnProfile = this.isCurrentUserProfile(userId);
+			let pendingFriends = [];
+			
+			if (isOwnProfile) {
+				try {
+					// Get all friend data for current user
+					const friendsResponse = await DbService.getMyFriends();
+					if (Array.isArray(friendsResponse)) {
+						// Filter to only include pending requests
+						pendingFriends = friendsResponse.filter(friendship => !friendship.accepted);
+					}
+				} catch (error) {
+					console.warn('Could not fetch pending friend requests:', error);
+				}
+			}
+			
 			// Check friendship status if it's not our own profile
 			let friendshipStatus = null;
-			const isOwnProfile = this.isCurrentUserProfile(userId);
-			
 			if (!isOwnProfile) {
 				try {
 					friendshipStatus = await DbService.getFriendship(userId);
-					// Here we interpret the friendship status correctly:
-					// - If we get a not found error, they're not friends (null)
-					// - If we get {status: false}, it's a pending request
-					// - If we get {status: true}, they're already friends
 				} catch (error) {
-					// Not an error - just means no friendship exists
 					console.log("No friendship exists");
 				}
 			}
 			
-			// Update state
+			// Update state with all the data
 			this.updateInternalState({
 				profile,
 				friendshipStatus,
+				pendingFriends,
 				isLoading: false
 			});
 			
@@ -424,7 +436,13 @@ export class ProfileComponent extends Component<ProfileState> {
 							<button class="tab-button">Match History</button>
 						</li>
 						<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
-							<button class="tab-button">Friends</button>
+							<button class="tab-button">
+								Friends
+								${isCurrentUserProfile && state.pendingFriends.length > 0 ? 
+									`<span class="notification-dot"></span>` : 
+									''
+								}
+							</button>
 						</li>
 						${isCurrentUserProfile ? `
 							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
@@ -602,5 +620,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		// Reinitialize
 		this.initialize();
+	}
+
+	public hasPendingRequests(): boolean {
+		return this.getInternalState().pendingFriends.length > 0;
 	}
 }

@@ -23,6 +23,7 @@ export interface ProfileState {
 	matchesCache: Map<number, any>;
 	currentProfileId: string | null;
 	friendshipStatus?: any;
+	pendingFriends: any[];
 }
 
 /**
