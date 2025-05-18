@@ -44,7 +44,7 @@ export async function dbConnector(fastify: FastifyInstance) {
   const matchSql = fs.readFileSync(path.join(__dirname, '../config/match.sql'), 'utf-8');
   const goalSql = fs.readFileSync(path.join(__dirname, '../config/goal.sql'), 'utf-8');
   const eloSql = fs.readFileSync(path.join(__dirname, '../config/elo.sql'), 'utf-8');
-  const playerSql = fs.readFileSync(path.join(__dirname, '../config/player_views.sql'), 'utf-8');
+  const playerSql = fs.readFileSync(path.join(__dirname, '../config/player.sql'), 'utf-8');
 
   // Initialize tables if they don't exist
   await db.exec(matchSql);

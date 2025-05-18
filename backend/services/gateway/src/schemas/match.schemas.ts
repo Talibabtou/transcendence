@@ -137,47 +137,6 @@ export const updateMatchSchema = {
   },
 };
 
-export const matchTimelineSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  params: {
-    type: 'object',
-    properties: {
-      id: { type: 'string', format: 'uuid' },
-    },
-    required: ['id'],
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: {
-        type: 'object',
-        properties: {
-          match_id: { type: 'string', format: 'uuid' },
-          player: { type: 'string', format: 'uuid' },
-          duration: { type: 'integer', minimum: 0 },
-        },
-        required: ['match_id', 'player', 'duration'],
-      },
-    },
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.invalidFields,
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.matchNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const matchSummarySchema = {
   querystring: {
     type: 'object',
@@ -196,12 +155,12 @@ export const matchSummarySchema = {
       type: 'object',
       properties: {
         total_matches: { type: 'integer', minimum: 0 },
-        elo: { type: 'integer', minimum: 0 },
         active_matches: { type: 'integer', minimum: 0 },
+        elo: { type: 'integer', minimum: 0 },
         victories: { type: 'integer', minimum: 0 },
-        win_ratio: { type: 'number', minimum: 0, maximum: 1 },
+        defeats: { type: 'integer', minimum: 0 },
       },
-      required: ['total_matches', 'elo', 'active_matches', 'victories', 'win_ratio'],
+      required: ['total_matches', 'elo', 'active_matches', 'victories', 'defeats'],
     },
     500: {
       ...errorResponseSchema,

@@ -103,7 +103,6 @@ export async function getMatchHistory(
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
       return reply.code(404).send(errorResponse);
     }
-    console.log({ matches: matches });
     const matchesHistory: MatchHistory[] = [];
     for (let i = 0; i < matches.length; i++) {
       const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
@@ -209,27 +208,6 @@ export async function createMatch(
   }
 }
 
-// export async function matchTimeline(
-//   request: FastifyRequest<{
-//     Params: IMatchId;
-//   }>,
-//   reply: FastifyReply
-// ): Promise<void> {
-//   const { id } = request.params;
-//   try {
-//     const startTime = performance.now();
-//     const goals = (await request.server.db.all(
-//       'SELECT match_id, player, duration FROM goal WHERE match_id = ?',
-//       id
-//     )) as MatchGoals[];
-//     recordSlowDatabaseMetrics('SELECT', 'match_timeline', performance.now() - startTime);
-//     return reply.code(200).send(goals);
-//   } catch (error) {
-//     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-//     return reply.code(500).send(errorResponse);
-//   }
-// }
-
 // New function to get match summary for a player
 export async function matchSummary(
   request: FastifyRequest<{
@@ -242,21 +220,29 @@ export async function matchSummary(
     // Get player match summary
     const startTime = performance.now();
     const matchSummaryResult = await request.server.db.get(
-      'SELECT total_matches, elo, active_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?',
+      'SELECT total_matches, elo, active_matches, victories FROM player_match_summary WHERE player_id = ?',
       [id]
     );
     recordFastDatabaseMetrics('SELECT', 'player_match_summary', performance.now() - startTime);
     // Initialize default match summary if no data is returned
-    const matchSummary =
-      matchSummaryResult ||
-      ({
+    let matchSummary: PlayerMatchSummary;
+    if (!matchSummaryResult) {
+      matchSummary = {
         total_matches: 0,
-        active_matches: 0,
+				active_matches: 0,
+        elo: 1000,
         victories: 0,
-        win_ratio: 0,
-        elo: 0,
-      } as PlayerMatchSummary);
-
+        defeats: 0
+      };
+    } else {
+      matchSummary = {
+        total_matches: matchSummaryResult.total_matches,
+				active_matches: matchSummaryResult.active_matches,
+        elo: matchSummaryResult.elo,
+        victories: matchSummaryResult.victories,
+        defeats: matchSummaryResult.total_matches - matchSummaryResult.active_matches - matchSummaryResult.victories
+    }
+	}
     return reply.code(200).send(matchSummary);
   } catch (error) {
     request.log.error({
