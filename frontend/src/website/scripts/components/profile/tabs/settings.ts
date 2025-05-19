@@ -144,7 +144,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									<input 
 										type="file" 
 										id="profile-picture-upload" 
-										accept=".jpg,.jpeg,.png,.svg"
+										accept=".jpg,.jpeg,.png,.gif"
 										onchange=${(e: Event) => this.handleFileChange(e)}
 									/>
 								</label>
@@ -152,7 +152,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
 									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
 									${state.uploadError ? html`<span class="upload-error">${state.uploadError}</span>` : ''}
-									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, SVG</p>
+									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
 								</div>
 							</div>
 						</div>
@@ -272,10 +272,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const state = this.getInternalState();
 			if (!state.profile) return;
 			
-			const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
+			const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
 			if (!validTypes.includes(file.type)) {
 				this.updateInternalState({
-					uploadError: 'Invalid file type. Please use JPG, PNG, or SVG.',
+					uploadError: 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.',
 					uploadSuccess: false,
 					isUploading: false
 				});

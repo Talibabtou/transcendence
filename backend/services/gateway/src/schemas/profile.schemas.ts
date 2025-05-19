@@ -208,14 +208,6 @@ export const uploadSchema = {
     properties: {},
   },
   consumes: ['multipart/form-data'],
-  body: {
-    // type: 'object',
-    // properties: {
-    //   file: { type: 'string', format: 'binary' },
-    //   description: { type: 'string' },
-    // },
-    // required: ['file'],
-  },
   response: {
     201: {},
     404: {
