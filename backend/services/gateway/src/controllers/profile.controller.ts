@@ -28,7 +28,7 @@ export async function getHistory(
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
-    const responseData = (await response.json()) as MatchHistory | ErrorResponse;
+    const responseData = (await response.json()) as MatchHistory[] | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

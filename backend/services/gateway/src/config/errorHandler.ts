@@ -18,6 +18,7 @@ export default function errorHandler(error: Error, request: FastifyRequest, repl
 
   const errorResponse = {
     statusCode: status,
+    code: customError.code || 'INTERNAL_SERVER_ERROR',
     error: customError.name || (customError.validation ? 'ValidationError' : 'InternalServerError'),
     message: customError.message || 'An unexpected error occurred',
     ...(customError.validation && {

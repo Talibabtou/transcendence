@@ -6,18 +6,32 @@ import { Component } from '@website/scripts/components';
 import { html, render, DbService, ApiError } from '@website/scripts/utils';
 import { UserProfile } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { MatchHistory } from '@shared/types/match.type';
+
+interface ProcessedMatch {
+	id: string;
+	date: Date;
+	opponent: string;
+	opponentId: string;
+	playerScore: number;
+	opponentScore: number;
+	result: 'win' | 'loss';
+}
 
 interface ProfileHistoryState {
 	profile: UserProfile | null;
 	historyPage: number;
 	historyPageSize: number;
-	matches: any[];
+	allMatches: ProcessedMatch[];
+	matches: ProcessedMatch[];
 	isLoading: boolean;
 	hasMoreMatches: boolean;
+	dataLoadInProgress: boolean;
 	handlers: {
 		onPlayerClick: (username: string) => void;
 	};
 }
+
 export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	// @ts-ignore - Used for DOM references
 	private contentElement: HTMLElement | null = null;
@@ -29,9 +43,11 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			profile: null,
 			historyPage: 0,
 			historyPageSize: 20,
+			allMatches: [],
 			matches: [],
 			isLoading: false,
 			hasMoreMatches: true,
+			dataLoadInProgress: false,
 			handlers: {
 				onPlayerClick: () => {}
 			}
@@ -39,155 +55,103 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	}
 	
 	public setProfile(profile: UserProfile): void {
-		this.updateInternalState({ 
-			profile,
-			historyPage: 0,
-			matches: [],
-			hasMoreMatches: true
-		});
-		this.loadMatchHistory(profile.id);
+		this.updateInternalState({ profile });
+		if (!this.getInternalState().dataLoadInProgress) {
+			this.updateInternalState({ 
+				historyPage: 0,
+				allMatches: [],
+				matches: [],
+				hasMoreMatches: true,
+				isLoading: true
+			});
+			this.fetchAndProcessMatchHistory(profile.id);
+		}
 	}
 	
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
 	}
-	
-	private async loadMatchHistory(userId: string, isLoadingMore: boolean = false): Promise<void> {
+
+	private async fetchAndProcessMatchHistory(userId: string): Promise<void> {
+		const state = this.getInternalState();
+		if (state.dataLoadInProgress) return;
+		
 		try {
-			const state = this.getInternalState();
-			if (state.isLoading) return;
-			
-			// Update loading state
-			if (!isLoadingMore) {
-				this.updateInternalState({ 
-					isLoading: true,
-					matches: [],
-					historyPage: 0
-				});
-			} else {
-				this.updateInternalState({ isLoading: true });
-			}
-			
-			// Get user matches from DB service for current page
-			const pageToLoad = isLoadingMore ? state.historyPage + 1 : 0;
-			
-			// Request the match history
-			const newMatches = await DbService.getUserMatches(userId, pageToLoad, state.historyPageSize);
-			
-			// Process matches
-			const processedMatches = await Promise.all(newMatches.map(async (match) => {
-				const isPlayer1 = match.player_1 === userId;
-				const opponentId = isPlayer1 ? match.player_2 : match.player_1;
-				
-				// Get opponent details
-				let opponentName = `Player ${opponentId}`;
-				try {
-					const opponent = await DbService.getUser(opponentId);
-					if (opponent) {
-						opponentName = opponent.username;
-					}
-				} catch (error) {
-					if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-						console.log(`Player ID ${opponentId} not found`);
-					} else {
-						console.log(`Could not fetch opponent data for ID ${opponentId}`);
-					}
-				}
-				
-				// Get goals for this match
-				const goals = await DbService.getMatchGoals(match.id);
-				
-				// Calculate scores
-				let playerScore = 0;
-				let opponentScore = 0;
-				
-				for (const goal of goals) {
-					if (goal.player === userId) {
-						playerScore++;
-					} else if (goal.player === opponentId) {
-						opponentScore++;
-					}
-				}
-				
-				// Skip incomplete matches (neither player has reached 3 points)
-				if (playerScore < 3 && opponentScore < 3) {
-					return null;
-				}
-				
-				// Determine result
-				const result = playerScore > opponentScore ? 'win' : 'loss';
-				
+			this.updateInternalState({ isLoading: true, dataLoadInProgress: true });
+
+			const rawHistory = await DbService.getUserHistory(userId);
+			console.log(rawHistory);
+
+			const processedHistory = rawHistory.map((entry: MatchHistory) => {
 				return {
-					id: match.id,
-					date: new Date(match.created_at),
-					opponent: opponentName,
-					opponentId: opponentId,
-					playerScore,
-					opponentScore,
-					result
+					id: entry.matchId,
+					date: new Date(entry.created_at),
+					opponent: entry.username2,
+					opponentId: entry.id2,
+					playerScore: typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1,
+					opponentScore: typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2,
+					result: parseInt(String(entry.goals1)) > parseInt(String(entry.goals2)) ? 'win' : 'loss'
 				};
-			}));
-			
-			// Filter out null matches (incomplete matches) and sort by most recent first
-			const validMatches = processedMatches.filter(match => match !== null);
-			const sortedMatches = validMatches.sort((a, b) => 
-				new Date(b.date).getTime() - new Date(a.date).getTime()
-			);
-			
-			// Combine with existing matches if loading more
-			const combinedMatches = isLoadingMore 
-				? [...state.matches, ...sortedMatches]
-				: sortedMatches;
-			
-			// Update state with new matches
-			this.updateInternalState({ 
-				matches: combinedMatches,
+			}).sort((a: ProcessedMatch, b: ProcessedMatch) => b.date.getTime() - a.date.getTime());
+
+			this.updateInternalState({
+				allMatches: processedHistory,
 				isLoading: false,
-				hasMoreMatches: newMatches.length >= state.historyPageSize,
-				historyPage: pageToLoad
+				dataLoadInProgress: false
 			});
-			
-			// Render the updated UI
+
+			this.updateDisplayedMatches();
 			this.render();
-			
+
 		} catch (error) {
-			if (error instanceof ApiError) {
-				if (error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-					console.error(`Player ID ${userId} not found when loading match history`);
-				} else {
-					console.error(`Error loading match history: ${error.message}`);
-				}
-			} else {
-				console.error('Error loading match history:', error);
+			console.error('Error loading match history:', error);
+			if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
+				console.error(`Player ID ${userId} not found when fetching match history.`);
 			}
-			this.updateInternalState({ isLoading: false });
+			this.updateInternalState({ 
+				isLoading: false, 
+				allMatches: [], 
+				matches: [],
+				dataLoadInProgress: false 
+			});
+			this.render();
 		}
 	}
 	
+	private updateDisplayedMatches(): void {
+		const state = this.getInternalState();
+		const { allMatches, historyPage, historyPageSize } = state;
+		
+		const startIndex = 0;
+		const endIndex = (historyPage + 1) * historyPageSize;
+		const displayedMatches = allMatches.slice(startIndex, endIndex);
+		
+		this.updateInternalState({
+			matches: displayedMatches,
+			hasMoreMatches: endIndex < allMatches.length
+		});
+	}
+
 	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
-		if (state.isLoading || !state.hasMoreMatches || !state.profile) {
+		if (state.isLoading || !state.hasMoreMatches) {
 			return;
 		}
 		
-		console.log(`Loading more matches, current page: ${state.historyPage}`);
-		this.loadMatchHistory(state.profile.id, true);
+		this.updateInternalState({ historyPage: state.historyPage + 1 });
+		this.updateDisplayedMatches();
+		this.render();
 	}
 	
 	render(): void {
 		const state = this.getInternalState();
-		if (!state.profile) return;
-		
-		// Filter for matches with at least 1 point total
-		const filteredMatches = state.matches.filter(match => 
-			match.playerScore + match.opponentScore > 0
-		);
-		
+		const displayedMatchesToRender = state.matches;
+
 		const template = html`
 			<div class="history-content" ref=${(el: HTMLElement) => this.contentElement = el}>
-				${state.isLoading && filteredMatches.length === 0 ? 
+				${state.isLoading && displayedMatchesToRender.length === 0 ? 
 					html`<p class="loading">Loading match history...</p>` :
-					filteredMatches.length === 0 ? 
+					!state.isLoading && state.allMatches.length === 0 && displayedMatchesToRender.length === 0 ?
 					html`<p class="no-data">No match history available</p>` :
 					html`
 						<table class="game-history-table">
@@ -200,7 +164,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 								</tr>
 							</thead>
 							<tbody>
-								${filteredMatches.map(game => html`
+								${displayedMatchesToRender.map(game => html`
 									<tr class="game-${game.result}">
 										<td>${game.date.toLocaleDateString()}</td>
 										<td 
@@ -221,7 +185,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 							<div class="profile-tabs" style="margin-top: 2rem; display: flex; justify-content: center;">
 								<ul class="tabs-list" style="list-style: none; padding: 0;">
 									<li class="tab-item">
-										${state.isLoading ? 
+										${state.isLoading ?
 											html`<button class="tab-button" disabled>Loading matches...</button>` : 
 											html`<button 
 												class="tab-button" 
@@ -234,11 +198,11 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 									</li>
 								</ul>
 							</div>
-						` : html`
+						` : state.allMatches.length > 0 ? html` <!-- Show only if there was data -->
 							<div class="history-end" style="margin: 2rem 0; text-align: center; color: #666;">
-								End of match history (${filteredMatches.length} total matches)
+								End of match history (${state.allMatches.length} total matches)
 							</div>
-						`}
+						` : ''}
 					`
 				}
 			</div>

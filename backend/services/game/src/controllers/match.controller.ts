@@ -126,7 +126,7 @@ export async function getMatchHistory(
       };
       matchesHistory.push(matchHistory);
     }
-		console.log({ matchesHistory });
+    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
@@ -227,20 +227,21 @@ export async function matchSummary(
     if (!matchSummaryResult) {
       matchSummary = {
         total_matches: 0,
-				active_matches: 0,
+        active_matches: 0,
         elo: 1000,
         victories: 0,
-        defeats: 0
+        defeats: 0,
       };
     } else {
       matchSummary = {
         total_matches: matchSummaryResult.total_matches,
-				active_matches: matchSummaryResult.active_matches,
+        active_matches: matchSummaryResult.active_matches,
         elo: matchSummaryResult.elo,
         victories: matchSummaryResult.victories,
-        defeats: matchSummaryResult.total_matches - matchSummaryResult.active_matches - matchSummaryResult.victories
+        defeats:
+          matchSummaryResult.total_matches - matchSummaryResult.active_matches - matchSummaryResult.victories,
+      };
     }
-	}
     return reply.code(200).send(matchSummary);
   } catch (error) {
     request.log.error({

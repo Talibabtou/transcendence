@@ -66,17 +66,17 @@ export const summarySchema = {
             link: {
               type: 'string',
               format: 'uri',
-              description: 'A link to the user’s profile picture.',
+              description: 'A link to the users profile picture.',
             },
           },
           required: ['link'],
           additionalProperties: false,
-          description: 'Information about the user’s profile picture.',
+          description: 'Information about the users profile picture.',
         },
       },
       required: ['username', 'id', 'summary', 'pics'],
       additionalProperties: false,
-      description: 'A complete summary of the user’s information, including matches and profile picture.',
+      description: 'A complete summary of the users information, including matches and profile picture.',
     },
     404: {
       ...errorResponseSchema,
@@ -126,30 +126,8 @@ export const getHistorySchema = {
             description: 'The unique identifier of the first player.',
           },
           goals1: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  description: 'The unique identifier of the goal.',
-                },
-                match_id: {
-                  type: 'string',
-                  description: 'The unique identifier of the match.',
-                },
-                player: {
-                  type: 'string',
-                  description: 'The unique identifier of the player who scored the goal.',
-                },
-                duration: {
-                  type: 'number',
-                  description: 'The time (in seconds) when the goal was scored.',
-                },
-              },
-              required: ['id', 'match_id', 'player', 'duration'],
-            },
-            description: 'The list of goals scored by the first player.',
+            type: ['number', 'string'],
+            description: 'The number of goals scored by the first player.',
           },
           username2: {
             type: 'string',
@@ -160,34 +138,11 @@ export const getHistorySchema = {
             description: 'The unique identifier of the second player.',
           },
           goals2: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: {
-                  type: 'string',
-                  description: 'The unique identifier of the goal.',
-                },
-                match_id: {
-                  type: 'string',
-                  description: 'The unique identifier of the match.',
-                },
-                player: {
-                  type: 'string',
-                  description: 'The unique identifier of the player who scored the goal.',
-                },
-                duration: {
-                  type: 'number',
-                  description: 'The time (in seconds) when the goal was scored.',
-                },
-              },
-              required: ['id', 'match_id', 'player', 'duration'],
-            },
-            description: 'The list of goals scored by the second player.',
+            type: ['number', 'string'],
+            description: 'The number of goals scored by the second player.',
           },
           created_at: {
             type: 'string',
-            format: 'date-time',
             description: 'The timestamp when the match was created.',
           },
         },

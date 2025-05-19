@@ -7,7 +7,7 @@ export default async function profilRoutes(fastify: FastifyInstance): Promise<vo
 
   fastify.get<{ Params: IId }>('/summary/:id', getSummary);
 
-  fastify.get<{ Params: IId }>('/history/: id', getHistory);
+  fastify.get<{ Params: IId }>('/history/:id', getHistory);
 
   fastify.post<{ Body: FormData; Params: IId }>('/uploads/:id', postPic);
 

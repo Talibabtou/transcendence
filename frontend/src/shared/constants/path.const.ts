@@ -16,35 +16,36 @@ export const GAME = {
 	BASE: '/game/matches',
 	MATCH: {
 		BASE: '/game/match',
-		BY_ID: (id: string | number) => `/game/match/${id}`,
-		STATS: (id: string | number) => `/game/match/stats/${id}`,
-		SUMMARY: (id: string | number) => `/game/match/summary/${id}`,
+		BY_ID: (id: string) => `/game/match/${id}`,
+		STATS: (id: string) => `/game/match/stats/${id}`,
+		SUMMARY: (id: string) => `/game/match/summary/${id}`,
 	},
 	LEADERBOARD: '/game/leaderboard',
 	ELO: {
 		BASE: '/game/elos',
-		BY_ID: (id: string | number) => `/game/elo/${id}`,
+		BY_ID: (id: string) => `/game/elo/${id}`,
 	},
 	GOALS: {
 		BASE: '/game/goal',
 		SUMMARY: `/game/goals`,
-		BY_ID: (id: string | number) => `/game/goal/${id}`,
+		BY_ID: (id: string) => `/game/goal/${id}`,
 	},
 	TOURNAMENT: {
 		BASE: '/game/tournaments',
-		BY_ID: (id: string | number) => `/game/tournament/${id}`,
-		FINAL: (id: string | number) => `/game/tournament/${id}/final`,
+		BY_ID: (id: string) => `/game/tournament/${id}`,
+		FINAL: (id: string) => `/game/tournament/${id}/final`,
 	},
 };
 
 // User service paths
 export const USER = {
 	BASE: '/auth/users',
-	BY_ID: (id: string | number) => `/auth/user/${id}`,
+	BY_ID: (id: string) => `/auth/user/${id}`,
 	BY_USERNAME: (username: string) => `/auth/id/${username}`,
 	ME: '/auth/user/me',
 	ME_UPDATE: '/auth/user',
 	PROFILE: '/profile/summary',
+	PROFILE_HISTORY: (id: string) => `/profile/history/${id}`,
 	UPLOADS: '/profile/uploads',
 	PROFILE_PIC_LINK: (id: string) => `/profile/pics/${id}`,
 };
@@ -67,15 +68,15 @@ export const SOCIAL = {
 	FRIENDS: {
 		BASE: '/friends',
 		ALL: {
-			BY_ID: (id: string | number) => `/friends/all/${id}`,
+			BY_ID: (id: string) => `/friends/all/${id}`,
 			ME: '/friends/all/me',
 		},
-		CHECK: (id: string | number) => `/friends/check/${id}`,
+		CHECK: (id: string) => `/friends/check/${id}`,
 		CREATE: '/friends/create',
 		ACCEPT: '/friends/accept',
 		DELETE: {
 			ALL: '/friends/delete/all',
-			BY_ID: (id: string | number) => `/friends/delete/${id}`,
+			BY_ID: (id: string) => `/friends/delete/${id}`,
 		},
 	},
 };
