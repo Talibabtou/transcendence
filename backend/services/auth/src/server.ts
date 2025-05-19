@@ -22,9 +22,9 @@ class Server {
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
-      await dbConnector(server);
       await server.register(routes);
       await server.register(fastifyJwt, jwtPluginRegister);
+      await dbConnector(server);
       await server.listen({
         port: Number(process.env.AUTH_PORT) || 8082,
         host: process.env.AUTH_ADDR || 'localhost',

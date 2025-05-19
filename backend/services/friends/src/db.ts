@@ -47,5 +47,5 @@ export async function dbConnector(fastify: FastifyInstance) {
   fastify.addHook('onClose', async (instance) => {
     await instance.db.close();
   });
-  console.log(`Database ${dbPath} successfully created`);
+  fastify.log.info(`Database ${dbPath} successfully created`);
 }
