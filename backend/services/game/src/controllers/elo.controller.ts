@@ -9,7 +9,7 @@ import {
 } from '../telemetry/metrics.js';
 import { Database } from 'sqlite';
 import { Elo, GetElosQuery, DailyElo, LeaderboardEntry } from '../shared/types/elo.type.js';
-import { IId, GetLeaderboardQuery } from '../shared/types/match.type.js';
+import { IId, GetPageQuery } from '../shared/types/match.type.js';
 
 async function calculateEloChange(
   winnerElo: number,
@@ -196,7 +196,7 @@ export async function updateEloRatings(
 // Get a single elo by ID
 export async function getLeaderboard(
   request: FastifyRequest<{
-    Querystring: GetLeaderboardQuery;
+    Querystring: GetPageQuery;
   }>,
   reply: FastifyReply
 ): Promise<void> {

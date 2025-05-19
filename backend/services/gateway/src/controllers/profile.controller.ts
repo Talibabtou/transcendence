@@ -5,7 +5,7 @@ import { ErrorResponse } from '../shared/types/error.type.js';
 import { IUpload, IId, IReplyPic } from '../shared/types/profile.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import { MatchHistory } from '../shared/types/match.type.js';
-
+import { GetPageQuery } from '../shared/types/match.type.js';
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const subpath: string = request.url.split('/profile')[1];
@@ -21,7 +21,7 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
 }
 
 export async function getHistory(
-  request: FastifyRequest<{ Params: IId }>,
+  request: FastifyRequest<{ Params: IId; Querystring: GetPageQuery }>,
   reply: FastifyReply
 ): Promise<void> {
   try {

@@ -93,7 +93,16 @@ export const getHistorySchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {},
+    properties: {
+      limit: {
+        type: 'integer',
+        description: 'The number of matches to return.',
+      },
+      offset: {
+        type: 'integer',
+        description: 'The number of matches to skip.',
+      },
+    },
   },
   params: {
     type: 'object',

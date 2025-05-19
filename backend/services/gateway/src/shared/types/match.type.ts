@@ -88,7 +88,7 @@ export interface IMatchId {
   id: string;
 }
 
-export interface GetLeaderboardQuery {
+export interface GetPageQuery {
   limit?: number;
   offset?: number;
 }

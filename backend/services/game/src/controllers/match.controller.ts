@@ -9,6 +9,7 @@ import {
   PlayerStats,
   PlayerMatchSummary,
   DailyPerformance,
+  GetPageQuery,
 } from '../shared/types/match.type.js';
 import {
   recordFastDatabaseMetrics,
@@ -80,10 +81,12 @@ export async function getMatches(
 export async function getMatchHistory(
   request: FastifyRequest<{
     Params: IId;
+    Querystring: GetPageQuery;
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
+  const { limit = 10, offset = 0 } = request.query;
   try {
     const matches = await request.server.db.all(
       `
@@ -96,9 +99,9 @@ export async function getMatchHistory(
         created_at
       FROM player_match_history
       WHERE player_id = ?
-      ORDER BY created_at DESC;
+      ORDER BY created_at DESC LIMIT ? OFFSET ?;
       `,
-      [id]
+      [id, limit, offset]
     );
     console.log('getMatchHistory', matches);
     if (!matches) {

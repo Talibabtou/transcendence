@@ -1,4 +1,5 @@
 import { IId } from '../shared/types/gateway.types.js';
+import { GetPageQuery } from '../shared/types/match.type.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { postPic, deletePic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
 
@@ -7,7 +8,7 @@ export default async function profilRoutes(fastify: FastifyInstance): Promise<vo
 
   fastify.get<{ Params: IId }>('/summary/:id', getSummary);
 
-  fastify.get<{ Params: IId }>('/history/:id', getHistory);
+  fastify.get<{ Params: IId; Querystring: GetPageQuery }>('/history/:id', getHistory);
 
   fastify.post<{ Body: FormData; Params: IId }>('/uploads/:id', postPic);
 
