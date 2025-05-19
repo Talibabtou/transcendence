@@ -52,7 +52,7 @@ export interface PlayerMatchSummary {
   active_matches: number;
   victories: number;
   defeats: number;
-	win_ratio: number;
+  win_ratio: number;
 }
 
 export interface DailyPerformance {
