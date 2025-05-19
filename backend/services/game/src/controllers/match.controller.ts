@@ -117,11 +117,23 @@ export async function getMatchHistory(
       const matchHistory: MatchHistory = {
         matchId: matches[i].match_id || 'undefined',
         username1: responseDataUsername1.username || 'undefined',
-        id1: request.params.id === matches[i].player_1 ? matches[i].player_1 : matches[i].player_2 || 'undefined',
-        goals1: request.params.id === matches[i].player_1 ? matches[i].p1_score : matches[i].p2_score || 'undefined',
+        id1:
+          request.params.id === matches[i].player_1
+            ? matches[i].player_1
+            : matches[i].player_2 || 'undefined',
+        goals1:
+          request.params.id === matches[i].player_1
+            ? matches[i].p1_score
+            : matches[i].p2_score || 'undefined',
         username2: responseDataUsername2.username || 'undefined',
-        id2: request.params.id === matches[i].player_1 ? matches[i].player_2 : matches[i].player_1 || 'undefined',
-        goals2: request.params.id === matches[i].player_1 ? matches[i].p2_score : matches[i].p1_score || 'undefined',
+        id2:
+          request.params.id === matches[i].player_1
+            ? matches[i].player_2
+            : matches[i].player_1 || 'undefined',
+        goals2:
+          request.params.id === matches[i].player_1
+            ? matches[i].p2_score
+            : matches[i].p1_score || 'undefined',
         created_at: matches[i].created_at || 'undefined',
       };
       matchesHistory.push(matchHistory);

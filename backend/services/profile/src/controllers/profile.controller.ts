@@ -106,7 +106,6 @@ export async function postPic(
     const ext: string = file.filename.substring(file.filename.lastIndexOf('.'));
     const filePath: string = path.join(uploadDir, `${id}${ext}`);
     const buffer: Buffer = await file.toBuffer();
-    console.log({ path: filePath });
     fs.promises.writeFile(filePath, buffer);
     return reply.code(201).send();
   } catch (err) {

@@ -48,7 +48,7 @@ export class Server {
       server.setErrorHandler(errorHandler);
       server.addHook('onRequest', jwtPluginHook);
       server.addHook('onRequest', blockHeaders);
-      server.addHook('preValidation', checkMicroservicesHook);
+      // server.addHook('preValidation', checkMicroservicesHook);
       server.addHook('onSend', addHeaders);
       await server.register(fastifySwagger, swaggerConfig);
       await server.register(fastifySwaggerUi, swaggerUiConfig);
@@ -69,7 +69,7 @@ export class Server {
       server.log.info(
         `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8085}`
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error(err);
     }
