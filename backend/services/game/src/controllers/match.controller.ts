@@ -1,7 +1,12 @@
-import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { Goal, MatchGoals } from '../shared/types/goal.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import {
+  matchCreationCounter,
+  recordFastDatabaseMetrics,
+  recordSlowDatabaseMetrics,
+  recordMediumDatabaseMetrics,
+  matchTournamentCounter,
+} from '../telemetry/metrics.js';
 import {
   Match,
   CreateMatchRequest,
@@ -9,23 +14,16 @@ import {
   PlayerStats,
   PlayerMatchSummary,
   DailyPerformance,
+  MatchHistory,
+  IId,
 } from '../shared/types/match.type.js';
-import {
-  recordFastDatabaseMetrics,
-  recordMediumDatabaseMetrics,
-  recordSlowDatabaseMetrics,
-  matchCreationCounter,
-  matchTournamentCounter,
-} from '../telemetry/metrics.js';
-import { match } from 'assert';
-import { IUsername } from '../shared/types/auth.types.js';
-import { ErrorResponse } from '../shared/types/error.type.js';
+import { MatchGoals } from '../shared/types/goal.type.js';
 
 //check if player 1 = player 2
 // Get a single match by ID
 export async function getMatch(
   request: FastifyRequest<{
-    Params: IMatchId;
+    Params: IId;
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -76,76 +74,6 @@ export async function getMatches(
     return reply.code(500).send(errorResponse);
   }
 }
-
-export async function getMatchHistory(
-  request: FastifyRequest<{
-    Params: IId;
-  }>,
-  reply: FastifyReply
-): Promise<void> {
-  const { id } = request.params;
-  try {
-    const matches = await request.server.db.all(
-      `
-      SELECT 
-        match_id, 
-        player_1, 
-        player_2,
-				p1_score,
-				p2_score,
-        created_at
-      FROM player_daily_performance
-      WHERE 
-        (player_1 = ? OR player_2 = ?)
-        AND active = FALSE;
-      `,
-      [id, id]
-    );
-    if (!matches) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
-      return reply.code(404).send(errorResponse);
-    }
-    const matchesHistory: MatchHistory[] = [];
-    for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
-      const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
-      const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
-      const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
-      const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
-      const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
-
-      const matchHistory: MatchHistory = {
-        matchId: matches[i].match_id || 'undefined',
-        username1: responseDataUsername1.username || 'undefined',
-        id1:
-          request.params.id === matches[i].player_1
-            ? matches[i].player_1
-            : matches[i].player_2 || 'undefined',
-        goals1:
-          request.params.id === matches[i].player_1
-            ? matches[i].p1_score
-            : matches[i].p2_score || 'undefined',
-        username2: responseDataUsername2.username || 'undefined',
-        id2:
-          request.params.id === matches[i].player_1
-            ? matches[i].player_2
-            : matches[i].player_1 || 'undefined',
-        goals2:
-          request.params.id === matches[i].player_1
-            ? matches[i].p2_score
-            : matches[i].p1_score || 'undefined',
-        created_at: matches[i].created_at || 'undefined',
-      };
-      matchesHistory.push(matchHistory);
-    }
-    console.log({ matchesHistory });
-    return reply.code(200).send(matchesHistory);
-  } catch (error) {
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
-  }
-}
-
 // if tournament not more than 4 players
 //avoid 7 matchs not being a final
 //avoid 8 matches
@@ -194,9 +122,7 @@ export async function createMatch(
     recordSlowDatabaseMetrics('INSERT', 'matches', performance.now() - startTime);
     matchCreationCounter.add(1, { 'match.status': 'created' });
     if (tournament_id) {
-      matchTournamentCounter.add(1, {
-        'match.tournament_id': tournament_id,
-      });
+      matchTournamentCounter.add(1, { 'match.tournament_id': tournament_id });
     }
 
     return reply.code(201).send(newMatch);
@@ -218,6 +144,87 @@ export async function createMatch(
   }
 }
 
+export async function getMatchHistory(
+  request: FastifyRequest<{
+    Params: IId;
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = request.params;
+  try {
+    const matches = await request.server.db.all(
+      `
+      SELECT 
+        id, 
+        player_1, 
+        player_2, 
+        created_at
+      FROM matches
+      WHERE 
+        (player_1 = ? OR player_2 = ?)
+        AND active = FALSE
+        AND duration IS NOT NULL;
+      `,
+      [id, id]
+    );
+    if (!matches) {
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
+      return reply.code(404).send(errorResponse);
+    }
+    const matchesHistory: MatchHistory[] = [];
+    // for (let i = 0; i < matches.length; i++) {
+    //   const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+    //   const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
+    //   const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
+    //   const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+    //   const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
+    //   const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
+    //   const serviceUrlGoal1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_1}`;
+    //   const responseGoal1 = await fetch(serviceUrlGoal1, { method: 'GET' });
+    //   const responseDataGoal1 = (await responseGoal1.json()) as Goal[];
+    //   const serviceUrlGoal2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/goals?match_id=${matches[i].id}&player=${matches[i].player_2}`;
+    //   const responseGoal2 = await fetch(serviceUrlGoal2, { method: 'GET' });
+    //   const responseDataGoal2 = (await responseGoal2.json()) as Goal[];
+    //   const matchHistory: MatchHistory = {
+    //     matchId: matches[i].id || 'undefined',
+    //     username1: responseDataUsername1.username || 'undefined',
+    //     id1: matches[i].player_1 || 'undefined',
+    //     goals1: responseDataGoal1,
+    //     username2: responseDataUsername2.username || 'undefined',
+    //     id2: matches[i].player_2 || 'undefined',
+    //     goals2: responseDataGoal2,
+    //     created_at: matches[i].created_at || 'undefined',
+    //   };
+    //   matchesHistory.push(matchHistory);
+    // }
+    return reply.code(200).send(matchesHistory);
+  } catch (error) {
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorResponse);
+  }
+}
+
+export async function matchTimeline(
+  request: FastifyRequest<{
+    Params: IId;
+  }>,
+  reply: FastifyReply
+): Promise<void> {
+  const { id } = request.params;
+  try {
+    const startTime = performance.now();
+    const goals = (await request.server.db.all(
+      'SELECT match_id, player, duration FROM goal WHERE match_id = ?',
+      id
+    )) as MatchGoals[];
+    recordSlowDatabaseMetrics('SELECT', 'match_timeline', performance.now() - startTime);
+    return reply.code(200).send(goals);
+  } catch (error) {
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorResponse);
+  }
+}
+
 // New function to get match summary for a player
 export async function matchSummary(
   request: FastifyRequest<{
@@ -230,30 +237,21 @@ export async function matchSummary(
     // Get player match summary
     const startTime = performance.now();
     const matchSummaryResult = await request.server.db.get(
-      'SELECT total_matches, elo, active_matches, victories FROM player_match_summary WHERE player_id = ?',
+      'SELECT total_matches, elo, active_matches, victories, win_ratio FROM player_match_summary WHERE player_id = ?',
       [id]
     );
     recordFastDatabaseMetrics('SELECT', 'player_match_summary', performance.now() - startTime);
     // Initialize default match summary if no data is returned
-    let matchSummary: PlayerMatchSummary;
-    if (!matchSummaryResult) {
-      matchSummary = {
+    const matchSummary =
+      matchSummaryResult ||
+      ({
         total_matches: 0,
         active_matches: 0,
-        elo: 1000,
         victories: 0,
         defeats: 0,
-      };
-    } else {
-      matchSummary = {
-        total_matches: matchSummaryResult.total_matches,
-        active_matches: matchSummaryResult.active_matches,
-        elo: matchSummaryResult.elo,
-        victories: matchSummaryResult.victories,
-        defeats:
-          matchSummaryResult.total_matches - matchSummaryResult.active_matches - matchSummaryResult.victories,
-      };
-    }
+        elo: 0,
+      } as PlayerMatchSummary);
+
     return reply.code(200).send(matchSummary);
   } catch (error) {
     request.log.error({
@@ -279,7 +277,7 @@ export async function matchStats(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const id = request.params.id;
+  const { id } = request.params;
   try {
     // Get daily performance for line plot
     let startTime = performance.now();
@@ -334,7 +332,7 @@ export async function matchStats(
     // Combine all statistics into a comprehensive response
     const player_id = id;
     const playerStats: PlayerStats = {
-      player_id: player_id,
+      player_id,
       goal_stats: {
         fastest_goal_duration: longestGoalDuration,
         average_goal_duration: averageGoalDuration,
@@ -345,6 +343,7 @@ export async function matchStats(
       match_durations: matchDurations,
       elo_history: eloRatings,
     };
+
     return reply.code(200).send(playerStats);
   } catch (error) {
     request.log.error({

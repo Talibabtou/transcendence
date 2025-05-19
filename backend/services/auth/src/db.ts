@@ -22,7 +22,7 @@ async function initEloComputer(db: Database<sqlite3.Database, sqlite3.Statement>
   console.log('Waiting for service GAME...');
   while (!gameState) {
     try {
-      const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${id}`;
+      const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${id?.id}`;
       const response = await fetch(eloUrl, { method: 'POST' });
       if (response.status !== 201) {
         throw new Error('Create elo failed');

@@ -5,6 +5,7 @@ import {
   getMatches,
   createMatch,
   getMatchHistory,
+  matchTimeline,
   matchStats,
   matchSummary,
 } from '../controllers/match.controller.js';
@@ -18,7 +19,7 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
 
   fastify.post<{ Body: CreateMatchRequest }>('/match', createMatch);
 
-  // fastify.get<{ Params: IId }>('/match/:id/stats', matchTimeline);
+  fastify.get<{ Params: IId }>('/match/:id/stats', matchTimeline);
 
   fastify.get<{ Params: IId }>('/match/stats/:id', matchStats);
 
