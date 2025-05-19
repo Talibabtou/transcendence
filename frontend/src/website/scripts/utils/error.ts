@@ -56,20 +56,3 @@ export function createErrorResponse(statusCode: number, code: ErrorCodes, messag
 		message: message || code
 	};
 }
-
-// try {
-// 	const match = await DbService.getMatchDetails(matchId);
-// 	// Process match data
-// } catch (error) {
-// 	if (error instanceof ApiError) {
-// 		// Handle API-specific errors
-// 		if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
-// 			// Show specific message for match not found
-// 		} else if (error.isErrorCode(ErrorCodes.PLAYER_NOT_IN_MATCH)) {
-// 			// Show specific message for player not in match
-// 		}
-// 	} else {
-// 		// Handle other errors (network, etc.)
-// 		console.error('Unknown error:', error);
-// 	}
-// }

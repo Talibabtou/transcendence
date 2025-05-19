@@ -270,7 +270,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		if (file) {
 			const state = this.getInternalState();
-			if (!state.profile) return; // Ensure profile exists
+			if (!state.profile) return;
 			
 			const validTypes = ['image/jpeg', 'image/png', 'image/svg+xml'];
 			if (!validTypes.includes(file.type)) {
@@ -282,9 +282,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				return;
 			}
 			
-			if (file.size > 2 * 1024 * 1024) { // 2MB
+			if (file.size > 1 * 1024 * 1024) { // 1MB
 				this.updateInternalState({
-					uploadError: 'File too large. Maximum size is 2MB.',
+					uploadError: 'File too large. Maximum size is 1MB.',
 					uploadSuccess: false,
 					isUploading: false
 				});
@@ -297,37 +297,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				uploadSuccess: false
 			});
 			
-			// No need for FileReader or newFileName for display if DbService handles it all
-			
 			DbService.updateProfilePicture(file) 
-				.then((responseFromUpload) => {
-					// responseFromUpload.link is the fully qualified URL from DbService
-					if (responseFromUpload && responseFromUpload.link && state.profile) {
-						this.updateInternalState({
-							isUploading: false,
-							uploadSuccess: true,
-							uploadError: null, // Clear previous errors
-							profile: { // Update the local avatar URL for immediate display in settings
-								...state.profile,
-								avatarUrl: responseFromUpload.link 
-							}
-						});
-						
-						// Update global app state (for other components that might use it directly)
-						appState.updateUserData({
-							profilePicture: responseFromUpload.link
-						});
-						appState.setPlayerAvatar(state.profile.id, responseFromUpload.link);
-						
-						// Notify parent (ProfileComponent) to refresh its data, including the summary avatar
-						if (this.onProfileUpdate) {
-							// Pass an indicator that the avatar changed, or let ProfileComponent always refetch on any setting update.
-							// For simplicity here, we rely on triggerProfileRefresh which ProfileComponent should listen to.
-						}
-						this.triggerProfileRefresh(); // This event should cause ProfileComponent to re-fetch and re-render
-					} else {
-						throw new Error("Profile picture upload succeeded but no valid link was returned.");
-					}
+				.then(() => {
+					// On successful upload, just update the state to reflect success
+					this.updateInternalState({
+						isUploading: false,
+						uploadSuccess: true,
+						uploadError: null
+					});
+					
+					// Trigger a profile refresh to get the updated avatar
+					this.triggerProfileRefresh();
 				})
 				.catch(error => {
 					let specificError = "Upload failed. Please try again.";

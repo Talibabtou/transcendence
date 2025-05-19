@@ -48,10 +48,10 @@ export interface GetTournamentsQuery {
 
 export interface PlayerMatchSummary {
   total_matches: number;
-  elo: number;
   active_matches: number;
+  elo: number;
   victories: number;
-  win_ratio: number;
+  defeats: number;
 }
 
 export interface DailyPerformance {

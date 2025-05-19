@@ -51,7 +51,8 @@ export interface PlayerMatchSummary {
   elo: number;
   active_matches: number;
   victories: number;
-  win_ratio: number;
+  defeats: number;
+	win_ratio: number;
 }
 
 export interface DailyPerformance {

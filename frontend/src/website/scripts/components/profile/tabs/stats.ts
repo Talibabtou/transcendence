@@ -24,6 +24,7 @@ interface ProfileStatsState {
 		dailyActivityChart?: () => void;
 		goalDurationChart?: () => void;
 	};
+	dataLoadInProgress: boolean;
 }
 
 /**
@@ -44,19 +45,33 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			goalDurationChartRendered: false,
 			profile: null,
 			playerStats: null,
-			cleanup: {}
+			cleanup: {},
+			dataLoadInProgress: false
 		});
 	}
 	
 	/**
 	 * Sets the profile data for the stats component
 	 */
-	public setProfile(profile: UserProfile): void {
+	public async setProfile(profile: UserProfile): Promise<void> {
 		// Only update state if profile actually changed
 		if (this.getInternalState().profile?.id !== profile?.id) {
-			this.updateInternalState({ profile });
-			this.loadData();
+			// First update the profile, but keep loading state
+			this.updateInternalState({ 
+				profile,
+				// Reset chart rendering flags when profile changes
+				eloChartRendered: false,
+				matchDurationChartRendered: false,
+				dailyActivityChartRendered: false,
+				goalDurationChartRendered: false,
+				isLoading: true 
+			});
+			
+			// Render the loading state first
 			this.render();
+			
+			// Then load data
+			await this.loadData();
 		}
 	}
 	
@@ -64,34 +79,48 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 * Loads the statistics data
 	 */
 	private async loadData(): Promise<void> {
+		const state = this.getInternalState();
+		if (state.dataLoadInProgress) return;
+		
+		this.updateInternalState({ 
+			isLoading: true,
+			dataLoadInProgress: true
+		});
+		
 		try {
 			const profile = this.getInternalState().profile;
 			if (!profile || !profile.id) {
 				throw new Error('Profile not available');
 			}
 			
-			this.updateInternalState({ 
-				isLoading: true, 
-				errorMessage: undefined
-			});
+			// State is already set to loading from setProfile
 			
 			// Fetch real stats data from API
 			const playerStats = await DbService.getUserStats(profile.id);
-			
+			console.log('playerStats', {playerStats})
 			this.updateInternalState({ 
 				isLoading: false,
+				dataLoadInProgress: false,
 				playerStats
 			});
 			
-			// Render charts after the component is rendered
+			// Render the component with data
+			this.render();
+			
+			// Wait for next frame to ensure DOM is rendered
+			await new Promise(resolve => requestAnimationFrame(resolve));
+			
+			// Render charts after the DOM is stable
 			this.renderCharts();
 		} catch (error) {
 			console.error('Error loading stats data:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';
 			this.updateInternalState({ 
 				isLoading: false, 
+				dataLoadInProgress: false,
 				errorMessage
 			});
+			this.render();
 		}
 	}
 	
@@ -263,9 +292,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		
 		render(template, this.container);
 		
-		// Only attempt to render charts if container exists and data is loaded
 		if (!state.isLoading && !state.errorMessage) {
-			// Use requestAnimationFrame to ensure DOM is ready
 			requestAnimationFrame(() => {
 				this.renderCharts();
 			});
@@ -291,5 +318,13 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		if (state.cleanup?.goalDurationChart) {
 			state.cleanup.goalDurationChart();
 		}
+	}
+	
+	public refreshData(): void {
+		// Skip if already loading
+		if (this.getInternalState().dataLoadInProgress) return;
+		
+		// Load fresh data
+		this.loadData();
 	}
 }

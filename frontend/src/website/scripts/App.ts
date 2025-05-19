@@ -5,12 +5,23 @@
 
 import { Router, NavbarComponent } from '@website/scripts/utils';
 import { GameManager } from '@website/scripts/components';
+import { WebSocketClient } from '@website/scripts/services/client';
+
+// Extend the Window interface to include global properties
+declare global {
+	interface Window {
+		gameManager?: GameManager;
+		webSocketClient?: WebSocketClient;
+	}
+}
+
 /**
  * Core application class responsible for initializing and orchestrating
  * the website's components and functionality.
  */
 export class App {
 	private gameManager!: GameManager;
+	private webSocketClient!: WebSocketClient;
 
 	/**
 	 * Creates a new App instance and triggers the initialization process.
@@ -27,6 +38,7 @@ export class App {
 	private initialize(): void {
 		this.initializeNavbar();
 		this.initializeGameManager();
+		this.initializeWebSocketClient();
 		this.initializeRouter();
 		this.setupEventListeners();
 	}
@@ -48,6 +60,19 @@ export class App {
 			window.gameManager = this.gameManager;
 		} catch (error) {
 			console.error('Failed to initialize game manager:', error);
+		}
+	}
+
+	private initializeWebSocketClient(): void {
+		try {
+			// Replace with your actual WebSocket server URL
+			const token = localStorage.getItem('jwt_token') || ''; // Example: get token
+			const websocketUrl = `ws://localhost:8085/ws/status?token=${token}`; 
+			this.webSocketClient = WebSocketClient.getInstance(websocketUrl);
+			this.webSocketClient.connect();
+			window.webSocketClient = this.webSocketClient;
+		} catch (error) {
+			console.error('Failed to initialize WebSocket client:', error);
 		}
 	}
 

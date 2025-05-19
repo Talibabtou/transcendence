@@ -21,6 +21,9 @@ export interface ProfileState {
 		settings: boolean;
 	};
 	matchesCache: Map<number, any>;
+	currentProfileId: string | null;
+	friendshipStatus?: any;
+	pendingFriends: any[];
 }
 
 /**

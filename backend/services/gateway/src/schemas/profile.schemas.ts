@@ -39,12 +39,24 @@ export const summarySchema = {
               type: 'integer',
               description: 'The total number of matches played by the user.',
             },
+            active_matches: {
+              type: 'integer',
+              description: 'The total number of active matches played by the user.',
+            },
+            elo: {
+              type: 'integer',
+              description: 'The Elo rating of the user.',
+            },
             victories: {
               type: 'integer',
               description: 'The total number of victories by the user.',
             },
+            defeats: {
+              type: 'integer',
+              description: 'The total number of defeats by the user.',
+            },
           },
-          required: ['total_matches', 'victories'],
+          required: ['total_matches', 'active_matches', 'elo', 'victories', 'defeats'],
           additionalProperties: false,
           description: 'The match summary of the user.',
         },
@@ -242,12 +254,12 @@ export const uploadSchema = {
   },
   consumes: ['multipart/form-data'],
   body: {
-    type: 'object',
-    properties: {
-      file: { type: 'string', format: 'binary' },
-      description: { type: 'string' },
-    },
-    required: ['file'],
+    // type: 'object',
+    // properties: {
+    //   file: { type: 'string', format: 'binary' },
+    //   description: { type: 'string' },
+    // },
+    // required: ['file'],
   },
   response: {
     201: {},

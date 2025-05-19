@@ -18,5 +18,5 @@ CREATE TABLE IF NOT EXISTS users (
 	updated_at DATETIME NULL,
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 
-INSERT OR IGNORE INTO users (id, role, username, password, email, created_at)
-	VALUES ("b36c8474-a8a6-b889-af67-08ccca5a7593", "admin", "ia", "ia", "ia@ia.com", CURRENT_TIMESTAMP);
+INSERT OR IGNORE INTO users (role, username, password, email, created_at)
+	VALUES ("admin", "ia", "ia", "ia@ia.com", CURRENT_TIMESTAMP);

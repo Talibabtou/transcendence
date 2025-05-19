@@ -20,10 +20,12 @@ import rateLimit from '@fastify/rate-limit';
 import fastifySwagger from '@fastify/swagger';
 import fastifyMultipart from '@fastify/multipart';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import { fastify, FastifyInstance } from 'fastify';
+import { fastify, FastifyInstance, FastifyRequest } from 'fastify';
 import { addHeaders, blockHeaders } from './config/headers.js';
 import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
 import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
+import websocketPlugin from '@fastify/websocket';
+import websocketRoutes from './plugins/websocketPlugin.js';
 
 export class Server {
   // FastifyInstance<Http2SecureServer> for https
@@ -56,7 +58,10 @@ export class Server {
       // await server.register(helmet, helmetConfig);
       await server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtPluginRegister);
+      await server.register(websocketPlugin);
       await server.register(routes);
+      await server.register(websocketRoutes);
+
       await server.listen({
         port: Number(process.env.AUTH_PORT) || 8085,
         host: process.env.AUTH_ADDR || 'localhost',

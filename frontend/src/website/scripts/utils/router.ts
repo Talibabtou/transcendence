@@ -150,14 +150,19 @@ export class Router {
 		
 		const section = document.getElementById(this.currentRoute);
 		if (section) {
-			section.style.display = 'none';
+				section.style.display = 'none';
 		}
 
 		// Destroy non-game components when leaving their route
 		const currentComponent = this.components.get(this.currentRoute);
 		if (this.currentRoute !== Route.GAME && currentComponent && typeof currentComponent.destroy === 'function') {
-			currentComponent.destroy();
-			this.components.delete(this.currentRoute);
+				currentComponent.destroy();
+				this.components.delete(this.currentRoute);
+		}
+		
+		// Always force recreation of Profile component since it's stateful
+		if (this.currentRoute === Route.PROFILE) {
+				this.components.delete(this.currentRoute);
 		}
 	}
 
