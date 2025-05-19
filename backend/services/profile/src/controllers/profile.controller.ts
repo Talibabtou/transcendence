@@ -37,7 +37,7 @@ export async function getHistory(
 ): Promise<void> {
   try {
     const id = request.params.id;
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[];
     console.log(responseData);

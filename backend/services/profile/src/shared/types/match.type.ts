@@ -1,5 +1,3 @@
-import { Goal } from './goal.type.js';
-
 // Define TypeScript interfaces for sharing
 export interface Match {
   id: string;
@@ -15,10 +13,10 @@ export interface MatchHistory {
   matchId: string;
   username1: string;
   id1: string;
-  goals1: Goal[];
+  goals1: number | string;
   username2: string;
   id2: string;
-  goals2: Goal[];
+  goals2: number | string;
   created_at: string;
 }
 

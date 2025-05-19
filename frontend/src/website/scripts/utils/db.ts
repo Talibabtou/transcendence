@@ -74,7 +74,8 @@ export class DbService {
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
 		if (!response.ok) {
 			const errorData: ErrorResponse = await response.json();
-			throw new ApiError(errorData);
+			console.log('Received error data from server (status ' + response.status + '):', JSON.stringify(errorData, null, 2));
+			throw new ApiError(errorData as ErrorResponse);
 		}
 		const contentType = response.headers.get("content-type");
 		if (response.status === 204) {
@@ -372,6 +373,15 @@ export class DbService {
 	static async getUserProfile(userId: string): Promise<any> {
 		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE}/${userId}`);
 		return this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
+	}
+
+	/**
+	 * Get user profile history
+	 * @param userId - The UUID of the user
+	 */
+	static async getUserHistory(userId: string): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE_HISTORY(userId)}`);
+		return this.fetchApi<any>(`${USER.PROFILE_HISTORY(userId)}`);
 	}
 
 	/**
