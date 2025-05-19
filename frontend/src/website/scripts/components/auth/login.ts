@@ -19,8 +19,7 @@ export class LoginHandler {
 	/**
 	 * Renders the login form
 	 */
-	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void, 
-				   initiateGoogleAuth: () => void, initiate42Auth: () => void): any {
+	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): any {
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
@@ -37,7 +36,7 @@ export class LoginHandler {
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required />
+					<input type="password" id="password" name="password" required/>
 				</div>
 				
 				<div class="form-group checkbox-group">
@@ -51,21 +50,6 @@ export class LoginHandler {
 				
 				<button type="submit" class="menu-button">Login</button>
 			</form>
-			
-			<div class="auth-social-options">
-				<button 
-					class="menu-button auth-social-button google-auth"
-					onClick=${() => initiateGoogleAuth()}
-				>
-					G
-				</button>
-				<button 
-					class="menu-button auth-social-button forty-two-auth"
-					onClick=${() => initiate42Auth()}
-				>
-					42
-				</button>
-			</div>
 			
 			<div class="auth-links">
 				<a href="#" onClick=${(e: Event) => {
@@ -133,6 +117,7 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData, token);
 				this.switchToSuccessState();
+				this.resetForm(form);
 				this.updateState({ isLoading: false });
 			} else if (response.requires2FA) {
 				// Handle 2FA flow if implemented
@@ -172,5 +157,16 @@ export class LoginHandler {
 				});
 			}
 		}
+	}
+
+	/**
+ * Reset form and password strength component
+ */
+	private resetForm(form: HTMLFormElement): void {
+		const inputs = form.querySelectorAll('input');
+		inputs.forEach(input => {
+			input.value = '';
+		});
+		form.reset();
 	}
 }

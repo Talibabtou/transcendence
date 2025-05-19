@@ -116,7 +116,6 @@ export class GameComponent extends Component<GameComponentState> {
 		this.container.style.height = "100%";
 		this.gameContainer = document.createElement('div');
 		this.gameContainer.className = 'game-container';
-		this.gameContainer.style.height = "100%";
 		this.gameContainer.style.position = "relative";
 		this.container.appendChild(this.gameContainer);
 		

@@ -14,8 +14,7 @@ export class RegistrationHandler {
 	/**
 	 * Renders the registration form
 	 */
-	renderRegisterForm(switchToLogin: () => void, 
-					  initiateGoogleAuth: () => void, initiate42Auth: () => void): any {
+	renderRegisterForm(switchToLogin: () => void): any {
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.REGISTER}</pre>
@@ -27,40 +26,25 @@ export class RegistrationHandler {
 			}}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input type="text" id="username" name="username" required />
+					<input type="text" id="username" name="username" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
 					<label for="email">Email:</label>
-					<input type="email" id="email" name="email" required />
+					<input type="email" id="email" name="email" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
 					<input type="password" id="password" name="password" required 
-						   onInput=${(e: Event) => this.handlePasswordInput(e)}
-						   onFocus=${() => this.initializePasswordStrength()} />
+						   autocomplete="new-password" 
+						   onInput=${(e: Event) => this.handlePasswordInput(e.target as HTMLInputElement)}
+						   onFocus=${(e: Event) => this.initializePasswordStrength(e.target as HTMLInputElement)} />
 					<div id="password-strength-container"></div>
 				</div>
 				
 				<button type="submit" class="menu-button">Create Account</button>
 			</form>
-			
-			<div class="auth-social-options">
-				<button 
-					class="menu-button auth-social-button google-auth"
-					onClick=${() => initiateGoogleAuth()}
-				>
-					G
-				</button>
-				
-				<button 
-					class="menu-button auth-social-button forty-two-auth"
-					onClick=${() => initiate42Auth()}
-				>
-					42
-				</button>
-			</div>
 			
 			<div class="auth-links">
 				<a href="#" onClick=${(e: Event) => {
@@ -74,11 +58,15 @@ export class RegistrationHandler {
 	/**
 	 * Initialize password strength component
 	 */
-	private initializePasswordStrength(): void {
+	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
 		if (!this.passwordStrength) {
-			const container = document.getElementById('password-strength-container');
-			if (container) {
-				this.passwordStrength = new PasswordStrengthComponent(container);
+			const form = passwordInput.closest('form');
+			if (form) {
+				const container = form.querySelector('#password-strength-container');
+				if (container) {
+					// false for simplified: show requirements text
+					this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false); 
+				}
 			}
 		}
 	}
@@ -86,11 +74,8 @@ export class RegistrationHandler {
 	/**
 	 * Handle password input to update strength indicator
 	 */
-	handlePasswordInput(e: Event): void {
-		const input = e.target as HTMLInputElement;
-		const password = input.value;
-		
-		// Update password strength indicator
+	handlePasswordInput(passwordInput: HTMLInputElement): void {
+		const password = passwordInput.value;
 		if (this.passwordStrength) {
 			this.passwordStrength.updatePassword(password);
 		}
@@ -99,14 +84,17 @@ export class RegistrationHandler {
 	/**
 	 * Reset form and password strength component
 	 */
-	private resetForm(): void {
-		const form = document.querySelector('.auth-form') as HTMLFormElement;
-		if (form) {
-			form.reset();
-		}
+	private resetForm(form: HTMLFormElement): void {
+		const inputs = form.querySelectorAll('input');
+		inputs.forEach(input => {
+			input.value = '';
+		});
+		form.reset();
+		
 		if (this.passwordStrength) {
-			this.passwordStrength = null;
+			this.passwordStrength.updatePassword('');
 		}
+		this.passwordStrength = null; 
 	}
 
 	/**
@@ -159,7 +147,7 @@ export class RegistrationHandler {
 				};
 				
 				this.setCurrentUser(userData, token);
-				this.resetForm();
+				this.resetForm(form);
 				
 				this.updateState({ isLoading: false });
 				this.switchToSuccessState();

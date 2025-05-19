@@ -131,13 +131,16 @@ export class NavbarComponent {
 	 */
 	private handleAuthClick(e: Event): void {
 		e.preventDefault();
-		this.authButtonActive = true;
-		this.renderNavbar();
 		
-		// Navigate to auth with current path as return location
+		// Set auth button active state for UI feedback
+		this.authButtonActive = true;
+		this.renderNavbar(); // Re-render to show active state
+		
+		// Navigate to auth route
+		// The router will handle cleaning up the current component and loading AuthManager
 		navigate('/auth', { 
-			state: { returnTo: location.pathname },
-			preventReload: true
+			state: { returnTo: location.pathname }, // Keep returnTo for post-login redirect
+			preventReload: true 
 		});
 	}
 	
