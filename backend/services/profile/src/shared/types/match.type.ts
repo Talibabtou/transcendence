@@ -46,11 +46,10 @@ export interface GetTournamentsQuery {
 
 export interface PlayerMatchSummary {
   total_matches: number;
-  elo: number;
   active_matches: number;
+  elo: number;
   victories: number;
   defeats: number;
-  win_ratio: number;
 }
 
 export interface DailyPerformance {
@@ -100,4 +99,9 @@ export interface Finalist {
   goals_scored?: number;
   goals_conceded?: number;
   goal_duration?: number;
+}
+
+export interface GetPageQuery {
+  limit?: number;
+  offset?: number;
 }

@@ -9,7 +9,7 @@ import {
 } from '../telemetry/metrics.js';
 import { Database } from 'sqlite';
 import { Elo, GetElosQuery, DailyElo, LeaderboardEntry } from '../shared/types/elo.type.js';
-import { IId, GetLeaderboardQuery } from '../shared/types/match.type.js';
+import { IId, GetPageQuery } from '../shared/types/match.type.js';
 
 async function calculateEloChange(
   winnerElo: number,
@@ -196,7 +196,7 @@ export async function updateEloRatings(
 // Get a single elo by ID
 export async function getLeaderboard(
   request: FastifyRequest<{
-    Querystring: GetLeaderboardQuery;
+    Querystring: GetPageQuery;
   }>,
   reply: FastifyReply
 ): Promise<void> {
@@ -209,11 +209,10 @@ export async function getLeaderboard(
         e.player,
         e.elo,
         COALESCE(pms.victories, 0) as victories,
-        COALESCE(pms.total_matches - pms.victories, 0) as defeats,
+        COALESCE(pms.total_matches - pms.victories - pms.active_matches, 0) as defeats,
         COALESCE(pms.total_matches, 0) as total_matches
       FROM latest_player_elos e
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id
-      WHERE e.player != 'computer'
       ORDER BY e.elo DESC LIMIT ? OFFSET ?;
     `,
       limit,

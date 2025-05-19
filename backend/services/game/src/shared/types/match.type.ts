@@ -100,3 +100,8 @@ export interface Finalist {
   goals_conceded?: number;
   goal_duration?: number;
 }
+
+export interface GetPageQuery {
+  limit?: number;
+  offset?: number;
+}

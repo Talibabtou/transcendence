@@ -40,7 +40,6 @@ export async function getHistory(
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[];
-    console.log(responseData);
     return reply.code(200).send(responseData);
   } catch (err) {
     request.server.log.error(err);

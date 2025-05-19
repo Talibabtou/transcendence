@@ -4,6 +4,7 @@ export interface IReplyGetFriend {
   created_at: string;
 }
 
-export interface IReplyGetFriendStatus {
-  status: boolean | undefined;
+export interface IReplyFriendStatus {
+  status: boolean;
+  requesting: string;
 }

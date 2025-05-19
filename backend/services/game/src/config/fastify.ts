@@ -9,5 +9,5 @@ export const fastifyConfig = {
       },
     },
   },
-  // disableRequestLogging: true,
+  disableRequestLogging: true,
 };
