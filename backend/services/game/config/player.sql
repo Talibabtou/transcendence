@@ -102,6 +102,45 @@ FROM (
 ) AS m
 GROUP BY player_id, DATE(m.created_at);
 
+CREATE VIEW IF NOT EXISTS player_match_history AS
+SELECT
+    m.match_id,
+    m.player_id,
+    m.player_1,
+    m.player_2,
+    m.p1_score,
+    m.p2_score,
+    m.created_at
+FROM (
+  -- Player 1 perspective
+  SELECT 
+    m.id AS match_id,
+    m.player_1 AS player_id,
+    m.player_1 AS player_1,
+    m.player_2 AS player_2,
+    m.duration, -- though not selected, it's good to have it for potential future use in the subquery
+    m.created_at AS created_at,
+    (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
+    (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
+  FROM matches m
+	WHERE m.duration IS NOT NULL
+  
+  UNION ALL
+  
+  -- Player 2 perspective
+  SELECT 
+    m.id AS match_id,
+    m.player_2 AS player_id,
+    m.player_1 AS player_1,
+    m.player_2 AS player_2,
+    m.duration, -- though not selected, it's good to have it for potential future use in the subquery
+    m.created_at AS created_at,
+    (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
+    (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
+  FROM matches m
+	WHERE m.duration IS NOT NULL
+) AS m;
+
 -- Goal duration data for heatmap visualization
 CREATE VIEW IF NOT EXISTS player_goal_durations AS
 SELECT

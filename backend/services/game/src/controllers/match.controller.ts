@@ -91,16 +91,16 @@ export async function getMatchHistory(
         match_id, 
         player_1, 
         player_2,
-				p1_score,
-				p2_score,
+        p1_score,
+        p2_score,
         created_at
-      FROM player_daily_performance
-      WHERE 
-        (player_1 = ? OR player_2 = ?)
-        AND active = FALSE;
+      FROM player_match_history
+      WHERE player_id = ?
+      ORDER BY created_at DESC;
       `,
-      [id, id]
+      [id]
     );
+    console.log('getMatchHistory', matches);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
       return reply.code(404).send(errorResponse);
@@ -129,6 +129,7 @@ export async function getMatchHistory(
     console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
+    console.log(error);
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorResponse);
   }
