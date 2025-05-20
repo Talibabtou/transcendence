@@ -144,7 +144,7 @@ export async function getFriendsMe(
  *
  * @param request - FastifyRequest object containing user IDs in params and query.
  * @param reply - FastifyReply object for sending the response.
- * @returns 200 with friendship status, 400 if invalid ID or same user, 404 if not found, 500 on server error.
+ * @returns 200 with friendship status and requester ID, 400 if invalid ID or same user, 404 if not found, 500 on server error.
  */
 export async function getFriendStatus(
   request: FastifyRequest<{ Querystring: IId; Params: IId }>,
@@ -153,7 +153,7 @@ export async function getFriendStatus(
   try {
     const { id } = request.query;
     if (!isValidId(id) || id === request.params.id) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-    const friendStatus = await request.server.db.get<IReplyFriendStatus>(
+    const friendStatus = await request.server.db.get(
       `
       SELECT
         id_1,
@@ -167,7 +167,13 @@ export async function getFriendStatus(
     );
     if (!friendStatus) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
 
-    return reply.code(200).send(friendStatus);
+    // Transform the response to match the expected format with 'requesting' field
+    const response = {
+      status: friendStatus.status,
+      requesting: friendStatus.id_1,
+    };
+
+    return reply.code(200).send(response);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);

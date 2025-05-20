@@ -5,26 +5,24 @@
 import { Component } from '@website/scripts/components';
 import { html, render, DbService } from '@website/scripts/utils';
 import { UserProfile } from '@website/types';
+import { IReplyGetFriend } from '@shared/types/friends.types';
 
-interface Friend {
-	id: string;
-	username: string;
-	avatarUrl: string;
-	accepted: boolean;
-	isRequester?: boolean;
+interface Friend extends IReplyGetFriend {
+	requesting: string;
 }
 
 interface ProfileFriendsState {
 	profile: UserProfile | null;
-	friends: Friend[];
+	friends: IReplyGetFriend[];
 	pendingFriends: Friend[];
-	acceptedFriends: Friend[];
+	acceptedFriends: IReplyGetFriend[];
 	isLoading: boolean;
 	isCurrentUser: boolean;
 	handlers: {
 		onPlayerClick: (username: string) => void;
 	};
 	dataLoadInProgress: boolean;
+	currentUserId: string;
 }
 
 export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
@@ -39,13 +37,36 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			handlers: {
 				onPlayerClick: () => {}
 			},
-			dataLoadInProgress: false
+			dataLoadInProgress: false,
+			currentUserId: ''
 		});
+		
+		// Get current user ID once during initialization
+		this.initCurrentUser();
+	}
+	
+	private initCurrentUser(): void {
+		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		if (currentUserJson) {
+			try {
+				const currentUser = JSON.parse(currentUserJson);
+				this.updateInternalState({ currentUserId: currentUser.id.toString() });
+			} catch (error) {
+				console.error('Error parsing current user data:', error);
+			}
+		}
 	}
 	
 	public setProfile(profile: UserProfile): void {
-		this.updateInternalState({ profile });
-		if (!this.getInternalState().dataLoadInProgress) {
+		const state = this.getInternalState();
+		const isCurrentUser = state.currentUserId === profile.id;
+		
+		this.updateInternalState({ 
+			profile,
+			isCurrentUser
+		});
+		
+		if (!state.dataLoadInProgress) {
 			this.loadFriendsData();
 		}
 	}
@@ -67,24 +88,9 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			dataLoadInProgress: true
 		});
 		
-		// Check if this is the current user's profile
-		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
-		let currentUserId = '';
-		
-		if (currentUserJson) {
-			try {
-				const currentUser = JSON.parse(currentUserJson);
-				currentUserId = currentUser.id.toString();
-				const isCurrentUser = currentUserId === state.profile.id;
-				this.updateInternalState({ isCurrentUser });
-			} catch (error) {
-				console.error('Error parsing current user data:', error);
-			}
-		}
-		
 		try {
 			// Load friends list
-			let friendsResponse;
+			let friendsResponse: IReplyGetFriend[];
 			if (state.isCurrentUser) {
 				// If viewing own profile, use the "my friends" endpoint
 				friendsResponse = await DbService.getMyFriends();
@@ -93,75 +99,44 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				friendsResponse = await DbService.getFriendList(state.profile.id);
 			}
 			
-			// Process raw friendship data
-			const pendingFriends: Friend[] = [];
-			const acceptedFriends: Friend[] = [];
-			
 			if (Array.isArray(friendsResponse)) {
 				console.log("Friendship data:", friendsResponse);
 				
-				// Process each friendship and fetch additional user data
-				for (const friendship of friendsResponse) {
-					try {
-						// Make sure we have a valid ID
-						if (!friendship.id) {
-							console.error("Missing ID in friendship:", friendship);
-							continue;
-						}
-						
-						// Get username using the getUsernameById method
-						console.log(`Fetching username for friend ID: ${friendship.id}`);
-						const username = await DbService.getUsernameById(friendship.id);
-						console.log(`Username received: ${username} for ID: ${friendship.id}`);
-						
-						// Get profile picture
-						let avatarUrl = '/images/default-avatar.svg';
-						try {
-							const picResponse = await DbService.getPic(friendship.id);
-							if (picResponse?.link) {
-								avatarUrl = picResponse.link;
-							}
-						} catch (picError) {
-							console.warn(`Could not fetch profile picture for user ${friendship.id}, using default.`);
-						}
-						
-						// Check if this user is the requester for pending friendships
-						let isRequester = false;
-						if (!friendship.accepted) {
-							// Fetch friendship status to get requester info
-							const friendshipStatus = await DbService.getFriendship(friendship.id);
-							if (friendshipStatus && friendshipStatus.isRequester !== undefined) {
-								isRequester = friendshipStatus.isRequester;
-							}
-						}
-						
-						const friend: Friend = {
-							id: friendship.id,
-							username: username,
-							avatarUrl: avatarUrl,
-							accepted: friendship.accepted,
-							isRequester
+				// Simply filter the friends based on accepted status
+				const pendingFriends = [];
+				const acceptedFriends = [];
+				
+				// Process each friend to add requesting information for pending requests
+				for (const friend of friendsResponse) {
+					if (friend.accepted) {
+						acceptedFriends.push(friend as Friend);
+					} else {
+						// For pending requests, get the friendship status to determine requester
+						const friendshipStatus = await DbService.getFriendship(friend.id);
+						const enrichedFriend = {
+							...friend,
+							requesting: friendshipStatus?.requesting || ''
 						};
-						
-						// Categorize as pending or accepted
-						if (friendship.accepted) {
-							acceptedFriends.push(friend);
-						} else {
-							pendingFriends.push(friend);
-						}
-					} catch (userError) {
-						console.error(`Failed to fetch details for user ${friendship.id}:`, userError);
+						pendingFriends.push(enrichedFriend);
 					}
 				}
+				
+				this.updateInternalState({
+					pendingFriends,
+					acceptedFriends,
+					friends: friendsResponse,
+					isLoading: false,
+					dataLoadInProgress: false
+				});
+			} else {
+				this.updateInternalState({
+					pendingFriends: [],
+					acceptedFriends: [],
+					friends: [],
+					isLoading: false,
+					dataLoadInProgress: false
+				});
 			}
-			
-			this.updateInternalState({
-				pendingFriends,
-				acceptedFriends,
-				friends: [...pendingFriends, ...acceptedFriends],
-				isLoading: false,
-				dataLoadInProgress: false
-			});
 			
 			this.render();
 		} catch (error) {
@@ -180,7 +155,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	private async handleRemoveFriend(friendId: string): Promise<void> {
 		try {
 			await DbService.removeFriend(friendId);
-			await this.loadFriendsData(); // Reload data after removing
+			await this.loadFriendsData();
 		} catch (error) {
 			console.error('Error removing friend:', error);
 		}
@@ -211,13 +186,13 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 									${state.pendingFriends.map(friend => html`
 										<div class="friend-card pending">
 											<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-												<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username || 'Unknown'}"/>
+												<img class="friend-avatar" src="${friend.pic === 'default' ? '/images/default-avatar.svg' : friend.pic ? friend.pic : '/images/default-avatar.svg'}" alt="${friend.username || 'Unknown'}"/>
 												<div class="friend-details">
 													<span class="friend-name">${friend.username || 'Unknown User'}</span>
 												</div>
 											</div>
-											${friend.isRequester !== undefined ? 
-												(friend.isRequester === true
+											${state.isCurrentUser ? 
+												(friend.requesting === state.currentUserId
 													? html`<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>` 
 													: html`<button class="accept-friend-button" onClick=${() => this.handleAcceptFriend(friend.id)}>Accept</button>`)
 												: ''}
@@ -236,7 +211,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 										${state.acceptedFriends.map(friend => html`
 											<div class="friend-card">
 												<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-													<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username || 'Unknown'}"/>
+													<img class="friend-avatar" src="${friend.pic === 'default' ? '/images/default-avatar.svg' : friend.pic ? friend.pic : '/images/default-avatar.svg'}" alt="${friend.username || 'Unknown'}"/>
 													<div class="friend-details">
 														<span class="friend-name">${friend.username || 'Unknown User'}</span>
 													</div>

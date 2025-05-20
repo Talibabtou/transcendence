@@ -299,20 +299,29 @@ export class ProfileComponent extends Component<ProfileState> {
 						// Filter to only include pending requests
 						const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
 						
-						// Process each pending friendship to check who is the requester
+						// For notification dot, we only need to find at least one pending request from others
+						let hasIncomingRequest = false;
+						
+						// Process pending friendships until we find one where user is NOT the requester
 						for (const friendship of pendingFriendships) {
 							try {
-								// Get friendship details to check if current user is requester
+								// Get friendship details to check who is the requester
 								const friendshipStatus = await DbService.getFriendship(friendship.id);
 								
-								// Only add to pendingFriends if this user is NOT the requester
-								// (we only want to show notification dot for requests FROM others)
-								if (friendshipStatus && !friendshipStatus.isRequester) {
+								// Check if this is a request FROM someone else
+								if (friendshipStatus && friendshipStatus.requesting !== userId) {
 									pendingFriends.push(friendship);
+									hasIncomingRequest = true;
+									break; // Stop after finding first incoming request
 								}
 							} catch (error) {
 								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
 							}
+						}
+						
+						// If we didn't find any incoming requests, we don't need to keep checking
+						if (!hasIncomingRequest) {
+							pendingFriends = [];
 						}
 					}
 				} catch (error) {

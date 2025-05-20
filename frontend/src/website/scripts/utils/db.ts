@@ -3,6 +3,7 @@ import { ApiError, AppStateManager, ErrorResponse } from '@website/scripts/utils
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
+import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 
 // =========================================
 // DATABASE SERVICE
@@ -22,7 +23,7 @@ export class DbService {
 		
 		// Default headers
 		const defaultHeaders: Record<string, string> = {
-			'Content-Type': 'application/json', // Default, will be omitted for FormData
+			'Content-Type': 'application/json',
 		};
 		if (token) {
 			defaultHeaders['Authorization'] = `Bearer ${token}`;
@@ -398,7 +399,7 @@ export class DbService {
 			const fileName = pathParts[pathParts.length - 1];
 			
 			if (fileName === 'default') {
-				response.link = '/public/images/default-avatar.svg';
+				response.link = '/images/default-avatar.svg';
 			} else {
 				response.link = `http://localhost:8085/uploads/${fileName}`;
 			}
@@ -440,35 +441,18 @@ export class DbService {
 	/**
 	 * Get friendship status between two users
 	 * @param friendId - Friend's UUID to check
-	 * @returns Promise with friendship status:
-	 * - null: no friendship exists
-	 * - { status: false, isRequester: boolean }: pending friendship with requester info
-	 * - { status: true }: accepted friendship
+	 * @returns Promise with raw friendship status from the API
 	 */
-	static async getFriendship(friendId: string): Promise<{ status: boolean, isRequester?: boolean } | null> {
+	static async getFriendship(friendId: string): Promise<IReplyFriendStatus | null> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.CHECK(friendId)}`);
 		try {
-			const response = await this.fetchApi<any>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
+			const response = await this.fetchApi<IReplyFriendStatus>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
 			if (!response || Object.keys(response).length === 0) {
 				console.log("Friendship doesn't exist");
 				return null;
 			}
 			console.log("Friendship exists", response);
-			
-			// Get current user id to compare with requester
-			const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
-			if (currentUserJson) {
-				const currentUser = JSON.parse(currentUserJson);
-				// If the friendship is pending, determine if current user is requester
-				if (response.status === false && response.id_1) {
-					const isRequester = response.id_1 === currentUser.id;
-					return { 
-						status: response.status === true, 
-						isRequester 
-					};
-				}
-			}
-			return { status: response.status === true };
+			return response;
 		} catch (error) {
 			console.log("Friendship check error:", error);
 			return null;
@@ -480,18 +464,18 @@ export class DbService {
 	 * @param userId - User's UUID
 	 * @returns Promise with list of friends
 	 */
-	static async getFriendList(userId: string): Promise<any> {
+	static async getFriendList(userId: string): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
-		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
+		return this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
 	}
 
 	/**
 	 * Get current user's friends
 	 * @returns Promise with list of the current user's friends
 	 */
-	static async getMyFriends(): Promise<any> {
+	static async getMyFriends(): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.ME}`);
-		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ALL.ME}`);
+		return this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.ME}`);
 	}
 
 	/**

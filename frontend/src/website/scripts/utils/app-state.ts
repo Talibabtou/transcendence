@@ -339,7 +339,7 @@ export class AppStateManager {
 				accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
 				accent4: AppStateManager.DEFAULT_ACCENT_COLOR
 			},
-			players: {} // Reset all player data as well
+			players: {}
 		});
 		
 		localStorage.removeItem('auth_user');
@@ -350,15 +350,11 @@ export class AppStateManager {
 		
 		// Force the profile components to completely reset by navigating to the home page
 		if (oldAuth.isAuthenticated) {
-			// First refresh all components
-			setTimeout(() => {
-				Router.refreshAllComponents();
-				
-				// If on a profile page, redirect to home to prevent state confusion
-				if (window.location.pathname.includes('/profile')) {
-					window.location.href = '/';
-				}
-			}, 100);
+			// Refresh all components
+			Router.refreshAllComponents();
+			if (window.location.pathname.includes('/profile')) {
+				window.location.href = '/';
+			}
 		}
 	}
 	
