@@ -209,7 +209,7 @@ export async function getLeaderboard(
         e.player,
         e.elo,
         COALESCE(pms.victories, 0) as victories,
-        COALESCE(pms.total_matches - pms.victories - pms.active_matches, 0) as defeats,
+        COALESCE(pms.total_matches - pms.victories, 0) as defeats,
         COALESCE(pms.total_matches, 0) as total_matches
       FROM latest_player_elos e
       LEFT JOIN player_match_summary pms ON e.player = pms.player_id

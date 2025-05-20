@@ -155,12 +155,11 @@ export const matchSummarySchema = {
       type: 'object',
       properties: {
         total_matches: { type: 'integer', minimum: 0 },
-        active_matches: { type: 'integer', minimum: 0 },
         elo: { type: 'integer', minimum: 0 },
         victories: { type: 'integer', minimum: 0 },
         defeats: { type: 'integer', minimum: 0 },
       },
-      required: ['total_matches', 'elo', 'active_matches', 'victories', 'defeats'],
+      required: ['total_matches', 'elo', 'victories', 'defeats'],
     },
     500: {
       ...errorResponseSchema,
