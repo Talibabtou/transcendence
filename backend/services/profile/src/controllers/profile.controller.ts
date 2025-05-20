@@ -23,17 +23,11 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
     const existingFile: string | undefined = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
-    if (existingFile) {
-      const link: IReplyPic = {
-        link: `/uploads/${existingFile}`,
-      };
-      return reply.code(200).send(link);
-    } else {
-      const link: IReplyPic = {
-        link: 'default',
-      };
-      return reply.code(200).send(link);
-    }
+    const link: IReplyPic = {
+      link: 'default',
+    };
+    if (existingFile) link.link = `/uploads/${existingFile}`;
+    return reply.code(200).send(link);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -79,15 +73,30 @@ export async function getSummary(
   try {
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-    const serviceUrlMatchSummary = `http://${process.env.GAME_ADDR || 'localhost'}:8083/match/summary/${id}`;
-    const responseMatchSummary = await fetch(serviceUrlMatchSummary, { method: 'GET' });
-    const reponseDataMatchSummary = (await responseMatchSummary.json()) as PlayerMatchSummary | ErrorResponse;
-    const serviceUrlUser = `http://${process.env.GAME_ADDR || 'localhost'}:8082/user/${id}`;
-    const responseUser = await fetch(serviceUrlUser, { method: 'GET' });
-    const reponseDataUser = (await responseUser.json()) as IReplyUser | ErrorResponse;
-    const serviceUrlPic = `http://${process.env.GAME_ADDR || 'localhost'}:8081/pics/${id}`;
-    const responsePic = await fetch(serviceUrlPic, { method: 'GET' });
-    const reponseDataPic = (await responsePic.json()) as IReplyPic | ErrorResponse;
+    let reponseDataMatchSummary: PlayerMatchSummary | ErrorResponse = {} as PlayerMatchSummary;
+    let reponseDataUser: IReplyUser | ErrorResponse = {} as IReplyUser;
+    let reponseDataPic: IReplyPic | ErrorResponse = {} as IReplyPic;
+    try {
+      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/match/summary/${id}`;
+      const response = await fetch(serviceUrl, { method: 'GET' });
+      reponseDataMatchSummary = (await response.json()) as PlayerMatchSummary | ErrorResponse;
+    } catch (err) {
+      request.server.log.error(err);
+    }
+    try {
+      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8082/user/${id}`;
+      const response = await fetch(serviceUrl, { method: 'GET' });
+      reponseDataUser = (await response.json()) as IReplyUser | ErrorResponse;
+    } catch (err) {
+      request.server.log.error(err);
+    }
+    try {
+      const serviceUrlPic = `http://${process.env.GAME_ADDR || 'localhost'}:8081/pics/${id}`;
+      const responsePic = await fetch(serviceUrlPic, { method: 'GET' });
+      reponseDataPic = (await responsePic.json()) as IReplyPic | ErrorResponse;
+    } catch (err) {
+      request.server.log.error(err);
+    }
     if ('total_matches' in reponseDataMatchSummary) {
       const summary: IReplySummary = {
         username: 'username' in reponseDataUser ? reponseDataUser.username : 'undefined',

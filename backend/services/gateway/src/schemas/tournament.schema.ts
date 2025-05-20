@@ -35,9 +35,9 @@ export const getTournamentsSchema = {
   querystring: {
     type: 'object',
     properties: {
-      id: { type: 'string', format: 'uuid' },
+      player_id: { type: 'string', format: 'uuid' },
     },
-    required: ['id'],
+    required: ['player_id'],
   },
   response: {
     200: {

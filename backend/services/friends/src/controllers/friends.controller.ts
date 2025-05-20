@@ -56,6 +56,7 @@ export async function getFriends(
           friends[i].username = 'undefined';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].username = 'undefined';
       }
       try {
@@ -68,6 +69,7 @@ export async function getFriends(
           friends[i].pic = 'default';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].pic = 'default';
       }
     }
@@ -117,6 +119,7 @@ export async function getFriendsMe(
           friends[i].username = 'undefined';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].username = 'undefined';
       }
       try {
@@ -129,6 +132,7 @@ export async function getFriendsMe(
           friends[i].pic = 'default';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].pic = 'default';
       }
     }
@@ -166,7 +170,6 @@ export async function getFriendStatus(
       [id, request.params.id, request.params.id, id]
     );
     if (!friendStatus) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
     return reply.code(200).send(friendStatus);
   } catch (err) {
     request.server.log.error(err);
@@ -195,7 +198,6 @@ export async function postFriend(
       [request.params.id, id, request.params.id, id]
     );
     if (friend.FriendExists) return sendError(reply, 409, ErrorCodes.FRIENDSHIP_EXISTS);
-
     await request.server.db.run(
       'INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);',
       [request.params.id, id]
@@ -203,6 +205,7 @@ export async function postFriend(
     return reply.code(201).send();
   } catch (err) {
     if (err instanceof Error) {
+      request.server.log.error(err);
       if (err.message.includes('SQLITE_MISMATCH')) return sendError(reply, 400, ErrorCodes.SQLITE_MISMATCH);
       if (err.message.includes('SQLITE_CONSTRAINT'))
         return sendError(reply, 409, ErrorCodes.SQLITE_CONSTRAINT);
@@ -255,7 +258,6 @@ export async function deleteFriends(
       request.params.id,
     ]);
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
@@ -282,7 +284,6 @@ export async function deleteFriend(
       [request.params.id, id, id, request.params.id]
     );
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
