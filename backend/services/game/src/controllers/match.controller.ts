@@ -1,6 +1,5 @@
 import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { Goal, MatchGoals } from '../shared/types/goal.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
   Match,
@@ -18,9 +17,7 @@ import {
   matchCreationCounter,
   matchTournamentCounter,
 } from '../telemetry/metrics.js';
-import { match } from 'assert';
 import { IUsername } from '../shared/types/auth.types.js';
-import { ErrorResponse } from '../shared/types/error.type.js';
 
 //check if player 1 = player 2
 // Get a single match by ID
@@ -120,16 +117,27 @@ export async function getMatchHistory(
       const matchHistory: MatchHistory = {
         matchId: matches[i].match_id || 'undefined',
         username1: responseDataUsername1.username || 'undefined',
-        id1: request.params.id === matches[i].player_1 ? matches[i].player_1 : matches[i].player_2 || 'undefined',
-        goals1: request.params.id === matches[i].player_1 ? matches[i].p1_score : matches[i].p2_score || 'undefined',
+        id1:
+          request.params.id === matches[i].player_1
+            ? matches[i].player_1
+            : matches[i].player_2 || 'undefined',
+        goals1:
+          request.params.id === matches[i].player_1
+            ? matches[i].p1_score
+            : matches[i].p2_score || 'undefined',
         username2: responseDataUsername2.username || 'undefined',
-        id2: request.params.id === matches[i].player_1 ? matches[i].player_2 : matches[i].player_1 || 'undefined',
-        goals2: request.params.id === matches[i].player_1 ? matches[i].p2_score : matches[i].p1_score || 'undefined',
+        id2:
+          request.params.id === matches[i].player_1
+            ? matches[i].player_2
+            : matches[i].player_1 || 'undefined',
+        goals2:
+          request.params.id === matches[i].player_1
+            ? matches[i].p2_score
+            : matches[i].p1_score || 'undefined',
         created_at: matches[i].created_at || 'undefined',
       };
       matchesHistory.push(matchHistory);
     }
-    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     console.log(error);

@@ -62,11 +62,11 @@ export class Server {
       await server.register(websocketRoutes);
 
       await server.listen({
-        port: Number(process.env.AUTH_PORT) || 8085,
-        host: process.env.AUTH_ADDR || 'localhost',
+        port: Number(process.env.GATEWAY_PORT) || 8085,
+        host: process.env.GATEWAY_ADDR || 'localhost',
       });
       server.log.info(
-        `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8085}`
+        `Server listening at http://${process.env.GATEWAY_ADDR || 'localhost'}:${process.env.GATEWAY_PORT || 8085}`
       );
       setInterval(checkMicroservices, 2000);
     } catch (err) {

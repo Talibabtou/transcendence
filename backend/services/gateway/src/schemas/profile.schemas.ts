@@ -78,6 +78,10 @@ export const summarySchema = {
       additionalProperties: false,
       description: 'A complete summary of the users information, including matches and profile picture.',
     },
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.summaryNotFound,
@@ -149,6 +153,10 @@ export const getHistorySchema = {
         required: ['matchId', 'username1', 'id1', 'goals1', 'username2', 'id2', 'goals2', 'created_at'],
       },
     },
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.matchNotFound,
@@ -189,6 +197,10 @@ export const getPicSchema = {
       },
       required: ['link'],
       additionalProperties: false,
+    },
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
     },
     404: {
       ...errorResponseSchema,

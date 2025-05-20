@@ -23,11 +23,11 @@ class Server {
       await dbConnector(server);
       await server.register(routes);
       await server.listen({
-        port: Number(process.env.AUTH_PORT) || 8083,
-        host: process.env.AUTH_ADDR || 'localhost',
+        port: Number(process.env.GAME_PORT) || 8083,
+        host: process.env.GAME_ADDR || 'localhost',
       });
       server.log.info(
-        `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8083}`
+        `Server listening at http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}`
       );
       server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
