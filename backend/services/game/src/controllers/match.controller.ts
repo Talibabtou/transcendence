@@ -1,5 +1,6 @@
 import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { Goal, MatchGoals } from '../shared/types/goal.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
   Match,
@@ -17,7 +18,9 @@ import {
   matchCreationCounter,
   matchTournamentCounter,
 } from '../telemetry/metrics.js';
+import { match } from 'assert';
 import { IUsername } from '../shared/types/auth.types.js';
+import { ErrorResponse } from '../shared/types/error.type.js';
 
 //check if player 1 = player 2
 // Get a single match by ID
@@ -89,6 +92,7 @@ export async function getMatchHistory(
       `
       SELECT 
         match_id, 
+				player_id,
         player_1, 
         player_2,
         p1_score,
@@ -107,37 +111,44 @@ export async function getMatchHistory(
     }
     const matchesHistory: MatchHistory[] = [];
     for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${id}`;
       const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
       const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
-      const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
-      const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
-      const responseDataUsername2 = (await responseUsername2.json()) as IUsername;
-
-      const matchHistory: MatchHistory = {
-        matchId: matches[i].match_id || 'undefined',
-        username1: responseDataUsername1.username || 'undefined',
-        id1:
-          request.params.id === matches[i].player_1
-            ? matches[i].player_1
-            : matches[i].player_2 || 'undefined',
-        goals1:
-          request.params.id === matches[i].player_1
-            ? matches[i].p1_score
-            : matches[i].p2_score || 'undefined',
-        username2: responseDataUsername2.username || 'undefined',
-        id2:
-          request.params.id === matches[i].player_1
-            ? matches[i].player_2
-            : matches[i].player_1 || 'undefined',
-        goals2:
-          request.params.id === matches[i].player_1
-            ? matches[i].p2_score
-            : matches[i].p1_score || 'undefined',
-        created_at: matches[i].created_at || 'undefined',
-      };
+      let responseDataUsername2: IUsername;
+			let matchHistory: MatchHistory;
+      if (id === matches[i].player_1) {
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+        const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
+        responseDataUsername2 = (await responseUsername2.json()) as IUsername;
+        matchHistory = {
+          matchId: matches[i].match_id || 'undefined',
+          username1: responseDataUsername1.username || 'undefined',
+          id1: request.params.id,
+          goals1: matches[i].p1_score,
+          username2: responseDataUsername2.username || 'undefined',
+          id2: matches[i].player_2,
+          goals2: matches[i].p2_score,
+          created_at: matches[i].created_at || 'undefined',
+        };
+      } else {
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+        const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
+         responseDataUsername2 = (await responseUsername2.json()) as IUsername;
+				 matchHistory = {
+          matchId: matches[i].match_id || 'undefined',
+          username1: responseDataUsername1.username || 'undefined',
+          id1: request.params.id,
+          goals1: matches[i].p2_score,
+          username2: responseDataUsername2.username || 'undefined',
+          id2: matches[i].player_1,
+          goals2: matches[i].p1_score,
+          created_at: matches[i].created_at || 'undefined',
+        };
+      }
+      console.log({ matchHistory });
       matchesHistory.push(matchHistory);
     }
+    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     console.log(error);
@@ -230,7 +241,7 @@ export async function matchSummary(
     // Get player match summary
     const startTime = performance.now();
     const matchSummaryResult = await request.server.db.get(
-      'SELECT total_matches, elo, active_matches, victories FROM player_match_summary WHERE player_id = ?',
+      'SELECT total_matches, elo, victories FROM player_match_summary WHERE player_id = ?',
       [id]
     );
     recordFastDatabaseMetrics('SELECT', 'player_match_summary', performance.now() - startTime);
@@ -239,7 +250,6 @@ export async function matchSummary(
     if (!matchSummaryResult) {
       matchSummary = {
         total_matches: 0,
-        active_matches: 0,
         elo: 1000,
         victories: 0,
         defeats: 0,
@@ -247,11 +257,9 @@ export async function matchSummary(
     } else {
       matchSummary = {
         total_matches: matchSummaryResult.total_matches,
-        active_matches: matchSummaryResult.active_matches,
         elo: matchSummaryResult.elo,
         victories: matchSummaryResult.victories,
-        defeats:
-          matchSummaryResult.total_matches - matchSummaryResult.active_matches - matchSummaryResult.victories,
+        defeats: matchSummaryResult.total_matches - matchSummaryResult.victories,
       };
     }
     return reply.code(200).send(matchSummary);

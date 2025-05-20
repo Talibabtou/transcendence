@@ -13,10 +13,10 @@ export interface MatchHistory {
   matchId: string;
   username1: string;
   id1: string;
-  goals1: number | string;
+  goals1: number;
   username2: string;
   id2: string;
-  goals2: number | string;
+  goals2: number;
   created_at: string;
 }
 
@@ -46,7 +46,6 @@ export interface GetTournamentsQuery {
 
 export interface PlayerMatchSummary {
   total_matches: number;
-  active_matches: number;
   elo: number;
   victories: number;
   defeats: number;

@@ -39,10 +39,6 @@ export const summarySchema = {
               type: 'integer',
               description: 'The total number of matches played by the user.',
             },
-            active_matches: {
-              type: 'integer',
-              description: 'The total number of active matches played by the user.',
-            },
             elo: {
               type: 'integer',
               description: 'The Elo rating of the user.',
@@ -56,7 +52,7 @@ export const summarySchema = {
               description: 'The total number of defeats by the user.',
             },
           },
-          required: ['total_matches', 'active_matches', 'elo', 'victories', 'defeats'],
+          required: ['total_matches', 'elo', 'victories', 'defeats'],
           additionalProperties: false,
           description: 'The match summary of the user.',
         },
@@ -78,10 +74,6 @@ export const summarySchema = {
       additionalProperties: false,
       description: 'A complete summary of the users information, including matches and profile picture.',
     },
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.badRequest,
-    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.summaryNotFound,
@@ -97,7 +89,16 @@ export const getHistorySchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {},
+    properties: {
+      limit: {
+        type: 'integer',
+        description: 'The number of matches to return.',
+      },
+      offset: {
+        type: 'integer',
+        description: 'The number of matches to skip.',
+      },
+    },
   },
   params: {
     type: 'object',
@@ -153,10 +154,6 @@ export const getHistorySchema = {
         required: ['matchId', 'username1', 'id1', 'goals1', 'username2', 'id2', 'goals2', 'created_at'],
       },
     },
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.badRequest,
-    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.matchNotFound,
@@ -198,10 +195,6 @@ export const getPicSchema = {
       required: ['link'],
       additionalProperties: false,
     },
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.badRequest,
-    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound,
@@ -220,6 +213,14 @@ export const uploadSchema = {
     properties: {},
   },
   consumes: ['multipart/form-data'],
+  body: {
+    // type: 'object',
+    // properties: {
+    //   file: { type: 'string', format: 'binary' },
+    //   description: { type: 'string' },
+    // },
+    // required: ['file'],
+  },
   response: {
     201: {},
     404: {
