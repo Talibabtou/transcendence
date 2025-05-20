@@ -6,7 +6,6 @@ import { IUpload, IId, IReplyPic } from '../shared/types/profile.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import { MatchHistory } from '../shared/types/match.type.js';
 import { GetPageQuery } from '../shared/types/match.type.js';
-
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const subpath: string = request.url.split('/profile')[1];
@@ -56,8 +55,8 @@ export async function getSummary(
 }
 
 function verifTypeFile(file: MultipartFile): boolean {
-  const allowedExt: string[] = ['.jpg', '.jpeg', '.png', '.gif'];
-  const allowedMimeTypes: string[] = ['image/png', 'image/jpeg', 'image/gif'];
+  const allowedExt: string[] = ['.jpg', '.jpeg', '.png'];
+  const allowedMimeTypes: string[] = ['image/png', 'image/jpeg'];
   const ext: string = file.filename.substring(file.filename.lastIndexOf('.')).toLowerCase();
   if (!allowedMimeTypes.includes(file.mimetype) || !allowedExt.includes(ext)) return false;
   return true;

@@ -89,7 +89,16 @@ export const getHistorySchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {},
+    properties: {
+      limit: {
+        type: 'integer',
+        description: 'The number of matches to return.',
+      },
+      offset: {
+        type: 'integer',
+        description: 'The number of matches to skip.',
+      },
+    },
   },
   params: {
     type: 'object',
@@ -204,6 +213,14 @@ export const uploadSchema = {
     properties: {},
   },
   consumes: ['multipart/form-data'],
+  body: {
+    // type: 'object',
+    // properties: {
+    //   file: { type: 'string', format: 'binary' },
+    //   description: { type: 'string' },
+    // },
+    // required: ['file'],
+  },
   response: {
     201: {},
     404: {

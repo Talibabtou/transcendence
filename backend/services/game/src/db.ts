@@ -38,6 +38,9 @@ export async function dbConnector(fastify: FastifyInstance) {
   await db.exec('PRAGMA foreign_keys = ON');
 
   // Read SQL commands from files
+  console.log({
+    matchSql: path.join(__dirname, '../config/match.sql'),
+  });
   const matchSql = fs.readFileSync(path.join(__dirname, '../config/match.sql'), 'utf-8');
   const goalSql = fs.readFileSync(path.join(__dirname, '../config/goal.sql'), 'utf-8');
   const eloSql = fs.readFileSync(path.join(__dirname, '../config/elo.sql'), 'utf-8');
@@ -55,5 +58,5 @@ export async function dbConnector(fastify: FastifyInstance) {
   fastify.addHook('onClose', async (instance) => {
     await instance.db.close();
   });
-  fastify.log.info(`Database ${dbPath} successfully created`);
+  console.log(`Database ${dbPath} successfully created`);
 }

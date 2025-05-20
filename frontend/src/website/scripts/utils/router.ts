@@ -38,17 +38,12 @@
 		private container: HTMLElement;
 		private components: Map<Route | string, any> = new Map();
 		private currentRoute: Route | null = null;
-<<<<<<< Updated upstream
-=======
 		private currentParams: Record<string, string> = {};
->>>>>>> Stashed changes
 
 		// Add static reference to active instance
 		public static activeInstance: Router | null = null;
 
 		// =========================================
-<<<<<<< Updated upstream
-=======
 		// PUBLIC METHODS
 		// =========================================
 		
@@ -67,7 +62,6 @@
 		}
 
 		// =========================================
->>>>>>> Stashed changes
 		// INITIALIZATION
 		// =========================================
 
@@ -92,52 +86,6 @@
 
 			// Store reference to this instance
 			Router.activeInstance = this;
-<<<<<<< Updated upstream
-		}
-
-		// =========================================
-		// ROUTE HANDLING
-		// =========================================
-
-		/**
-		 * Handles route changes by managing component lifecycle and visibility.
-		 * Uses a state machine approach for consistent transitions.
-		 * 
-		 * @param route - The route to handle
-		 */
-		private handleRoute(route: Route): void {
-			// Handle specific FROM->TO transitions
-			this.handleRouteTransition(this.currentRoute, route);
-			
-			// Create or reuse section for new route
-			let section = document.getElementById(route);
-			if (!section) {
-				section = document.createElement('section');
-				section.id = route;
-				section.className = 'section';
-				this.container.appendChild(section);
-			}
-			section.style.display = 'block';
-			
-			// Create and render new component if needed
-			if (!this.components.has(route)) {
-				const ComponentClass = this.getComponentClass(route);
-				this.components.set(route, new ComponentClass(section));
-				this.components.get(route).render();
-				
-				// Setup event listeners after render for all components
-				setTimeout(() => {
-					const component = this.components.get(route);
-					if (component && typeof component.setupEventListeners === 'function') {
-						component.setupEventListeners();
-					}
-				}, 0);
-			}
-			this.currentRoute = route;
-			this.updateActiveNavItem(route);
-		}
-
-=======
 		}
 
 		// =========================================
@@ -206,7 +154,6 @@
 			this.updateActiveNavItem(route);
 		}
 
->>>>>>> Stashed changes
 		/**
 		 * Handles specific route transition cases
 		 * @param fromRoute - The route we're coming from
@@ -550,8 +497,6 @@
 			} catch (error) {
 				console.error('Error cleaning up auth components:', error);
 			}
-<<<<<<< Updated upstream
-=======
 		}
 		
 		/**
@@ -568,7 +513,6 @@
 					Router.activeInstance.components.delete(route);
 				}
 			}
->>>>>>> Stashed changes
 		}
 	}
 

@@ -110,7 +110,7 @@ try {
     const method = 'POST';
     const path = '/uploads';
     const form = new FormData();
-    const imgPath = p.join(p.resolve(), '/uploads/test.jpg');
+    const imgPath = p.join(p.resolve(), '/uploads/mario.jpg');
     if (!fs.existsSync(imgPath)) {
       throw new Error(`File not found: ${imgPath}`);
     }

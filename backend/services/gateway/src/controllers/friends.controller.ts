@@ -2,7 +2,7 @@ import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
-import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.types.js';
+import { IReplyGetFriend, IReplyGetFriendStatus } from '../shared/types/friends.types.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
 export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
@@ -41,7 +41,7 @@ export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, 
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
-    const responseData = (await response.json()) as IReplyFriendStatus | ErrorResponse;
+    const responseData = (await response.json()) as IReplyGetFriendStatus | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

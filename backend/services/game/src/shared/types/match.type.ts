@@ -87,7 +87,7 @@ export interface IMatchId {
   id: string;
 }
 
-export interface GetLeaderboardQuery {
+export interface GetPageQuery {
   limit?: number;
   offset?: number;
 }
@@ -98,9 +98,4 @@ export interface Finalist {
   goals_scored?: number;
   goals_conceded?: number;
   goal_duration?: number;
-}
-
-export interface GetPageQuery {
-  limit?: number;
-  offset?: number;
 }

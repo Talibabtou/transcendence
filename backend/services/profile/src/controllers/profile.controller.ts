@@ -8,13 +8,6 @@ import { MatchHistory, PlayerMatchSummary } from '../shared/types/match.type.js'
 import { IReplySummary, IReplyPic } from '../shared/types/profile.type.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
 
-/**
- * Retrieves the profile picture link for a given user ID.
- * If a picture exists, returns its link; otherwise, returns 'default'.
- * @param request Fastify request with user ID in params
- * @param reply Fastify reply instance
- * @returns 200 with picture link or 'default', 500 on error
- */
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
@@ -38,12 +31,6 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
   }
 }
 
-/**
- * Fetches the match history for a given user ID from the match service.
- * @param request Fastify request with user ID in params
- * @param reply Fastify reply instance
- * @returns 200 with match history array, 500 on error
- */
 export async function getHistory(
   request: FastifyRequest<{ Params: IId }>,
   reply: FastifyReply
@@ -61,13 +48,6 @@ export async function getHistory(
   }
 }
 
-/**
- * Aggregates and returns a summary of the user's profile, including username, match summary, and profile picture.
- * Fetches data from multiple services.
- * @param request Fastify request with user ID in params
- * @param reply Fastify reply instance
- * @returns 200 with summary, 404 if not found, 500 on error
- */
 export async function getSummary(
   request: FastifyRequest<{ Params: IId }>,
   reply: FastifyReply
@@ -102,13 +82,6 @@ export async function getSummary(
   }
 }
 
-/**
- * Handles uploading a new profile picture for a user.
- * Deletes any existing picture for the user before saving the new one.
- * @param request Fastify request with multipart file and user ID in params
- * @param reply Fastify reply instance
- * @returns 201 on success, 404 if no file provided, 500 on error
- */
 export async function postPic(
   request: FastifyRequest<{ Body: FormData; Params: IId }>,
   reply: FastifyReply
@@ -132,6 +105,7 @@ export async function postPic(
     const ext: string = file.filename.substring(file.filename.lastIndexOf('.'));
     const filePath: string = path.join(uploadDir, `${id}${ext}`);
     const buffer: Buffer = await file.toBuffer();
+    console.log({ path: filePath });
     fs.promises.writeFile(filePath, buffer);
     return reply.code(201).send();
   } catch (err) {
@@ -141,12 +115,6 @@ export async function postPic(
   }
 }
 
-/**
- * Deletes the profile picture for a given user ID.
- * @param request Fastify request with user ID in params
- * @param reply Fastify reply instance
- * @returns 204 on success, 404 if no picture found, 500 on error
- */
 export async function deletePic(
   request: FastifyRequest<{ Params: IId }>,
   reply: FastifyReply

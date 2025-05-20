@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { IId } from '../shared/types/gateway.types.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
-import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.types.js';
+import { IReplyGetFriend, IReplyGetFriendStatus } from '../shared/types/friends.types.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -84,24 +84,23 @@ export async function getFriendStatus(
       const errorMessage = createErrorResponse(400, ErrorCodes.BAD_REQUEST);
       return reply.code(400).send(errorMessage);
     }
-    const friendStatus = await request.server.db.get<IReplyFriendStatus>(
+    const status = await request.server.db.get<IReplyGetFriendStatus>(
       `
       SELECT
-        id_1,
-        accepted AS status
-      FROM friends
-      WHERE
-        ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
-      LIMIT 1
-      `,
+        EXISTS (
+          SELECT 1
+          FROM friends
+          WHERE
+            ((id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?))
+            AND accepted = true)
+        AS status`,
       [id, request.params.id, request.params.id, id]
     );
-    console.log({ status: friendStatus });
-    if (!friendStatus) {
+    if (!status) {
       const errorMessage = createErrorResponse(404, ErrorCodes.FRIENDS_NOTFOUND);
       return reply.code(404).send(errorMessage);
     }
-    return reply.code(200).send(friendStatus);
+    return reply.code(200).send(status);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
