@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import {
   getFriendsSchema,
   getFriendsMeSchema,
-  getCheckSchema,
+  getStatusSchema,
   postCreateSchema,
   patchAcceptSchema,
   deleteAllSchema,
@@ -50,7 +50,7 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
     '/friends/check/:id',
     {
       schema: {
-        ...getCheckSchema,
+        ...getStatusSchema,
         tags: ['friends'],
       },
       config: auth,

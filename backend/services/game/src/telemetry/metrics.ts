@@ -81,6 +81,7 @@ export function getMeter(name = 'game-service') {
 }
 
 export function recordFastDatabaseMetrics(operation: string, table: string, duration: number) {
+  console.log({ message: 'start metrics' });
   fastQueryDurationHistogram.record(duration, {
     operation,
     table,

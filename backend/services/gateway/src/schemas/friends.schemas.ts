@@ -9,7 +9,9 @@ const friendsSchema = {
       format: 'uuid',
       pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
     },
+    username: { type: 'string' },
     accepted: { type: 'boolean' },
+    pic: { type: 'string' },
     created_at: { type: 'string' },
   },
   required: ['id', 'accepted', 'created_at'],
@@ -39,6 +41,10 @@ export const getFriendsSchema = {
       type: 'array',
       items: friendsSchema,
     },
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.friendshipNotFound,
@@ -61,6 +67,10 @@ export const getFriendsMeSchema = {
       type: 'array',
       items: friendsSchema,
     },
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.friendshipNotFound,
@@ -72,7 +82,7 @@ export const getFriendsMeSchema = {
   },
 };
 
-export const getCheckSchema = {
+export const getStatusSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
@@ -97,16 +107,21 @@ export const getCheckSchema = {
         status: {
           type: 'boolean',
         },
+        requesting: {
+          type: 'string',
+          format: 'uuid',
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+        },
       },
       required: ['status'],
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.friendshipNotFound,
     },
     400: {
       ...errorResponseSchema,
       example: ErrorExamples.badRequest,
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.friendshipNotFound,
     },
     500: {
       ...errorResponseSchema,
@@ -136,8 +151,16 @@ export const postCreateSchema = {
   response: {
     201: {},
     400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.sqliteMismatch,
+      oneOf: [
+        {
+          ...errorResponseSchema,
+          example: ErrorExamples.badRequest,
+        },
+        {
+          ...errorResponseSchema,
+          example: ErrorExamples.sqliteMismatch,
+        },
+      ],
     },
     409: {
       ...errorResponseSchema,
@@ -224,6 +247,10 @@ export const deleteFriendSchema = {
   },
   response: {
     204: {},
+    400: {
+      ...errorResponseSchema,
+      example: ErrorExamples.badRequest,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.friendshipNotFound,
