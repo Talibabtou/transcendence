@@ -46,6 +46,10 @@ export interface GetTournamentsQuery {
 
 export interface PlayerMatchSummary {
   total_matches: number;
+<<<<<<< Updated upstream
+=======
+  active_matches: number;
+>>>>>>> Stashed changes
   elo: number;
   victories: number;
   defeats: number;
@@ -98,4 +102,9 @@ export interface Finalist {
   goals_scored?: number;
   goals_conceded?: number;
   goal_duration?: number;
+}
+
+export interface GetPageQuery {
+  limit?: number;
+  offset?: number;
 }

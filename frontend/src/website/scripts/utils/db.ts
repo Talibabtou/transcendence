@@ -1,5 +1,5 @@
 import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
-import { ApiError, ErrorResponse } from '@website/scripts/utils';
+import { ApiError, AppStateManager, ErrorResponse } from '@website/scripts/utils';
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
@@ -219,12 +219,11 @@ export class DbService {
 		
 		try {
 			await this.fetchApi<void>(`${AUTH.LOGOUT}`, {
-				method: 'POST'
+				method: 'POST',
+				body: JSON.stringify({ userId })
 			});
 		} finally {
-			// Always clear tokens on logout regardless of API response
-			localStorage.removeItem('jwt_token');
-			sessionStorage.removeItem('jwt_token');
+			AppStateManager.getInstance().logout();
 		}
 	}
 
@@ -443,20 +442,32 @@ export class DbService {
 	 * @param friendId - Friend's UUID to check
 	 * @returns Promise with friendship status:
 	 * - null: no friendship exists
-	 * - { status: false }: pending friendship
+	 * - { status: false, isRequester: boolean }: pending friendship with requester info
 	 * - { status: true }: accepted friendship
 	 */
-	static async getFriendship(friendId: string): Promise<{ status: boolean } | null> {
+	static async getFriendship(friendId: string): Promise<{ status: boolean, isRequester?: boolean } | null> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.CHECK(friendId)}`);
 		try {
 			const response = await this.fetchApi<any>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
 			if (!response || Object.keys(response).length === 0) {
 				console.log("Friendship doesn't exist");
-				
 				return null;
 			}
-			console.log("Friendship exists");
-			console.log(response);
+			console.log("Friendship exists", response);
+			
+			// Get current user id to compare with requester
+			const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+			if (currentUserJson) {
+				const currentUser = JSON.parse(currentUserJson);
+				// If the friendship is pending, determine if current user is requester
+				if (response.status === false && response.id_1) {
+					const isRequester = response.id_1 === currentUser.id;
+					return { 
+						status: response.status === true, 
+						isRequester 
+					};
+				}
+			}
 			return { status: response.status === true };
 		} catch (error) {
 			console.log("Friendship check error:", error);
@@ -509,12 +520,12 @@ export class DbService {
 	 * @param friendId - User who sent the request
 	 * @returns Promise with acceptance status
 	 */
-	static async acceptFriendRequest(userId: string, friendId: string): Promise<any> {
-		this.logRequest('PATCH', `${API_PREFIX}${SOCIAL.FRIENDS.ACCEPT}`, { user_id: userId, friend_id: friendId });
+	static async acceptFriendRequest(friendId: string): Promise<any> {
+		this.logRequest('PATCH', `${API_PREFIX}${SOCIAL.FRIENDS.ACCEPT}`, { id: friendId });
 		
 		return this.fetchApi<any>(`${SOCIAL.FRIENDS.ACCEPT}`, {
 			method: 'PATCH',
-			body: JSON.stringify({ user_id: userId, friend_id: friendId })
+			body: JSON.stringify({ id: friendId })
 		});
 	}
 
@@ -561,5 +572,21 @@ export class DbService {
 			timestamp,
 			requestId
 		});
+	}
+
+	/**
+	 * Gets username for a given user ID
+	 * @param id - The user's ID
+	 * @returns Promise with the username
+	 */
+	static async getUsernameById(id: string): Promise<string> {
+		this.logRequest('GET', `${API_PREFIX}/auth/username/${id}`);
+		try {
+			const response = await this.fetchApi<{username: string}>(`/auth/username/${id}`);
+			return response.username;
+		} catch (error) {
+			console.error(`Error getting username for ID ${id}:`, error);
+			return 'Unknown User';
+		}
 	}
 }

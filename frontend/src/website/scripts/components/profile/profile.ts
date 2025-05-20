@@ -213,9 +213,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Called after initial render
 	 */
 	afterRender(): void {
-		// Only call initializeTabContent if we haven't already initialized the tabs
-		if (this.initialRenderComplete && this.getInternalState().profile && 
-			!this.container.querySelector(`.tab-content .tab-pane`)) {
+		if (!this.initialRenderComplete && this.getInternalState().profile) {
+			this.initialRenderComplete = true;
 			this.initializeTabContent();
 		}
 	}
@@ -298,7 +297,23 @@ export class ProfileComponent extends Component<ProfileState> {
 					const friendsResponse = await DbService.getMyFriends();
 					if (Array.isArray(friendsResponse)) {
 						// Filter to only include pending requests
-						pendingFriends = friendsResponse.filter(friendship => !friendship.accepted);
+						const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
+						
+						// Process each pending friendship to check who is the requester
+						for (const friendship of pendingFriendships) {
+							try {
+								// Get friendship details to check if current user is requester
+								const friendshipStatus = await DbService.getFriendship(friendship.id);
+								
+								// Only add to pendingFriends if this user is NOT the requester
+								// (we only want to show notification dot for requests FROM others)
+								if (friendshipStatus && !friendshipStatus.isRequester) {
+									pendingFriends.push(friendship);
+								}
+							} catch (error) {
+								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
+							}
+						}
 					}
 				} catch (error) {
 					console.warn('Could not fetch pending friend requests:', error);
@@ -691,5 +706,44 @@ export class ProfileComponent extends Component<ProfileState> {
 
 	public hasPendingRequests(): boolean {
 		return this.getInternalState().pendingFriends.length > 0;
+	}
+
+	/**
+	 * Override the base refresh method to completely reset the component state
+	 * This ensures we get a clean slate when navigating to Profile
+	 */
+	public refresh(): void {
+		// Clean up existing tab components
+		if (this.statsComponent) {
+			this.statsComponent = undefined;
+		}
+		if (this.historyComponent) {
+			this.historyComponent = undefined;
+		}
+		if (this.friendsComponent) {
+			this.friendsComponent = undefined;
+		}
+		if (this.settingsComponent) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+			this.lastSettingsProfileId = undefined;
+		}
+		
+		// Reset state completely
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: null,
+			friendshipStatus: null,
+			pendingFriends: [],
+			matchesCache: new Map()
+		});
+		
+		// Force reinitialization
+		this.initialize();
 	}
 }

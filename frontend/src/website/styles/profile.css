@@ -1,3 +1,4 @@
+/* ==================== GLOBAL/BASE STYLES ==================== */
 /* Base container (inherits global styles) */
 .profile-container {
 	width: 80%;
@@ -10,81 +11,64 @@
 	z-index: auto;
 }
 
-/* Profile Hero/Summary Section */
-.profile-hero {
-	flex-direction: column;
+/* Loading State */
+.loading-text {
+	text-align: center;
+	padding: 2rem;
+	color: var(--text-color);
+}
+
+.error-message {
+	background: rgba(255, 0, 0, 0.2);
+	padding: 1rem;
+	border: 1px solid rgba(255, 0, 0, 0.4);
+	color: #ffaaaa;
+	margin-bottom: 1rem;
+}
+
+.retry-button {
+	background: rgba(0, 0, 0, 0.4);
+	color: var(--text-color);
+	border: 1px solid var(--border-color);
+	padding: 0.5rem 1rem;
+	cursor: pointer;
+}
+
+.retry-button:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+/* Empty states */
+.no-data {
+	text-align: center;
 	padding: 1.5rem;
-	margin: 0 auto 1.5rem auto;
-	max-width: 25%;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	text-align: center;
-
-}
-
-.profile-avatar {
-	margin-bottom: 0.8rem;
-}
-
-.profile-avatar img {
-	width: 120px;
-	height: 120px;
-	border-radius: 50%;
-	border: 3px solid rgba(150, 150, 150, 0.8);
-	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-	background-color: #2a2a2a;
-	object-fit: cover;
-}
-
-.profile-info {
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	align-items: center;
-	min-width: 250px;
-}
-
-.username {
-	text-align: center;
-	margin-bottom: 1.5rem;
-	font-size: 2rem;
 	color: var(--text-color);
+	font-style: italic;
+	background: rgba(0, 0, 0, 0.2);
+	border-radius: 4px;
 }
 
-.summary-stats {
-	display: flex;
-	justify-content: center;
-	gap: 1.5rem;
-	width: 100%;
-	margin-top: 0.5rem;
-	width: 25%
-}
-
-.stat {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	flex: 1;
-}
-
-.stat-value {
-	margin-bottom: 0.3rem;
-	font-size: 1.8rem;
-	font-weight: bold;
-	font-family: var(--font-family);
-}
-
-.stat-label {
-	font-size: 1rem;
-	font-weight: bold;
+/* No Data Message */
+.no-data {
+	text-align: center;
+	padding: 2rem;
 	color: var(--text-color);
+	font-style: italic;
 }
 
-.elo-value { color: #7cf; }
-.wins-value { color: var(--win-color); }
-.losses-value { color: var(--loss-color); }
+.loading-indicator {
+	margin-top: 1rem;
+	text-align: center;
+	font-style: italic;
+}
 
+@keyframes fadeOut {
+	0% { opacity: 1; }
+	70% { opacity: 1; }
+	100% { opacity: 0; }
+}
+
+/* ==================== TAB NAVIGATION ==================== */
 /* Tab Navigation */
 .profile-tabs {
 	margin: 2rem 0;
@@ -149,7 +133,172 @@
 	display: block;
 }
 
+/* Notification dot for pending requests */
+.notification-dot {
+	position: absolute;
+	top: 0.3rem;
+	right: 0.3rem;
+	width: 0.6rem;
+	height: 0.6rem;
+	background-color: var(--loss-color);
+	border-radius: 50%;
+	display: block;
+}
+
+/* Ensure tab button position is relative so the dot is positioned correctly */
+.tab-button {
+	position: relative;
+}
+
+/* ==================== PROFILE SECTION ==================== */
+/* Profile Hero/Summary Section */
+.profile-hero {
+	flex-direction: column;
+	padding: 1.5rem;
+	margin: 0 auto 1.5rem auto;
+	max-width: 25%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	text-align: center;
+}
+
+.profile-avatar {
+	margin-bottom: 0.8rem;
+}
+
+.profile-avatar img {
+	width: 120px;
+	height: 120px;
+	border-radius: 50%;
+	border: 3px solid rgba(150, 150, 150, 0.8);
+	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+	background-color: #2a2a2a;
+	object-fit: cover;
+}
+
+.profile-info {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	min-width: 250px;
+}
+
+.username {
+	text-align: center;
+	margin-bottom: 1.5rem;
+	font-size: 2rem;
+	color: var(--text-color);
+}
+
+.summary-stats {
+	display: flex;
+	justify-content: center;
+	gap: 1.5rem;
+	width: 100%;
+	margin-top: 0.5rem;
+	width: 25%
+}
+
+.stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1;
+}
+
+.stat-value {
+	margin-bottom: 0.3rem;
+	font-size: 1.8rem;
+	font-weight: bold;
+	font-family: var(--font-family);
+}
+
+.stat-label {
+	font-size: 1rem;
+	font-weight: bold;
+	color: var(--text-color);
+}
+
+.elo-value { color: #7cf; }
+.wins-value { color: var(--win-color); }
+.losses-value { color: var(--loss-color); }
+
+/* Friend Button */
+.friend-button-container {
+	margin-top: 1.5rem;
+	display: flex;
+	justify-content: center;
+}
+
+.friend-button {
+	color: var(--win-color);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--win-color);
+	padding: 0.8rem 1.5rem;
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all 0.3s ease;
+}
+
+.friend-button:hover:not(:disabled) {
+	text-shadow: 0 0 10px var(--win-color);
+	box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+	background-color: rgba(0, 255, 0, 0.1);
+}
+
+.friend-button:disabled {
+	opacity: 1;
+}
+
+.friend-button.pending {
+	color: rgb(255, 205, 112);
+	border-color: rgb(255, 205, 112);
+}
+
+.friend-button.is-friend {
+	color: #888; /* Gray for already friends */
+	border-color: #888;
+	background-color: rgba(136, 136, 136, 0.1);
+	cursor: default;
+}
+
+/* ==================== STATS SECTION ==================== */
+/* Stats Content */
+.stats-content {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.chart-title {
+	font-size: 1.3rem;
+	margin-top: 5rem;
+	margin-bottom: -3.5rem;
+	color: var(--text-color);
+	text-align: center;
+}
+
+.first-chart-title {
+	margin-top: 0;
+}
+
+.activity-title {
+	margin-bottom: 0;
+}
+
+.js-plotly-plot {
+	width: 95% !important;
+}
+
+/* ==================== GAME HISTORY SECTION ==================== */
 /* Game History Table - Updated to match leaderboard style */
+.history-content {
+	width: 70%;
+	margin: 0 auto;
+}
+
 .game-history-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -235,222 +384,6 @@
 	margin-left: 5px;
 }
 
-.history-content {
-	width: 70%;
-	margin: 0 auto;
-}
-
-/* Friends List */
-.friends-list {
-	display: grid;
-	gap: 1rem;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	width: 10%;
-}
-
-.friend-card {
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	padding: 1rem;
-	background: rgba(0, 0, 0, 0.3);
-	border-radius: 4px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	width: 100%; /* Ensure the card takes full width of its grid cell */
-}
-
-.friend-card.pending {
-	border-left: 2px solid rgb(255, 205, 112);
-	background: rgba(255, 205, 112, 0.05);
-}
-
-.friend-info {
-	flex: 1;
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	cursor: pointer;
-	padding: 0.5rem;
-	border-radius: 4px;
-	transition: background-color 0.2s;
-}
-
-.friend-avatar {
-	width: 48px;
-	height: 48px;
-	border-radius: 50%;
-	object-fit: cover;
-	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-}
-
-.friend-details {
-	display: flex;
-	flex-direction: column;
-}
-
-.friend-name {
-	display: block;
-	color: var(--text-color);
-	font-family: var(--font-family);
-	font-weight: bold;
-	margin-bottom: 0.25rem;
-}
-
-.friend-last-login {
-	font-size: 0.8rem;
-	opacity: 0.7;
-}
-
-/* Friend action buttons */
-.remove-friend-button, .cancel-friend-button {
-	color: var(--loss-color);
-	background-color: var(--menu-bg);
-	border: 1px solid var(--loss-color);
-	padding: 0.4rem 0.8rem;
-	font-family: var(--font-family);
-	cursor: pointer;
-	transition: all 0.3s ease;
-	white-space: nowrap;
-}
-
-.cancel-friend-button {
-	color: rgb(255, 205, 112);
-	border-color: rgb(255, 205, 112);
-}
-
-.remove-friend-button:hover {
-	text-shadow: 0 0 10px var(--loss-color);
-	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
-	background-color: rgba(255, 0, 0, 0.1);
-}
-
-.cancel-friend-button:hover {
-	text-shadow: 0 0 10px rgb(255, 205, 112);
-	box-shadow: 0 0 20px rgba(255, 205, 112, 0.2);
-	background-color: rgba(255, 205, 112, 0.1);
-}
-
-/* Empty states */
-.no-data {
-	text-align: center;
-	padding: 1.5rem;
-	color: var(--text-color);
-	font-style: italic;
-	background: rgba(0, 0, 0, 0.2);
-	border-radius: 4px;
-}
-
-/* Settings Panel */
-.form-group {
-	margin-bottom: 1.5rem;
-}
-
-.form-group label {
-	display: block;
-	margin-bottom: 0.5rem;
-	color: var(--text-color);
-}
-
-.form-group input {
-	width: 100%;
-	padding: 0.5rem;
-	background: rgba(0, 0, 0, 0.2);
-	border: 1px solid var(--border-color);
-	color: var(--text-color);
-}
-
-.color-option {
-	width: 30px;
-	height: 30px;
-	border-radius: 50%;
-	cursor: pointer;
-	transition: transform 0.2s, box-shadow 0.2s;
-	border: 2px solid transparent;
-	position: relative;
-	z-index: var(--z-ui);
-}
-
-.color-option:hover {
-	transform: scale(1.1);
-	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-}
-
-.color-option.selected {
-	border-color: white;
-	box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
-}
-
-.form-actions {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	margin-top: 1rem;
-	position: relative;
-}
-
-.edit-profile-button, .save-settings-button {
-	padding: 0.5rem 1rem;
-	background: rgba(0, 0, 0, 0.4);
-	border: 1px solid var(--border-color);
-	color: var(--text-color);
-	cursor: pointer;
-}
-
-.edit-profile-button:hover, .save-settings-button:hover {
-	background: rgba(255, 255, 255, 0.1);
-}
-
-/* Stats Content */
-.stats-content {
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	
-}
-
-.chart-title {
-	font-size: 1.3rem;
-	margin-top: 5rem;
-	margin-bottom: -3.5rem;
-	color: var(--text-color);
-	text-align: center;
-}
-
-.first-chart-title {
-	margin-top: 0;
-}
-
-.activity-title {
-	margin-bottom: 0;
-}
-
-/* Loading State */
-.loading-text {
-	text-align: center;
-	padding: 2rem;
-	color: var(--text-color);
-}
-
-.error-message {
-	background: rgba(255, 0, 0, 0.2);
-	padding: 1rem;
-	border: 1px solid rgba(255, 0, 0, 0.4);
-	color: #ffaaaa;
-	margin-bottom: 1rem;
-}
-
-.retry-button {
-	background: rgba(0, 0, 0, 0.4);
-	color: var(--text-color);
-	border: 1px solid var(--border-color);
-	padding: 0.5rem 1rem;
-	cursor: pointer;
-}
-
-.retry-button:hover {
-	background: rgba(255, 255, 255, 0.1);
-}
-
 /* Pagination Controls */
 .pagination-controls {
 	display: flex;
@@ -481,19 +414,140 @@
 	color: var(--text-color);
 }
 
-/* No Data Message */
-.no-data {
-	text-align: center;
-	padding: 2rem;
+/* ==================== FRIENDS SECTION ==================== */
+.friends-container {
+	display: flex;
+	flex-direction: column;
+	width: 80%;
+	margin: 0 auto;
+}
+
+/* Friends List */
+.friends-list {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 1rem;
+	width: 100%;
+	justify-content: center;
+}
+
+.friend-card {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 1rem;
+	padding: 1rem;
+	background: rgba(0, 0, 0, 0.3);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	width: 30%;
+}
+
+.friend-card.pending {
+	background: rgba(255, 205, 112, 0.05);
+}
+
+.friend-info {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: background-color 0.2s;
+}
+
+.friend-avatar {
+	width: 60px;
+	height: 60px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.4);
+	object-fit: cover;
+	box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.friend-details {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+}
+
+.friend-name {
+	display: block;
 	color: var(--text-color);
-	font-style: italic;
+	font-family: var(--font-family);
+	font-weight: bold;
+	margin-bottom: 0.25rem;
+	font-size: 1.1rem;
+	text-align: center;
 }
 
-.js-plotly-plot {
-	width: 95% !important;
+.friend-last-login {
+	font-size: 0.8rem;
+	opacity: 0.7;
 }
 
-/* Settings Styles */
+/* Common style for all friend buttons */
+.friend-action-button, .remove-friend-button, .cancel-friend-button, .accept-friend-button {
+	color: var(--loss-color);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--loss-color);
+	padding: 0.4rem 0.8rem;
+	font-family: var(--font-family);
+	cursor: pointer;
+	transition: all 0.3s ease;
+	white-space: nowrap;
+	margin-top: 0.5rem;
+	width: 40%;
+}
+
+/* Accept button specific color */
+.accept-friend-button {
+	color: var(--win-color);
+	border-color: var(--win-color);
+}
+
+/* Cancel button specific color */
+.cancel-friend-button {
+	color: rgb(255, 205, 112);
+	border-color: rgb(255, 205, 112);
+}
+
+/* Hover effects */
+.remove-friend-button:hover, .friend-action-button:hover {
+	text-shadow: 0 0 10px var(--loss-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+.accept-friend-button:hover {
+	text-shadow: 0 0 10px var(--win-color);
+	box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+}
+
+.cancel-friend-button:hover {
+	text-shadow: 0 0 10px rgb(255, 205, 112);
+	box-shadow: 0 0 20px rgba(255, 205, 112, 0.2);
+}
+
+/* Friend Sections */
+.friends-section {
+	margin-bottom: 2rem;
+}
+
+.friends-section h3 {
+	margin-bottom: 1rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border-color);
+	font-size: 1.2rem;
+}
+
+.pending-friends-section h3 {
+	color: rgb(255, 205, 112); /* Orange-yellow for pending */
+}
+
+/* ==================== SETTINGS SECTION ==================== */
+/* Settings Panel */
 .settings-content {
 	width: 70%;
 	margin: 0 auto;
@@ -516,6 +570,72 @@
 	margin-bottom: 1.5rem;
 	padding-bottom: 0.5rem;
 	border-bottom: 1px solid var(--border-color);
+}
+
+/* Form Styling */
+.form-group {
+	margin-bottom: 1.5rem;
+}
+
+.form-group label {
+	display: block;
+	margin-bottom: 0.5rem;
+	color: var(--text-color);
+}
+
+.form-group input {
+	width: 100%;
+	padding: 0.5rem;
+	background: rgba(0, 0, 0, 0.2);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+}
+
+.form-error {
+	color: var(--loss-color);
+	font-size: 0.85rem;
+	margin-top: 0.5rem;
+}
+
+.form-actions {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 1rem;
+	position: relative;
+	margin-bottom: 0.5rem;
+}
+
+.edit-profile-button, .save-settings-button {
+	padding: 0.5rem 1rem;
+	background: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--border-color);
+	color: var(--text-color);
+	cursor: pointer;
+}
+
+.edit-profile-button:hover, .save-settings-button:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+.save-settings-button {
+	color: var(--text-color);
+	text-decoration: none;
+	padding: 0.8rem 1.5rem;
+	transition: all 0.3s ease;
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: relative;
+	overflow: hidden;
+}
+
+.save-settings-button:hover {
+	text-shadow: 0 0 10px var(--win-color);
+	border-color: var(--win-color);
+	color: var(--win-color);
+	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+	background-color: var(--menu-bg);
 }
 
 /* Profile Picture Upload */
@@ -591,67 +711,33 @@
 	font-style: italic;
 }
 
+/* Color Selection */
+.color-option {
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: transform 0.2s, box-shadow 0.2s;
+	border: 2px solid transparent;
+	position: relative;
+	z-index: var(--z-ui);
+}
+
+.color-option:hover {
+	transform: scale(1.1);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.color-option.selected {
+	border-color: white;
+	box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
 .settings-color-selection {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	flex: 1;
-}
-
-/* Form Styling */
-.settings-form {
-	width: 100%;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-}
-
-.form-group label {
-	display: block;
-	color: var(--text-color);
-}
-
-.form-group input {
-	width: 100%;
-	padding: 0.75rem;
-	background: rgba(0, 0, 0, 0.3);
-	border: 1px solid var(--border-color);
-	color: var(--text-color);
-	font-size: 1rem;
-}
-
-.form-error {
-	color: var(--loss-color);
-	font-size: 0.85rem;
-	margin-top: 0.5rem;
-}
-
-.form-actions {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	position: relative;
-	margin-bottom: 0.5rem;
-}
-
-.save-settings-button {
-	color: var(--text-color);
-	text-decoration: none;
-	padding: 0.8rem 1.5rem;
-	transition: all 0.3s ease;
-	font-family: var(--font-family);
-	border: 1px solid var(--border-color);
-	background-color: var(--menu-bg);
-	position: relative;
-	overflow: hidden;
-}
-
-.save-settings-button:hover {
-	text-shadow: 0 0 10px var(--win-color);
-	border-color: var(--win-color);
-	color: var(--win-color);
-	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-	background-color: var(--menu-bg);
 }
 
 /* Two-column layout for settings */
@@ -706,20 +792,6 @@
 	min-height: 15rem;
 }
 
-/* Center the form actions */
-.form-actions {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	position: relative;
-}
-
-.loading-indicator {
-	margin-top: 1rem;
-	text-align: center;
-	font-style: italic;
-}
-
 /* New style for "No changes detected" message */
 .no-changes-message {
 	color: var(--text-color, #ffffff);
@@ -732,96 +804,9 @@
 	opacity: 1;
 }
 
-@keyframes fadeOut {
-	0% { opacity: 1; }
-	70% { opacity: 1; }
-	100% { opacity: 0; }
-}
-
-/* Friend Button */
-.friend-button-container {
-	margin-top: 1.5rem;
+.settings-form {
+	width: 100%;
 	display: flex;
-	justify-content: center;
-}
-
-.friend-button {
-	color: var(--win-color);
-	background-color: var(--menu-bg);
-	border: 1px solid var(--win-color);
-	padding: 0.8rem 1.5rem;
-	font-family: var(--font-family);
-	cursor: pointer;
-	transition: all 0.3s ease;
-}
-
-.friend-button:hover:not(:disabled) {
-	text-shadow: 0 0 10px var(--win-color);
-	box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-	background-color: rgba(0, 255, 0, 0.1);
-}
-
-.friend-button:disabled {
-	opacity: 1;
-}
-
-.friend-button.pending {
-	color: rgb(255, 205, 112);
-	border-color: rgb(255, 205, 112);
-}
-
-.friend-button.is-friend {
-	color: #888; /* Gray for already friends */
-	border-color: #888;
-	background-color: rgba(136, 136, 136, 0.1);
-	cursor: default;
-}
-
-.remove-friend-button {
-	color: var(--loss-color);
-	background-color: var(--menu-bg);
-	border: 1px solid var(--loss-color);
-	padding: 0.4rem 0.8rem;
-	font-family: var(--font-family);
-	cursor: pointer;
-	transition: all 0.3s ease;
-}
-
-.remove-friend-button:hover {
-	text-shadow: 0 0 10px var(--loss-color);
-	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
-	background-color: rgba(255, 0, 0, 0.1);
-}
-
-/* Friend Sections */
-.friends-section {
-	margin-bottom: 2rem;
-}
-
-.friends-section h3 {
-	margin-bottom: 1rem;
-	padding-bottom: 0.5rem;
-	border-bottom: 1px solid var(--border-color);
-	font-size: 1.2rem;
-}
-
-.pending-friends-section h3 {
-	color: rgb(255, 205, 112); /* Orange-yellow for pending */
-}
-
-/* Notification dot for pending requests */
-.notification-dot {
-	position: absolute;
-	top: 0.3rem;
-	right: 0.3rem;
-	width: 0.6rem;
-	height: 0.6rem;
-	background-color: var(--loss-color);
-	border-radius: 50%;
-	display: block;
-}
-
-/* Ensure tab button position is relative so the dot is positioned correctly */
-.tab-button {
-	position: relative;
+	flex-direction: column;
+	align-items: center;
 }

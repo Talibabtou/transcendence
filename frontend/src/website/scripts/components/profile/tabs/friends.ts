@@ -11,7 +11,7 @@ interface Friend {
 	username: string;
 	avatarUrl: string;
 	accepted: boolean;
-	lastLogin?: Date;
+	isRequester?: boolean;
 }
 
 interface ProfileFriendsState {
@@ -109,10 +109,10 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 							continue;
 						}
 						
-						// Get user details for this friend
-						console.log(`Fetching user details for friend ID: ${friendship.id}`);
-						const user = await DbService.getUser(friendship.id);
-						console.log(`User details for ${friendship.id}:`, user);
+						// Get username using the getUsernameById method
+						console.log(`Fetching username for friend ID: ${friendship.id}`);
+						const username = await DbService.getUsernameById(friendship.id);
+						console.log(`Username received: ${username} for ID: ${friendship.id}`);
 						
 						// Get profile picture
 						let avatarUrl = '/images/default-avatar.svg';
@@ -125,12 +125,22 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 							console.warn(`Could not fetch profile picture for user ${friendship.id}, using default.`);
 						}
 						
+						// Check if this user is the requester for pending friendships
+						let isRequester = false;
+						if (!friendship.accepted) {
+							// Fetch friendship status to get requester info
+							const friendshipStatus = await DbService.getFriendship(friendship.id);
+							if (friendshipStatus && friendshipStatus.isRequester !== undefined) {
+								isRequester = friendshipStatus.isRequester;
+							}
+						}
+						
 						const friend: Friend = {
 							id: friendship.id,
-							username: user.username || '',
+							username: username,
 							avatarUrl: avatarUrl,
 							accepted: friendship.accepted,
-							lastLogin: user.last_login ? new Date(user.last_login) : undefined
+							isRequester
 						};
 						
 						// Categorize as pending or accepted
@@ -176,6 +186,15 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	private async handleAcceptFriend(friendId: string): Promise<void> {
+		try {
+			await DbService.acceptFriendRequest(friendId);
+			await this.loadFriendsData();
+		} catch (error) {
+			console.error('Error accepting friend request:', error);
+		}
+	}
+	
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
@@ -187,20 +206,21 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 					html`
 						${state.isCurrentUser && state.pendingFriends.length > 0 ? html`
 							<div class="friends-section pending-friends-section">
-								<h3>Pending Friend Requests (${state.pendingFriends.length})</h3>
+								<h3>Pending Requests (${state.pendingFriends.length})</h3>
 								<div class="friends-list">
 									${state.pendingFriends.map(friend => html`
 										<div class="friend-card pending">
 											<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-												<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
+												<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username || 'Unknown'}"/>
 												<div class="friend-details">
-													<span class="friend-name">${friend.username}</span>
-													<span class="friend-last-login">
-														${friend.lastLogin ? this.formatLastSeen(friend.lastLogin) : ''}
-													</span>
+													<span class="friend-name">${friend.username || 'Unknown User'}</span>
 												</div>
 											</div>
-											<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>
+											${friend.isRequester !== undefined ? 
+												(friend.isRequester === true
+													? html`<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>` 
+													: html`<button class="accept-friend-button" onClick=${() => this.handleAcceptFriend(friend.id)}>Accept</button>`)
+												: ''}
 										</div>
 									`)}
 								</div>
@@ -216,12 +236,9 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 										${state.acceptedFriends.map(friend => html`
 											<div class="friend-card">
 												<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-													<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username}">
+													<img class="friend-avatar" src="${friend.avatarUrl}" alt="${friend.username || 'Unknown'}"/>
 													<div class="friend-details">
-														<span class="friend-name">${friend.username}</span>
-														<span class="friend-last-login">
-															${friend.lastLogin ? this.formatLastSeen(friend.lastLogin) : ''}
-														</span>
+														<span class="friend-name">${friend.username || 'Unknown User'}</span>
 													</div>
 												</div>
 												${state.isCurrentUser ? html`
@@ -240,25 +257,4 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		
 		render(template, this.container);
 	}
-	
-	private formatLastSeen(date: Date): string {
-		const now = new Date();
-		const diffMs = now.getTime() - date.getTime();
-		const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-		
-		if (diffDays === 0) {
-			const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-			if (diffHours === 0) {
-				const diffMinutes = Math.floor(diffMs / (1000 * 60));
-				return diffMinutes <= 5 ? 'Just now' : `${diffMinutes} minutes ago`;
-			}
-			return `${diffHours} hours ago`;
-		} else if (diffDays === 1) {
-			return 'Yesterday';
-		} else if (diffDays < 7) {
-			return `${diffDays} days ago`;
-		} else {
-			return date.toLocaleDateString();
-		}
-	}
-} 
+}

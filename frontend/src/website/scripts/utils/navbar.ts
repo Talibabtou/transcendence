@@ -2,7 +2,7 @@
  * NavbarComponent
  * Handles the rendering and functionality of the application's navigation bar.
  */
-import { html, render, ASCII_ART, navigate, appState } from '@website/scripts/utils';
+import { html, render, ASCII_ART, navigate, appState, DbService } from '@website/scripts/utils';
 
 // Add custom event type
 declare global {
@@ -149,7 +149,7 @@ export class NavbarComponent {
 	 */
 	private handleLogout(): void {
 		// Use AppState to logout
-		appState.logout();
+		DbService.logout(appState.getCurrentUser().id);
 		
 		// Dispatch logout event
 		const logoutEvent = new CustomEvent('user-logout');

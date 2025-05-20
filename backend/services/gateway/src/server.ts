@@ -1,4 +1,3 @@
-// import fs from 'fs';
 import {
   corsConfig,
   helmetConfig,
@@ -12,20 +11,20 @@ import {
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
-import errorHandler from './config/errorHandler.js';
 import routes from './routes/index.js';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
 // import { Http2SecureServer } from 'http2';
 import fastifySwagger from '@fastify/swagger';
+import websocketPlugin from '@fastify/websocket';
 import fastifyMultipart from '@fastify/multipart';
 import fastifySwaggerUi from '@fastify/swagger-ui';
-import { fastify, FastifyInstance, FastifyRequest } from 'fastify';
+import { fastify, FastifyInstance } from 'fastify';
+import errorHandler from './config/errorHandler.js';
+import websocketRoutes from './plugins/websocketPlugin.js';
 import { addHeaders, blockHeaders } from './config/headers.js';
 import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
 import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
-import websocketPlugin from '@fastify/websocket';
-import websocketRoutes from './plugins/websocketPlugin.js';
 
 export class Server {
   // FastifyInstance<Http2SecureServer> for https

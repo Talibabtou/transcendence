@@ -116,6 +116,17 @@ export class LoginHandler {
 				};
 				
 				this.setCurrentUser(userData, token);
+				
+				// Initialize WebSocket connection with the new token
+				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
+					const websocketUrl = 'ws://localhost:8085/ws/status';
+					const wsClient = WebSocketClient.getInstance(websocketUrl);
+					wsClient.connect();
+					console.log('WebSocket connection initiated after login');
+				}).catch(err => {
+					console.error('Error initializing WebSocket after login:', err);
+				});
+				
 				this.switchToSuccessState();
 				this.resetForm(form);
 				this.updateState({ isLoading: false });

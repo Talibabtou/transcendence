@@ -308,18 +308,38 @@ export class AppStateManager {
 	 */
 	public logout(): void {
 		const oldAuth = { ...this.state.auth };
+		
+		// First disconnect WebSocket before clearing tokens
+		try {
+			// Dynamically import to avoid circular dependencies
+			import('@website/scripts/services/client').then(({ WebSocketClient }) => {
+				const wsClient = WebSocketClient.getInstance();
+				if (wsClient) {
+					wsClient.disconnect();
+					console.log('WebSocket disconnected during logout');
+				}
+			}).catch(err => {
+				console.error('Error disconnecting WebSocket:', err);
+			});
+		} catch (error) {
+			console.error('Failed to disconnect WebSocket:', error);
+		}
+		
+		// Reset the entire state to initial values
 		this.setState({
 			auth: {
 				isAuthenticated: false,
 				user: null,
 				jwtToken: null
 			},
-			// Reset accent color and accent1 to default on logout
 			accentColor: 'white',
 			accentColors: {
-				...this.state.accentColors, // Preserve accent2-4 unless they should also reset
 				accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
-			}
+				accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
+				accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
+				accent4: AppStateManager.DEFAULT_ACCENT_COLOR
+			},
+			players: {} // Reset all player data as well
 		});
 		
 		localStorage.removeItem('auth_user');
@@ -328,10 +348,16 @@ export class AppStateManager {
 		sessionStorage.removeItem('jwt_token');
 		localStorage.removeItem('auth_persistent');
 		
-		// If logout happened, refresh components
+		// Force the profile components to completely reset by navigating to the home page
 		if (oldAuth.isAuthenticated) {
+			// First refresh all components
 			setTimeout(() => {
 				Router.refreshAllComponents();
+				
+				// If on a profile page, redirect to home to prevent state confusion
+				if (window.location.pathname.includes('/profile')) {
+					window.location.href = '/';
+				}
 			}, 100);
 		}
 	}
