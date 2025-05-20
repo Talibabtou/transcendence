@@ -5,10 +5,10 @@ import { GameSizes } from '@pong/types';
 // =========================================
 export const GAME_CONFIG = {
 	WINNING_SCORE: 3,
-	FPS: 240,
-	FIXED_TIMESTEP: 1000 / 240, // 4.16ms per update for 240Hz
-	PHYSICS_SUBSTEPS: 2, // Number of substeps for fast-moving objects
-	MAX_DELTA_TIME: 200, // Maximum delta time to prevent spiral of death
+	MAX_STEPS_PER_FRAME: 4,
+	FRAME_TIME: 1000 / 60,
+	MAX_DELTA_TIME: 30, // Maximum delta time to prevent spiral of death (increased from 10 to 100)
+	MAX_MATCH_DURATION: 1000 * 60 * 10, // 10 minutes
 	MIN_SIZES: {
 		BALL_SIZE: 5
 	}
@@ -57,7 +57,7 @@ export const GAME_RATIOS = {
 	PADDLE: {
 		WIDTH: 0.01,    // % of screen width
 		HEIGHT: 0.15,   // % of screen height
-		SPEED: 0.006,   // control speed
+		SPEED: 1.0,     // control speed (fraction of screen height per second)
 		PADDING: 0.03   // % from edges
 	},
 	BALL: {
@@ -79,14 +79,16 @@ export const BALL_CONFIG = {
 		}
 	},
 	ACCELERATION: {
-		MAX_MULTIPLIER: 4.0,    // Maximum speed (4x initial speed)
+		MAX_MULTIPLIER: 3.0,    // Maximum speed (4x initial speed)
 		RATE: 0.05,             // 5% speed increase per hit
 		INITIAL: 1.0           // Initial speed multiplier
 	},
 	EDGES: {
-		ZONE_SIZE: 0.05,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.01  // 1% max deflection
-	}
+		ZONE_SIZE: 0.3,  // 5% edge detection zone
+		MAX_DEFLECTION: 0.03  // 1% max deflection
+	},
+	PHYSICS_MAX_TIMESTEP_S: 1 / 50, // Max physics delta allowed per update call (in seconds) - Adjusted to match 50 FPS physics rate
+	MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT: 0.1 // Minimum vertical speed component relative to total speed after a paddle hit
 } as const;
 
 // =========================================
@@ -172,3 +174,4 @@ export const calculateGameSizes = (width: number, height: number): GameSizes => 
 		BALL_SIZE: Math.max(paddleWidth * 0.5, GAME_CONFIG.MIN_SIZES.BALL_SIZE)
 	}
 };
+

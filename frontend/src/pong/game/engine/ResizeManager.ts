@@ -9,10 +9,7 @@ import { GameScene } from '@pong/game/scenes';
  * that all game elements scale and position correctly.
  */
 export class ResizeManager {
-	// =========================================
-	// Private Properties
-	// =========================================
-	private resizeTimeout: number | null = null;
+
 	private isResizing: boolean = false;
 	private context: GameContext;
 	private scene: GameScene;
@@ -20,11 +17,12 @@ export class ResizeManager {
 	private player1: Player | null;
 	private player2: Player | null;
 	private pauseManager: PauseManager | null;
-	private boundResizeHandler: () => void;
+	private readonly DEBOUNCE_MS = 50;      // good cross‑platform sweet‑spot
+	private resizeTimeoutId: number | null = null;
 
-	// =========================================
-	// Constructor
-	// =========================================
+	private previousCanvasWidth: number;
+	private previousCanvasHeight: number;
+
 	/**
 	 * Creates a new ResizeManager
 	 * @param ctx Canvas rendering context
@@ -48,205 +46,151 @@ export class ResizeManager {
 		this.player1 = player1;
 		this.player2 = player2;
 		this.pauseManager = pauseManager;
-		
-		// Create bound handler to properly remove listener later
-		this.boundResizeHandler = this.handleResize.bind(this);
-		this.setupResizeHandler();
+		this.previousCanvasWidth = ctx.canvas.width;
+		this.previousCanvasHeight = ctx.canvas.height;
 	}
 
-	// =========================================
-	// Public Methods (Facade)
-	// =========================================
-	
-	/**
-	 * Returns whether a resize operation is currently in progress
-	 */
-	public isCurrentlyResizing(): boolean {
-		return this.isResizing;
-	}
 
 	/**
 	 * Cleans up resources and event listeners
 	 */
 	public cleanup(): void {
-		// Clear timeout if exists
-		if (this.resizeTimeout) {
-			window.clearTimeout(this.resizeTimeout);
-			this.resizeTimeout = null;
+		if (this.resizeTimeoutId !== null) {
+			clearTimeout(this.resizeTimeoutId);
+			this.resizeTimeoutId = null;
 		}
-		
-		// Remove event listener
-		window.removeEventListener('resize', this.boundResizeHandler);
-		
-		// Clear references
 		this.context = null as any;
 		this.scene = null as any;
 		this.ball = null as any;
 		this.player1 = null as any;
 		this.player2 = null as any;
 		this.pauseManager = null as any;
-		this.boundResizeHandler = null as any;
 	}
 
-	// =========================================
-	// Resize Event Handling
-	// =========================================
-	
-	/**
-	 * Sets up the window resize event listener
-	 */
-	private setupResizeHandler(): void {
-		window.addEventListener('resize', this.boundResizeHandler);
-	}
+
 
 	/**
-	 * Main resize handler that orchestrates the resize process
+	 * Called by GameEngine when the canvas has been resized.
+	 * Orchestrates the resize process for game objects.
 	 */
-	public handleResize(): void {
-		// Cancel any pending resize timeout
-		if (this.resizeTimeout) {
-			window.clearTimeout(this.resizeTimeout);
-		}
-		
-		// Set resizing state
-		this.isResizing = true;
-		
-		// Check if we're in background mode - use GameScene
+	public onCanvasResizedByEngine(): void {
+		// Immediate actions on resize start
 		const isBackgroundMode = this.isInBackgroundDemo();
-		
-		// Check game state
-		const wasPlaying = this.pauseManager?.hasState(GameState.PLAYING) ?? false;
-		const wasInCountdown = this.pauseManager?.hasState(GameState.COUNTDOWN) ?? false;
-		
-		// If countdown is active, set a pending pause request
-		if (wasInCountdown && this.pauseManager) {
-			this.pauseManager.setPendingPauseRequest(true);
+		if (!isBackgroundMode && this.pauseManager) {
+			const wasPlaying = this.pauseManager.hasState(GameState.PLAYING);
+			const wasInCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
+
+			if (wasPlaying) {
+				// Pass previous dimensions to pause() immediately
+				this.pauseManager.pause(this.previousCanvasWidth, this.previousCanvasHeight);
+			} else if (wasInCountdown) {
+				// forcePauseFromCountdownKeepSnapshot relies on an existing snapshot.
+				// If a resize happens during countdown, we want to pause immediately.
+				// The snapshot it keeps should be correct if it was made with old dimensions.
+				this.pauseManager.forcePauseFromCountdownKeepSnapshot();
+			}
 		}
-		
-		// If not in background mode and playing, pause the game first
-		if (!isBackgroundMode && wasPlaying && this.pauseManager) {
-			this.pauseManager.pause();
+
+		// Debounced actions for actual object resizing
+		if (this.resizeTimeoutId !== null) {
+			clearTimeout(this.resizeTimeoutId);
 		}
-		
-		// Request animation frame for smoother visual update
-		requestAnimationFrame(() => {
-			// Handle the resize operation
-			this.updateCanvasSize();
-			this.resizeGameObjects();
-			
-			// Reset resize state after a short delay
-			this.resizeTimeout = window.setTimeout(() => {
-				this.isResizing = false;
+
+		this.resizeTimeoutId = window.setTimeout(() => {
+			this.isResizing = true; // Indicates that the heavy work of resizing objects is now happening
+
+			requestAnimationFrame(() => {
+				this.resizeGameObjects(); // This recalculates and repositions everything
 				
-				// Resume game if it was playing (and not in background mode)
-				if (!isBackgroundMode && wasPlaying && this.pauseManager) {
-					this.pauseManager.resume();
+				this.isResizing = false;
+				this.resizeTimeoutId = null;
+				
+				// Update previous dimensions after the debounced resize operation is complete
+				if (this.context && this.context.canvas) {
+					this.previousCanvasWidth = this.context.canvas.width;
+					this.previousCanvasHeight = this.context.canvas.height;
 				}
-			}, isBackgroundMode ? 50 : 150);
-		});
+			});
+		}, this.DEBOUNCE_MS);
 	}
 
-	// =========================================
-	// Canvas Handling
-	// =========================================
-	
-	/**
-	 * Updates the canvas size while preserving context properties
-	 */
-	private updateCanvasSize(): void {
-		const targetWidth = window.innerWidth;
-		const targetHeight = window.innerHeight;
-		
-		// Only update if dimensions actually changed
-		if (this.context.canvas.width !== targetWidth || 
-				this.context.canvas.height !== targetHeight) {
-			// Store the current context properties
-			const contextProps = {
-					fillStyle: this.context.fillStyle,
-					strokeStyle: this.context.strokeStyle,
-					lineWidth: this.context.lineWidth,
-					font: this.context.font,
-					textAlign: this.context.textAlign,
-					textBaseline: this.context.textBaseline,
-					globalAlpha: this.context.globalAlpha,
-			};
-			
-			// Update canvas size
-			this.context.canvas.width = targetWidth;
-			this.context.canvas.height = targetHeight;
-			
-			// Restore context properties
-			Object.assign(this.context, contextProps);
-		}
-	}
-
-	// =========================================
-	// Game Object Resizing
-	// =========================================
-	
 	/**
 	 * Resizes all game objects while maintaining proper proportions
 	 */
 	private resizeGameObjects(): void {
-		// Check if we are in a game scene with objects
-		if (!this.isGameScene()) {
-			this.scene.draw(); // Just redraw for non-game scenes
+		if (!this.isGameScene() || !this.ball || !this.player1 || !this.player2) {
+			if (this.scene) this.scene.draw(1);
 			return;
 		}
-		
-		// Get new dimensions
-		const { width: newWidth, height: newHeight } = this.context.canvas;
+
+		const newWidth = this.context.canvas.width;
+		const newHeight = this.context.canvas.height;
+		const oldWidth = this.previousCanvasWidth;
+		const oldHeight = this.previousCanvasHeight;
+
 		const sizes = calculateGameSizes(newWidth, newHeight);
-		
-		if (!this.ball || !this.player1 || !this.player2) return;
-		
-		// Get game snapshot first - we'll need this for positioning
-		const gameSnapshot = this.pauseManager?.getGameSnapshot();
-		
-		// Update sizes for all game objects first
-		this.ball.updateSizes();
-		this.player1.updateSizes();
-		this.player2.updateSizes();
-		
-		// Update horizontal paddle positions
-		this.player1.x = sizes.PLAYER_PADDING;
-		this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
-		
-		// Handle vertical positioning of paddles
+		const gameSnapshot = this.pauseManager?.GameSnapshot;
+
 		if (gameSnapshot) {
-			// Use the saved proportional positions from the snapshot
+			// Ball: update sizes first, then restore state which includes position.
+			this.ball.updateSizes(); // Updates size, baseSpeed based on newWidth, newHeight
+			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
+
+			// Players: update sizes, then set position from snapshot.
+			this.player1.updateSizes(); // Updates paddle dimensions, speed based on newW, newH
+			this.player2.updateSizes();
+			
+			this.player1.x = sizes.PLAYER_PADDING;
+			this.player2.x = newWidth - (sizes.PLAYER_PADDING + sizes.PADDLE_WIDTH);
+			
+			// Y positions from snapshot (relative) applied to new height
 			this.player1.y = gameSnapshot.player1RelativeY * newHeight - this.player1.paddleHeight * 0.5;
 			this.player2.y = gameSnapshot.player2RelativeY * newHeight - this.player2.paddleHeight * 0.5;
 			
-			// Update ball from snapshot immediately for visual consistency
-			this.ball.restoreState(gameSnapshot.ballState, newWidth, newHeight);
-			
-			// Update snapshot with new proportions
+			// Update snapshot with new relative positions for consistency if needed later
 			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
 			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
 		} else {
-			// No snapshot - use current proportional positions
-			this.updatePaddleVerticalPositions(newHeight);
-			
-			// Save and restore ball state to maintain proportions
-			const ballState = this.ball.saveState();
-			this.ball.restoreState(ballState, newWidth, newHeight);
+			// No snapshot - maintain relative positions
+
+			// Ball
+			const ballRelativeX = this.ball.x / oldWidth;
+			const ballRelativeY = this.ball.y / oldHeight;
+			this.ball.updateSizes(); // Updates size, baseSpeed
+			this.ball.x = ballRelativeX * newWidth;
+			this.ball.y = ballRelativeY * newHeight;
+			this.ball.prevRenderX = this.ball.x;
+			this.ball.prevRenderY = this.ball.y;
+			this.ball.prevPosition.x = this.ball.x;
+			this.ball.prevPosition.y = this.ball.y;
+
+			// Player 1
+			const p1CurrentCenterY = this.player1.y + this.player1.paddleHeight * 0.5; // Use old paddleHeight
+			const p1RelativeY = p1CurrentCenterY / oldHeight;
+			this.player1.updateSizes(); // Updates paddle W/H, speed. Also updates player1.x via updateHorizontalPosition.
+			const p1NewCenterY = p1RelativeY * newHeight;
+			this.player1.y = p1NewCenterY - this.player1.paddleHeight * 0.5; // Use new paddleHeight
+
+			// Player 2
+			const p2CurrentCenterY = this.player2.y + this.player2.paddleHeight * 0.5; // Use old paddleHeight
+			const p2RelativeY = p2CurrentCenterY / oldHeight;
+			this.player2.updateSizes(); // Updates paddle W/H, speed. Also updates player2.x.
+			const p2NewCenterY = p2RelativeY * newHeight;
+			this.player2.y = p2NewCenterY - this.player2.paddleHeight * 0.5; // Use new paddleHeight
 		}
-		
-		// Ensure paddles stay within bounds
-		const maxY = newHeight - this.player1.paddleHeight;
+
+		// Common adjustments for players after positions are set (either from snapshot or relative logic)
+		const maxY = newHeight - this.player1.paddleHeight; // Use new paddleHeight
 		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
 		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
 
-		// Update paddle positions after bounds check
-		this.player1.updateHorizontalPosition();
-		this.player2.updateHorizontalPosition();
-		
-		// Handle countdown state explicitly
+		// Sync player's prevRender states AFTER their x,y are finalized for this resize step.
+		// Player.x is updated within player.updateSizes() via updateHorizontalPosition().
+		this.player1.syncPrevRenderStates();
+		this.player2.syncPrevRenderStates();
+
 		this.handleResizeDuringCountdown();
-		
-		// Force redraw
-		this.scene.draw();
+		this.scene.draw(1);
 	}
 
 	/**
@@ -254,64 +198,19 @@ export class ResizeManager {
 	 */
 	private handleResizeDuringCountdown(): void {
 		if (!this.pauseManager) return;
-		
 		const isInCountdown = this.pauseManager.hasState(GameState.COUNTDOWN);
 		if (isInCountdown) {
-			// Position the ball in the center if we're in countdown
 			if (this.ball) {
-				const { width, height } = this.context.canvas;
-				this.ball.x = width * 0.5;
-				this.ball.y = height * 0.5;
+				this.ball.restart();
 			}
-			
-			// Tell pause manager to maintain countdown state
 			this.pauseManager.maintainCountdownState();
 		}
 	}
 
-	/**
-	 * Updates paddle vertical positions while maintaining proportionality
-	 * @param newHeight The new canvas height
-	 */
-	private updatePaddleVerticalPositions(newHeight: number): void {
-		if (!this.player1 || !this.player2) return;
-		
-		// Calculate relative paddle center positions (as percentage of canvas height)
-		const p1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / this.context.canvas.height;
-		const p2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / this.context.canvas.height;
-		
-		// Apply relative positions to new height
-		this.player1.y = (p1RelativeY * newHeight) - (this.player1.paddleHeight * 0.5);
-		this.player2.y = (p2RelativeY * newHeight) - (this.player2.paddleHeight * 0.5);
-		
-		// Ensure paddles stay within bounds
-		const maxY = newHeight - this.player1.paddleHeight;
-		this.player1.y = Math.min(Math.max(this.player1.y, 0), maxY);
-		this.player2.y = Math.min(Math.max(this.player2.y, 0), maxY);
-		
-		// Update snapshot in pause manager if available
-		const gameSnapshot = this.pauseManager?.getGameSnapshot();
-		if (gameSnapshot) {
-			gameSnapshot.player1RelativeY = (this.player1.y + this.player1.paddleHeight * 0.5) / newHeight;
-			gameSnapshot.player2RelativeY = (this.player2.y + this.player2.paddleHeight * 0.5) / newHeight;
-		}
-	}
-
-	// =========================================
-	// Helper Methods
-	// =========================================
-	
-	/**
-	 * Checks if we have a valid game scene with all needed objects
-	 */
-	private isGameScene(): boolean {
-		return !!(this.ball && this.player1 && this.player2 && this.pauseManager);
-	}
-
-	/**
-	 * Checks if we're in background demo mode
-	 */
-	private isInBackgroundDemo(): boolean {
-		return this.scene.isBackgroundDemo();
-	}
+	////////////////////////////////////////////////////////////
+	// Helper methods
+	////////////////////////////////////////////////////////////
+	private isGameScene(): boolean { return !!(this.context && this.scene && this.ball && this.player1 && this.player2 && this.pauseManager); }
+	private isInBackgroundDemo(): boolean { return this.scene?.isBackgroundDemo() ?? false; }
+	public isCurrentlyResizing(): boolean { return this.isResizing; }
 }

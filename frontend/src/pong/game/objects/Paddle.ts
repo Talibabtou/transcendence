@@ -1,5 +1,20 @@
 import { GameContext, MovableObject, Direction } from '@pong/types';
-import { COLORS, GAME_CONFIG, calculateGameSizes } from '@pong/constants';
+import { COLORS, calculateGameSizes } from '@pong/constants';
+
+interface PositionValue {
+	x: number;
+	y: number;
+}
+
+interface VelocityValue {
+	dx: number;
+	dy: number;
+}
+
+interface DimensionsValue {
+	width: number;
+	height: number;
+}
 
 /**
  * Represents a paddle in the game, handling its movement,
@@ -9,10 +24,18 @@ export class Paddle implements MovableObject {
 	// =========================================
 	// Properties
 	// =========================================
-	private direction: Direction | null = null;
+	private direction: Direction = Direction.NONE;
 	private speed: number;
 	private _paddleWidth: number;
 	private _paddleHeight: number;
+	private prevX: number;
+	private prevY: number;
+
+	// Pre-allocated objects for getters
+	private _currentPosition: PositionValue;
+	private _currentVelocity: VelocityValue;
+	private _previousPositionObj: PositionValue;
+	private _dimensions: DimensionsValue;
 
 	// =========================================
 	// Constructor
@@ -39,23 +62,14 @@ export class Paddle implements MovableObject {
 		this.speed = sizes.PADDLE_SPEED;
 		this._paddleWidth = paddleWidth;
 		this._paddleHeight = paddleHeight;
-	}
+		this.prevX = x;
+		this.prevY = y;
 
-	// =========================================
-	// Getters and Setters
-	// =========================================
-	/**
-	 * Gets the paddle width
-	 */
-	public get paddleWidth(): number {
-		return this._paddleWidth;
-	}
-
-	/**
-	 * Gets the paddle height
-	 */
-	public get paddleHeight(): number {
-		return this._paddleHeight;
+		// Initialize pre-allocated objects
+		this._currentPosition = { x: this.x, y: this.y };
+		this._currentVelocity = { dx: 0, dy: 0 }; // Will be calculated on get
+		this._previousPositionObj = { x: this.prevX, y: this.prevY };
+		this._dimensions = { width: this._paddleWidth, height: this._paddleHeight };
 	}
 
 	/**
@@ -68,9 +82,6 @@ export class Paddle implements MovableObject {
 		this._paddleHeight = height;
 	}
 
-	// =========================================
-	// Rendering Methods
-	// =========================================
 	/**
 	 * Draws the paddle on the canvas
 	 */
@@ -79,41 +90,14 @@ export class Paddle implements MovableObject {
 		this.context.fillRect(this.x, this.y, this.paddleWidth, this.paddleHeight);
 	}
 
-	// =========================================
-	// Movement and Physics Methods
-	// =========================================
-	/**
-	 * Gets the current velocity of the paddle
-	 */
-	public getVelocity(): { dx: number; dy: number } {
-		const dy = this.direction === Direction.UP ? -this.speed : 
-				  this.direction === Direction.DOWN ? this.speed : 0;
-		return { dx: 0, dy };
-	}
-
-	/**
-	 * Gets the current position of the paddle
-	 */
-	public getPosition(): { x: number; y: number } {
-		return { x: this.x, y: this.y };
-	}
-
-	/**
-	 * Sets the paddle's movement direction
-	 * @param direction The direction to move the paddle
-	 */
-	public setDirection(direction: Direction | null): void {
-		this.direction = direction;
-	}
-
 	/**
 	 * Updates the paddle's movement state
 	 * @param deltaTime Time elapsed since last update
 	 */
 	public updateMovement(deltaTime: number): void {
-		if (this.direction === null) return;
+		if (this.direction === Direction.NONE) return;
 
-		const frameSpeed = this.speed * GAME_CONFIG.FPS * deltaTime;
+		const frameSpeed = this.speed * deltaTime;
 		const newY = this.direction === Direction.UP 
 			? this.y - frameSpeed 
 			: this.y + frameSpeed;
@@ -122,23 +106,39 @@ export class Paddle implements MovableObject {
 		this.y = Math.min(Math.max(0, newY), maxY);
 	}
 
-	/**
-	 * Updates paddle position
-	 * @param x The new x position
-	 * @param y The new y position
-	 */
+	////////////////////////////////////////////////////////////
+	// Getters and Setters
+	////////////////////////////////////////////////////////////
+	public get PreviousPosition(): PositionValue {
+		this._previousPositionObj.x = this.prevX;
+		this._previousPositionObj.y = this.prevY;
+		return this._previousPositionObj;
+	}
+	public get Velocity(): VelocityValue {
+		this._currentVelocity.dx = 0; // Paddle only moves vertically
+		this._currentVelocity.dy = this.y - this.prevY;
+		return this._currentVelocity;
+	}
+	public get Position(): PositionValue {
+		this._currentPosition.x = this.x;
+		this._currentPosition.y = this.y;
+		return this._currentPosition;
+	}
+	public get paddleWidth(): number { return this._paddleWidth; }
+	public get paddleHeight(): number { return this._paddleHeight; }
+	public get Dimensions(): DimensionsValue {
+		this._dimensions.width = this._paddleWidth;
+		this._dimensions.height = this._paddleHeight;
+		return this._dimensions;
+	}
+	
+	public setDirection(direction: Direction): void { this.direction = direction; }
+	public setPreviousPosition(x: number, y: number): void {
+		this.prevX = x;
+		this.prevY = y;
+	}
 	public setPosition(x: number, y: number): void {
 		this.x = x;
 		this.y = y;
-	}
-
-	/**
-	 * Gets paddle dimensions
-	 */
-	public getDimensions(): { width: number; height: number } {
-		return {
-			width: this.paddleWidth,
-			height: this.paddleHeight
-		};
 	}
 }

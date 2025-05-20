@@ -6,7 +6,7 @@
 import { Component } from '@website/scripts/components';
 import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
 import { GameMode, GameMenuState } from '@website/types';
-import { TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils/tournament-cache';
+import { TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================
@@ -65,6 +65,8 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		this.checkAuthentication();
 		this.renderComponent();
 	}
+
+	
 	
 	// =========================================
 	// LIFECYCLE METHODS
