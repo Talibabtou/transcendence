@@ -35,6 +35,7 @@ export interface UserProfile {
 		accentColor: string;
 	};
 	elo?: number;
+	twoFactorEnabled?: boolean;
 }
 
 // Friend display for UI

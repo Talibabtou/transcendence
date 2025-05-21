@@ -20,10 +20,40 @@ export interface ProfileState {
 		friends: boolean;
 		settings: boolean;
 	};
-	matchesCache: Map<number, any>;
+	matchesCache: Map<number, ProcessedMatch>;
 	currentProfileId: string | null;
 	friendshipStatus?: any;
 	pendingFriends: any[];
+}
+
+/**
+ * Profile history component state interface
+ */
+export interface ProfileHistoryState {
+	profile: UserProfile | null;
+	historyPage: number;
+	historyPageSize: number;
+	allMatches: ProcessedMatch[];
+	matches: ProcessedMatch[];
+	isLoading: boolean;
+	hasMoreMatches: boolean;
+	dataLoadInProgress: boolean;
+	handlers: {
+		onPlayerClick: (username: string) => void;
+	};
+}
+
+/**
+ * Processed match interface for match history
+ */
+export interface ProcessedMatch {
+	id: string;
+	date: Date;
+	opponent: string;
+	opponentId: string;
+	playerScore: number;
+	opponentScore: number;
+	result: 'win' | 'loss';
 }
 
 /**
@@ -61,6 +91,7 @@ export interface ProfileSettingsState {
 	uploadError: string | null;
 	saveSuccess: boolean;
 	noChangesMessage: string | null;
+	is2FALoading?: boolean;
 	formData: {
 		username: string;
 		email: string;
@@ -73,5 +104,27 @@ export interface ProfileSettingsState {
 		password?: string;
 		confirmPassword?: string;
 		form?: string;
+		twoFA?: string;
 	};
+}
+
+/**
+ * Profile stats component state interface
+ */
+export interface ProfileStatsState {
+	isLoading: boolean;
+	eloChartRendered: boolean;
+	matchDurationChartRendered: boolean;
+	dailyActivityChartRendered: boolean;
+	goalDurationChartRendered: boolean;
+	errorMessage?: string;
+	profile?: any; // Add profile to the state
+	playerStats?: any; // Add playerStats to the state
+	cleanup?: {
+		eloChart?: () => void;
+		matchDurationChart?: () => void;
+		dailyActivityChart?: () => void;
+		goalDurationChart?: () => void;
+	};
+	dataLoadInProgress: boolean;
 }

@@ -574,4 +574,100 @@ export class DbService {
 			return 'Unknown User';
 		}
 	}
+
+	// =========================================
+	// TWO-FACTOR AUTHENTICATION OPERATIONS
+	// =========================================
+	
+	/**
+	 * Generate a new 2FA secret and QR code
+	 * @param userId User ID
+	 */
+	static async generate2FA(): Promise<{ qrcode: string, otpauth: string }> {
+		this.logRequest('GET', `${AUTH.TWO_FA.GENERATE}`);
+		
+		return this.fetchApi<{ qrcode: string, otpauth: string }>(`${AUTH.TWO_FA.GENERATE}`, {
+			method: 'GET'
+		});
+	}
+
+	/**
+	 * Validate a 2FA code
+	 * @param userId User ID
+	 * @param code 2FA code from authenticator app
+	 */
+	static async validate2FA(code: string): Promise<void> {
+		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}`, { twofaCode: '******' });
+		
+		return this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}`, {
+			method: 'POST',
+			body: JSON.stringify({ twofaCode: code })
+		});
+	}
+
+	/**
+	 * Disable 2FA for a user
+	 * @param userId User ID
+	 */
+	static async disable2FA(): Promise<void> {
+		this.logRequest('PATCH', `${AUTH.TWO_FA.DISABLE}`);
+		
+		return this.fetchApi<void>(`${AUTH.TWO_FA.DISABLE}`, {
+			method: 'PATCH',
+			body: JSON.stringify({})
+		});
+	}
+
+	/**
+	 * Verify 2FA code during login
+	 * @param userId User ID
+	 * @param code 2FA code
+	 * @param token Temporary 2FA token
+	 */
+	static async verify2FALogin(userId: string, code: string, token: string): Promise<AuthResponse> {
+		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}/${userId}`, { twofaCode: '******' });
+		
+		try {
+			await this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}/${userId}`, {
+				method: 'POST',
+				headers: {
+					'Authorization': `Bearer ${token}`
+				},
+				body: JSON.stringify({ twofaCode: code })
+			});
+			
+			const userData = await this.getUser(userId);
+			
+			return {
+				success: true,
+				user: {
+					id: userId,
+					username: userData.username,
+					email: userData.email || '',
+					created_at: new Date(),
+					last_login: new Date(),
+					auth_method: 'email'
+				},
+				token: token
+			};
+		} catch (error) {
+			throw error;
+		}
+	}
+
+	/**
+	 * Check if a user has 2FA enabled
+	 * @param userId User ID
+	 */
+	static async check2FAStatus(): Promise<boolean> {
+		this.logRequest('GET', `${AUTH.TWO_FA.STATUS}`);
+		
+		try {
+			const response = await this.fetchApi<{ two_factor_enabled: boolean }>(`${AUTH.TWO_FA.STATUS}`);
+			return response.two_factor_enabled || false;
+		} catch (error) {
+			console.error('Failed to get 2FA status:', error);
+			return false;
+		}
+	}
 }

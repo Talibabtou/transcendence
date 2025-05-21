@@ -55,15 +55,23 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	
 	public setProfile(profile: UserProfile): void {
 		const state = this.getInternalState();
-		const isCurrentUser = state.currentUserId === profile.id;
-		
-		this.updateInternalState({ 
-			profile,
-			isCurrentUser
-		});
-		
-		if (!state.dataLoadInProgress) {
-			this.loadFriendsData();
+		// Only reload data if profile has changed
+		if (state.profile?.id !== profile.id) {
+			const isCurrentUser = state.currentUserId === profile.id;
+			
+			// Update profile once, then fetch data
+			this.updateInternalState({ 
+				profile,
+				isCurrentUser,
+				// Reset data only when profile changes
+				pendingFriends: [],
+				acceptedFriends: [],
+				friends: []
+			});
+			
+			if (!state.dataLoadInProgress) {
+				this.loadFriendsData();
+			}
 		}
 	}
 	
@@ -79,49 +87,46 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		const state = this.getInternalState();
 		if (!state.profile || state.dataLoadInProgress) return;
 		
-		this.updateInternalState({ 
-			isLoading: true,
-			dataLoadInProgress: true
-		});
+		this.updateInternalState({ dataLoadInProgress: true });
 		
 		try {
 			// Load friends list
-			let friendsResponse: IReplyGetFriend[];
-			if (state.isCurrentUser) {
-				// If viewing own profile, use the "my friends" endpoint
-				friendsResponse = await DbService.getMyFriends();
-			} else {
-				// Otherwise use the user ID to get their friends - will only return accepted friends
-				friendsResponse = await DbService.getFriendList(state.profile.id);
-			}
+			const friendsResponse = state.isCurrentUser
+				? await DbService.getMyFriends()
+				: await DbService.getFriendList(state.profile.id);
 			
 			if (Array.isArray(friendsResponse)) {
-				console.log("Friendship data:", friendsResponse);
+				// Process all friendship statuses in parallel instead of sequentially
+				const pendingPromises: Promise<void>[] = [];
+				const pendingFriends: Friend[] = [];
+				const acceptedFriends: IReplyGetFriend[] = [];
 				
-				// Simply filter the friends based on accepted status
-				const pendingFriends = [];
-				const acceptedFriends = [];
-				
-				// Process each friend to add requesting information for pending requests
+				// First sort into accepted/pending without additional API calls
 				for (const friend of friendsResponse) {
 					if (friend.accepted) {
-						acceptedFriends.push(friend as Friend);
+						acceptedFriends.push(friend);
 					} else {
-						// For pending requests, get the friendship status to determine requester
-						const friendshipStatus = await DbService.getFriendship(friend.id);
-						const enrichedFriend = {
-							...friend,
-							requesting: friendshipStatus?.requesting || ''
-						};
-						pendingFriends.push(enrichedFriend);
+						// For pending, we'll get the statuses in batch later
+						pendingPromises.push(DbService.getFriendship(friend.id)
+							.then(friendshipStatus => {
+								pendingFriends.push({
+									...friend,
+									requesting: friendshipStatus?.requesting || ''
+								});
+							}));
 					}
 				}
 				
+				// Wait for all pending status requests to complete
+				if (pendingPromises.length > 0) {
+					await Promise.all(pendingPromises);
+				}
+				
+				// Single state update with all data
 				this.updateInternalState({
 					pendingFriends,
 					acceptedFriends,
 					friends: friendsResponse,
-					isLoading: false,
 					dataLoadInProgress: false
 				});
 			} else {
@@ -129,22 +134,17 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 					pendingFriends: [],
 					acceptedFriends: [],
 					friends: [],
-					isLoading: false,
 					dataLoadInProgress: false
 				});
 			}
-			
-			this.render();
 		} catch (error) {
 			console.error('Error loading friends data:', error);
 			this.updateInternalState({
 				pendingFriends: [],
 				acceptedFriends: [],
 				friends: [],
-				isLoading: false,
 				dataLoadInProgress: false
 			});
-			this.render();
 		}
 	}
 	

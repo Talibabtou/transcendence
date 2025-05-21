@@ -60,6 +60,7 @@ export const AUTH = {
 		GENERATE: '/auth/2fa/generate',
 		VALIDATE: '/auth/2fa/validate',
 		DISABLE: '/auth/2fa/disable',
+		STATUS: '/auth/2fa/status',
 	},
 };
 
