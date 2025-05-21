@@ -160,7 +160,7 @@ export async function getFriendStatus(
     const friendStatus = await request.server.db.get<IReplyFriendStatus>(
       `
       SELECT
-        id_1,
+        id_1 AS requesting,
         accepted AS status
       FROM friends
       WHERE
