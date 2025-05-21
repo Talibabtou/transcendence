@@ -1,12 +1,7 @@
-/**
- * Game Menu Component Module
- * Displays the main game menu with different game mode options.
- * Handles user selection of game modes and communicates with parent component.
- */
 import { Component } from '@website/scripts/components';
-import { html, render, ASCII_ART, navigate } from '@website/scripts/utils';
+import { ASCII_ART, TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils';
+import { html, render, navigate } from '@website/scripts/services';
 import { GameMode, GameMenuState } from '@website/types';
-import { TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	// =========================================

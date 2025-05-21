@@ -1,9 +1,5 @@
-/**
- * Profile Friends Component
- * Displays user's friends list with pending and accepted sections
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService } from '@website/scripts/utils';
+import { DbService, html, render } from '@website/scripts/services';
 import { UserProfile } from '@website/types';
 import { IReplyGetFriend } from '@shared/types/friends.types';
 

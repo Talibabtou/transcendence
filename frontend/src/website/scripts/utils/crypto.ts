@@ -1,4 +1,4 @@
-import { html, render } from '@website/scripts/utils';
+import { html, render } from '@website/scripts/services';
 
 /**
  * Hashes a password using SHA-256

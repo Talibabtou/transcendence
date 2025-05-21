@@ -1,4 +1,4 @@
-import { Router } from '@website/scripts/utils';
+import { Router } from '@website/scripts/services';
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
 
 // Define state change listener type

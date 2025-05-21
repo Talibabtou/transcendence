@@ -1,10 +1,6 @@
-/**
- * Game Component Module
- * Main component that manages the game interface, state transitions, and sub-components.
- * Handles the complete game lifecycle from menu to gameplay to game over.
- */
 import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
-import { appState, MatchCache, TournamentCache, ApiError } from '@website/scripts/utils';
+import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
+import { ApiError } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 

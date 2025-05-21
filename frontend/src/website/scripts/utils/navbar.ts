@@ -1,8 +1,5 @@
-/**
- * NavbarComponent
- * Handles the rendering and functionality of the application's navigation bar.
- */
-import { html, render, ASCII_ART, navigate, appState, DbService } from '@website/scripts/utils';
+import { ASCII_ART, appState } from '@website/scripts/utils';
+import { html, render, navigate, DbService } from '@website/scripts/services';
 
 // Add custom event type
 declare global {

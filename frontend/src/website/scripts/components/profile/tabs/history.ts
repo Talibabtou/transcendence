@@ -1,9 +1,5 @@
-/**
- * Profile History Component
- * Displays user match history in a paginated table
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, ApiError } from '@website/scripts/utils';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { UserProfile } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { MatchHistory } from '@shared/types/match.type';

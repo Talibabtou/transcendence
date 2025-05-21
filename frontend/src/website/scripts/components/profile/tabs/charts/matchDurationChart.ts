@@ -1,7 +1,3 @@
-/**
- * Match Duration Chart Component
- * Displays a histogram of match durations
- */
 import Plotly from 'plotly.js-dist';
 
 /**

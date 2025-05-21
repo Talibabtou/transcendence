@@ -1,7 +1,7 @@
 import { GameEngine } from '@pong/game/engine';
+import { GAME_CONFIG} from '@pong/constants';
 import { MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@website/types';
-import { GAME_CONFIG} from '@pong/constants';
 
 declare global {
 	interface Window {

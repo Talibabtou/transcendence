@@ -1,10 +1,6 @@
-/**
- * Profile Component Module
- * Parent component that manages tab navigation and profile summary
- * Handles user profile display, tab switching, and data fetching
- */
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, AppStateManager } from '@website/scripts/utils';
+import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
+import { DbService, html, render, navigate } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
 /**
@@ -690,7 +686,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				profile: null,
 				initialized: false,
 				isLoading: false,
-				activeTab: 'null',
+				activeTab: 'stats',
 				currentProfileId: newProfileId,
 				friendshipStatus: null,
 			});

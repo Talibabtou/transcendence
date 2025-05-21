@@ -1,9 +1,6 @@
-/**
- * Profile Settings Component
- * Allows users to update their profile settings
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, appState, ApiError, hashPassword } from '@website/scripts/utils';
+import { appState, hashPassword } from '@website/scripts/utils';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { AppStateManager } from '@website/scripts/utils/app-state';

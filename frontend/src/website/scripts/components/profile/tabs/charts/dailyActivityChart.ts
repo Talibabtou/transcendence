@@ -1,8 +1,3 @@
-/**
- * Daily Activity Chart Component
- * Displays a GitHub-style heatmap of match frequency by day
- * Using a fixed 4-week grid
- */
 import Plotly from 'plotly.js-dist';
 
 interface DailyPerformance {

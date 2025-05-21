@@ -1,10 +1,6 @@
-/**
- * Leaderboard Component Module
- * Displays global player rankings and statistics in a tabular format.
- * Handles data fetching, sorting, and user interaction with the leaderboard.
- */
 import { Component } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, ApiError, appState } from '@website/scripts/utils';
+import { ASCII_ART, appState } from '@website/scripts/utils';
+import { DbService, html, render, navigate, ApiError } from '@website/scripts/services';
 import { LeaderboardState } from '@website/types';
 
 /**

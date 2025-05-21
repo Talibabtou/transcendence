@@ -1,9 +1,5 @@
-/**
- * Auth Manager
- * Central manager for authentication
- */
 import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
-import { html, render, navigate } from '@website/scripts/utils';
+import { html, render, navigate } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 

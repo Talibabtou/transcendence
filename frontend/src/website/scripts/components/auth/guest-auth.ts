@@ -1,10 +1,7 @@
-/**
- * Guest Authentication Component
- * A standalone component for guest player authentication without affecting the main app state
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, ApiError, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { IAuthComponent, GuestAuthState } from '@website/types';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {

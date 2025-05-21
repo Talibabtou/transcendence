@@ -1,5 +1,6 @@
 import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
-import { ApiError, AppStateManager, ErrorResponse } from '@website/scripts/utils';
+import { AppStateManager } from '@website/scripts/utils';
+import { ApiError, ErrorResponse } from '@website/scripts/services';
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
@@ -64,7 +65,7 @@ export class DbService {
 				sessionStorage.removeItem('jwt_token');
 				
 				// Import dynamically to avoid circular dependencies
-				const { appState } = await import('./app-state');
+				const { appState } = await import('../utils/app-state');
 				appState.logout();
 				throw new Error('Your session has expired. Please log in again.');
 			}

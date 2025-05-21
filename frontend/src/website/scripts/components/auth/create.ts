@@ -1,4 +1,5 @@
-import { html, ASCII_ART, DbService, ApiError, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { DbService, html, ApiError } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 

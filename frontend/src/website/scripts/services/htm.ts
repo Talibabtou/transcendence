@@ -1,8 +1,3 @@
-/**
- * HTM (Hyperscript Tagged Markup) Module
- * Provides a lightweight JSX-like syntax for creating DOM elements using tagged template literals.
- * Based on the 'htm' library but customized for direct DOM manipulation.
- */
 import htm from 'htm';
 
 // =========================================

@@ -1,12 +1,6 @@
-/**
- * Profile Stats Component
- * Displays various statistics about the user's game performance
- * Uses plotly.js for data visualization
- */
 import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
-import { html, render } from '@website/scripts/utils';
 import { UserProfile } from '@website/types';
-import { DbService } from '@website/scripts/utils/db';
+import { DbService, html, render } from '@website/scripts/services';
 
 // Define the stats component state interface
 interface ProfileStatsState {

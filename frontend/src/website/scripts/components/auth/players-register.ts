@@ -1,10 +1,6 @@
-/**
- * Players Register Module
- * Handles registration of players for multiplayer and tournament games
- * Provides a split interface showing host and registering guests
- */
 import { Component, GuestAuthComponent } from '@website/scripts/components';
-import { html, render, ASCII_ART, DbService, appState, TournamentCache, AppStateManager, ApiError } from '@website/scripts/utils';
+import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/scripts/utils';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 

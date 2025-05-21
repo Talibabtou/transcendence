@@ -1,8 +1,5 @@
-/**
- * Login Module
- * Handles email/password login functionality
- */
-import { html, ASCII_ART, DbService, ApiError, hashPassword } from '@website/scripts/utils';
+import { ASCII_ART, hashPassword } from '@website/scripts/utils';
+import { DbService, html, ApiError } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 

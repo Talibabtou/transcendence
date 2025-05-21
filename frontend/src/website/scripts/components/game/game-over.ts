@@ -1,10 +1,6 @@
-/**
- * Game Over Component Module
- * Displays the game over screen with results and options to play again or return to menu.
- * Handles user interactions after a game has completed.
- */
 import { Component, GameManager } from '@website/scripts/components';
-import { html, render, ASCII_ART, calculateUIPositions, MatchCache } from '@website/scripts/utils';
+import { ASCII_ART, calculateUIPositions, MatchCache } from '@website/scripts/utils';
+import { html, render } from '@website/scripts/services';
 import { GameMode, GameOverState } from '@website/types';
 
 export class GameOverComponent extends Component<GameOverState> {
