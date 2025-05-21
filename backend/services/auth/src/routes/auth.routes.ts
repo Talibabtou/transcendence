@@ -24,6 +24,7 @@ import {
   twofaValidate,
   getId,
   getUsername,
+  twofaStatus,
 } from '../controllers/auth.controller.js';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
@@ -60,4 +61,6 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable);
 
   fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
+
+  fastify.get<{ Params: IId }>('/2fa/status/:id', twofaStatus);
 }

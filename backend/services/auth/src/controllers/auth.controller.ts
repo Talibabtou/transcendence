@@ -456,3 +456,19 @@ export async function twofaDisable(
     return reply.code(500).send(errorMessage);
   }
 }
+
+export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+  try {
+    const id = request.params.id;
+    const data = await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id]);
+    if (!data) {
+      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
+      return reply.code(404).send(errorMessage);
+    }
+    return reply.code(200).send(data);
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}

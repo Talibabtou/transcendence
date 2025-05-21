@@ -15,6 +15,7 @@ import {
   twofaValidate,
   twofaDisable,
   getUsername,
+  twofaStatus,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -31,6 +32,7 @@ import {
   twofaGenerateSchema,
   getIdSchema,
   getUsernameSchema,
+  twofaStatusSchema,
 } from '../schemas/auth.schemas.js';
 
 const auth = { auth: true, roles: ['user', 'admin'] };
@@ -200,5 +202,17 @@ export default async function authRoutes(fastify: FastifyInstance) {
       config: auth,
     },
     deleteUser
+  );
+
+  fastify.get(
+    '/auth/2fa/status',
+    {
+      schema: {
+        ...twofaStatusSchema,
+        tags: ['2fa'],
+      },
+      config: auth,
+    },
+    twofaStatus
   );
 }

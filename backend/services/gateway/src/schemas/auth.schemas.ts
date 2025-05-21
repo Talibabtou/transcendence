@@ -527,3 +527,29 @@ export const twofaGenerateSchema = {
     },
   },
 };
+
+export const twofaStatusSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {},
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        two_factor_enabled: { type: 'boolean' },
+      },
+      required: ['two_factor_enabled'],
+      additionalProperties: false,
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound,
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
