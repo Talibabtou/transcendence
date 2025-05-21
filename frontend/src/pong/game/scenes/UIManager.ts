@@ -9,12 +9,8 @@ export class UIManager {
 
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
-	private player1NameCanvas: HTMLCanvasElement;
-	private player1NameContext: CanvasRenderingContext2D | null;
-	private player2NameCanvas: HTMLCanvasElement;
-	private player2NameContext: CanvasRenderingContext2D | null;
-	private player1CachedName: string = '';
-	private player2CachedName: string = '';
+	private cachedPlayer1NameForBg: string = '';
+	private cachedPlayer2NameForBg: string = '';
 
 	// Cached dimensions and font sizes
 	private cachedCanvasWidth: number = 0;
@@ -30,28 +26,19 @@ export class UIManager {
 	private cachedCountdownNumberString: string = "";
 	private cachedCountdownNumberFont: string = "";
 
+	// Offscreen canvas for the entire background (scores and names)
+	private backgroundCacheCanvas: HTMLCanvasElement;
+	private backgroundCacheContext: CanvasRenderingContext2D | null;
+	private backgroundNeedsRedraw: boolean = true;
+	private cachedPlayer1Score: number = -1;
+	private cachedPlayer2Score: number = -1;
+
 	/**
 	 * Creates a new UIManager instance
 	 * @param context The canvas rendering context
 	 */
 	constructor(context: GameContext) {
 		this.context = context;
-		this.player1NameCanvas = document.createElement('canvas');
-		this.player1NameContext = this.player1NameCanvas.getContext('2d');
-		this.player2NameCanvas = document.createElement('canvas');
-		this.player2NameContext = this.player2NameCanvas.getContext('2d');
-
-		// Initialize name canvases to a fixed size
-		const initialNameCanvasWidth = 350; // Increased width for longer names
-		const initialNameCanvasHeight = 60; // Adjust as needed
-		if (this.player1NameContext) {
-			this.player1NameCanvas.width = initialNameCanvasWidth;
-			this.player1NameCanvas.height = initialNameCanvasHeight;
-		}
-		if (this.player2NameContext) {
-			this.player2NameCanvas.width = initialNameCanvasWidth;
-			this.player2NameCanvas.height = initialNameCanvasHeight;
-		}
 
 		// Initialize countdown number offscreen canvas
 		this.countdownNumberCanvas = document.createElement('canvas');
@@ -61,6 +48,13 @@ export class UIManager {
 			this.countdownNumberCanvas.width = 150; 
 			this.countdownNumberCanvas.height = 150;
 		}
+
+		// Initialize background cache canvas
+		this.backgroundCacheCanvas = document.createElement('canvas');
+		this.backgroundCacheContext = this.backgroundCacheCanvas.getContext('2d');
+		// Initial size will be set on first draw or resize
+		this.backgroundCacheCanvas.width = 0;
+		this.backgroundCacheCanvas.height = 0;
 	}
 
 	/**
@@ -85,56 +79,36 @@ export class UIManager {
 		const { width, height } = this.context.canvas;
 		const sizes = this.getFontSizes(width, height);
 
-		this.setTextStyle(
+		this.setTextStyleHelper( // Use helper for cache context
+			this.backgroundCacheContext!, // Draw to cache
 			`${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`,
 			COLORS.SCORE,
 			'center',
 			'middle'
 		);
-		this.context.fillText(player1.Score.toString(), width * 0.25, height * 0.52);
-		this.context.fillText(player2.Score.toString(), width * 0.75, height * 0.52);
+		this.backgroundCacheContext!.fillText(player1.Score.toString(), width * 0.25, height * 0.52);
+		this.backgroundCacheContext!.fillText(player2.Score.toString(), width * 0.75, height * 0.52);
 	}
 
 	/**
 	 * Draws player names
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
-		const { width, height } = this.context.canvas;
+		const { width, height } = this.context.canvas; // Still use main canvas for layout
 		const sizes = this.getFontSizes(width, height);
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
 		const paddingRight = width * 0.06;
 		const nameFont = `${sizes.SUBTITLE_SIZE} ${FONTS.FAMILIES.SUBTITLE}`;
 
-		if (player1.name !== this.player1CachedName || this.player1NameCanvas.width === 0) {
-			if (this.player1NameContext) {
-				this.player1CachedName = player1.name;
-				if (this.player1NameCanvas.width === 0 || this.player1NameCanvas.height === 0) {
-					this.player1NameCanvas.width = 350;
-					this.player1NameCanvas.height = 60;
-				}
-				this.player1NameContext.clearRect(0, 0, this.player1NameCanvas.width, this.player1NameCanvas.height);
-				this.setTextStyleHelper(this.player1NameContext, nameFont, COLORS.NAMES, 'left', 'top');
-				this.player1NameContext.fillText(player1.name, 0, 0);
-			}
-		}
-		if (player2.name !== this.player2CachedName || this.player2NameCanvas.width === 0) {
-			if (this.player2NameContext) {
-				this.player2CachedName = player2.name;
-				if (this.player2NameCanvas.width === 0 || this.player2NameCanvas.height === 0) {
-					this.player2NameCanvas.width = 350;
-					this.player2NameCanvas.height = 60;
-				}
-				this.player2NameContext.clearRect(0, 0, this.player2NameCanvas.width, this.player2NameCanvas.height);
-				this.setTextStyleHelper(this.player2NameContext, nameFont, COLORS.NAMES, 'left', 'top');
-				this.player2NameContext.fillText(player2.name, 0, 0);
-			}
-		}
-		if (this.player1NameCanvas.width > 0) {
-			this.context.drawImage(this.player1NameCanvas, paddingLeft, paddingTop);
-		}
-		if (this.player2NameCanvas.width > 0) {
-			this.context.drawImage(this.player2NameCanvas, width - paddingRight - this.player2NameCanvas.width, paddingTop);
+		if (this.backgroundCacheContext) {
+			// Draw Player 1's name (left-aligned)
+			this.setTextStyleHelper(this.backgroundCacheContext, nameFont, COLORS.NAMES, 'left', 'top');
+			this.backgroundCacheContext.fillText(player1.name, paddingLeft, paddingTop);
+
+			// Draw Player 2's name (right-aligned)
+			this.setTextStyleHelper(this.backgroundCacheContext, nameFont, COLORS.NAMES, 'right', 'top');
+			this.backgroundCacheContext.fillText(player2.name, width - paddingRight, paddingTop);
 		}
 	}
 
@@ -251,10 +225,49 @@ export class UIManager {
 		this.context.fillRect(0, 0, width, height);
 	}
 
-	public drawBackground(player1: Player, player2: Player): void {
-		this.drawPlayerNames(player1, player2);
-		this.drawScores(player1, player2);
+	private redrawBackgroundToCache(player1: Player, player2: Player): void {
+		if (!this.backgroundCacheContext) return;
+		const { width, height } = this.context.canvas;
+
+		// Ensure cache canvas matches main canvas size
+		if (this.backgroundCacheCanvas.width !== width || this.backgroundCacheCanvas.height !== height) {
+			this.backgroundCacheCanvas.width = width;
+			this.backgroundCacheCanvas.height = height;
+			// Font sizes might change with canvas size, so force font size recalculation
+			this.cachedFontSizes = null; 
+		}
+		this.backgroundCacheContext.clearRect(0, 0, width, height);
+		this.drawPlayerNames(player1, player2); // Draws to backgroundCacheContext
+		this.drawScores(player1, player2);    // Draws to backgroundCacheContext
+		this.cachedPlayer1Score = player1.Score;
+		this.cachedPlayer2Score = player2.Score;
+		this.cachedPlayer1NameForBg = player1.name; // Update cached names
+		this.cachedPlayer2NameForBg = player2.name; // Update cached names
+		this.backgroundNeedsRedraw = false;
 	}
+	
+	public drawBackground(player1: Player, player2: Player): void {
+		const { width, height } = this.context.canvas;
+		if (this.backgroundCacheCanvas.width !== width || this.backgroundCacheCanvas.height !== height) {
+			this.backgroundNeedsRedraw = true; // Force redraw if canvas size changed
+		}
+		if (player1.Score !== this.cachedPlayer1Score || player2.Score !== this.cachedPlayer2Score) {
+			this.backgroundNeedsRedraw = true;
+		}
+		// Check if player names have changed
+		if (player1.name !== this.cachedPlayer1NameForBg || player2.name !== this.cachedPlayer2NameForBg) {
+			this.backgroundNeedsRedraw = true;
+		}
+
+		if (this.backgroundNeedsRedraw) {
+			this.redrawBackgroundToCache(player1, player2);
+		}
+		if (this.backgroundCacheCanvas.width > 0 && this.backgroundCacheCanvas.height > 0) {
+			this.context.drawImage(this.backgroundCacheCanvas, 0, 0);
+		}
+	}
+
+	public invalidateBackgroundCache(): void { this.backgroundNeedsRedraw = true; }
 
 	////////////////////////////////////////////////////////////
 	// Getters and setters

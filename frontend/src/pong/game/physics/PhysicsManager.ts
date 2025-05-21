@@ -1,6 +1,6 @@
 import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '../objects'; // Assuming objects are in ../objects
-import {GameState } from '@pong/types';
+import {GameState, PlayerType } from '@pong/types';
 import { GameScene } from '../scenes'; // Need GameScene for resetPositions
 import {
     reflectVelocity,
@@ -30,6 +30,7 @@ export class PhysicsManager {
   private gameScene: GameScene;
   private tmpPos: PositionVector;
   private tmpDir: DirectionVector;
+  private onScoreUpdateCallback: (() => void) | null = null;
 
   private sweepResult: SweepResult = { t: 0, normal: { nx: 0, ny: 0 }, collided: false };
   private overlapResult: CircleAABBOverlapResult = {
@@ -197,7 +198,9 @@ export class PhysicsManager {
     const hitPlayer2 = this.collideBallWithPaddle(this.ball, this.player2);
     if (hitPlayer2) {
       this.accelerateBall(this.ball);
-      this.player2.predictBallTrajectory(this.ball.Position, this.ball.Velocity);
+      if (this.player2.PlayerType !== PlayerType.BACKGROUND) {
+        this.player2.predictBallTrajectory(this.ball.Position, this.ball.Velocity);
+      }
     }
     this.handleBallDestruction();
   }
@@ -215,6 +218,9 @@ export class PhysicsManager {
     } else {
       this.player1.givePoint();
       scoringPlayerIndex = 0;
+    }
+    if (this.onScoreUpdateCallback) {
+      this.onScoreUpdateCallback();
     }
     if (!this.gameScene.isBackgroundDemo()) {
       if (this.gameEngine && typeof this.gameEngine.recordGoal === 'function') {
@@ -268,19 +274,20 @@ export class PhysicsManager {
           if (normal.ny !== 0) {
             player.freezeMovement(0.2);
           }
-          const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
+          reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct, this.tmpDir);
 
           // Reuse tmpPos for the contact point argument
           this.tmpPos.x = contactX;
           this.tmpPos.y = contactY;
 
-          const finalVel = applyPaddleDeflection(
+          applyPaddleDeflection(
             this.tmpPos, // Pass pre-allocated tmpPos
-            reflectedVel,
-            pTop, pBottom
+            this.tmpDir, // Pass pre-allocated tmpDir as reflectedVel and out
+            pTop, pBottom,
+            this.tmpDir
           );
-          ball.dx = finalVel.dx;
-          ball.dy = finalVel.dy;
+          ball.dx = this.tmpDir.dx;
+          ball.dy = this.tmpDir.dy;
           correctPosition(ball, contactX, contactY, normal.nx, normal.ny, epsilon);
           hitOccurred = true;
         }
@@ -304,14 +311,15 @@ export class PhysicsManager {
         if (normal.ny !== 0 && !hitOccurred) {
             player.freezeMovement(0.2);
         }
-        const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct);
-        const finalVel = applyPaddleDeflection(
+        reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct, this.tmpDir);
+        applyPaddleDeflection(
             ball.Position,
-            reflectedVel,
-            pTop, pBottom
+            this.tmpDir,
+            pTop, pBottom,
+            this.tmpDir
         );
-        ball.dx = finalVel.dx;
-        ball.dy = finalVel.dy;
+        ball.dx = this.tmpDir.dx;
+        ball.dy = this.tmpDir.dy;
         hitOccurred = true;
       } else {
         if (!hitOccurred) {
@@ -319,14 +327,15 @@ export class PhysicsManager {
             if (normal.ny !== 0) {
                 player.freezeMovement(0.2);
             }
-            const reflectedVel = reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot);
-            const finalVel = applyPaddleDeflection(
+            reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, emergencyDot, this.tmpDir);
+            applyPaddleDeflection(
                 ball.Position,
-                reflectedVel,
-                pTop, pBottom
+                this.tmpDir,
+                pTop, pBottom,
+                this.tmpDir
             );
-            ball.dx = finalVel.dx;
-            ball.dy = finalVel.dy;
+            ball.dx = this.tmpDir.dx;
+            ball.dy = this.tmpDir.dy;
             hitOccurred = true;
         }
       }
@@ -351,4 +360,5 @@ export class PhysicsManager {
 	// Getters and setters
 	////////////////////////////////////////////////////////////
   public setGameEngine(engine: any): void { this.gameEngine = engine; }
+  public setOnScoreUpdateCallback(callback: () => void): void { this.onScoreUpdateCallback = callback; }
 } 

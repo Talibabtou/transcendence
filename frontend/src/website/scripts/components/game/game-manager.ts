@@ -168,7 +168,6 @@ export class GameManager {
 
 		let lastTime = performance.now();
 		let accumulator = 0;
-
 		const loop = (currentTime: number) => {
 			if (instance.isActive && instance.engine) {
 				let deltaTime = currentTime - lastTime;

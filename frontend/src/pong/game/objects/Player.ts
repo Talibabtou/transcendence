@@ -38,8 +38,11 @@ export class Player implements GraphicalElement {
 	private readonly currentVelVec: { dx: number; dy: number };
 	private readonly collisionPointVec: { x: number; y: number };
 	private readonly finalPredictedImpactPointVec: { x: number; y: number };
-	private static readonly MAX_PREDICTED_BOUNCES_DISPLAY = 10;
+	private static readonly MAX_PREDICTED_BOUNCES = 10;
 	private _reusableVelocityVector: VelocityValue;
+	private readonly _collisionTimesHolder: { timeToTop: number; timeToBottom: number; timeToOpponent: number; timeToPlayer: number; };
+	private readonly _earliestCollisionHolder: { timeToCollision: number; collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none'; };
+	private _reflectionSpeedMultiplierHolder: number;
 
 	/**
 	 * Handles keyboard keydown events for player control
@@ -112,6 +115,9 @@ export class Player implements GraphicalElement {
 		this.collisionPointVec = { x: 0, y: 0 };
 		this.finalPredictedImpactPointVec = { x: 0, y: 0 };
 		this._reusableVelocityVector = { dx: 0, dy: 0 };
+		this._collisionTimesHolder = { timeToTop: Infinity, timeToBottom: Infinity, timeToOpponent: Infinity, timeToPlayer: Infinity };
+		this._earliestCollisionHolder = { timeToCollision: Infinity, collisionType: 'none' };
+		this._reflectionSpeedMultiplierHolder = 0;
 		if (position === PlayerPosition.LEFT) {
 			this._upKey = KEYS.PLAYER_LEFT_UP;
 			this._downKey = KEYS.PLAYER_LEFT_DOWN;
@@ -278,7 +284,7 @@ export class Player implements GraphicalElement {
 		const { width, height } = this.context.canvas;
 		const ballRadius = this.ball.Size;
 		const sizes = calculateGameSizes(width, height);
-		const maxBouncesToSimulate = Player.MAX_PREDICTED_BOUNCES_DISPLAY; // This now acts as a simulation depth limit
+		const maxBouncesToSimulate = Player.MAX_PREDICTED_BOUNCES; // This now acts as a simulation depth limit
 
 		this.currentPosVec.x = startPoint.x;
 		this.currentPosVec.y = startPoint.y;
@@ -296,7 +302,7 @@ export class Player implements GraphicalElement {
 			: sizes.PLAYER_PADDING + this.paddleWidth;
 
 		for (let bounceCount = 0; bounceCount < maxBouncesToSimulate; bounceCount++) {
-			const collisionTimes = this._calculateCollisionTimes(
+			this._calculateCollisionTimes(
 				this.currentPosVec,
 				this.currentVelVec,
 				ballRadius,
@@ -305,30 +311,32 @@ export class Player implements GraphicalElement {
 				opponentPaddleEdgeX
 			);
 
-			const { timeToCollision, collisionType } = this._determineEarliestCollision(collisionTimes);
+			this._determineEarliestCollision(); // Uses this._collisionTimesHolder
 
-			if (collisionType === 'none' || timeToCollision === Infinity) {
+			if (this._earliestCollisionHolder.collisionType === 'none' || this._earliestCollisionHolder.timeToCollision === Infinity) {
 				this._targetY = this.y + this.paddleHeight / 2; // Default if no collision
 				break;
 			}
 
-			this.collisionPointVec.x = this.currentPosVec.x + this.currentVelVec.dx * timeToCollision;
-			this.collisionPointVec.y = this.currentPosVec.y + this.currentVelVec.dy * timeToCollision;
+			this.collisionPointVec.x = this.currentPosVec.x + this.currentVelVec.dx * this._earliestCollisionHolder.timeToCollision;
+			this.collisionPointVec.y = this.currentPosVec.y + this.currentVelVec.dy * this._earliestCollisionHolder.timeToCollision;
 
-			if (collisionType === 'player') {
+			if (this._earliestCollisionHolder.collisionType === 'player') {
 				this._handlePlayerCollision(this.collisionPointVec, height);
 				break;
 			}
 
-			const reflection = this._handleReflection(
-				collisionType as 'top' | 'bottom' | 'opponent',
-				this.currentVelVec,
+			this._handleReflection(
+				this._earliestCollisionHolder.collisionType as 'top' | 'bottom' | 'opponent',
+				this.currentVelVec, // Pass current velocity for reflection calculation
 				simulatedSpeedMultiplier,
 				this.ball.baseSpeed
 			);
-			this.currentVelVec.dx = reflection.newVel.dx;
-			this.currentVelVec.dy = reflection.newVel.dy;
-			simulatedSpeedMultiplier = reflection.newSpeedMultiplier;
+			// Update currentVelVec and simulatedSpeedMultiplier from member variables
+			this.currentVelVec.dx = this._reusableVelocityVector.dx;
+			this.currentVelVec.dy = this._reusableVelocityVector.dy;
+			simulatedSpeedMultiplier = this._reflectionSpeedMultiplierHolder;
+
 			this.currentPosVec.x = this.collisionPointVec.x;
 			this.currentPosVec.y = this.collisionPointVec.y;
 
@@ -352,7 +360,7 @@ export class Player implements GraphicalElement {
 		canvasHeight: number,
 		playerPaddleEdgeX: number,
 		opponentPaddleEdgeX: number
-	): { timeToTop: number; timeToBottom: number; timeToOpponent: number; timeToPlayer: number } {
+	): void {
 		let timeToTop = Infinity;
 		if (currentVel.dy < 0) { timeToTop = (ballRadius - currentPos.y) / currentVel.dy; }
 
@@ -380,26 +388,41 @@ export class Player implements GraphicalElement {
 				if (currentVel.dx !== 0) timeToPlayer = (targetX - currentPos.x) / currentVel.dx;
 			}
 		}
-		return { timeToTop, timeToBottom, timeToOpponent, timeToPlayer };
+		this._collisionTimesHolder.timeToTop = timeToTop;
+		this._collisionTimesHolder.timeToBottom = timeToBottom;
+		this._collisionTimesHolder.timeToOpponent = timeToOpponent;
+		this._collisionTimesHolder.timeToPlayer = timeToPlayer;
 	}
 
-	private _determineEarliestCollision(times: {
-		timeToTop: number;
-		timeToBottom: number;
-		timeToOpponent: number;
-		timeToPlayer: number;
-	}): { timeToCollision: number; collisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' } {
-		const positiveTimes = [times.timeToTop, times.timeToBottom, times.timeToOpponent, times.timeToPlayer].filter(t => t > 1e-6);
-		if (positiveTimes.length === 0) {
-			return { timeToCollision: Infinity, collisionType: 'none' };
+	private _determineEarliestCollision(): void {
+		const times = this._collisionTimesHolder;
+		let minTime = Infinity;
+		let determinedCollisionType: 'top' | 'bottom' | 'opponent' | 'player' | 'none' = 'none';
+
+		if (times.timeToTop > 1e-6 && times.timeToTop < minTime) {
+			minTime = times.timeToTop;
+			determinedCollisionType = 'top';
 		}
-		const timeToCollision = Math.min(...positiveTimes);
-		const tolerance = 1e-6;
-		if (Math.abs(timeToCollision - times.timeToTop) < tolerance) return { timeToCollision, collisionType: 'top' };
-		if (Math.abs(timeToCollision - times.timeToBottom) < tolerance) return { timeToCollision, collisionType: 'bottom' };
-		if (Math.abs(timeToCollision - times.timeToOpponent) < tolerance) return { timeToCollision, collisionType: 'opponent' };
-		if (Math.abs(timeToCollision - times.timeToPlayer) < tolerance) return { timeToCollision, collisionType: 'player' };
-		return { timeToCollision: Infinity, collisionType: 'none' };
+		if (times.timeToBottom > 1e-6 && times.timeToBottom < minTime) {
+			minTime = times.timeToBottom;
+			determinedCollisionType = 'bottom';
+		}
+		if (times.timeToOpponent > 1e-6 && times.timeToOpponent < minTime) {
+			minTime = times.timeToOpponent;
+			determinedCollisionType = 'opponent';
+		}
+		if (times.timeToPlayer > 1e-6 && times.timeToPlayer < minTime) {
+			minTime = times.timeToPlayer;
+			determinedCollisionType = 'player';
+		}
+
+		if (minTime === Infinity) {
+			this._earliestCollisionHolder.timeToCollision = Infinity;
+			this._earliestCollisionHolder.collisionType = 'none';
+		} else {
+			this._earliestCollisionHolder.timeToCollision = minTime;
+			this._earliestCollisionHolder.collisionType = determinedCollisionType;
+		}
 	}
 
 	private _handlePlayerCollision(collisionPoint: { x: number; y: number }, canvasHeight: number): void {
@@ -416,7 +439,7 @@ export class Player implements GraphicalElement {
 		currentVel: { dx: number; dy: number },
 		simulatedSpeedMultiplier: number,
 		baseSpeed: number
-	): { newVel: VelocityValue; newSpeedMultiplier: number } {
+	): void {
 		this._reusableVelocityVector.dx = currentVel.dx;
 		this._reusableVelocityVector.dy = currentVel.dy;
 
@@ -440,7 +463,7 @@ export class Player implements GraphicalElement {
 			this._reusableVelocityVector.dx = 0;
 			this._reusableVelocityVector.dy = 0;
 		}
-		return { newVel: this._reusableVelocityVector, newSpeedMultiplier: newSimulatedSpeedMultiplier };
+		this._reflectionSpeedMultiplierHolder = newSimulatedSpeedMultiplier;
 	}
 
 	private _predictTargetYAtMaxBounces(
@@ -575,18 +598,9 @@ export class Player implements GraphicalElement {
 		this.paddle.setPosition(this.x, this.y);
 	}
 
-	/**
-	 * Synchronizes the previous render state (prevRenderX, prevRenderY)
-	 * to the current x and y positions. This is crucial for correct drawing
-	 * when the game is paused and Player.update() might not be called,
-	 * but the player's position has been updated by external logic like ResizeManager.
-	 */
 	public syncPrevRenderStates(): void {
 		this.prevRenderX = this.x;
 		this.prevRenderY = this.y;
-		// If the Paddle object itself had its own prevRenderX/Y for interpolation,
-		// you might sync it here too, e.g., this.paddle.syncPrevRenderStates()
-		// For now, assuming Player's own prevRenderX/Y are primary for its drawing.
 	}
 
 	////////////////////////////////////////////////////////////

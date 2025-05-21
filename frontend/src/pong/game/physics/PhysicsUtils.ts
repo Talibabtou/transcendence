@@ -21,17 +21,16 @@ export interface CircleAABBOverlapResult {
  * @param nx X-component of the collision normal.
  * @param ny Y-component of the collision normal.
  * @param dot Pre-calculated dot product (v . n).
- * @returns Object with reflected dx and dy velocities.
+ * @param out Output parameter to store reflected dx and dy velocities.
  */
 export function reflectVelocity(
   vx: number, vy: number,
   nx: number, ny: number,
-  dot: number
-): { dx: number, dy: number } {
-  return {
-    dx: vx - 2 * dot * nx,
-    dy: vy - 2 * dot * ny
-  };
+  dot: number,
+  out: { dx: number, dy: number }
+): void {
+  out.dx = vx - 2 * dot * nx;
+  out.dy = vy - 2 * dot * ny;
 }
 
 /**
@@ -104,19 +103,22 @@ export function checkCircleAABBOverlap(
  * @param reflectedVel Velocity of the ball after basic reflection.
  * @param paddleTop Top Y-coordinate of the paddle.
  * @param paddleBottom Bottom Y-coordinate of the paddle.
- * @returns Object with final dx and dy velocities after deflection.
+ * @param out Output parameter to store final dx and dy velocities after deflection.
  */
 export function applyPaddleDeflection(
   ballPos: { x: number; y: number },
   reflectedVel: { dx: number; dy: number },
   paddleTop: number,
-  paddleBottom: number
-): { dx: number; dy: number } {
+  paddleBottom: number,
+  out: { dx: number; dy: number }
+): void {
   const zoneSize = BALL_CONFIG.EDGES.ZONE_SIZE;
   const maxDeflection = BALL_CONFIG.EDGES.MAX_DEFLECTION;
   const paddleHeight = paddleBottom - paddleTop;
   if (paddleHeight <= 0) {
-    return reflectedVel;
+    out.dx = reflectedVel.dx;
+    out.dy = reflectedVel.dy;
+    return;
   }
   const clampedY = Math.max(paddleTop, Math.min(ballPos.y, paddleBottom));
   const relHit = (clampedY - paddleTop) / paddleHeight;
@@ -128,16 +130,16 @@ export function applyPaddleDeflection(
   } else if (relHit > midEnd) {
     defNorm = (relHit - midEnd) / (1 - midEnd);
   }
-  let finalDx = reflectedVel.dx;
-  let finalDy = reflectedVel.dy;
   if (maxDeflection > 0 && defNorm !== 0) {
     const angle = defNorm * maxDeflection;
     const cosA = Math.cos(angle);
     const sinA = Math.sin(angle);
-    finalDx = reflectedVel.dx * cosA - reflectedVel.dy * sinA;
-    finalDy = reflectedVel.dx * sinA + reflectedVel.dy * cosA;
+    out.dx = reflectedVel.dx * cosA - reflectedVel.dy * sinA;
+    out.dy = reflectedVel.dx * sinA + reflectedVel.dy * cosA;
+  } else {
+    out.dx = reflectedVel.dx;
+    out.dy = reflectedVel.dy;
   }
-  return { dx: finalDx, dy: finalDy };
 }
 
 /**

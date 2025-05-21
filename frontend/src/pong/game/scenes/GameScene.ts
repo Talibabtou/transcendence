@@ -108,6 +108,11 @@ export class GameScene {
 		this.objectsInScene = [this.player1, this.player2, this.ball];
 		this.initializeManagers();
 		this.physicsManager = new PhysicsManager(this.ball, this.player1, this.player2, this.gameEngine, this);
+		this.physicsManager.setOnScoreUpdateCallback(() => {
+			if (this.uiManager && typeof this.uiManager.invalidateBackgroundCache === 'function') {
+				this.uiManager.invalidateBackgroundCache();
+			}
+		});
 	}
 
 	/**
