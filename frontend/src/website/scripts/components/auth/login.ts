@@ -4,6 +4,8 @@ import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class LoginHandler {
+	private persistSession: boolean = false;
+	
 	constructor(
 		private updateState: (state: any) => void,
 		private setCurrentUser: (user: UserData | null, token?: string) => void,
@@ -17,6 +19,16 @@ export class LoginHandler {
 	 * Renders the login form
 	 */
 	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): any {
+		this.persistSession = persistSession;
+		
+		// Check if we're in 2FA mode from session storage
+		const needsVerification = sessionStorage.getItem('auth_2fa_needed') === 'true';
+		
+		if (needsVerification) {
+			console.log("Showing 2FA form from session storage");
+			return this.render2FAForm();
+		}
+		
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
@@ -24,7 +36,7 @@ export class LoginHandler {
 			
 			<form class="auth-form" onSubmit=${(e: Event) => {
 				e.preventDefault();
-				this.handleEmailLogin(e);
+				this.handleLogin(e);
 			}}>
 				<div class="form-group">
 					<label for="email">Email:</label>
@@ -39,8 +51,11 @@ export class LoginHandler {
 				<div class="form-group checkbox-group">
 					<label class="checkbox-label">
 						<input type="checkbox" id="remember-me" name="remember-me" 
-							   checked=${persistSession}
-							   onChange=${(e: Event) => onPersistChange((e.target as HTMLInputElement).checked)} />
+							 checked=${persistSession}
+							 onChange=${(e: Event) => {
+								this.persistSession = (e.target as HTMLInputElement).checked;
+								onPersistChange((e.target as HTMLInputElement).checked);
+							 }} />
 						<span>Remember me</span>
 					</label>
 				</div>
@@ -56,11 +71,137 @@ export class LoginHandler {
 			</div>
 		`;
 	}
+	
+	/**
+	 * Renders the 2FA verification form
+	 */
+	private render2FAForm(): any {
+		return html`
+			<div class="ascii-title-container">
+				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
+			</div>
+			
+			<div class="auth-form twofa-form">
+				<p>Please enter the 6-digit code from your authenticator app:</p>
+				
+				<form onSubmit=${(e: Event) => {
+					e.preventDefault();
+					this.handle2FAVerification(e);
+				}}>
+					<div class="form-group twofa-input-container">
+						<input 
+							type="text" 
+							id="twofa-code" 
+							name="twofa-code" 
+							maxlength="6" 
+							pattern="[0-9]{6}" 
+							required 
+							placeholder="000000"
+							autocomplete="one-time-code"
+							autofocus
+							class="twofa-input"
+						/>
+					</div>
+					
+					<div class="twofa-button-container">
+						<button type="submit" class="menu-button twofa-verify-button">Verify</button>
+					</div>
+				</form>
+				
+				<div class="auth-links twofa-cancel-container">
+					<a href="#" onClick=${(e: Event) => {
+						e.preventDefault();
+						this.cancelTwoFactor();
+					}}>Cancel</a>
+				</div>
+			</div>
+		`;
+	}
+	
+	/**
+	 * Handle 2FA verification
+	 */
+	private async handle2FAVerification(e: Event): Promise<void> {
+		e.preventDefault();
+		
+		const form = e.target as HTMLFormElement;
+		const formData = new FormData(form);
+		const code = formData.get('twofa-code') as string;
+		
+		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+			this.updateState({ error: 'Please enter a valid 6-digit code' });
+			return;
+		}
+		
+		try {
+			this.updateState({ isLoading: true, error: null });
+			
+			// Get data from session storage
+			const userId = sessionStorage.getItem('auth_2fa_userid') || '';
+			const token = sessionStorage.getItem('auth_2fa_token') || '';
+			
+			// Verify 2FA code
+			const response = await DbService.verify2FALogin(userId, code, token);
+			
+			if (response.success && response.user && response.token) {
+				const userData: UserData = {
+					id: response.user.id,
+					username: response.user.username,
+					email: response.user.email || '',
+					authMethod: AuthMethod.EMAIL,
+					lastLogin: new Date(),
+					persistent: this.persistSession
+				};
+				
+				this.setCurrentUser(userData, response.token);
+				
+				// Initialize WebSocket connection
+				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
+					const websocketUrl = 'ws://localhost:8085/ws/status';
+					const wsClient = WebSocketClient.getInstance(websocketUrl);
+					wsClient.connect();
+				}).catch(err => {
+					console.error('Error initializing WebSocket after 2FA login:', err);
+				});
+				
+				// Clear 2FA session data
+				sessionStorage.removeItem('auth_2fa_needed');
+				sessionStorage.removeItem('auth_2fa_userid');
+				sessionStorage.removeItem('auth_2fa_token');
+				
+				this.switchToSuccessState();
+			} else {
+				this.updateState({ 
+					isLoading: false,
+					error: 'Invalid verification code' 
+				});
+			}
+		} catch (error) {
+			console.error('2FA verification error:', error);
+			this.updateState({ 
+				isLoading: false,
+				error: error instanceof ApiError && error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE) ?
+					'Invalid verification code' : 'Verification failed. Please try again.'
+			});
+		}
+	}
+	
+	/**
+	 * Cancel 2FA and go back to login
+	 */
+	private cancelTwoFactor(): void {
+		// Clear 2FA session data
+		sessionStorage.removeItem('auth_2fa_needed');
+		sessionStorage.removeItem('auth_2fa_userid');
+		sessionStorage.removeItem('auth_2fa_token');
+		
+		this.updateState({}); // Force re-render
+	}
 
 	/**
 	 * Handles login with email/password
 	 */
-	handleEmailLogin = async (e: Event): Promise<void> => {
+	handleLogin = async (e: Event): Promise<void> => {
 		e.preventDefault();
 		
 		const form = e.target as HTMLFormElement;
@@ -97,42 +238,43 @@ export class LoginHandler {
 				password: hashedPassword 
 			});
 			
-			if (response.success && response.user && response.token) {
-				const userFromDb = response.user;
-				const token = response.token;
-				const rememberMe = form.querySelector('#remember-me') as HTMLInputElement;
-				const isPersistent = rememberMe ? rememberMe.checked : false;
+			if (response.requires2FA) {
+				console.log("2FA required for user:", response.user.id);
 				
+				// Store 2FA info in session storage
+				sessionStorage.setItem('auth_2fa_needed', 'true');
+				sessionStorage.setItem('auth_2fa_userid', response.user.id);
+				sessionStorage.setItem('auth_2fa_token', response.token);
+				
+				// Update UI state
+				this.updateState({ isLoading: false, error: null });
+				
+				// Force re-render to show 2FA form
+				this.updateState({});
+			} else if (response.success && response.user && response.token) {
+				// Standard login success - no 2FA required
 				const userData: UserData = {
-					id: userFromDb.id,
-					username: userFromDb.username,
-					email: userFromDb.email || email,
+					id: response.user.id,
+					username: response.user.username,
+					email: response.user.email || email,
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: new Date(),
-					persistent: isPersistent
+					persistent: this.persistSession
 				};
 				
-				this.setCurrentUser(userData, token);
+				this.setCurrentUser(userData, response.token);
 				
-				// Initialize WebSocket connection with the new token
+				// Initialize WebSocket connection
 				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
 					const websocketUrl = 'ws://localhost:8085/ws/status';
 					const wsClient = WebSocketClient.getInstance(websocketUrl);
 					wsClient.connect();
-					console.log('WebSocket connection initiated after login');
 				}).catch(err => {
 					console.error('Error initializing WebSocket after login:', err);
 				});
 				
 				this.switchToSuccessState();
 				this.resetForm(form);
-				this.updateState({ isLoading: false });
-			} else if (response.requires2FA) {
-				// Handle 2FA flow if implemented
-				this.updateState({ 
-					isLoading: false,
-					requires2FA: true 
-				});
 			} else {
 				this.updateState({ 
 					isLoading: false,
@@ -168,8 +310,8 @@ export class LoginHandler {
 	}
 
 	/**
- * Reset form and password strength component
- */
+	 * Reset form
+	 */
 	private resetForm(form: HTMLFormElement): void {
 		const inputs = form.querySelectorAll('input');
 		inputs.forEach(input => {

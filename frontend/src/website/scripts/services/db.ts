@@ -1,4 +1,4 @@
-import { User, Match, Goal, AuthResponse, OAuthRequest, LeaderboardEntry } from '@website/types';
+import { User, Match, Goal, AuthResponse, LeaderboardEntry } from '@website/types';
 import { AppStateManager } from '@website/scripts/utils';
 import { ApiError, ErrorResponse } from '@website/scripts/services';
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
@@ -162,7 +162,7 @@ export class DbService {
 				body: JSON.stringify(credentials)
 			});
 			
-			if (loginResponse.status === '2fa') {
+			if (loginResponse.status === 'NEED_2FA') {
 				return {
 					success: false,
 					requires2FA: true,
@@ -172,7 +172,7 @@ export class DbService {
 						created_at: new Date(),
 						auth_method: 'email'
 					},
-					token: loginResponse.token // Pass token even for 2FA start
+					token: loginResponse.token
 				};
 			}
 			
@@ -181,35 +181,18 @@ export class DbService {
 				user: {
 					id: loginResponse.id || '',
 					username: loginResponse.username || '',
-					email: credentials.email, // Use email from input as loginResponse might not have it
-					created_at: new Date(), // Or from loginResponse if available
-					last_login: new Date(), // Or from loginResponse if available
+					email: credentials.email,
+					created_at: new Date(),
+					last_login: new Date(),
 					auth_method: 'email',
-					theme: '#ffffff' // Default theme, appState will initialize/override
+					theme: '#ffffff'
 				},
-				token: loginResponse.token // Ensure token is returned
+				token: loginResponse.token
 			};
 		} catch (error) {
 			console.error('Login failed:', error);
 			throw error;
 		}
-	}
-
-	/**
-	 * Authenticates a user with an OAuth provider
-	 * @param oauthData - OAuth authentication data
-	 */
-	static async oauthLogin(oauthData: OAuthRequest): Promise<AuthResponse> {
-		this.logRequest('POST', '/api/auth/oauth', {
-			provider: oauthData.provider,
-			code: oauthData.code.substring(0, 10) + '...',
-			redirectUri: oauthData.redirectUri
-		});
-		
-		return this.fetchApi<AuthResponse>('/auth/oauth', {
-			method: 'POST',
-			body: JSON.stringify(oauthData)
-		});
 	}
 	
 	/**
@@ -625,25 +608,26 @@ export class DbService {
 	 * @param token Temporary 2FA token
 	 */
 	static async verify2FALogin(userId: string, code: string, token: string): Promise<AuthResponse> {
-		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}/${userId}`, { twofaCode: '******' });
+		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}`, { userId, twofaCode: '******' });
 		
 		try {
-			await this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}/${userId}`, {
+			await this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}`, {
 				method: 'POST',
 				headers: {
 					'Authorization': `Bearer ${token}`
 				},
-				body: JSON.stringify({ twofaCode: code })
+				body: JSON.stringify({ 
+					twofaCode: code,
+					userId: userId
+				})
 			});
-			
-			const userData = await this.getUser(userId);
 			
 			return {
 				success: true,
 				user: {
 					id: userId,
-					username: userData.username,
-					email: userData.email || '',
+					username: sessionStorage.getItem('auth_username') || 'User',
+					email: sessionStorage.getItem('auth_email') || '',
 					created_at: new Date(),
 					last_login: new Date(),
 					auth_method: 'email'

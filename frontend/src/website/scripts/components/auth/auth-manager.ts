@@ -136,8 +136,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		
 		// For other states, only show loading indicator if needed
 		if (state.isLoading) {
-			// We could completely remove this and provide no visual feedback during loading
-			// or keep a minimal indication that something is happening
 			return html`<div class="auth-processing"></div>`;
 		}
 		
@@ -151,8 +149,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 
 		switch (state.currentState) {
 			case AuthState.LOGIN:
+				// The updateInternalState callback will trigger a full re-render
 				return new LoginHandler(
-					this.updateInternalState.bind(this),
+					(newState) => {
+						this.updateInternalState({...newState});
+						// Force a re-render when state changes
+						setTimeout(() => this.render(), 0);
+					},
 					setUserAndTokenCallback,
 					this.handleSuccessfulAuth.bind(this)
 				).renderLoginForm(
