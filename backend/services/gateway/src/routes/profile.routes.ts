@@ -1,5 +1,9 @@
-import { FastifyInstance } from 'fastify';
-import { deletePic, postPic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
+import {
+  routesConfigAuth,
+  rateLimitConfigLow,
+  rateLimitConfigMid,
+  rateLimitConfigHigh,
+} from '../config/routes.config.js';
 import {
   deleteSchema,
   uploadSchema,
@@ -7,9 +11,9 @@ import {
   summarySchema,
   getHistorySchema,
 } from '../schemas/profile.schemas.js';
+import { FastifyInstance } from 'fastify';
 import { IUpload } from '../shared/types/profile.type.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import { deletePic, postPic, getSummary, getPic, getHistory } from '../controllers/profile.controller.js';
 
 export default async function profileRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -19,7 +23,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
         ...getPicSchema,
         tags: ['profile'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getPic
   );
@@ -31,7 +38,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
         ...getHistorySchema,
         tags: ['profile'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getHistory
   );
@@ -43,7 +53,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
         ...summarySchema,
         tags: ['profile'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getSummary
   );
@@ -55,7 +68,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
         ...uploadSchema,
         tags: ['profile'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     postPic
   );
@@ -67,7 +83,10 @@ export default async function profileRoutes(fastify: FastifyInstance) {
         ...deleteSchema,
         tags: ['profile'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     deletePic
   );

@@ -3,8 +3,7 @@ import { IId } from '../shared/types/gateway.types.js';
 import { CreateGoalRequest, GetGoalsQuery } from '../shared/types/goal.type.js';
 import { getGoal, getGoals, createGoal } from '../controllers/goal.controller.js';
 import { getGoalSchema, getGoalsSchema, createGoalSchema } from '../schemas/goal.schemas.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetGoalsQuery }>(
@@ -14,7 +13,10 @@ export default async function goalRoutes(fastify: FastifyInstance) {
         ...getGoalsSchema,
         tags: ['goals'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getGoals
   );
@@ -26,7 +28,10 @@ export default async function goalRoutes(fastify: FastifyInstance) {
         ...getGoalSchema,
         tags: ['goals'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getGoal
   );
@@ -38,7 +43,10 @@ export default async function goalRoutes(fastify: FastifyInstance) {
         ...createGoalSchema,
         tags: ['goals'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     createGoal
   );

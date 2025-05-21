@@ -33,19 +33,19 @@ const customExtractToken = (request: FastifyRequest): string | null => {
   return null;
 };
 
-export const jwtPluginRegister = {
+export const jwtRegister = {
   secret: process.env.JWT_SECRET || 'super_secret',
   sign: {
     expiresIn: '72h',
   },
 };
 
-export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
+export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   if (!request.routeOptions.config || !request.routeOptions.config?.auth) {
-    request.server.log.info('[jwtPluginHook] No auth required for this route.');
+    request.server.log.info('[jwtHook] No auth required for this route.');
     return;
   }
-  request.server.log.info('[jwtPluginHook] Auth required for this route.');
+  request.server.log.info('[jwtHook] Auth required for this route.');
   // Check jwt
   try {
     let tokenToVerify: string | null = null;
@@ -61,7 +61,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
       userPayload = await request.server.jwt.verify<FastifyJWT['user']>(tokenToVerify);
       request.user = userPayload;
     } catch (jwtError: any) {
-      request.server.log.error('[jwtPluginHook] server.jwt.verify() failed.', {
+      request.server.log.error('[jwtHook] server.jwt.verify() failed.', {
         errorMsg: jwtError.message,
         errorCode: jwtError.code,
         name: jwtError.name,
@@ -82,33 +82,33 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
     const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
-      request.server.log.warn(`[jwtPluginHook] User check failed (status ${user.status}) for ID: ${id}`);
+      request.server.log.warn(`[jwtHook] User check failed (status ${user.status}) for ID: ${id}`);
       const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
       return reply.code(401).send(errorMessage);
     }
-    request.server.log.info(`[jwtPluginHook] User check successful for ID: ${id}`);
+    request.server.log.info(`[jwtHook] User check successful for ID: ${id}`);
     // Check if revoked
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
     if (jwtId) {
-      request.server.log.info(`[jwtPluginHook] Checking revoked status for JWT ID: ${jwtId}`);
+      request.server.log.info(`[jwtHook] Checking revoked status for JWT ID: ${jwtId}`);
       const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/revoked/${jwtId}`;
       const revoked = await fetch(serviceRevokedUrl, { method: 'GET' });
       if (revoked.status >= 400) {
         request.server.log.warn(
-          `[jwtPluginHook] Revoked check failed (status ${revoked.status}) for JWT ID: ${jwtId}`
+          `[jwtHook] Revoked check failed (status ${revoked.status}) for JWT ID: ${jwtId}`
         );
         const responseData = (await revoked.json()) as ErrorResponse;
         return reply.code(revoked.status).send(responseData);
       }
-      request.server.log.info(`[jwtPluginHook] Revoked check successful for JWT ID: ${jwtId}`);
+      request.server.log.info(`[jwtHook] Revoked check successful for JWT ID: ${jwtId}`);
     } else {
-      request.server.log.info('[jwtPluginHook] No jwtId found in token, skipping revoked check.');
+      request.server.log.info('[jwtHook] No jwtId found in token, skipping revoked check.');
     }
     // Check role
     const requiredRoles = request.routeOptions.config?.roles;
     const userRole = (request.user as FastifyJWT['user']).role;
     if (requiredRoles && !requiredRoles.includes(userRole)) {
-      request.server.log.warn('[jwtPluginHook] Insufficient permissions', {
+      request.server.log.warn('[jwtHook] Insufficient permissions', {
         ip: request.ip,
         url: request.url,
         requiredRoles,
@@ -119,7 +119,7 @@ export async function jwtPluginHook(request: FastifyRequest, reply: FastifyReply
     }
     return;
   } catch (err: any) {
-    request.server.log.error('[jwtPluginHook] UNEXPECTED error in hook processing', {
+    request.server.log.error('[jwtHook] UNEXPECTED error in hook processing', {
       errorMsg: err.message,
       errorCode: err.code,
       name: err.name,

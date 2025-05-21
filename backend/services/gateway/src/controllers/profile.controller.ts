@@ -1,5 +1,5 @@
 import { MultipartFile } from '@fastify/multipart';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
+import { FastifyJWT } from '../middleware/jwt.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { IUpload, IId, IReplyPic } from '../shared/types/profile.type.js';

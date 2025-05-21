@@ -17,8 +17,7 @@ import {
   matchStatsSchema,
   matchSummarySchema,
 } from '../schemas/match.schemas.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Querystring: GetMatchesQuery }>(
@@ -28,7 +27,10 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
         ...getMatchesSchema,
         tags: ['matches'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getMatches
   );
@@ -40,7 +42,10 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
         ...getMatchSchema,
         tags: ['matches'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getMatch
   );
@@ -64,7 +69,10 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
         ...matchStatsSchema,
         tags: ['matches'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     matchStats
   );
@@ -76,7 +84,10 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
         ...matchSummarySchema,
         tags: ['matches'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     matchSummary
   );
@@ -88,7 +99,10 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
         ...createMatchSchema,
         tags: ['matches'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     createMatch
   );

@@ -1,7 +1,6 @@
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
 import { Elo, LeaderboardEntry, GetElosQuery } from '../shared/types/elo.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 

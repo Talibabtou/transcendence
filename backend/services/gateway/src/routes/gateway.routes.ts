@@ -1,8 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getHealthSchema, getCheckSchema } from '../schemas/gateway.schemas.js';
 import { getHealth } from '../controllers/gateway.controller.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import { rateLimitConfigHigh, rateLimitConfigLow } from '../config/routes.config.js';
 
 export default async function gatewayRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -11,6 +10,9 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
       schema: {
         ...getHealthSchema,
         tags: ['system'],
+      },
+      config: {
+        rateLimit: rateLimitConfigHigh,
       },
     },
     getHealth
@@ -22,6 +24,9 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
       schema: {
         ...getCheckSchema,
         tags: ['system'],
+      },
+      config: {
+        rateLimit: rateLimitConfigLow,
       },
     },
     (request: FastifyRequest, reply: FastifyReply) => {
@@ -36,6 +41,9 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
         ...getCheckSchema,
         tags: ['system'],
       },
+      config: {
+        rateLimit: rateLimitConfigLow,
+      },
     },
     (request: FastifyRequest, reply: FastifyReply) => {
       reply.code(200).send({ check: 'ok' });
@@ -49,6 +57,9 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
         ...getCheckSchema,
         tags: ['system'],
       },
+      config: {
+        rateLimit: rateLimitConfigLow,
+      },
     },
     (request: FastifyRequest, reply: FastifyReply) => {
       reply.code(200).send({ check: 'ok' });
@@ -61,6 +72,9 @@ export default async function gatewayRoutes(fastify: FastifyInstance) {
       schema: {
         ...getCheckSchema,
         tags: ['system'],
+      },
+      config: {
+        rateLimit: rateLimitConfigLow,
       },
     },
     (request: FastifyRequest, reply: FastifyReply) => {

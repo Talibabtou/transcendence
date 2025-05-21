@@ -3,7 +3,6 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { GetGoalsQuery, CreateGoalRequest, Goal } from '../shared/types/goal.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
 
 export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQuery }>, reply: FastifyReply) {
   try {

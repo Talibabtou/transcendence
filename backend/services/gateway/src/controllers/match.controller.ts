@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { MatchGoals } from '../shared/types/goal.type.js';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
+// import { MatchGoals } from '../shared/types/goal.type.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {

@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import eloRoutes from '../routes/elo.routes.js';
-import goalRoutes from '../routes/goal.routes.js';
-import matchRoutes from '../routes/match.routes.js';
-import systemRoutes from '../routes/system.routes.js';
-import tournamentRoutes from '../routes/tournament.routes.js';
+import eloRoutes from './elo.routes.js';
+import goalRoutes from './goal.routes.js';
+import matchRoutes from './match.routes.js';
+import systemRoutes from './system.routes.js';
+import tournamentRoutes from './tournament.routes.js';
 
 export async function routes(server: FastifyInstance) {
   await server.register(eloRoutes);

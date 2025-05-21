@@ -6,6 +6,7 @@ import {
   getTournamentsSchema,
 } from '../schemas/tournament.schema.js';
 import { IId, GetTournamentsQuery } from '../shared/types/match.type.js';
+import { rateLimitConfigHigh, routesConfigAuth } from '../config/routes.config.js';
 
 export default async function tournamentRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>(
@@ -14,6 +15,10 @@ export default async function tournamentRoutes(fastify: FastifyInstance): Promis
       schema: {
         ...getTournamentSchema,
         tags: ['tournaments'],
+      },
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
       },
     },
     getTournament
@@ -25,6 +30,10 @@ export default async function tournamentRoutes(fastify: FastifyInstance): Promis
         ...getTournamentsSchema,
         tags: ['tournaments'],
       },
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getTournaments
   );
@@ -34,6 +43,10 @@ export default async function tournamentRoutes(fastify: FastifyInstance): Promis
       schema: {
         ...getFinalMatchesSchema,
         tags: ['tournaments'],
+      },
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
       },
     },
     getFinalMatches
