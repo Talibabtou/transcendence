@@ -1,7 +1,7 @@
 import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
 import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
-import { DbService, ApiError } from '@website/scripts/utils';
+import { DbService, ApiError } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
