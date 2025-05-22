@@ -42,8 +42,20 @@ services:
   #     - SSL_KEY_PATH=/etc/certs/nginx.key
   #   restart: unless-stopped
 
-# Top-level volumes definition
 volumes:
   certs_data:
   profile_pictures:
-    driver: local
+
+# volumes:
+#   certs_data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/bboissen/sgoinfre/certs_data"
+#       o: bind
+#   profile_pictures:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/bboissen/sgoinfre/profile_pictures"
+#       o: bind
