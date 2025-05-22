@@ -3,7 +3,8 @@
  * This file handles the setup of navigation, game functionality, and routing.
  */
 
-import { Router, NavbarComponent } from '@website/scripts/utils';
+import { NavbarComponent } from '@website/scripts/utils';
+import { Router } from '@website/scripts/services';
 import { GameManager } from '@website/scripts/components';
 import { WebSocketClient } from '@website/scripts/services/client';
 

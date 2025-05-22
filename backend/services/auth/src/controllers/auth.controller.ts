@@ -299,7 +299,7 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       [email, password]
     );
     if (!data) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+      const errorMessage = createErrorResponse(401, ErrorCodes.LOGIN_FAILURE);
       return reply.code(401).send(errorMessage);
     }
     if (data.two_factor_enabled && !data.verified) {

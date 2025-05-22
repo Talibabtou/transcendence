@@ -74,6 +74,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
   [ErrorCodes.BAD_REQUEST, 'Bad request'],
   [ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
+  [ErrorCodes.UNAUTHORIZED, 'Unauthorized'],
 
   // Match related errors
   [ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
@@ -141,6 +142,12 @@ export const ErrorExamples = {
     code: ErrorCodes.SERVICE_UNAVAILABLE,
     error: ErrorTypes.get(503),
     message: ErrorMessages.get(ErrorCodes.SERVICE_UNAVAILABLE),
+  },
+  unauthorized: {
+    statusCode: 401,
+    code: ErrorCodes.UNAUTHORIZED,
+    error: ErrorTypes.get(401),
+    message: ErrorMessages.get(ErrorCodes.UNAUTHORIZED),
   },
 
   // database

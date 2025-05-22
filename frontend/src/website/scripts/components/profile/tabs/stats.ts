@@ -1,31 +1,6 @@
-/**
- * Profile Stats Component
- * Displays various statistics about the user's game performance
- * Uses plotly.js for data visualization
- */
 import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
-import { html, render } from '@website/scripts/utils';
-import { UserProfile } from '@website/types';
-import { DbService } from '@website/scripts/utils/db';
-
-// Define the stats component state interface
-interface ProfileStatsState {
-	isLoading: boolean;
-	eloChartRendered: boolean;
-	matchDurationChartRendered: boolean;
-	dailyActivityChartRendered: boolean;
-	goalDurationChartRendered: boolean;
-	errorMessage?: string;
-	profile?: any; // Add profile to the state
-	playerStats?: any; // Add playerStats to the state
-	cleanup?: {
-		eloChart?: () => void;
-		matchDurationChart?: () => void;
-		dailyActivityChart?: () => void;
-		goalDurationChart?: () => void;
-	};
-	dataLoadInProgress: boolean;
-}
+import { UserProfile, ProfileStatsState } from '@website/types';
+import { DbService, html, render } from '@website/scripts/services';
 
 /**
  * Component that displays player statistics with charts
@@ -54,24 +29,22 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 * Sets the profile data for the stats component
 	 */
 	public async setProfile(profile: UserProfile): Promise<void> {
-		// Only update state if profile actually changed
-		if (this.getInternalState().profile?.id !== profile?.id) {
-			// First update the profile, but keep loading state
+		const state = this.getInternalState();
+		// Only reload data if profile has changed
+		if (state.profile?.id !== profile?.id) {
+			// Update both profile and loading state
 			this.updateInternalState({ 
 				profile,
-				// Reset chart rendering flags when profile changes
+				isLoading: true, // Make sure to set this
 				eloChartRendered: false,
 				matchDurationChartRendered: false,
 				dailyActivityChartRendered: false,
-				goalDurationChartRendered: false,
-				isLoading: true 
+				goalDurationChartRendered: false
 			});
 			
-			// Render the loading state first
-			this.render();
-			
-			// Then load data
-			await this.loadData();
+			if (!state.dataLoadInProgress) {
+				await this.loadData();
+			}
 		}
 	}
 	
@@ -80,47 +53,40 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 */
 	private async loadData(): Promise<void> {
 		const state = this.getInternalState();
-		if (state.dataLoadInProgress) return;
+		if (state.dataLoadInProgress || !state.profile?.id) return;
 		
 		this.updateInternalState({ 
-			isLoading: true,
-			dataLoadInProgress: true
+			dataLoadInProgress: true,
+			isLoading: true // Make sure we update the loading flag
 		});
 		
 		try {
-			const profile = this.getInternalState().profile;
-			if (!profile || !profile.id) {
-				throw new Error('Profile not available');
-			}
+			// Fetch stats data
+			const playerStats = await DbService.getUserStats(state.profile.id);
 			
-			// State is already set to loading from setProfile
-			
-			// Fetch real stats data from API
-			const playerStats = await DbService.getUserStats(profile.id);
-			console.log('playerStats', {playerStats})
+			// Update both dataLoadInProgress AND isLoading
 			this.updateInternalState({ 
-				isLoading: false,
 				dataLoadInProgress: false,
-				playerStats
+				isLoading: false, // CRITICAL: This was missing
+				playerStats,
+				eloChartRendered: false,
+				matchDurationChartRendered: false,
+				dailyActivityChartRendered: false,
+				goalDurationChartRendered: false
 			});
 			
-			// Render the component with data
-			this.render();
-			
-			// Wait for next frame to ensure DOM is rendered
-			await new Promise(resolve => requestAnimationFrame(resolve));
-			
-			// Render charts after the DOM is stable
-			this.renderCharts();
+			// Use setTimeout instead of rAF for more reliable execution
+			setTimeout(() => {
+				this.renderCharts();
+			}, 0);
 		} catch (error) {
 			console.error('Error loading stats data:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';
 			this.updateInternalState({ 
-				isLoading: false, 
 				dataLoadInProgress: false,
+				isLoading: false, // CRITICAL: Also update this in error case
 				errorMessage
 			});
-			this.render();
 		}
 	}
 	
@@ -128,127 +94,55 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 * Renders all the statistics charts
 	 */
 	private renderCharts(): void {
-		this.renderEloChart();
-		this.renderMatchDurationChart();
-		this.renderDailyActivityChart();
-		this.renderGoalDurationChart();
-	}
-	
-	/**
-	 * Renders the ELO history chart
-	 */
-	private renderEloChart(): void {
 		const state = this.getInternalState();
-		if (state.eloChartRendered || !state.playerStats) return;
+		if (!state.playerStats) return;
 		
-		// Get the container for the ELO chart
-		const eloChartContainer = this.container.querySelector('#elo-chart');
-		if (!eloChartContainer) return;
-		
-		// Extract data from the player stats
-		const elos = state.playerStats.elo_history;
-		
-		// Render the ELO chart and get the cleanup function
-		const cleanupEloChart = renderEloChart(eloChartContainer as HTMLElement, elos);
-		
-		// Update state to indicate chart is rendered and store cleanup function
-		this.updateInternalState({ 
-			eloChartRendered: true,
-			cleanup: {
-				...state.cleanup,
-				eloChart: cleanupEloChart
+		// Only render each chart once
+		const charts = [
+			{
+				id: 'elo-chart',
+				rendered: state.eloChartRendered,
+				render: (el: HTMLElement) => renderEloChart(el, state.playerStats.elo_history),
+				flag: 'eloChartRendered'
+			},
+			{
+				id: 'match-duration-chart',
+				rendered: state.matchDurationChartRendered,
+				render: (el: HTMLElement) => renderMatchDurationChart(el, state.playerStats.match_durations || []),
+				flag: 'matchDurationChartRendered'
+			},
+			{
+				id: 'daily-activity-chart',
+				rendered: state.dailyActivityChartRendered,
+				render: (el: HTMLElement) => renderDailyActivityChart(el, state.playerStats.daily_performance || []),
+				flag: 'dailyActivityChartRendered'
+			},
+			{
+				id: 'goal-duration-chart',
+				rendered: state.goalDurationChartRendered,
+				render: (el: HTMLElement) => renderGoalDurationChart(el, state.playerStats.goal_durations || []),
+				flag: 'goalDurationChartRendered'
 			}
-		});
-	}
-	
-	/**
-	 * Renders the match duration histogram chart
-	 */
-	private renderMatchDurationChart(): void {
-		const state = this.getInternalState();
-		if (state.matchDurationChartRendered) return;
+		];
 		
-		// Get the container for the match duration chart
-		const matchDurationChartContainer = this.container.querySelector('#match-duration-chart');
-		if (!matchDurationChartContainer) return;
+		// Process all charts in one go
+		const updates: any = { cleanup: { ...state.cleanup } };
 		
-		// Extract data from the player stats
-		const matchDurations = state.playerStats?.match_durations || [];
-		
-		// Render the match duration chart and get the cleanup function
-		const cleanupMatchDurationChart = renderMatchDurationChart(
-			matchDurationChartContainer as HTMLElement, 
-			matchDurations
-		);
-		
-		// Update state to indicate chart is rendered and store cleanup function
-		this.updateInternalState({ 
-			matchDurationChartRendered: true,
-			cleanup: {
-				...state.cleanup,
-				matchDurationChart: cleanupMatchDurationChart
+		for (const chart of charts) {
+			if (!chart.rendered) {
+				const element = this.container.querySelector(`#${chart.id}`);
+				if (element) {
+					const cleanup = chart.render(element as HTMLElement);
+					updates[chart.flag] = true;
+					updates.cleanup[chart.id] = cleanup;
+				}
 			}
-		});
-	}
-	
-	/**
-	 * Renders the daily activity heatmap chart
-	 */
-	private renderDailyActivityChart(): void {
-		const state = this.getInternalState();
-		if (state.dailyActivityChartRendered) return;
+		}
 		
-		// Get the container for the daily activity chart
-		const dailyActivityChartContainer = this.container.querySelector('#daily-activity-chart');
-		if (!dailyActivityChartContainer) return;
-		
-		// Extract data from the player stats
-		const dailyPerformance = state.playerStats?.daily_performance || [];
-		
-		// Render the daily activity chart and get the cleanup function
-		const cleanupDailyActivityChart = renderDailyActivityChart(
-			dailyActivityChartContainer as HTMLElement, 
-			dailyPerformance
-		);
-		
-		// Update state to indicate chart is rendered and store cleanup function
-		this.updateInternalState({ 
-			dailyActivityChartRendered: true,
-			cleanup: {
-				...state.cleanup,
-				dailyActivityChart: cleanupDailyActivityChart
-			}
-		});
-	}
-	
-	/**
-	 * Renders the goal duration histogram chart
-	 */
-	private renderGoalDurationChart(): void {
-		const state = this.getInternalState();
-		if (state.goalDurationChartRendered) return;
-		
-		// Get the container for the goal duration chart
-		const goalDurationChartContainer = this.container.querySelector('#goal-duration-chart');
-		if (!goalDurationChartContainer) return;
-		
-		// Extract data from the player stats
-		const goalDurations = state.playerStats?.goal_durations || [];
-		
-		// Render the goal duration chart and get the cleanup function
-		const cleanupGoalDurationChart = renderGoalDurationChart(
-			goalDurationChartContainer as HTMLElement, 
-			goalDurations
-		);
-		
-		// Update state to indicate chart is rendered and store cleanup function
-		this.updateInternalState({ 
-			goalDurationChartRendered: true,
-			cleanup: {
-				...state.cleanup,
-				goalDurationChart: cleanupGoalDurationChart
-			}
-		});
+		// Only update state if anything changed
+		if (Object.keys(updates).length > 1) { // More than just cleanup
+			this.updateInternalState(updates);
+		}
 	}
 	
 	/**

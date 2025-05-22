@@ -1,7 +1,3 @@
-/**
- * Goal Duration Histogram Chart Component
- * Displays a histogram of goal durations
- */
 import Plotly from 'plotly.js-dist';
 
 /**

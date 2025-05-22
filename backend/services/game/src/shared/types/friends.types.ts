@@ -1,6 +1,8 @@
 export interface IReplyGetFriend {
   id: string;
+  requesting: string;
   username: string;
+  request: boolean;
   accepted: boolean;
   pic: string;
   created_at: string;

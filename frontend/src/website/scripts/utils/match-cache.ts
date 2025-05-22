@@ -1,10 +1,5 @@
-/**
- * MatchCache
- * Singleton class that provides global caching for match data
- * to prevent duplicate DB requests across components
- */
-import { Match } from '@website/types';
-import { GameMode } from '@website/types';
+import { Match, GameMode } from '@website/types';
+import { DbService } from '@website/scripts/services';
 
 /**
  * Extended match data returned by DB service
@@ -37,7 +32,7 @@ class MatchCacheSingleton {
 	private lastPlayerNames: string[] = [];
 	private lastPlayerColors: string[] = [];
 	
-	// Add this to store the last match result
+	// Store the last match result
 	private lastMatchResult: MatchResult | null = null;
 	
 	private constructor() {
@@ -62,8 +57,8 @@ class MatchCacheSingleton {
 		}
 		
 		// Create a new promise for the DB fetch
-		const dataPromise = import('@website/scripts/utils')
-			.then(({ DbService }) => DbService.getMatchDetails(matchId))
+		// Use DbService directly from the import instead of dynamic import
+		const dataPromise = DbService.getMatchDetails(matchId);
 
 		// Store in cache
 		this.cache.set(matchId, dataPromise);
@@ -85,6 +80,13 @@ class MatchCacheSingleton {
 	 */
 	public isMatchCompleted(matchId: string): boolean {
 		return this.completedMatches.has(matchId);
+	}
+	
+	/**
+	 * Marks a match as completed
+	 */
+	public markMatchCompleted(matchId: string): void {
+		this.completedMatches.add(matchId);
 	}
 	
 	public setCurrentGameInfo(info: {
@@ -113,7 +115,9 @@ class MatchCacheSingleton {
 		};
 	}
 	
-	// Add method to store match result
+	/**
+	 * Stores the last match result
+	 */
 	public setLastMatchResult(result: MatchResult): void {
 		this.lastMatchResult = {
 			...result,
@@ -124,9 +128,19 @@ class MatchCacheSingleton {
 		};
 	}
 	
-	// Add method to get last match result
+	/**
+	 * Gets the last match result
+	 */
 	public getLastMatchResult(): MatchResult | null {
 		return this.lastMatchResult ? { ...this.lastMatchResult } : null;
+	}
+	
+	/**
+	 * Invalidates cache for a specific match
+	 */
+	public invalidateMatch(matchId: string): void {
+		this.cache.delete(matchId);
+		this.completedMatches.delete(matchId);
 	}
 	
 	/**

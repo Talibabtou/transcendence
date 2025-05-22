@@ -10,7 +10,7 @@ export type GameContext = CanvasRenderingContext2D;
  * Base interface for all drawable and updatable game elements
  */
 export interface GraphicalElement {
-	draw(ctx: GameContext): void;
+	draw(ctx: GameContext, alpha?: number): void;
 	update(ctx: GameContext, deltaTime: number, state: GameState): void;
 }
 
@@ -21,6 +21,7 @@ export interface GraphicalElement {
  * Represents movement directions within the game
  */
 export enum Direction {
+	NONE,
 	UP,
 	DOWN
 }
@@ -47,7 +48,8 @@ export enum PlayerPosition {
  */
 export enum PlayerType {
 	HUMAN = 'HUMAN',
-	AI = 'AI'
+	AI = 'AI',
+	BACKGROUND = 'BACKGROUND'
 }
 
 // =========================================
@@ -67,10 +69,10 @@ export interface BoundingBox {
  * Interface for objects that can collide with other objects
  */
 export interface Collidable {
-	getBoundingBox(): BoundingBox;
-	getVelocity(): { dx: number; dy: number };
-	getPosition(): { x: number; y: number };
-	getPreviousPosition(): { x: number; y: number };
+	BoundingBox: BoundingBox;
+	Velocity: { dx: number; dy: number };
+	Position: { x: number; y: number };
+	PreviousPosition: { x: number; y: number };
 }
 
 /**
@@ -81,6 +83,7 @@ export interface CollisionResult {
 	hitFace: 'front' | 'top' | 'bottom';
 	deflectionModifier: number;
 	collisionPoint?: { x: number; y: number };
+	positionCorrection?: { x: number; y: number };
 }
 
 /**
@@ -89,8 +92,8 @@ export interface CollisionResult {
 export interface PhysicsObject {
 	x: number;
 	y: number;
-	getVelocity(): { dx: number; dy: number };
-	getPosition(): { x: number; y: number };
+	Velocity: { dx: number; dy: number };
+	Position: { x: number; y: number };
 }
 
 /**
@@ -107,6 +110,7 @@ export interface CollisionResult {
 	deflectionModifier: number;
 	collisionPoint?: { x: number; y: number };
 	hardBounce?: boolean;
+	positionCorrection?: { x: number; y: number };
 }
 
 // =========================================
@@ -129,15 +133,14 @@ export interface Player extends GraphicalElement {
 	x: number;
 	y: number;
 	name: string;
-
-	getScore(): number;
+	Score: number;
+	PlayerType: PlayerType;
 	resetScore(): void;
 	givePoint(): void;
 	updateSizes(): void;
 	bindControls(): void;
 	unbindControls(): void;
-	isAIControlled(): boolean;
-	setControlType(type: PlayerType): void;
+	setPlayerType(type: PlayerType): void;
 }
 
 /**
@@ -192,3 +195,5 @@ export interface SceneParams {
 	winner?: Player;
 	[key: string]: any;
 }
+
+export type CountdownCallback = (text: string | number | string[] | null) => void;

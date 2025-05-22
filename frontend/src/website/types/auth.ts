@@ -6,7 +6,8 @@ import { User } from './user';
 export enum AuthState {
 	LOGIN = 'login',
 	REGISTER = 'register',
-	SUCCESS = 'success'
+	SUCCESS = 'success',
+	TWOFA = 'twofa'
 }
 
 /**

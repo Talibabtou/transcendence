@@ -1,9 +1,6 @@
-/**
- * Profile Settings Component
- * Allows users to update their profile settings
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, appState, ApiError, hashPassword } from '@website/scripts/utils';
+import { appState, hashPassword } from '@website/scripts/utils';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { AppStateManager } from '@website/scripts/utils/app-state';
@@ -44,70 +41,65 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	public setProfile(profile: UserProfile): void {
 		const currentComponentState = this.getInternalState();
 		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
-		const newProfileDataForComponentState = {
-			...profile,
-			preferences: {
-				...(profile.preferences || {}),
-				accentColor: userAccentColor
-			}
-		};
-
+		
 		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
 			this.initialDbUsername = profile.username || '';
 			this.initialDbEmail = null;
-
-			const initialFormData = {
-				username: profile.username || '',
-				email: '',
-				password: '',
-				confirmPassword: '',
-			};
-
+			
 			this.updateInternalState({
-				profile: newProfileDataForComponentState,
-				formData: initialFormData,
-				formErrors: {},
-				saveSuccess: false,
-				noChangesMessage: null,
+				profile: {
+					...profile,
+					preferences: {
+						...(profile.preferences || {}),
+						accentColor: userAccentColor
+					}
+				}
 			});
-
+			
 			if (profile.id) {
-				DbService.getUser(profile.id)
-					.then(userFromDb => {
-						this.initialDbUsername = userFromDb.username;
-						this.initialDbEmail = userFromDb.email || null;
-						
-						this.updateInternalState({
-
-							profile: {
-								...this.getInternalState().profile!,
-								username: userFromDb.username
-							},
-							formData: {
-
-								...this.getInternalState().formData, 
-								username: userFromDb.username,
-								email: userFromDb.email || ''
+				Promise.all([
+					DbService.getUser(profile.id),
+					DbService.check2FAStatus()
+				])
+				.then(([userFromDb, twoFactorEnabled]) => {
+					this.initialDbUsername = userFromDb.username;
+					this.initialDbEmail = userFromDb.email || null;
+					
+					this.updateInternalState({
+						profile: {
+							...profile,
+							username: userFromDb.username,
+							twoFactorEnabled,
+							preferences: {
+								...(profile.preferences || {}),
+								accentColor: userAccentColor
 							}
-						});
-					})
-					.catch((err) => {
-						console.warn(`Settings: Could not fetch full user details for ${profile.id}. Username/email comparisons might be based on initial prop.`, err);
-						this.updateInternalState({
-							profile: newProfileDataForComponentState,
-							formData: {
-                                ...this.getInternalState().formData,
-                                username: profile.username || '',
-                            }
-						});
+						},
+						formData: {
+							username: userFromDb.username,
+							email: userFromDb.email || '',
+							password: '',
+							confirmPassword: '',
+						}
 					});
+					
+					setTimeout(() => {
+						const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+						if (toggle) toggle.checked = twoFactorEnabled;
+					}, 0);
+				})
+				.catch(err => {
+					console.warn('Error fetching user data:', err);
+				});
 			}
-		} else {
+		} else if (userAccentColor !== currentComponentState.profile?.preferences?.accentColor) {
 			this.updateInternalState({
-				profile: newProfileDataForComponentState,
-				formData: {
-					...currentComponentState.formData,
-					username: profile.username || '', 
+				profile: {
+					...currentComponentState.profile,
+					preferences: {
+						...(currentComponentState.profile.preferences || {}),
+						accentColor: userAccentColor
+					}
 				}
 			});
 		}
@@ -152,7 +144,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
 									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
 									${state.uploadError ? html`<span class="upload-error">${state.uploadError}</span>` : ''}
-									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
+									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, SVG</p>
 								</div>
 							</div>
 						</div>
@@ -183,6 +175,23 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									`)}
 								</div>
 							</div>
+						</div>
+						
+						<div class="security-options">
+							<h4 class="section-title">2FA Authentication</h4>
+							<div class="toggle-container">
+								<label class="toggle-label">Enable Two-Factor Authentication</label>
+								<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
+									<input 
+										type="checkbox" 
+										id="twofa-toggle" 
+										${state.profile.twoFactorEnabled ? 'checked' : ''}
+										onclick=${(e: Event) => this.handle2FAToggle(e)}
+									/>
+									<span class="toggle-slider"></span>
+								</div>
+							</div>
+							${state.formErrors.twoFA ? html`<div class="form-error">${state.formErrors.twoFA}</div>` : ''}
 						</div>
 					</div>
 					
@@ -272,7 +281,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const state = this.getInternalState();
 			if (!state.profile) return;
 			
-			const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+			const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
 			if (!validTypes.includes(file.type)) {
 				this.updateInternalState({
 					uploadError: 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.',
@@ -298,16 +307,16 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			});
 			
 			DbService.updateProfilePicture(file) 
-				.then(() => {
-					// On successful upload, just update the state to reflect success
+				.then((response) => {
 					this.updateInternalState({
 						isUploading: false,
 						uploadSuccess: true,
-						uploadError: null
+						uploadError: null,
+						profile: {
+							...this.getInternalState().profile!,
+							avatarUrl: response.avatarUrl || this.getInternalState().profile!.avatarUrl
+						}
 					});
-					
-					// Trigger a profile refresh to get the updated avatar
-					this.triggerProfileRefresh();
 				})
 				.catch(error => {
 					let specificError = "Upload failed. Please try again.";
@@ -530,15 +539,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 	
-	/**
-	 * Helper method to trigger profile summary refresh
-	 */
-	private triggerProfileRefresh(): void {
-		// This event should be listened to by the parent ProfileComponent
-		const event = new CustomEvent('refresh-profile-data', { bubbles: true, composed: true });
-		this.container.dispatchEvent(event); // Dispatch from the component's container
-	}
-	
 	public getDOMContainer(): HTMLElement {
 		return this.container;
 	}
@@ -546,5 +546,126 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	destroy(): void {
 		window.removeEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
 		super.destroy();
+	}
+
+	private async handle2FAToggle(event: Event): Promise<void> {
+		const toggle = event.target as HTMLInputElement;
+		const state = this.getInternalState();
+		
+		if (!state.profile) return;
+		
+		try {
+			if (toggle.checked) {
+				// Enabling 2FA
+				const qrCodeResponse = await DbService.generate2FA();
+				this.showQRCodePopup(qrCodeResponse.qrcode);
+			} else {
+				// Disabling 2FA
+				await DbService.disable2FA();
+				this.updateInternalState({
+					profile: { ...state.profile, twoFactorEnabled: false }
+				});
+			}
+		} catch (error) {
+			console.error('2FA operation failed:', error);
+			
+			// Revert toggle to previous state
+			toggle.checked = !toggle.checked;
+			
+			this.updateInternalState({
+				formErrors: {
+					...state.formErrors,
+					twoFA: `Failed to ${toggle.checked ? 'enable' : 'disable'} 2FA. Please try again.`
+				}
+			});
+		}
+	}
+
+	private showQRCodePopup(qrCodeImage: string): void {
+		const popupOverlay = document.createElement('div');
+		popupOverlay.className = 'popup-overlay';
+		
+		const popupContent = document.createElement('div');
+		popupContent.className = 'popup-content qrcode-popup';
+		
+		popupContent.innerHTML = `
+			<button id="cancel-twofa-btn" class="cancel-button">✕</button>
+			<div class="qrcode-container">
+				<img src="${qrCodeImage}" alt="QR Code for 2FA" />
+			</div>
+			<p class="qrcode-instructions">
+				1. Scan this QR code with your authentication app<br>
+				2. Enter the 6-digit code from your app below
+			</p>
+			<div class="code-input-container">
+				<input type="text" id="twofa-code" maxlength="6" placeholder="000000" />
+				<button id="verify-twofa-btn" class="verify-twofa-button">Verify</button>
+			</div>
+		`;
+		
+		popupOverlay.appendChild(popupContent);
+		document.body.appendChild(popupOverlay);
+		
+		// Add event listeners
+		const verifyButton = document.getElementById('verify-twofa-btn');
+		const cancelButton = document.getElementById('cancel-twofa-btn');
+		const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
+		
+		verifyButton?.addEventListener('click', () => this.verify2FACode(codeInput.value));
+		cancelButton?.addEventListener('click', () => {
+			document.body.removeChild(popupOverlay);
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			if (toggle) toggle.checked = false;
+		});
+	}
+
+	private async verify2FACode(code: string): Promise<void> {
+		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+			// Add error styling to input instead of alert
+			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
+			if (codeInput) {
+				codeInput.classList.add('error');
+				setTimeout(() => codeInput.classList.remove('error'), 2000);
+			}
+			return;
+		}
+		
+		try {
+			await DbService.validate2FA(code);
+			
+			// Single state update
+			this.updateInternalState({
+				profile: { 
+					...this.getInternalState().profile!, 
+					twoFactorEnabled: true 
+				},
+				saveSuccess: true // Show success indicator
+			});
+			
+			// Hide success after 2 seconds
+			setTimeout(() => {
+				this.updateInternalState({ saveSuccess: false });
+			}, 2000);
+			
+			// Close popup and update checkbox
+			const popupOverlay = document.querySelector('.popup-overlay');
+			if (popupOverlay) document.body.removeChild(popupOverlay);
+			
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			if (toggle) toggle.checked = true;
+		} catch (error) {
+			console.error('Failed to verify 2FA code:', error);
+			// Visual error indication instead of alert
+			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
+			if (codeInput) {
+				codeInput.value = '';
+				codeInput.placeholder = 'Invalid code';
+				codeInput.classList.add('error');
+				setTimeout(() => {
+					codeInput.placeholder = '000000';
+					codeInput.classList.remove('error');
+				}, 2000);
+			}
+		}
 	}
 }

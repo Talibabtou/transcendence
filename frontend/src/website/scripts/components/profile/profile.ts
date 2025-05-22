@@ -1,10 +1,6 @@
-/**
- * Profile Component Module
- * Parent component that manages tab navigation and profile summary
- * Handles user profile display, tab switching, and data fetching
- */
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
-import { DbService, html, render, navigate, ASCII_ART, AppStateManager } from '@website/scripts/utils';
+import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
+import { DbService, html, render, navigate } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
 /**
@@ -213,9 +209,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Called after initial render
 	 */
 	afterRender(): void {
-		// Only call initializeTabContent if we haven't already initialized the tabs
-		if (this.initialRenderComplete && this.getInternalState().profile && 
-			!this.container.querySelector(`.tab-content .tab-pane`)) {
+		if (!this.initialRenderComplete && this.getInternalState().profile) {
+			this.initialRenderComplete = true;
 			this.initializeTabContent();
 		}
 	}
@@ -298,7 +293,32 @@ export class ProfileComponent extends Component<ProfileState> {
 					const friendsResponse = await DbService.getMyFriends();
 					if (Array.isArray(friendsResponse)) {
 						// Filter to only include pending requests
-						pendingFriends = friendsResponse.filter(friendship => !friendship.accepted);
+						const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
+						
+						// For notification dot, we only need to find at least one pending request from others
+						let hasIncomingRequest = false;
+						
+						// Process pending friendships until we find one where user is NOT the requester
+						for (const friendship of pendingFriendships) {
+							try {
+								// Get friendship details to check who is the requester
+								const friendshipStatus = await DbService.getFriendship(friendship.id);
+								
+								// Check if this is a request FROM someone else
+								if (friendshipStatus && friendshipStatus.requesting !== userId) {
+									pendingFriends.push(friendship);
+									hasIncomingRequest = true;
+									break; // Stop after finding first incoming request
+								}
+							} catch (error) {
+								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
+							}
+						}
+						
+						// If we didn't find any incoming requests, we don't need to keep checking
+						if (!hasIncomingRequest) {
+							pendingFriends = [];
+						}
 					}
 				} catch (error) {
 					console.warn('Could not fetch pending friend requests:', error);
@@ -666,7 +686,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				profile: null,
 				initialized: false,
 				isLoading: false,
-				activeTab: 'null',
+				activeTab: 'stats',
 				currentProfileId: newProfileId,
 				friendshipStatus: null,
 			});
@@ -691,5 +711,44 @@ export class ProfileComponent extends Component<ProfileState> {
 
 	public hasPendingRequests(): boolean {
 		return this.getInternalState().pendingFriends.length > 0;
+	}
+
+	/**
+	 * Override the base refresh method to completely reset the component state
+	 * This ensures we get a clean slate when navigating to Profile
+	 */
+	public refresh(): void {
+		// Clean up existing tab components
+		if (this.statsComponent) {
+			this.statsComponent = undefined;
+		}
+		if (this.historyComponent) {
+			this.historyComponent = undefined;
+		}
+		if (this.friendsComponent) {
+			this.friendsComponent = undefined;
+		}
+		if (this.settingsComponent) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+			this.lastSettingsProfileId = undefined;
+		}
+		
+		// Reset state completely
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: null,
+			friendshipStatus: null,
+			pendingFriends: [],
+			matchesCache: new Map()
+		});
+		
+		// Force reinitialization
+		this.initialize();
 	}
 }

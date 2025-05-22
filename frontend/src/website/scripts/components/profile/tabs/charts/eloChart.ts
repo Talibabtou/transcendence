@@ -1,7 +1,3 @@
-/**
- * ELO Chart Component
- * Displays the player's ELO rating history over time
- */
 import Plotly, { ScatterData } from 'plotly.js-dist';
 
 /**

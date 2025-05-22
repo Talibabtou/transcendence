@@ -1,13 +1,12 @@
-/**
- * Guest Authentication Component
- * A standalone component for guest player authentication without affecting the main app state
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, ApiError, hashPassword } from '@website/scripts/utils';
+import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { IAuthComponent, GuestAuthState } from '@website/types';
+import { DbService, html, render, ApiError } from '@website/scripts/services';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
+	private passwordStrength: PasswordStrengthComponent | null = null;
+	
 	constructor(container: HTMLElement) {
 		super(container, {
 			error: null,
@@ -67,16 +66,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				<button type="submit" class="menu-button">Login</button>
 			</form>
 			
-			<div class="auth-social-options">
-				<button class="menu-button auth-social-button google-auth" onclick=${this.handleSocialLoginClick}>
-					G
-				</button>
-				
-				<button class="menu-button auth-social-button forty-two-auth" onclick=${this.handleSocialLoginClick}>
-					42
-				</button>
-			</div>
-			
 			<div class="auth-links">
 				<a href="#" onclick=${this.switchToRegister}>Create account</a>
 			</div>
@@ -87,7 +76,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Render the register form for guest creation
 	 */
 	private renderRegisterForm(): any {
-		return html`
+		const form = html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
@@ -101,7 +90,15 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required autocomplete="off" />
+					<input 
+						type="password" 
+						id="password" 
+						name="password" 
+						required 
+						autocomplete="off" 
+						onInput=${(e: Event) => this.handlePasswordInput(e)}
+					/>
+					<div id="password-strength-container"></div>
 				</div>
 				
 				<button type="submit" class="menu-button">Create Account</button>
@@ -111,6 +108,11 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				<a href="#" onclick=${this.switchToLogin}>Back to login</a>
 			</div>
 		`;
+
+		// Schedule initialization after the form is rendered
+		setTimeout(() => this.initializePasswordStrength(), 0);
+		
+		return form;
 	}
 	
 	/**
@@ -142,6 +144,13 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const password = formData.get('password') as string;
 		
 		if (username && email && password) {
+			// Add password validation
+			const passwordValidation = validatePassword(password);
+			if (!passwordValidation.valid) {
+				this.showError(passwordValidation.message);
+				return;
+			}
+			
 			this.registerGuest(username, email, password);
 		}
 	}
@@ -155,6 +164,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			isRegisterMode: true,
 			error: null
 		});
+		
+		// Reset password strength when switching modes
+		this.passwordStrength = null;
 	}
 	
 	/**
@@ -166,14 +178,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			isRegisterMode: false,
 			error: null
 		});
-	}
-	
-	/**
-	 * Handle social login button clicks
-	 */
-	private handleSocialLoginClick = (e: Event): void => {
-		e.preventDefault();
-		this.showError('Social login is not available for guest players.');
+		
+		// Reset password strength when switching modes
+		this.passwordStrength = null;
 	}
 	
 	/**
@@ -264,6 +271,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				});
 				this.container.dispatchEvent(authEvent);
 				
+				// Clear form fields before hiding
+				this.clearFormFields();
+				
 				this.hide();
 			}
 		} catch (error) {
@@ -327,6 +337,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Clean up resources
 	 */
 	destroy(): void {
+		this.passwordStrength = null;
 		this.container.innerHTML = '';
 		this.container.className = '';
 		super.destroy();
@@ -348,11 +359,61 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		});
 	}
 	
-	// Add a new method to clear form fields
+	/**
+	 * Clear form fields
+	 */
 	private clearFormFields(): void {
 		const form = this.container.querySelector('form') as HTMLFormElement;
 		if (form) {
+			// Manually clear input fields first
+			const inputs = form.querySelectorAll('input');
+			inputs.forEach(input => {
+				input.value = '';
+			});
+			
+			// Reset form
 			form.reset();
+		}
+		
+		// Reset password strength component properly
+		if (this.passwordStrength) {
+			// Update with empty string to reset display to 0%
+			this.passwordStrength.updatePassword('');
+			
+			// Get container and clear its contents
+			const container = this.container.querySelector('#password-strength-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+			
+			// Set to null to allow proper re-initialization
+			this.passwordStrength = null;
+		}
+	}
+	
+	/**
+	 * Initialize password strength component
+	 */
+	private initializePasswordStrength(): void {
+		if (!this.passwordStrength) {
+			const container = this.container.querySelector('#password-strength-container');
+			if (container) {
+				// Use simplified mode (true) to only show strength bar without requirements list
+				this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, true);
+			}
+		}
+	}
+
+	/**
+	 * Handle password input to update strength indicator
+	 */
+	private handlePasswordInput(e: Event): void {
+		const input = e.target as HTMLInputElement;
+		const password = input.value;
+		
+		// Update password strength indicator
+		if (this.passwordStrength) {
+			this.passwordStrength.updatePassword(password);
 		}
 	}
 }

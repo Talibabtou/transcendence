@@ -366,3 +366,51 @@
 .password-requirements li.invalid {
 	opacity: 0.7;
 }
+
+/* Two-column layout for password requirements in main auth form */
+.auth-form:not(.guest-auth-form) .password-requirements {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem;
+}
+
+.auth-form:not(.guest-auth-form) .password-requirements li {
+	margin-bottom: 0.1rem;
+	font-size: 0.75rem;
+}
+
+/* 2FA Form Styling */
+.twofa-form p {
+	text-align: center;
+	margin: 1.5rem;
+	margin-left: 2rem;
+	margin-right: 2rem;
+	font-size: 1rem;
+}
+
+.twofa-input-container {
+	max-width: 40%;
+	margin: 0 auto;
+}
+
+.twofa-input {
+	text-align: center;
+	font-size: 1.25rem;
+	letter-spacing: 0.25rem;
+}
+
+.twofa-button-container {
+	display: flex;
+	justify-content: center;
+	margin-top: 1rem;
+}
+
+.twofa-verify-button {
+	width: 40%;
+	padding: 0.85rem;
+}
+
+.twofa-cancel-container {
+	margin-top: 2.5rem;
+	margin-bottom: -1rem;
+}

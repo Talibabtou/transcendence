@@ -1,8 +1,3 @@
-/**
- * Game Canvas Component Module
- * Manages the game canvas and interfaces with the GameManager.
- * Handles game rendering, state tracking, and lifecycle management.
- */
 import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
 import { GameMode } from '@website/types';

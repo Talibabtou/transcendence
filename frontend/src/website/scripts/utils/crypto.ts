@@ -1,4 +1,4 @@
-import { html, render } from '@website/scripts/utils';
+import { html, render } from '@website/scripts/services';
 
 /**
  * Hashes a password using SHA-256
@@ -37,24 +37,29 @@ export class PasswordStrengthComponent {
 	private password: string = '';
 	private strengthBar: HTMLElement | null = null;
 	private requirementsList: HTMLElement | null = null;
+	private simplified: boolean = false;
 	
-	constructor(container: HTMLElement) {
+	constructor(container: HTMLElement, simplified: boolean = false) {
 		this.container = container;
+		this.simplified = simplified;
 		this.initializeStaticStructure();
 	}
 	
 	private initializeStaticStructure(): void {
+		// Create different template based on simplified mode
 		const template = html`
 			<div class="password-strength">
 				<div class="password-strength-bar">
-					<div class="password-strength-fill" style="width: 0%"></div>
+					<div class="password-strength-fill"></div>
 				</div>
+				${!this.simplified ? html`
 				<ul class="password-requirements">
-					<li><span>✗</span>At least 8 characters</li>
-					<li><span>✗</span>Contains uppercase letter</li>
-					<li><span>✗</span>Contains lowercase letter</li>
-					<li><span>✗</span>Contains a number</li>
+					<li><span>✗</span>An uppercase</li>
+					<li><span>✗</span>8 characters</li>
+					<li><span>✗</span>A lowercase</li>
+					<li><span>✗</span>A number</li>
 				</ul>
+				` : ''}
 			</div>
 		`;
 		
@@ -62,13 +67,15 @@ export class PasswordStrengthComponent {
 		
 		// Store references to dynamic elements
 		this.strengthBar = this.container.querySelector('.password-strength-fill');
-		this.requirementsList = this.container.querySelector('.password-requirements');
+		this.requirementsList = this.simplified ? null : this.container.querySelector('.password-requirements');
 	}
 	
 	updatePassword(password: string): void {
 		this.password = password;
 		this.updateStrengthBar();
-		this.updateRequirements();
+		if (!this.simplified) {
+			this.updateRequirements();
+		}
 	}
 	
 	private updateStrengthBar(): void {

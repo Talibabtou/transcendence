@@ -37,7 +37,8 @@ export async function getFriends(
         CASE 
           WHEN id_1 = ? THEN id_2 
           ELSE id_1 
-        END AS id, 
+        END AS id,
+        id_1 AS requesting,
         accepted, 
         created_at 
       FROM friends
@@ -46,6 +47,7 @@ export async function getFriends(
     );
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
+      friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
@@ -73,6 +75,7 @@ export async function getFriends(
         friends[i].pic = 'default';
       }
     }
+    request.log.info(friends);
     return reply.code(200).send(friends);
   } catch (err) {
     request.server.log.error(err);
@@ -101,6 +104,7 @@ export async function getFriendsMe(
           WHEN id_1 = ? THEN id_2 
           ELSE id_1 
         END AS id, 
+        id_1 AS requesting, 
         accepted, 
         created_at 
       FROM friends
@@ -109,6 +113,7 @@ export async function getFriendsMe(
     );
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
+      friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
@@ -136,6 +141,7 @@ export async function getFriendsMe(
         friends[i].pic = 'default';
       }
     }
+    request.log.info(friends);
     return reply.code(200).send(friends);
   } catch (err) {
     request.server.log.error(err);

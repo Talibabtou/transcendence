@@ -1,10 +1,6 @@
-/**
- * Game Component Module
- * Main component that manages the game interface, state transitions, and sub-components.
- * Handles the complete game lifecycle from menu to gameplay to game over.
- */
 import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
-import { appState, MatchCache, TournamentCache, ApiError } from '@website/scripts/utils';
+import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
+import { ApiError } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -88,8 +84,6 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Set game over callback
 		this.gameManager.setOnGameOverCallback((result) => {
-			// Store the result before changing state
-			console.log("Game over callback with result:", result);
 			
 			// If in tournament mode, process the result in the tournament component
 			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
@@ -116,7 +110,6 @@ export class GameComponent extends Component<GameComponentState> {
 		this.container.style.height = "100%";
 		this.gameContainer = document.createElement('div');
 		this.gameContainer.className = 'game-container';
-		this.gameContainer.style.height = "100%";
 		this.gameContainer.style.position = "relative";
 		this.container.appendChild(this.gameContainer);
 		
@@ -296,7 +289,7 @@ export class GameComponent extends Component<GameComponentState> {
 		const currentUser = appState.getCurrentUser();
 		const playerName = currentUser?.username || 'Player 1';
 		const playerColor = appState.getAccentColorHex() || '#ffffff';
-		
+
 		// Ensure we have player IDs for single player mode
 		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
 			// For single player, we need to explicitly set the current user's ID
@@ -332,6 +325,7 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Start the game with selected mode and player info
 		if (this.canvasComponent) {
+			
 			// For single player mode, use the current user's info if playerNames not already set
 			const playerNames = state.playerNames || [playerName];
 			const playerColors = state.playerColors || [playerColor];
@@ -623,13 +617,7 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		
 		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-			this.gameOverComponent = null;
-		}
-		
-		if (this.TournamentComponent) {
-			this.TournamentComponent.destroy();
-			this.TournamentComponent = null;
+			this.gameOverComponent.hide();
 		}
 		
 		// Recreate the menu component from scratch
@@ -659,9 +647,6 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.menuComponent) {
 			this.menuComponent.show();
 		}
-		
-		// Reset transition flag explicitly
-		this.isTransitioning = false;
 	}
 
 	// =========================================
@@ -807,7 +792,7 @@ export class GameComponent extends Component<GameComponentState> {
 		
 		// Store player information for the game
 		this.updateInternalState({
-			playerIds: playerIds.map(String),
+			playerIds: playerIds,
 			playerNames: playerNames,
 			playerColors: playerColors
 		});

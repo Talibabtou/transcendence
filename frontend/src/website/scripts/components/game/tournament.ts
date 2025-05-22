@@ -1,5 +1,6 @@
 import { Component } from '@website/scripts/components';
-import { html, render, ASCII_ART, TournamentCache, TournamentPhase, appState } from '@website/scripts/utils';
+import { ASCII_ART, TournamentCache, TournamentPhase, appState } from '@website/scripts/utils';
+import { html, render } from '@website/scripts/services';
 
 export interface TournamentTransitionsState {
 	visible: boolean;

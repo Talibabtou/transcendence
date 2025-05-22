@@ -1,36 +1,7 @@
-/**
- * Profile History Component
- * Displays user match history in a paginated table
- */
 import { Component } from '@website/scripts/components';
-import { html, render, DbService, ApiError } from '@website/scripts/utils';
-import { UserProfile } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
+import { DbService, html, render } from '@website/scripts/services';
+import { UserProfile, ProfileHistoryState } from '@website/types';
 import { MatchHistory } from '@shared/types/match.type';
-
-interface ProcessedMatch {
-	id: string;
-	date: Date;
-	opponent: string;
-	opponentId: string;
-	playerScore: number;
-	opponentScore: number;
-	result: 'win' | 'loss';
-}
-
-interface ProfileHistoryState {
-	profile: UserProfile | null;
-	historyPage: number;
-	historyPageSize: number;
-	allMatches: ProcessedMatch[];
-	matches: ProcessedMatch[];
-	isLoading: boolean;
-	hasMoreMatches: boolean;
-	dataLoadInProgress: boolean;
-	handlers: {
-		onPlayerClick: (username: string) => void;
-	};
-}
 
 export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	// @ts-ignore - Used for DOM references
@@ -55,16 +26,20 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	}
 	
 	public setProfile(profile: UserProfile): void {
-		this.updateInternalState({ profile });
-		if (!this.getInternalState().dataLoadInProgress) {
+		const state = this.getInternalState();
+		// Only reload data if profile has changed
+		if (state.profile?.id !== profile.id) {
 			this.updateInternalState({ 
-				historyPage: 0,
+				profile,
+				// Reset data to avoid displaying wrong user's data during loading
 				allMatches: [],
 				matches: [],
-				hasMoreMatches: true,
-				isLoading: true
+				historyPage: 0
 			});
-			this.fetchAndProcessMatchHistory(profile.id);
+			
+			if (!state.dataLoadInProgress) {
+				this.fetchAndProcessMatchHistory(profile.id);
+			}
 		}
 	}
 	
@@ -77,44 +52,60 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		if (state.dataLoadInProgress) return;
 		
 		try {
-			this.updateInternalState({ isLoading: true, dataLoadInProgress: true });
+			this.updateInternalState({ dataLoadInProgress: true });
 
 			const rawHistory = await DbService.getUserHistory(userId);
-			console.log(rawHistory);
+			
+			if (!rawHistory || !Array.isArray(rawHistory)) {
+				this.updateInternalState({ 
+					allMatches: [], 
+					matches: [],
+					hasMoreMatches: false,
+					dataLoadInProgress: false 
+				});
+				return;
+			}
 
-			const processedHistory = rawHistory.map((entry: MatchHistory) => {
-				return {
-					id: entry.matchId,
-					date: new Date(entry.created_at),
-					opponent: entry.username2,
-					opponentId: entry.id2,
-					playerScore: typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1,
-					opponentScore: typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2,
-					result: parseInt(String(entry.goals1)) > parseInt(String(entry.goals2)) ? 'win' : 'loss'
-				};
-			}).sort((a: ProcessedMatch, b: ProcessedMatch) => b.date.getTime() - a.date.getTime());
+			// Process all matches in one go with proper type assertions
+			const processedHistory = rawHistory
+				.map((entry: MatchHistory) => {
+					const playerScore = typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1;
+					const opponentScore = typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2;
+					// Use type assertion to satisfy TypeScript
+					const result = (playerScore > opponentScore ? 'win' : 'loss') as 'win' | 'loss';
+					
+					return {
+						id: entry.matchId,
+						date: new Date(entry.created_at),
+						opponent: entry.username2,
+						opponentId: entry.id2,
+						playerScore,
+						opponentScore,
+						result
+					};
+				})
+				.sort((a, b) => b.date.getTime() - a.date.getTime());
 
+			// Calculate initial matches display
+			const { historyPageSize } = state;
+			const initialMatches = processedHistory.slice(0, historyPageSize);
+			
+			// One single state update with all processed data
 			this.updateInternalState({
 				allMatches: processedHistory,
-				isLoading: false,
+				matches: initialMatches,
+				hasMoreMatches: processedHistory.length > historyPageSize,
 				dataLoadInProgress: false
 			});
 
-			this.updateDisplayedMatches();
-			this.render();
-
 		} catch (error) {
 			console.error('Error loading match history:', error);
-			if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PLAYER_NOT_FOUND)) {
-				console.error(`Player ID ${userId} not found when fetching match history.`);
-			}
 			this.updateInternalState({ 
-				isLoading: false, 
 				allMatches: [], 
 				matches: [],
+				hasMoreMatches: false,
 				dataLoadInProgress: false 
 			});
-			this.render();
 		}
 	}
 	

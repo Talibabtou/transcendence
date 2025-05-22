@@ -1,10 +1,6 @@
-/**
- * Auth Manager
- * Central manager for authentication
- */
-import { Component, LoginHandler, RegistrationHandler, GoogleAuthHandler, FortyTwoAuthHandler } from '@website/scripts/components';
-import { html, render, navigate } from '@website/scripts/utils';
-import { AuthState, AuthMethod, AuthComponentState, UserData, IAuthComponent } from '@website/types';
+import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
+import { html, render, navigate } from '@website/scripts/services';
+import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
@@ -14,20 +10,8 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	
 	private currentUser: UserData | null = null;
 	private activeToken?: string;
-	
-	// Add debouncing for state changes
 	private stateChangeTimeout: number | null = null;
-	
-	// Add a session persistence option
 	private persistSession: boolean = true;
-	
-	// Module handlers
-	private loginHandler: LoginHandler;
-	private registrationHandler: RegistrationHandler;
-	private googleAuthHandler: GoogleAuthHandler;
-	private fortyTwoAuthHandler: FortyTwoAuthHandler;
-	
-	// Close button reference
 	private closeButton: HTMLButtonElement | null = null;
 	
 	// =========================================
@@ -46,44 +30,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		
 		this.persistSession = persistSession;
 		
-		// Pass the new callback signature
-		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
-			this.currentUser = user;
-			this.activeToken = token;
-			if (!user) { // If user is null (e.g. logout), clear token
-				this.activeToken = undefined;
-			}
-		};
-		
-		this.loginHandler = new LoginHandler(
-			this.updateInternalState.bind(this),
-			setUserAndTokenCallback,
-			this.handleSuccessfulAuth.bind(this)
-		);
-		
-		this.registrationHandler = new RegistrationHandler(
-			this.updateInternalState.bind(this),
-			setUserAndTokenCallback,
-			this.handleSuccessfulAuth.bind(this)
-		);
-		
-		this.googleAuthHandler = new GoogleAuthHandler(
-			this.updateInternalState.bind(this),
-			setUserAndTokenCallback, // Assuming these also provide token
-			this.handleSuccessfulAuth.bind(this)
-		);
-		
-		this.fortyTwoAuthHandler = new FortyTwoAuthHandler(
-			this.updateInternalState.bind(this),
-			setUserAndTokenCallback, // Assuming these also provide token
-			this.handleSuccessfulAuth.bind(this)
-		);
-		
-		// Check if user is already logged in
 		this.checkExistingSession();
-		
-		// Check for OAuth callback in URL
-		this.handleOAuthCallback();
 	}
 	
 	/**
@@ -112,46 +59,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		}
 	}
 	
-	/**
-	 * Handles OAuth callback from external providers
-	 */
-	private handleOAuthCallback(): void {
-		// Check if we have a code parameter in the URL (OAuth callback)
-		const urlParams = new URLSearchParams(window.location.search);
-		const code = urlParams.get('code');
-		const state = urlParams.get('state');
-		const error = urlParams.get('error');
-		
-		if (error) {
-			console.error('OAuth Error:', error);
-			this.updateInternalState({
-				error: `Authentication failed: ${error}`
-			});
-			return;
-		}
-		
-		if (code && state) {
-			this.updateInternalState({ isLoading: true });
-			
-			try {
-				const stateData = JSON.parse(atob(state));
-				const provider = stateData.provider;
-				
-				if (provider === AuthMethod.GOOGLE) {
-					this.googleAuthHandler.simulateOAuthLogin();
-				} else if (provider === AuthMethod.FORTY_TWO) {
-					this.fortyTwoAuthHandler.simulateOAuthLogin();
-				}
-			} catch (e) {
-				console.error('Failed to parse OAuth state', e);
-				this.updateInternalState({
-					isLoading: false,
-					error: 'Invalid authentication response'
-				});
-			}
-		}
-	}
-	
 	// =========================================
 	// STATE MANAGEMENT
 	// =========================================
@@ -167,6 +74,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		
 		// Debounce state changes to prevent rapid UI updates
 		this.stateChangeTimeout = window.setTimeout(() => {
+			// No need to call specific cleanupComponents on handlers if they are recreated
 			this.updateInternalState({
 				currentState: newState,
 				error: null
@@ -182,12 +90,16 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		// First clean up to prevent any lingering elements
 		this.destroy();
 		
-		// Then dispatch the event - after cleanup is complete
+		// Dispatch the event - after cleanup is complete
 		const cancelEvent = new CustomEvent('auth-cancelled', {
 			bubbles: true,
 			detail: { timestamp: Date.now() }
 		});
-		document.dispatchEvent(cancelEvent);
+		
+		// Dispatch with a small delay to ensure proper event handling
+		setTimeout(() => {
+			document.dispatchEvent(cancelEvent);
+		}, 10);
 	}
 	
 	// =========================================
@@ -224,33 +136,51 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		
 		// For other states, only show loading indicator if needed
 		if (state.isLoading) {
-			// We could completely remove this and provide no visual feedback during loading
-			// or keep a minimal indication that something is happening
 			return html`<div class="auth-processing"></div>`;
 		}
 		
+		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
+			this.currentUser = user;
+			this.activeToken = token;
+			if (!user) {
+				this.activeToken = undefined;
+			}
+		};
+
 		switch (state.currentState) {
 			case AuthState.LOGIN:
-				return this.loginHandler.renderLoginForm(
+				// The updateInternalState callback will trigger a full re-render
+				return new LoginHandler(
+					(newState) => {
+						this.updateInternalState({...newState});
+						// Force a re-render when state changes
+						setTimeout(() => this.render(), 0);
+					},
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderLoginForm(
 					this.persistSession,
 					(value) => this.persistSession = value,
-					() => this.switchState(AuthState.REGISTER),
-					() => this.googleAuthHandler.initiateOAuthLogin(),
-					() => this.fortyTwoAuthHandler.initiateOAuthLogin()
+					() => this.switchState(AuthState.REGISTER)
 				);
 			case AuthState.REGISTER:
-				return this.registrationHandler.renderRegisterForm(
-					() => this.switchState(AuthState.LOGIN),
-					() => this.googleAuthHandler.initiateOAuthLogin(),
-					() => this.fortyTwoAuthHandler.initiateOAuthLogin()
+				return new RegistrationHandler(
+					this.updateInternalState.bind(this),
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderRegisterForm(
+					() => this.switchState(AuthState.LOGIN)
 				);
 			default:
-				return this.loginHandler.renderLoginForm(
+				// Fallback to login, create a new LoginHandler instance
+				return new LoginHandler(
+					this.updateInternalState.bind(this),
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderLoginForm(
 					this.persistSession,
 					(value) => this.persistSession = value,
-					() => this.switchState(AuthState.REGISTER),
-					() => this.googleAuthHandler.initiateOAuthLogin(),
-					() => this.fortyTwoAuthHandler.initiateOAuthLogin()
+					() => this.switchState(AuthState.REGISTER)
 				);
 		}
 	}
@@ -321,19 +251,14 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	}
 	
 	destroy(): void {
-		// Remove close button event listener if it exists
 		if (this.closeButton) {
 			this.closeButton.removeEventListener('click', () => this.cancelAuth());
 			this.closeButton = null;
 		}
-		
-		// Ensure component is properly removed from DOM
 		if (this.container) {
 			this.container.innerHTML = '';
 			this.container.className = '';
 		}
-		
-		// Clean up event listeners and call parent's destroy
 		super.destroy();
 	}
 }
