@@ -323,7 +323,7 @@ export class PhysicsManager {
         hitOccurred = true;
       } else {
         if (!hitOccurred) {
-            const emergencyDot = -0.1; 
+            const emergencyDot = -0.5; 
             if (normal.ny !== 0) {
                 player.freezeMovement(0.2);
             }

@@ -180,7 +180,7 @@ export function sweepCircleVsMovingRect(
   const minX = rectLeft - r, maxX = rectRight + r, minY = rectTop - r, maxY = rectBottom + r;
 
   // --- X-axis sweep ---
-  if (Math.abs(relDx) > 1e-3) {
+  if (Math.abs(relDx) > 1e-6) {
     const inv = 1 / relDx;
     const t1 = (minX - p0.x) * inv;
     const t2 = (maxX - p0.x) * inv;
@@ -194,7 +194,7 @@ export function sweepCircleVsMovingRect(
   }
 
   // --- Y-axis sweep ---
-  if (Math.abs(relDy) > 1e-3) {
+  if (Math.abs(relDy) > 1e-6) {
     const inv = 1 / relDy;
     const t1 = (minY - p0.y) * inv;
     const t2 = (maxY - p0.y) * inv;

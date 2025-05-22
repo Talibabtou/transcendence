@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   cert-generator:
-    image: alpine/openssl # Small image with openssl
+    image: alpine/openssl
     container_name: cert_generator
-    entrypoint: "" # Override the default entrypoint
+    entrypoint: ""
     volumes:
-      - ./scripts:/scripts # Mount the scripts directory
-      - certs_data:/etc/certs # Mount the shared volume for certs output
+      - ./scripts:/scripts
+      - certs_data:/etc/certs
     command: ["/bin/sh", "-c", "/scripts/generate-certs.sh && echo 'Cert generator finished'"]
 
   frontend:
@@ -19,7 +19,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - certs_data:/etc/certs:ro # Mount certs read-only
+      - certs_data:/etc/certs:ro
       - profile_pictures:/usr/share/nginx/html/uploads/profile_pictures
     depends_on:
       cert-generator:
