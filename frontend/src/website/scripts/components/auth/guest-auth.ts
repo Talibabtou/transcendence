@@ -99,7 +99,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					</div>
 				</div>
 				
-				<button type="submit" class="menu-button twofa-verify-button">Verify</button>
+				<div class="twofa-button-container">
+					<button type="submit" class="menu-button twofa-verify-button">Verify</button>
+				</div>
 				
 				<div class="auth-links twofa-cancel-container">
 					<a href="#" onclick=${this.cancelTwoFactor}>Cancel</a>
@@ -429,7 +431,8 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		try {
 			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
-
+			
+			// Use dedicated registerGuest function
 			const registerResponse = await DbService.register({
 				username,
 				email,
