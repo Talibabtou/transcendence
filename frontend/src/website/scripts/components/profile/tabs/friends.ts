@@ -182,7 +182,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 									${state.pendingFriends.map(friend => html`
 										<div class="friend-card pending">
 											<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-												<img class="friend-avatar" src="${friend.pic === 'default' ? '/images/default-avatar.svg' : friend.pic ? friend.pic : '/images/default-avatar.svg'}" alt="${friend.username || 'Unknown'}"/>
+												<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 												<div class="friend-details">
 													<span class="friend-name">${friend.username || 'Unknown User'}</span>
 												</div>
@@ -207,7 +207,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 										${state.acceptedFriends.map(friend => html`
 											<div class="friend-card">
 												<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
-													<img class="friend-avatar" src="${friend.pic === 'default' ? '/images/default-avatar.svg' : friend.pic ? friend.pic : '/images/default-avatar.svg'}" alt="${friend.username || 'Unknown'}"/>
+													<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 													<div class="friend-details">
 														<span class="friend-name">${friend.username || 'Unknown User'}</span>
 													</div>

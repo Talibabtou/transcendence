@@ -144,7 +144,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
 									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
 									${state.uploadError ? html`<span class="upload-error">${state.uploadError}</span>` : ''}
-									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, SVG</p>
+									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
 								</div>
 							</div>
 						</div>

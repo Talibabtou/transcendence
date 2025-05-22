@@ -14,7 +14,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private friendsComponent?: ProfileFriendsComponent;
 	private settingsComponent?: ProfileSettingsComponent;
 	private lastSettingsProfileId?: string;
-	
 	private initialRenderComplete = false;
 	
 	/**
@@ -225,7 +224,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			let userId = url.searchParams.get('id');
 			
 			// Handle 'current' user case
-			if (!userId || userId === 'current') {
+			if (!userId) {
 				const currentUser = JSON.parse(localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user') || '{}');
 				userId = currentUser?.id;
 				if (!userId) {
@@ -234,44 +233,17 @@ export class ProfileComponent extends Component<ProfileState> {
 				}
 			}
 			
-			// Store the current profile ID
 			this.updateInternalState({ currentProfileId: userId });
 			
 			// Get profile data
 			const userProfile = await DbService.getUserProfile(userId);
-			console.log({userId})
-			console.log({userProfile})
 			if (!userProfile) {
 				throw new Error(`User with ID ${userId} not found`);
 			}
-			
-			// Get profile picture
-			let avatarUrl = '/images/default-avatar.svg';
-			try {
-				const picResponse = await DbService.getPic(userId);
-				if (picResponse?.link) {
-					avatarUrl = picResponse.link;
-				}
-			} catch (error) {
-				console.warn(`Could not fetch profile picture, using default.`);
-			}
-			
-			// Get ELO (use separate API call for accurate data)
-			let elo = userProfile.summary?.elo || 1000;
-			try {
-				const eloData = await DbService.getPlayerElo(userId);
-				if (eloData?.elo) {
-					elo = eloData.elo;
-				}
-			} catch (error) {
-				console.warn(`Could not fetch ELO, using summary data.`);
-			}
-			
-			// Build user profile object
 			const profile = {
 				id: String(userProfile.id),
 				username: userProfile.username,
-				avatarUrl,
+				avatarUrl: userProfile.pics?.link,
 				totalGames: userProfile.summary?.total_matches - userProfile.summary?.active_matches || 0,
 				wins: userProfile.summary?.victories || 0,
 				losses: userProfile.summary?.defeats || 0,
@@ -280,7 +252,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				preferences: {
 					accentColor: AppStateManager.getUserAccentColor(userProfile.id)
 				},
-				elo
+				elo: userProfile.summary?.elo || 1000
 			};
 			
 			// Check for pending friend requests if this is the current user's profile

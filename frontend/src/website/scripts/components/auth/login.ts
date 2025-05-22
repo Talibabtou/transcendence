@@ -5,6 +5,7 @@ import { ErrorCodes } from '@shared/constants/error.const';
 
 export class LoginHandler {
 	private persistSession: boolean = false;
+	private twoFATimeoutId: number | null = null;
 	
 	constructor(
 		private updateState: (state: any) => void,
@@ -26,6 +27,8 @@ export class LoginHandler {
 		
 		if (needsVerification) {
 			console.log("Showing 2FA form from session storage");
+			// Set a timeout to cancel 2FA if not completed within 1 minute
+			this.startTwoFATimeout();
 			return this.render2FAForm();
 		}
 		
@@ -73,6 +76,30 @@ export class LoginHandler {
 	}
 	
 	/**
+	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
+	 */
+	private startTwoFATimeout(): void {
+		// Clear any existing timeout
+		this.clearTwoFATimeout();
+		
+		// Set a new timeout (1 minute = 60000 milliseconds)
+		this.twoFATimeoutId = window.setTimeout(() => {
+			console.log("2FA verification timed out after 1 minute");
+			this.cancelTwoFactor();
+		}, 60000);
+	}
+	
+	/**
+	 * Clears the 2FA timeout if it exists
+	 */
+	private clearTwoFATimeout(): void {
+		if (this.twoFATimeoutId !== null) {
+			window.clearTimeout(this.twoFATimeoutId);
+			this.twoFATimeoutId = null;
+		}
+	}
+	
+	/**
 	 * Renders the 2FA verification form
 	 */
 	private render2FAForm(): any {
@@ -83,6 +110,7 @@ export class LoginHandler {
 			
 			<div class="auth-form twofa-form">
 				<p>Please enter the 6-digit code from your authenticator app:</p>
+				<p class="twofa-timeout-warning">This verification will expire in 1 minute.</p>
 				
 				<form onSubmit=${(e: Event) => {
 					e.preventDefault();
@@ -139,21 +167,30 @@ export class LoginHandler {
 			// Get data from session storage
 			const userId = sessionStorage.getItem('auth_2fa_userid') || '';
 			const token = sessionStorage.getItem('auth_2fa_token') || '';
+			const email = sessionStorage.getItem('auth_email') || '';
+			const password = sessionStorage.getItem('auth_password') || '';
 			
-			// Verify 2FA code
-			const response = await DbService.verify2FALogin(userId, code, token);
+			// Step 1: Verify 2FA code using the temporary token
+			await DbService.verify2FALogin(userId, code, token);
 			
-			if (response.success && response.user && response.token) {
+			// Step 2: After successful 2FA validation, perform a regular login with saved credentials
+			const loginResponse = await DbService.login({ email, password });
+			
+			if (loginResponse.success && loginResponse.user && loginResponse.token) {
+				// Clear the timeout since verification was successful
+				this.clearTwoFATimeout();
+				
+				// Login successful after 2FA verification
 				const userData: UserData = {
-					id: response.user.id,
-					username: response.user.username,
-					email: response.user.email || '',
+					id: loginResponse.user.id,
+					username: loginResponse.user.username,
+					email: loginResponse.user.email || email,
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: new Date(),
 					persistent: this.persistSession
 				};
 				
-				this.setCurrentUser(userData, response.token);
+				this.setCurrentUser(userData, loginResponse.token);
 				
 				// Initialize WebSocket connection
 				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
@@ -165,15 +202,13 @@ export class LoginHandler {
 				});
 				
 				// Clear 2FA session data
-				sessionStorage.removeItem('auth_2fa_needed');
-				sessionStorage.removeItem('auth_2fa_userid');
-				sessionStorage.removeItem('auth_2fa_token');
+				this.clearTwoFactorSessionData();
 				
 				this.switchToSuccessState();
 			} else {
 				this.updateState({ 
 					isLoading: false,
-					error: 'Invalid verification code' 
+					error: 'Authentication failed after 2FA verification'
 				});
 			}
 		} catch (error) {
@@ -187,15 +222,28 @@ export class LoginHandler {
 	}
 	
 	/**
-	 * Cancel 2FA and go back to login
+	 * Clear 2FA-related session storage data
 	 */
-	private cancelTwoFactor(): void {
-		// Clear 2FA session data
+	private clearTwoFactorSessionData(): void {
 		sessionStorage.removeItem('auth_2fa_needed');
 		sessionStorage.removeItem('auth_2fa_userid');
 		sessionStorage.removeItem('auth_2fa_token');
+		sessionStorage.removeItem('auth_username');
+		sessionStorage.removeItem('auth_email');
+		sessionStorage.removeItem('auth_password');
+	}
+	
+	/**
+	 * Cancel 2FA and go back to login
+	 */
+	private cancelTwoFactor(): void {
+		// Clear the timeout
+		this.clearTwoFATimeout();
 		
-		this.updateState({}); // Force re-render
+		// Clear 2FA session data
+		this.clearTwoFactorSessionData();
+		
+		this.updateState({});
 	}
 
 	/**
@@ -245,9 +293,15 @@ export class LoginHandler {
 				sessionStorage.setItem('auth_2fa_needed', 'true');
 				sessionStorage.setItem('auth_2fa_userid', response.user.id);
 				sessionStorage.setItem('auth_2fa_token', response.token);
+				sessionStorage.setItem('auth_username', response.user.username || '');
+				sessionStorage.setItem('auth_email', email);
+				sessionStorage.setItem('auth_password', hashedPassword);
 				
 				// Update UI state
 				this.updateState({ isLoading: false, error: null });
+				
+				// Start the timeout for 2FA verification
+				this.startTwoFATimeout();
 				
 				// Force re-render to show 2FA form
 				this.updateState({});
