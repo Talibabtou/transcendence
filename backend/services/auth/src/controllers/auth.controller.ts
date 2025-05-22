@@ -401,7 +401,12 @@ export async function loginGuest(
       };
       return reply.code(200).send(user);
     }
-    return reply.code(200).send();
+    const user: IReplyLogin = {
+      id: data.id,
+      role: data.role,
+      username: data.username,
+    };
+    return reply.code(200).send(user);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);

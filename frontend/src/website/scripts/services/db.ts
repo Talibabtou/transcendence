@@ -356,7 +356,23 @@ export class DbService {
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
 		this.logRequest('GET', `${API_PREFIX}${USER.PROFILE}/${userId}`);
-		return this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
+		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
+		
+		// Normalize profile picture URL if it exists
+		if (userProfile && userProfile.pics && userProfile.pics.link) {
+			if (userProfile.pics.link === 'default') {
+				userProfile.pics.link = '/images/default-avatar.svg';
+			} else {
+				const pathParts = userProfile.pics.link.split('/');
+				const fileName = pathParts[pathParts.length - 1];
+				
+				if (fileName === 'default') {
+					userProfile.pics.link = '/images/default-avatar.svg';
+				}
+			}
+		}
+		
+		return userProfile;
 	}
 
 	/**
@@ -450,7 +466,18 @@ export class DbService {
 	 */
 	static async getFriendList(userId: string): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
-		return this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
+		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
+		
+		// Normalize profile picture URLs
+		if (Array.isArray(friends)) {
+			friends.forEach(friend => {
+				if (friend.pic === 'default') {
+					friend.pic = '/images/default-avatar.svg';
+				}
+			});
+		}
+		
+		return friends;
 	}
 
 	/**
@@ -459,7 +486,18 @@ export class DbService {
 	 */
 	static async getMyFriends(): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${API_PREFIX}${SOCIAL.FRIENDS.ALL.ME}`);
-		return this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.ME}`);
+		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.ME}`);
+		
+		// Normalize profile picture URLs
+		if (Array.isArray(friends)) {
+			friends.forEach(friend => {
+				if (friend.pic === 'default') {
+					friend.pic = '/images/default-avatar.svg';
+				}
+			});
+		}
+		
+		return friends;
 	}
 
 	/**
@@ -607,33 +645,30 @@ export class DbService {
 	 * @param code 2FA code
 	 * @param token Temporary 2FA token
 	 */
-	static async verify2FALogin(userId: string, code: string, token: string): Promise<AuthResponse> {
+	static async verify2FALogin(userId: string, code: string, token: string): Promise<void> {
 		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}`, { userId, twofaCode: '******' });
 		
 		try {
-			await this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}`, {
+			// The temporary token needs to be in the Authorization header
+			const response = await fetch(`${API_PREFIX}${AUTH.TWO_FA.VALIDATE}`, {
 				method: 'POST',
 				headers: {
+					'Content-Type': 'application/json',
 					'Authorization': `Bearer ${token}`
 				},
 				body: JSON.stringify({ 
-					twofaCode: code,
-					userId: userId
+					twofaCode: code
 				})
 			});
 			
-			return {
-				success: true,
-				user: {
-					id: userId,
-					username: sessionStorage.getItem('auth_username') || 'User',
-					email: sessionStorage.getItem('auth_email') || '',
-					created_at: new Date(),
-					last_login: new Date(),
-					auth_method: 'email'
-				},
-				token: token
-			};
+			if (!response.ok) {
+				const errorData = await response.json();
+				throw new ApiError(errorData);
+			}
+			
+			// We don't need to return any data - if validation is successful,
+			// the user will re-login with their original credentials
+			return;
 		} catch (error) {
 			throw error;
 		}

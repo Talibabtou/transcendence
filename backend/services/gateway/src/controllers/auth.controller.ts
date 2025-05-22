@@ -238,14 +238,7 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
       },
       body: JSON.stringify(request.body),
     });
-    const text = await response.text();
-    const responseData = text ? (JSON.parse(text) as IReplyLogin | ErrorResponse) : undefined;
-    console.log({
-      response: responseData,
-    });
-    if (responseData === undefined) {
-      return reply.code(response.status).send();
-    }
+    const responseData = (await response.json()) as IReplyLogin | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

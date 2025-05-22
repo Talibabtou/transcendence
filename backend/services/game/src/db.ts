@@ -33,10 +33,10 @@ export async function dbConnector(fastify: FastifyInstance) {
   await db.exec('PRAGMA journal_mode = WAL');
   await db.exec('PRAGMA synchronous = NORMAL');
   await db.exec('PRAGMA foreign_keys = ON');
-  const matchSql = fs.readFileSync(path.join(__dirname, './config/match.config.sql'), 'utf-8');
-  const goalSql = fs.readFileSync(path.join(__dirname, './config/goal.config.sql'), 'utf-8');
-  const eloSql = fs.readFileSync(path.join(__dirname, './config/elo.config.sql'), 'utf-8');
-  const playerSql = fs.readFileSync(path.join(__dirname, './config/player.config.sql'), 'utf-8');
+  const matchSql = fs.readFileSync(path.join(__dirname, '../src/config/match.config.sql'), 'utf-8');
+  const goalSql = fs.readFileSync(path.join(__dirname, '../src/config/goal.config.sql'), 'utf-8');
+  const eloSql = fs.readFileSync(path.join(__dirname, '../src/config/elo.config.sql'), 'utf-8');
+  const playerSql = fs.readFileSync(path.join(__dirname, '../src/config/player.config.sql'), 'utf-8');
   await db.exec(matchSql);
   await db.exec(goalSql);
   await db.exec(eloSql);

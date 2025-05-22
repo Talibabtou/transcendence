@@ -316,29 +316,24 @@ export const loginGuestSchema = {
   },
   response: {
     200: {
-      oneOf: [
-        {},
-        {
-          type: 'object',
-          properties: {
-            token: {
-              type: 'string',
-              pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
-              description: 'JWT token for user authentication',
-            },
-            id: {
-              type: 'string',
-              format: 'uuid',
-              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-            },
-            role: { type: 'string' },
-            username: { type: 'string' },
-            status: { type: 'string' },
-          },
-          required: ['token'],
-          additionalProperties: false,
+      type: 'object',
+      properties: {
+        token: {
+           type: 'string',
+           pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
+          description: 'JWT token for user authentication',
         },
-      ],
+        id: {
+          type: 'string',
+          format: 'uuid',
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+        },
+        role: { type: 'string' },
+        username: { type: 'string' },
+        status: { type: 'string' },
+      },
+      required: [],
+      additionalProperties: false,
     },
     401: {
       ...errorResponseSchema,
