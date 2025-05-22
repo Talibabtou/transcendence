@@ -90,9 +90,7 @@ export async function getFinalMatches(
       id
     );
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
-    if (matchCountResult.total_matches !== 6) {
-      return sendError(reply, 400, ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT);
-    }
+    if (matchCountResult.total_matches !== 6) return sendError(reply, 400, ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT);
     const topVictories = (await request.server.db.all(
       'SELECT player_id, victory_count FROM tournament_top_victories WHERE tournament_id = ? LIMIT 4', // Ensure you get top 3
       id

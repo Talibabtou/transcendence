@@ -1,7 +1,7 @@
+import { dbConnector } from './db.js';
 import { fastify, FastifyInstance } from 'fastify';
 import friendsRoutes from './routes/friends.routes.js';
 import { fastifyConfig } from './config/fastify.config.js';
-import { dbConnector } from './db.js';
 
 class Server {
   private static instance: FastifyInstance;

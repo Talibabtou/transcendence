@@ -473,6 +473,36 @@ try {
         `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
       );
   }
+  //2FA check get success
+  {
+    const name = '2FA check get success';
+    count += 1;
+    const method = 'GET';
+    const path = '/auth/2fa/status';
+    const response = await fetch(authUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
   //2FA generated success
   {
     const name = '2FA generated success';

@@ -1,13 +1,13 @@
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
-import { NodeSDK } from '@opentelemetry/sdk-node';
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { Resource } from '@opentelemetry/resources';
-import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { initializeMetrics } from './metrics.js'; // Import the initializer
-// Import the Fastify instrumentation using default import for CommonJS compatibility
 import fastifyOtel from '@fastify/otel';
+import { initializeMetrics } from './metrics.js'; // Import the initializer
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { Resource } from '@opentelemetry/resources';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+// Import the Fastify instrumentation using default import for CommonJS compatibility
 const { FastifyOtelInstrumentation } = fastifyOtel;
 
 // Configure the Prometheus Exporter
@@ -50,11 +50,8 @@ export async function startTelemetry() {
   try {
     await sdk.start();
     console.log('OpenTelemetry SDK started successfully.');
-
     // Initialize custom metrics AFTER the SDK has started
     initializeMetrics();
-
-    // Graceful shutdown
     process.on('SIGTERM', async () => {
       try {
         await sdk.shutdown();

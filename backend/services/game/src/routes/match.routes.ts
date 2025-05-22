@@ -1,5 +1,4 @@
 import { FastifyInstance } from 'fastify';
-import { GetMatchesQuery, IId, CreateMatchRequest, GetPageQuery } from '../shared/types/match.type.js';
 import {
   getMatch,
   getMatches,
@@ -8,6 +7,7 @@ import {
   matchStats,
   matchSummary,
 } from '../controllers/match.controller.js';
+import { GetMatchesQuery, IId, CreateMatchRequest, GetPageQuery } from '../shared/types/match.type.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Querystring: GetMatchesQuery }>('/matches', getMatches);
@@ -17,8 +17,6 @@ export default async function matchRoutes(fastify: FastifyInstance): Promise<voi
   fastify.get<{ Params: IId; Querystring: GetPageQuery }>('/match/history/:id', getMatchHistory);
 
   fastify.post<{ Body: CreateMatchRequest }>('/match', createMatch);
-
-  // fastify.get<{ Params: IId }>('/match/:id/stats', matchTimeline);
 
   fastify.get<{ Params: IId }>('/match/stats/:id', matchStats);
 

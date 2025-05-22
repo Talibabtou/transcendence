@@ -1,4 +1,3 @@
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   getFriends,
   getFriendStatus,
@@ -9,6 +8,7 @@ import {
   deleteFriends,
 } from '../controllers/friends.controller.js';
 import { IId } from '../shared/types/gateway.types.js';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>('/all/:id', getFriends);

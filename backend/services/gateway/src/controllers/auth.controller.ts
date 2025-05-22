@@ -246,3 +246,28 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
     return reply.code(500).send(errorMessage);
   }
 }
+
+export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) {
+  try {
+    const id: string = (request.user as FastifyJWT['user']).id;
+    const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const response = await fetch(serviceUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: request.headers.authorization || '',
+      },
+    });
+    if (response.status === 200) {
+      const data = await response.json();
+      return reply.code(200).send(data);
+    } else {
+      const errorData = await response.json();
+      return reply.code(response.status).send(errorData);
+    }
+  } catch (err) {
+    request.server.log.error(err);
+    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorMessage);
+  }
+}

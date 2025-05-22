@@ -105,9 +105,7 @@ export async function getSummary(
         pics: 'link' in reponseDataPic ? reponseDataPic : { link: 'undefined' },
       };
       return reply.code(200).send(summary);
-    } else {
-      return sendError(reply, 404, ErrorCodes.SUMMARY_NOT_FOUND);
-    }
+    } else return sendError(reply, 404, ErrorCodes.SUMMARY_NOT_FOUND);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -171,9 +169,7 @@ export async function deletePic(
         const filePath = path.join(uploadDir, file);
         fs.unlinkSync(filePath);
       });
-    } else {
-      return sendError(reply, 404, ErrorCodes.PICTURE_NOT_FOUND);
-    }
+    } else return sendError(reply, 404, ErrorCodes.PICTURE_NOT_FOUND);
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
