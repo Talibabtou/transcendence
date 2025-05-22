@@ -1,8 +1,8 @@
 import { dbConnector } from './db.js';
 import { routes } from './routes/index.routes.js';
 import fastify, { FastifyInstance } from 'fastify';
+import { fastifyConfig } from './config/fastify.config.js';
 import { startTelemetry } from './telemetry/telemetry.js';
-import { fastifyConfig } from './config/fastify.js';
 
 class Server {
   private static instance: FastifyInstance;

@@ -1,21 +1,18 @@
-import { FastifyInstance } from 'fastify';
-import * as fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import * as fs from 'node:fs';
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
+import { fileURLToPath } from 'node:url';
+import { FastifyInstance } from 'fastify';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-/**
- * Extends the FastifyInstance interface to include a 'db' property for the SQLite database connection.
- */
 declare module 'fastify' {
   interface FastifyInstance {
     db: Database;
   }
 }
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Connects the Fastify server instance to the SQLite database.
@@ -37,8 +34,7 @@ export async function dbConnector(fastify: FastifyInstance) {
   await db.exec('PRAGMA busy_timeout = 30000');
   await db.exec('PRAGMA journal_mode = WAL');
   await db.exec('PRAGMA synchronous = NORMAL');
-  await db.exec('PRAGMA foreign_keys = ON');
-  const friendsSql = fs.readFileSync(path.join(__dirname, '../src/config/friends.sql'), 'utf-8');
+  const friendsSql = fs.readFileSync(path.join(__dirname, '../src/config/friends.config.sql'), 'utf-8');
   await db.exec(friendsSql);
   fastify.decorate('db', db);
   fastify.addHook('onClose', async (instance) => {

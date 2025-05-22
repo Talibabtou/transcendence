@@ -10,9 +10,7 @@ import {
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
-  getUsers,
   getUser,
-  getUserMe,
   deleteUser,
   modifyUser,
   logout,
@@ -35,11 +33,7 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/username/:id', getUsername);
 
-  fastify.get('/users', getUsers);
-
   fastify.get<{ Params: IId }>('/user/:id', getUser);
-
-  fastify.get<{ Params: IId }>('/user/me/:id', getUserMe);
 
   fastify.get<{ Params: IId }>('/revoked/:id', checkRevoked);
 
