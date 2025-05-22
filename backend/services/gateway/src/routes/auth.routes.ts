@@ -1,25 +1,5 @@
-import { FastifyInstance } from 'fastify';
-import { IAddUser, ILogin, IModifyUser, IId, IUsername } from '../shared/types/auth.types.js';
-import {
-  getId,
-  getUsers,
-  getUser,
-  getUserMe,
-  postUser,
-  patchUser,
-  deleteUser,
-  postLogin,
-  postLoginGuest,
-  postLogout,
-  twofaGenerate,
-  twofaValidate,
-  twofaDisable,
-  getUsername,
-} from '../controllers/auth.controller.js';
 import {
   getUserSchema,
-  getUserMeSchema,
-  getUsersSchema,
   deleteUserSchema,
   createUserSchema,
   modifyUserSchema,
@@ -38,6 +18,22 @@ import {
   rateLimitConfigLow,
   rateLimitConfigMid,
 } from '../config/routes.config.js';
+import { FastifyInstance } from 'fastify';
+import {
+  getId,
+  getUser,
+  postUser,
+  patchUser,
+  deleteUser,
+  postLogin,
+  postLoginGuest,
+  postLogout,
+  twofaGenerate,
+  twofaValidate,
+  twofaDisable,
+  getUsername,
+} from '../controllers/auth.controller.js';
+import { IAddUser, ILogin, IModifyUser, IId, IUsername } from '../shared/types/auth.types.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: IUsername }>(
@@ -70,21 +66,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
     getUsername
   );
 
-  fastify.get(
-    '/auth/users',
-    {
-      schema: {
-        ...getUsersSchema,
-        tags: ['auth'],
-      },
-      config: {
-        ...routesConfigAuth,
-        rateLimit: rateLimitConfigMid,
-      },
-    },
-    getUsers
-  );
-
   fastify.get<{ Params: IId }>(
     '/auth/user/:id',
     {
@@ -98,21 +79,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     getUser
-  );
-
-  fastify.get(
-    '/auth/user/me',
-    {
-      schema: {
-        ...getUserMeSchema,
-        tags: ['auth'],
-      },
-      config: {
-        ...routesConfigAuth,
-        rateLimit: rateLimitConfigMid,
-      },
-    },
-    getUserMe
   );
 
   fastify.get(

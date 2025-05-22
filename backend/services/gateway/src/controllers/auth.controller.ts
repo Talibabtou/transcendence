@@ -1,7 +1,3 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { FastifyJWT } from '../middleware/jwt.js';
-import { ErrorResponse } from '../shared/types/error.type.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
   IAddUser,
   ILogin,
@@ -12,6 +8,10 @@ import {
   IUsername,
   IId,
 } from '../shared/types/auth.types.js';
+import { FastifyJWT } from '../middleware/jwt.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { ErrorResponse } from '../shared/types/error.type.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
@@ -41,39 +41,10 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
   }
 }
 
-export async function getUsers(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
-    const response = await fetch(serviceUrl, { method: 'GET' });
-    const users = (await response.json()) as IReplyUser[] | ErrorResponse;
-    return reply.code(response.status).send(users);
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
-
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
-    const response = await fetch(serviceUrl, { method: 'GET' });
-    const user = (await response.json()) as IReplyUser | ErrorResponse;
-    return reply.code(response.status).send(user);
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
-
-export async function getUserMe(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const user = (await response.json()) as IReplyUser | ErrorResponse;
     return reply.code(response.status).send(user);
@@ -267,14 +238,7 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
       },
       body: JSON.stringify(request.body),
     });
-    const text = await response.text();
-    const responseData = text ? (JSON.parse(text) as IReplyLogin | ErrorResponse) : undefined;
-    console.log({
-      response: responseData,
-    });
-    if (responseData === undefined) {
-      return reply.code(response.status).send();
-    }
+    const responseData = (await response.json()) as IReplyLogin | ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);

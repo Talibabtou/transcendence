@@ -120,14 +120,6 @@ export class DbService {
 				body: JSON.stringify(userData)
 			});
 			
-			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
-				method: 'POST',
-				body: JSON.stringify({
-					email: userData.email,
-					password: userData.password
-				})
-			});
-			
 			return {
 				success: true,
 				user: {
@@ -137,9 +129,9 @@ export class DbService {
 					created_at: new Date(),
 					last_login: new Date(),
 					auth_method: 'email',
-					theme: '#ffffff' // Default theme, appState will initialize/override
+					theme: '#ffffff'
 				},
-				token: loginResponse.token // Ensure token is returned
+				token: ''
 			};
 		} catch (error) {
 			throw error;
@@ -191,6 +183,57 @@ export class DbService {
 			};
 		} catch (error) {
 			console.error('Login failed:', error);
+			throw error;
+		}
+	}
+	
+	/**
+	 * Guest login for tournament/game registration
+	 * Identical to regular login but used in the context of guest authentication for tournaments
+	 * @param credentials - User credentials
+	 */
+	static async guestLogin(credentials: ILogin): Promise<AuthResponse> {
+		this.logRequest('POST', `${AUTH.GUEST_LOGIN}`, {
+			email: credentials.email,
+			password: '********',
+			context: 'guest'
+		});
+		
+		try {
+			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.GUEST_LOGIN}`, {
+				method: 'POST',
+				body: JSON.stringify(credentials)
+			});
+			
+			if (loginResponse.status === 'NEED_2FA') {
+				return {
+					success: false,
+					requires2FA: true,
+					user: {
+						id: loginResponse.id || '',
+						username: loginResponse.username || 'User',
+						created_at: new Date(),
+						auth_method: 'email'
+					},
+					token: loginResponse.token
+				};
+			}
+			
+			return {
+				success: true,
+				user: {
+					id: loginResponse.id || '',
+					username: loginResponse.username || '',
+					email: credentials.email,
+					created_at: new Date(),
+					last_login: new Date(),
+					auth_method: 'email',
+					theme: '#ffffff'
+				},
+				token: ''
+			};
+		} catch (error) {
+			console.error('Guest login failed:', error);
 			throw error;
 		}
 	}

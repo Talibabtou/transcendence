@@ -1,3 +1,4 @@
+import { sendError } from '../helper/auth.helper.js';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { createErrorResponse, ErrorCodes } from '../shared/constants/error.const.js';
@@ -20,6 +21,12 @@ export interface FastifyJWT {
   };
 }
 
+/**
+ * Extracts the JWT token from the Authorization header or query parameter.
+ *
+ * @param request - FastifyRequest object from which to extract the token.
+ * @returns The JWT token as a string if found, otherwise null.
+ */
 const customExtractToken = (request: FastifyRequest): string | null => {
   const authHeader = request.headers.authorization;
   if (authHeader?.startsWith('Bearer ')) {
@@ -33,6 +40,10 @@ const customExtractToken = (request: FastifyRequest): string | null => {
   return null;
 };
 
+/**
+ * JWT configuration object for Fastify JWT plugin.
+ * Sets the secret and token expiration.
+ */
 export const jwtRegister = {
   secret: process.env.JWT_SECRET || 'super_secret',
   sign: {
@@ -40,6 +51,20 @@ export const jwtRegister = {
   },
 };
 
+/**
+ * Fastify pre-handler hook for JWT authentication and authorization.
+ * - Verifies the presence and validity of a JWT token.
+ * - Checks if the user exists and if the JWT is revoked.
+ * - Validates user roles if required by the route.
+ * - Sends appropriate error responses for authentication/authorization failures.
+ *
+ * @param request - FastifyRequest object for the incoming request.
+ * @param reply - FastifyReply object for sending the response.
+ * @returns Promise<void>
+ *   401 - Unauthorized (ErrorCodes.JWT_BAD_HEADER, ErrorCodes.JWT_EXP_TOKEN, ErrorCodes.UNAUTHORIZED)
+ *   403 - Forbidden, insufficient permissions (ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS)
+ *   500 - Internal server error (ErrorCodes.UNAUTHORIZED)
+ */
 export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   if (!request.routeOptions.config || !request.routeOptions.config?.auth) {
     request.server.log.info('[jwtHook] No auth required for this route.');
@@ -50,13 +75,8 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
   try {
     let tokenToVerify: string | null = null;
     let userPayload: FastifyJWT['user'] | null = null;
-
     tokenToVerify = customExtractToken(request);
-
-    if (!tokenToVerify) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.JWT_BAD_HEADER);
-      return reply.code(401).send(errorMessage);
-    }
+    if (!tokenToVerify) return sendError(reply, 401, ErrorCodes.JWT_BAD_HEADER);
     try {
       userPayload = await request.server.jwt.verify<FastifyJWT['user']>(tokenToVerify);
       request.user = userPayload;
@@ -72,19 +92,14 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
       const errorMessage = createErrorResponse(401, errorCode);
       return reply.code(401).send(errorMessage);
     }
-
-    if (!request.user) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
-      return reply.code(401).send(errorMessage);
-    }
+    if (!request.user) return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
     // Check if user exist
     const id: string = (request.user as FastifyJWT['user']).id;
     const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       request.server.log.warn(`[jwtHook] User check failed (status ${user.status}) for ID: ${id}`);
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
-      return reply.code(401).send(errorMessage);
+      return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
     }
     request.server.log.info(`[jwtHook] User check successful for ID: ${id}`);
     // Check if revoked
@@ -101,9 +116,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
         return reply.code(revoked.status).send(responseData);
       }
       request.server.log.info(`[jwtHook] Revoked check successful for JWT ID: ${jwtId}`);
-    } else {
-      request.server.log.info('[jwtHook] No jwtId found in token, skipping revoked check.');
-    }
+    } else request.server.log.info('[jwtHook] No jwtId found in token, skipping revoked check.');
     // Check role
     const requiredRoles = request.routeOptions.config?.roles;
     const userRole = (request.user as FastifyJWT['user']).role;
@@ -114,8 +127,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
         requiredRoles,
         userRole: userRole,
       });
-      const errorMessage = createErrorResponse(403, ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS);
-      return reply.code(403).send(errorMessage);
+      return sendError(reply, 403, ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS);
     }
     return;
   } catch (err: any) {
@@ -127,7 +139,6 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
       url: request.url,
       stack: err.stack?.substring(0, 300),
     });
-    const errorMessage = createErrorResponse(500, ErrorCodes.UNAUTHORIZED);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }

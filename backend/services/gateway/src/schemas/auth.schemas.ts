@@ -133,77 +133,6 @@ export const getUserSchema = {
   },
 };
 
-export const getUserMeSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        username: { type: 'string' },
-        email: { type: 'string', format: 'email' },
-        id: {
-          type: 'string',
-          format: 'uuid',
-          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-        },
-      },
-      required: ['username', 'email', 'id'],
-      additionalProperties: false,
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotFound,
-    },
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.sqliteMismatch,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
-export const getUsersSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  response: {
-    200: {
-      type: 'array',
-      item: {
-        type: 'object',
-        properties: {
-          username: { type: 'string' },
-          email: { type: 'string', format: 'email' },
-          id: {
-            type: 'string',
-            format: 'uuid',
-            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-          },
-        },
-        required: ['username', 'email', 'id'],
-        additionalProperties: false,
-      },
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const deleteUserSchema = {
   querystring: {
     type: 'object',
@@ -387,29 +316,24 @@ export const loginGuestSchema = {
   },
   response: {
     200: {
-      oneOf: [
-        {},
-        {
-          type: 'object',
-          properties: {
-            token: {
-              type: 'string',
-              pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
-              description: 'JWT token for user authentication',
-            },
-            id: {
-              type: 'string',
-              format: 'uuid',
-              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-            },
-            role: { type: 'string' },
-            username: { type: 'string' },
-            status: { type: 'string' },
-          },
-          required: ['token'],
-          additionalProperties: false,
+      type: 'object',
+      properties: {
+        token: {
+           type: 'string',
+           pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
+          description: 'JWT token for user authentication',
         },
-      ],
+        id: {
+          type: 'string',
+          format: 'uuid',
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+        },
+        role: { type: 'string' },
+        username: { type: 'string' },
+        status: { type: 'string' },
+      },
+      required: [],
+      additionalProperties: false,
     },
     401: {
       ...errorResponseSchema,

@@ -1,5 +1,5 @@
 import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, ApiError } from '@website/scripts/services';
+import { DbService, html, ApiError, connectAuthenticatedWebSocket } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -128,15 +128,30 @@ export class RegistrationHandler {
 		try {
 			const hashedPassword = await hashPassword(password);
 			
-			const response = await DbService.register({ 
+			// Step 1: Register the user
+			const registerResponse = await DbService.register({ 
 				username, 
 				email, 
 				password: hashedPassword 
 			});
 			
-			if (response.success && response.user && response.token) {
-				const userFromDb = response.user;
-				const token = response.token;
+			if (!registerResponse.success || !registerResponse.user) {
+				this.updateState({
+					isLoading: false,
+					error: 'Registration failed. Please try again.'
+				});
+				return;
+			}
+			
+			// Step 2: Login the user after successful registration
+			const loginResponse = await DbService.login({
+				email,
+				password: hashedPassword
+			});
+			
+			if (loginResponse.success && loginResponse.user && loginResponse.token) {
+				const userFromDb = loginResponse.user;
+				const token = loginResponse.token;
 				
 				// Construct UserData for AuthManager/appState
 				const userData: UserData = {
@@ -150,12 +165,15 @@ export class RegistrationHandler {
 				this.setCurrentUser(userData, token);
 				this.resetForm(form);
 				
+				// Initialize WebSocket connection using centralized function
+				connectAuthenticatedWebSocket(token);
+
 				this.updateState({ isLoading: false });
 				this.switchToSuccessState();
 			} else {
 				this.updateState({
 					isLoading: false,
-					error: 'Registration failed. Please try again.'
+					error: 'Account created but login failed. Please try logging in manually.'
 				});
 			}
 		} catch (error: unknown) {

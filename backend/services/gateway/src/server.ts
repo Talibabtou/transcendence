@@ -7,23 +7,23 @@ import {
   rateLimitConfig,
   swaggerConfig,
   swaggerUiConfig,
-} from './config/index.js';
+} from './config/index.config.js';
 import cors from '@fastify/cors';
 // import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
-import routes from './routes/index.routes.js';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
 // import { Http2SecureServer } from 'http2';
+import routes from './routes/index.routes.js';
 import fastifySwagger from '@fastify/swagger';
 import websocketPlugin from '@fastify/websocket';
 import fastifyMultipart from '@fastify/multipart';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { fastify, FastifyInstance } from 'fastify';
-import errorHandler from './config/errorHandler.js';
 import websocketRoutes from './middleware/websocket.js';
-import { addHeaders, blockHeaders } from './config/headers.js';
 import { jwtHook, jwtRegister } from './middleware/jwt.js';
+import errorHandler from './config/errorHandler.config.js';
+import { addHeaders, blockHeaders } from './config/headers.config.js';
 // import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 
 export class Server {

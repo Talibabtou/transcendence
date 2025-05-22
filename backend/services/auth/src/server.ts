@@ -1,10 +1,10 @@
 import { dbConnector } from './db.js';
 import fastifyJwt from '@fastify/jwt';
 import routes from './routes/auth.routes.js';
-import { fastify, FastifyInstance } from 'fastify';
-import { fastifyConfig } from './config/fastify.js';
-import { startTelemetry } from './telemetry/telemetry.js';
 import { jwtRegister } from './middleware/jwt.js';
+import { fastify, FastifyInstance } from 'fastify';
+import { fastifyConfig } from './config/fastify.config.js';
+import { startTelemetry } from './telemetry/telemetry.js';
 
 class Server {
   private static instance: FastifyInstance;

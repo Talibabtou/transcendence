@@ -26,7 +26,7 @@ export interface IReplyUser {
 }
 
 export interface IReplyLogin {
-  token: string;
+  token?: string;
   id?: string;
   role?: string;
   username?: string;
