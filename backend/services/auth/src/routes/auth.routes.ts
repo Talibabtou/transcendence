@@ -7,7 +7,6 @@ import {
   I2faCode,
   IUsername,
 } from '../shared/types/auth.types.js';
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import {
   addUser,
   getUser,
@@ -22,7 +21,9 @@ import {
   twofaValidate,
   getId,
   getUsername,
+  twofaStatus,
 } from '../controllers/auth.controller.js';
+import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
 export default async function authRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => {
@@ -38,6 +39,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.get<{ Params: IId }>('/revoked/:id', checkRevoked);
 
   fastify.get<{ Params: IId }>('/2fa/generate/:id', twofaGenerate);
+
+  fastify.get<{ Params: IId }>('/2fa/status/:id', twofaStatus);
 
   fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/validate/:id', twofaValidate);
 

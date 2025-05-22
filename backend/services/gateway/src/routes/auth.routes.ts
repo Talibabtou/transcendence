@@ -11,6 +11,7 @@ import {
   twofaGenerateSchema,
   getIdSchema,
   getUsernameSchema,
+  twofaStatusSchema,
 } from '../schemas/auth.schemas.js';
 import {
   routesConfigAuth,
@@ -32,6 +33,7 @@ import {
   twofaValidate,
   twofaDisable,
   getUsername,
+  twofaStatus,
 } from '../controllers/auth.controller.js';
 import { IAddUser, ILogin, IModifyUser, IId, IUsername } from '../shared/types/auth.types.js';
 
@@ -94,6 +96,21 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     twofaGenerate
+  );
+
+  fastify.get(
+    '/auth/2fa/status',
+    {
+      schema: {
+        ...twofaStatusSchema,
+        tags: ['2fa'],
+      },
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
+    },
+    twofaStatus
   );
 
   fastify.post(

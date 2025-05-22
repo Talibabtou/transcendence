@@ -52,11 +52,8 @@ export async function getFriends(
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
-        if ('username' in user) {
-          friends[i].username = user.username;
-        } else {
-          friends[i].username = 'undefined';
-        }
+        if ('username' in user) friends[i].username = user.username;
+        else friends[i].username = 'undefined';
       } catch (err) {
         request.server.log.error(err);
         friends[i].username = 'undefined';
@@ -65,11 +62,8 @@ export async function getFriends(
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
-        if ('link' in pic) {
-          friends[i].pic = pic.link;
-        } else {
-          friends[i].pic = 'default';
-        }
+        if ('link' in pic) friends[i].pic = pic.link;
+        else friends[i].pic = 'default';
       } catch (err) {
         request.server.log.error(err);
         friends[i].pic = 'default';
@@ -117,11 +111,8 @@ export async function getFriendsMe(
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
-        if ('username' in user) {
-          friends[i].username = user.username;
-        } else {
-          friends[i].username = 'undefined';
-        }
+        if ('username' in user) friends[i].username = user.username;
+        else friends[i].username = 'undefined';
       } catch (err) {
         request.server.log.error(err);
         friends[i].username = 'undefined';
@@ -130,11 +121,8 @@ export async function getFriendsMe(
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
-        if ('link' in pic) {
-          friends[i].pic = pic.link;
-        } else {
-          friends[i].pic = 'default';
-        }
+        if ('link' in pic) friends[i].pic = pic.link;
+        else friends[i].pic = 'default';
       } catch (err) {
         request.server.log.error(err);
         friends[i].pic = 'default';
