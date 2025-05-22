@@ -75,7 +75,6 @@ export async function getFriends(
         friends[i].pic = 'default';
       }
     }
-    request.log.info(friends);
     return reply.code(200).send(friends);
   } catch (err) {
     request.server.log.error(err);
@@ -141,7 +140,6 @@ export async function getFriendsMe(
         friends[i].pic = 'default';
       }
     }
-    request.log.info(friends);
     return reply.code(200).send(friends);
   } catch (err) {
     request.server.log.error(err);

@@ -355,8 +355,25 @@ export async function loginGuest(
       [email, password]
     );
     if (!data) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+      const errorMessage = createErrorResponse(401, ErrorCodes.LOGIN_FAILURE);
       return reply.code(401).send(errorMessage);
+    }
+    if (data.two_factor_enabled && !data.verified) {
+      const token: string = request.server.jwt.sign(
+        {
+          id: data.id,
+          role: '2fa',
+        },
+        { expiresIn: '1m' }
+      );
+      const user: IReplyLogin = {
+        token: token,
+        id: data.id,
+        role: '2fa',
+        username: data.username,
+        status: 'NEED_2FA',
+      };
+      return reply.code(200).send(user);
     }
     return reply.code(200).send();
   } catch (err) {
