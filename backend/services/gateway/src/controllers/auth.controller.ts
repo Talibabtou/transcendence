@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
+import { FastifyJWT } from '../middleware/jwt.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import {
@@ -267,36 +267,15 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
       },
       body: JSON.stringify(request.body),
     });
-    if (response.status >= 400) {
-      const responseData = (await response.json()) as ErrorResponse;
-      return reply.code(response.status).send(responseData);
-    }
-    return reply.code(response.status).send();
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
-
-export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
-    const response = await fetch(serviceUrl, {
-      method: 'GET',
-      headers: {
-        Authorization: request.headers.authorization || '',
-      },
+    const text = await response.text();
+    const responseData = text ? (JSON.parse(text) as IReplyLogin | ErrorResponse) : undefined;
+    console.log({
+      response: responseData,
     });
-    if (response.status === 200) {
-      const data = await response.json();
-      return reply.code(200).send(data);
-    } else {
-      const errorData = await response.json();
-      return reply.code(response.status).send(errorData);
+    if (responseData === undefined) {
+      return reply.code(response.status).send();
     }
+    return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

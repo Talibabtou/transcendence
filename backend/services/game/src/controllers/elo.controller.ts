@@ -223,7 +223,7 @@ export async function getLeaderboard(
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IReplyUser | ErrorResponse;
-        if ('username' in user && user.username !== 'computer') {
+        if ('username' in user && user.username !== 'ai') {
           leaderboard[i].username = user.username;
         } else {
           leaderboard.splice(i, 1);

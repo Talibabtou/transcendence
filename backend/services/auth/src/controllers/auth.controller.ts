@@ -299,7 +299,7 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       [email, password]
     );
     if (!data) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+      const errorMessage = createErrorResponse(401, ErrorCodes.LOGIN_FAILURE);
       return reply.code(401).send(errorMessage);
     }
     if (data.two_factor_enabled && !data.verified) {
@@ -355,8 +355,25 @@ export async function loginGuest(
       [email, password]
     );
     if (!data) {
-      const errorMessage = createErrorResponse(401, ErrorCodes.UNAUTHORIZED);
+      const errorMessage = createErrorResponse(401, ErrorCodes.LOGIN_FAILURE);
       return reply.code(401).send(errorMessage);
+    }
+    if (data.two_factor_enabled && !data.verified) {
+      const token: string = request.server.jwt.sign(
+        {
+          id: data.id,
+          role: '2fa',
+        },
+        { expiresIn: '1m' }
+      );
+      const user: IReplyLogin = {
+        token: token,
+        id: data.id,
+        role: '2fa',
+        username: data.username,
+        status: 'NEED_2FA',
+      };
+      return reply.code(200).send(user);
     }
     return reply.code(200).send();
   } catch (err) {
@@ -450,22 +467,6 @@ export async function twofaDisable(
       [id]
     );
     return reply.code(200).send();
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
-
-export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
-  try {
-    const id = request.params.id;
-    const data = await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id]);
-    if (!data) {
-      const errorMessage = createErrorResponse(404, ErrorCodes.PLAYER_NOT_FOUND);
-      return reply.code(404).send(errorMessage);
-    }
-    return reply.code(200).send(data);
   } catch (err) {
     request.server.log.error(err);
     const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);

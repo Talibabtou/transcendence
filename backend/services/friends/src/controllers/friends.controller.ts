@@ -37,7 +37,8 @@ export async function getFriends(
         CASE 
           WHEN id_1 = ? THEN id_2 
           ELSE id_1 
-        END AS id, 
+        END AS id,
+        id_1 AS requesting,
         accepted, 
         created_at 
       FROM friends
@@ -46,6 +47,7 @@ export async function getFriends(
     );
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
+      friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
@@ -56,6 +58,7 @@ export async function getFriends(
           friends[i].username = 'undefined';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].username = 'undefined';
       }
       try {
@@ -68,6 +71,7 @@ export async function getFriends(
           friends[i].pic = 'default';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].pic = 'default';
       }
     }
@@ -99,6 +103,7 @@ export async function getFriendsMe(
           WHEN id_1 = ? THEN id_2 
           ELSE id_1 
         END AS id, 
+        id_1 AS requesting, 
         accepted, 
         created_at 
       FROM friends
@@ -107,6 +112,7 @@ export async function getFriendsMe(
     );
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
+      friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
         const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
@@ -117,6 +123,7 @@ export async function getFriendsMe(
           friends[i].username = 'undefined';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].username = 'undefined';
       }
       try {
@@ -129,6 +136,7 @@ export async function getFriendsMe(
           friends[i].pic = 'default';
         }
       } catch (err) {
+        request.server.log.error(err);
         friends[i].pic = 'default';
       }
     }
@@ -144,7 +152,7 @@ export async function getFriendsMe(
  *
  * @param request - FastifyRequest object containing user IDs in params and query.
  * @param reply - FastifyReply object for sending the response.
- * @returns 200 with friendship status and requester ID, 400 if invalid ID or same user, 404 if not found, 500 on server error.
+ * @returns 200 with friendship status, 400 if invalid ID or same user, 404 if not found, 500 on server error.
  */
 export async function getFriendStatus(
   request: FastifyRequest<{ Querystring: IId; Params: IId }>,
@@ -153,10 +161,10 @@ export async function getFriendStatus(
   try {
     const { id } = request.query;
     if (!isValidId(id) || id === request.params.id) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-    const friendStatus = await request.server.db.get(
+    const friendStatus = await request.server.db.get<IReplyFriendStatus>(
       `
       SELECT
-        id_1,
+        id_1 AS requesting,
         accepted AS status
       FROM friends
       WHERE
@@ -166,14 +174,7 @@ export async function getFriendStatus(
       [id, request.params.id, request.params.id, id]
     );
     if (!friendStatus) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
-    // Transform the response to match the expected format with 'requesting' field
-    const response = {
-      status: friendStatus.status,
-      requesting: friendStatus.id_1,
-    };
-
-    return reply.code(200).send(response);
+    return reply.code(200).send(friendStatus);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -201,7 +202,6 @@ export async function postFriend(
       [request.params.id, id, request.params.id, id]
     );
     if (friend.FriendExists) return sendError(reply, 409, ErrorCodes.FRIENDSHIP_EXISTS);
-
     await request.server.db.run(
       'INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);',
       [request.params.id, id]
@@ -209,6 +209,7 @@ export async function postFriend(
     return reply.code(201).send();
   } catch (err) {
     if (err instanceof Error) {
+      request.server.log.error(err);
       if (err.message.includes('SQLITE_MISMATCH')) return sendError(reply, 400, ErrorCodes.SQLITE_MISMATCH);
       if (err.message.includes('SQLITE_CONSTRAINT'))
         return sendError(reply, 409, ErrorCodes.SQLITE_CONSTRAINT);
@@ -261,7 +262,6 @@ export async function deleteFriends(
       request.params.id,
     ]);
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
@@ -288,7 +288,6 @@ export async function deleteFriend(
       [request.params.id, id, id, request.params.id]
     );
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);

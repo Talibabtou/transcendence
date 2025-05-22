@@ -252,7 +252,7 @@ try {
     const name = 'Get multiple matches success';
     count += 1;
     const method = 'GET';
-    const path = `/tournaments?id=${userId1}`;
+    const path = `/tournaments?player_id=${userId1}`;
     const response = await fetch(gameUrl + path, {
       method: method,
       headers: {

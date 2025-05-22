@@ -1,6 +1,6 @@
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { FastifyJWT } from '../plugins/jwtPlugin.js';
+import { FastifyJWT } from '../middleware/jwt.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.types.js';
 import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';

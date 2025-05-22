@@ -18,8 +18,12 @@ import {
   deleteFriend,
   deleteFriends,
 } from '../controllers/friends.controller.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import {
+  routesConfigAuth,
+  rateLimitConfigHigh,
+  rateLimitConfigLow,
+  rateLimitConfigMid,
+} from '../config/routes.config.js';
 
 export default async function friendsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: IId }>(
@@ -29,7 +33,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...getFriendsSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getFriends
   );
@@ -41,7 +48,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...getFriendsMeSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getFriendsMe
   );
@@ -53,7 +63,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...getStatusSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getFriendStatus
   );
@@ -65,7 +78,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...postCreateSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     postFriend
   );
@@ -77,7 +93,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...patchAcceptSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     patchFriend
   );
@@ -89,7 +108,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...deleteAllSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     deleteFriends
   );
@@ -101,7 +123,10 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
         ...deleteFriendSchema,
         tags: ['friends'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     deleteFriend
   );

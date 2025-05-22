@@ -39,7 +39,7 @@ export interface GetTournamentQuery {
 }
 
 export interface GetTournamentsQuery {
-  player_id?: string;
+  player_id: string;
   limit?: number;
   offset?: number;
 }

@@ -19,4 +19,4 @@ CREATE TABLE IF NOT EXISTS users (
 	created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
 
 INSERT OR IGNORE INTO users (role, username, password, email, created_at)
-	VALUES ("admin", "ia", "ia", "ia@ia.com", CURRENT_TIMESTAMP);
+	VALUES ("admin", "ai", "ai", "ai@ai.com", CURRENT_TIMESTAMP);

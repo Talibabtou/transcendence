@@ -4,7 +4,7 @@ import routes from './routes/auth.routes.js';
 import { fastify, FastifyInstance } from 'fastify';
 import { fastifyConfig } from './config/fastify.js';
 import { startTelemetry } from './telemetry/telemetry.js';
-import { jwtPluginRegister } from './plugins/jwtPlugin.js';
+import { jwtRegister } from './middleware/jwt.js';
 
 class Server {
   private static instance: FastifyInstance;
@@ -24,7 +24,7 @@ class Server {
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       await dbConnector(server);
       await server.register(routes);
-      await server.register(fastifyJwt, jwtPluginRegister);
+      await server.register(fastifyJwt, jwtRegister);
       await server.listen({
         port: Number(process.env.AUTH_PORT) || 8082,
         host: process.env.AUTH_ADDR || 'localhost',

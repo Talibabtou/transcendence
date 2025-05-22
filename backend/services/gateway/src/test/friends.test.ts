@@ -246,6 +246,36 @@ try {
       }
     }
   }
+  //Get all relations with id success
+  {
+    const name = 'Get all relations with id success';
+    count += 1;
+    const method = 'GET';
+    const path = `/all/${userId2}`;
+    const response = await fetch(friendsUrl + path, {
+      method: method,
+      headers: {
+        Authorization: `Bearer ${token1}`,
+      },
+    });
+    if (response.status === 500) {
+      severalIssues += 1;
+      countFailed += 1;
+      issuesList.push(name);
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
+      );
+    } else if (response.status !== 200) {
+      countFailed += 1;
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
+      );
+    } else {
+      console.log(
+        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
+      );
+    }
+  }
   // ----------------------------------------------------------------
   //Accept relation success
   {
@@ -321,36 +351,6 @@ try {
     }
   }
   // ----------------------------------------------------------------
-  //Get all relations with id success
-  {
-    const name = 'Get all relations with id success';
-    count += 1;
-    const method = 'GET';
-    const path = `/all/${userId2}`;
-    const response = await fetch(friendsUrl + path, {
-      method: method,
-      headers: {
-        Authorization: `Bearer ${token1}`,
-      },
-    });
-    if (response.status === 500) {
-      severalIssues += 1;
-      countFailed += 1;
-      issuesList.push(name);
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}${BOLD}SEVERAL ISSUE (Code: ${response.status}) ❌${RESET}`
-      );
-    } else if (response.status !== 200) {
-      countFailed += 1;
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${RED}failed (Code: ${response.status}) ❌${RESET}`
-      );
-    } else {
-      console.log(
-        `   ${UNDERLINE}${name}${RESET} (${BOLD}${method}${RESET})(${BOLD}${path}${RESET}): ${GREEN}success (Code: ${response.status}) ✅${RESET}`
-      );
-    }
-  }
   //Get all relations me success
   {
     const name = 'Get all relations me success';

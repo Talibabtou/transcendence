@@ -1,5 +1,5 @@
 import { dbConnector } from './db.js';
-import { routes } from './routes/index.js';
+import { routes } from './routes/index.routes.js';
 import fastify, { FastifyInstance } from 'fastify';
 import { startTelemetry } from './telemetry/telemetry.js';
 import { fastifyConfig } from './config/fastify.js';

@@ -3,8 +3,7 @@ import { IId } from '../shared/types/gateway.types.js';
 import { GetElosQuery } from '../shared/types/elo.type.js';
 import { getElo, getElos, getLeaderboard } from '../controllers/elo.controller.js';
 import { getEloSchema, getElosSchema, getLeaderboardSchema } from '../schemas/elo.schemas.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
+import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
 
 export default async function eloRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetElosQuery }>(
@@ -14,7 +13,10 @@ export default async function eloRoutes(fastify: FastifyInstance) {
         ...getElosSchema,
         tags: ['elos'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getElos
   );
@@ -26,7 +28,10 @@ export default async function eloRoutes(fastify: FastifyInstance) {
         ...getEloSchema,
         tags: ['elos'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigHigh,
+      },
     },
     getElo
   );
@@ -37,6 +42,9 @@ export default async function eloRoutes(fastify: FastifyInstance) {
       schema: {
         ...getLeaderboardSchema,
         tags: ['elos'],
+      },
+      config: {
+        rateLimit: rateLimitConfigHigh,
       },
     },
     getLeaderboard

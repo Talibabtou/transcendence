@@ -1,6 +1,6 @@
 import {
   corsConfig,
-  helmetConfig,
+  // helmetConfig,
   staticConfig,
   fastifyConfig,
   multipartConfig,
@@ -9,9 +9,9 @@ import {
   swaggerUiConfig,
 } from './config/index.js';
 import cors from '@fastify/cors';
-import helmet from '@fastify/helmet';
+// import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
-import routes from './routes/index.js';
+import routes from './routes/index.routes.js';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
 // import { Http2SecureServer } from 'http2';
@@ -21,10 +21,10 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import { fastify, FastifyInstance } from 'fastify';
 import errorHandler from './config/errorHandler.js';
-import websocketRoutes from './plugins/websocketPlugin.js';
+import websocketRoutes from './middleware/websocket.js';
 import { addHeaders, blockHeaders } from './config/headers.js';
-import { jwtPluginHook, jwtPluginRegister } from './plugins/jwtPlugin.js';
-import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
+import { jwtHook, jwtRegister } from './middleware/jwt.js';
+// import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 
 export class Server {
   // FastifyInstance<Http2SecureServer> for https
@@ -45,9 +45,9 @@ export class Server {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       server.setErrorHandler(errorHandler);
-      server.addHook('onRequest', jwtPluginHook);
+      server.addHook('onRequest', jwtHook);
       server.addHook('onRequest', blockHeaders);
-      server.addHook('preValidation', checkMicroservicesHook);
+      // server.addHook('preValidation', checkMicroservicesHook);
       server.addHook('onSend', addHeaders);
       await server.register(fastifySwagger, swaggerConfig);
       await server.register(fastifySwaggerUi, swaggerUiConfig);
@@ -56,7 +56,7 @@ export class Server {
       await server.register(fastifyStatic, staticConfig);
       // await server.register(helmet, helmetConfig);
       await server.register(cors, corsConfig);
-      await server.register(fastifyJwt, jwtPluginRegister);
+      await server.register(fastifyJwt, jwtRegister);
       await server.register(websocketPlugin);
       await server.register(routes);
       await server.register(websocketRoutes);
@@ -68,7 +68,7 @@ export class Server {
       server.log.info(
         `Server listening at http://${process.env.GATEWAY_ADDR || 'localhost'}:${process.env.GATEWAY_PORT || 8085}`
       );
-      setInterval(checkMicroservices, 2000);
+      // setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error(err);
     }

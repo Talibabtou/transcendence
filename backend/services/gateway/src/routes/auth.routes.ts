@@ -15,7 +15,6 @@ import {
   twofaValidate,
   twofaDisable,
   getUsername,
-  twofaStatus,
 } from '../controllers/auth.controller.js';
 import {
   getUserSchema,
@@ -32,11 +31,13 @@ import {
   twofaGenerateSchema,
   getIdSchema,
   getUsernameSchema,
-  twofaStatusSchema,
 } from '../schemas/auth.schemas.js';
-
-const auth = { auth: true, roles: ['user', 'admin'] };
-const twofa = { auth: true, roles: ['user', 'admin', '2fa'] };
+import {
+  routesConfigAuth,
+  routesConfigTwofa,
+  rateLimitConfigLow,
+  rateLimitConfigMid,
+} from '../config/routes.config.js';
 
 export default async function authRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: IUsername }>(
@@ -46,7 +47,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...getIdSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getId
   );
@@ -58,7 +62,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...getUsernameSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getUsername
   );
@@ -70,7 +77,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...getUsersSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getUsers
   );
@@ -82,7 +92,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...getUserSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getUser
   );
@@ -94,7 +107,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...getUserMeSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigMid,
+      },
     },
     getUserMe
   );
@@ -106,7 +122,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...twofaGenerateSchema,
         tags: ['2fa'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     twofaGenerate
   );
@@ -118,7 +137,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...twofaValidateSchema,
         tags: ['2fa'],
       },
-      config: twofa,
+      config: {
+        ...routesConfigTwofa,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     twofaValidate
   );
@@ -129,6 +151,9 @@ export default async function authRoutes(fastify: FastifyInstance) {
       schema: {
         ...createUserSchema,
         tags: ['auth'],
+      },
+      config: {
+        rateLimit: rateLimitConfigLow,
       },
     },
     postUser
@@ -141,7 +166,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...logoutSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     postLogout
   );
@@ -152,6 +180,9 @@ export default async function authRoutes(fastify: FastifyInstance) {
       schema: {
         ...loginSchema,
         tags: ['auth'],
+      },
+      config: {
+        rateLimit: rateLimitConfigLow,
       },
     },
     postLogin
@@ -164,6 +195,9 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...loginGuestSchema,
         tags: ['auth'],
       },
+      config: {
+        rateLimit: rateLimitConfigMid,
+      },
     },
     postLoginGuest
   );
@@ -175,7 +209,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...modifyUserSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     patchUser
   );
@@ -187,7 +224,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...twofaDisableSchema,
         tags: ['2fa'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     twofaDisable
   );
@@ -199,20 +239,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
         ...deleteUserSchema,
         tags: ['auth'],
       },
-      config: auth,
+      config: {
+        ...routesConfigAuth,
+        rateLimit: rateLimitConfigLow,
+      },
     },
     deleteUser
-  );
-
-  fastify.get(
-    '/auth/2fa/status',
-    {
-      schema: {
-        ...twofaStatusSchema,
-        tags: ['2fa'],
-      },
-      config: auth,
-    },
-    twofaStatus
   );
 }
