@@ -1,4 +1,9 @@
-import { FastifyInstance } from 'fastify';
+import {
+  routesConfigAuth,
+  rateLimitConfigHigh,
+  rateLimitConfigLow,
+  rateLimitConfigMid,
+} from '../config/routes.config.js';
 import {
   getFriendsSchema,
   getFriendsMeSchema,
@@ -8,7 +13,7 @@ import {
   deleteAllSchema,
   deleteFriendSchema,
 } from '../schemas/friends.schemas.js';
-import { IId } from '../shared/types/gateway.types.js';
+import { FastifyInstance } from 'fastify';
 import {
   getFriends,
   getFriendsMe,
@@ -18,12 +23,7 @@ import {
   deleteFriend,
   deleteFriends,
 } from '../controllers/friends.controller.js';
-import {
-  routesConfigAuth,
-  rateLimitConfigHigh,
-  rateLimitConfigLow,
-  rateLimitConfigMid,
-} from '../config/routes.config.js';
+import { IId } from '../shared/types/gateway.types.js';
 
 export default async function friendsRoutes(fastify: FastifyInstance) {
   fastify.get<{ Params: IId }>(

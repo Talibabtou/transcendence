@@ -1,6 +1,6 @@
+import { getHealth } from '../controllers/gateway.controller.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { getHealthSchema, getCheckSchema } from '../schemas/gateway.schemas.js';
-import { getHealth } from '../controllers/gateway.controller.js';
 import { rateLimitConfigHigh, rateLimitConfigLow } from '../config/routes.config.js';
 
 export default async function gatewayRoutes(fastify: FastifyInstance) {

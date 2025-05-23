@@ -24,7 +24,7 @@ import websocketRoutes from './middleware/websocket.js';
 import { jwtHook, jwtRegister } from './middleware/jwt.js';
 import errorHandler from './config/errorHandler.config.js';
 import { addHeaders, blockHeaders } from './config/headers.config.js';
-// import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
+import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 
 export class Server {
   // FastifyInstance<Http2SecureServer> for https
@@ -47,7 +47,7 @@ export class Server {
       server.setErrorHandler(errorHandler);
       server.addHook('onRequest', jwtHook);
       server.addHook('onRequest', blockHeaders);
-      // server.addHook('preValidation', checkMicroservicesHook);
+      server.addHook('preValidation', checkMicroservicesHook);
       server.addHook('onSend', addHeaders);
       await server.register(fastifySwagger, swaggerConfig);
       await server.register(fastifySwaggerUi, swaggerUiConfig);
@@ -68,7 +68,9 @@ export class Server {
       server.log.info(
         `Server listening at http://${process.env.GATEWAY_ADDR || 'localhost'}:${process.env.GATEWAY_PORT || 8085}`
       );
-      // setInterval(checkMicroservices, 2000);
+      setInterval(() => {
+        checkMicroservices(server);
+      }, 2000);
     } catch (err) {
       server.log.error(err);
     }

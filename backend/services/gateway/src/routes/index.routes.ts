@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify';
 import eloRoutes from './elo.routes.js';
+import { FastifyInstance } from 'fastify';
 import goalRoutes from './goal.routes.js';
 import authRoutes from './auth.routes.js';
 import matchRoutes from './match.routes.js';
