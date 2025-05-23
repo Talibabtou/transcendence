@@ -1,7 +1,8 @@
+import path from 'path';
 import { User, Match, Goal, AuthResponse, LeaderboardEntry } from '@website/types';
 import { AppStateManager } from '@website/scripts/utils';
 import { ApiError, ErrorResponse } from '@website/scripts/services';
-import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
+import { API_PREFIX, AUTH, GAME, USER, SOCIAL, API_BASE_URL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
@@ -120,14 +121,6 @@ export class DbService {
 				body: JSON.stringify(userData)
 			});
 			
-			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
-				method: 'POST',
-				body: JSON.stringify({
-					email: userData.email,
-					password: userData.password
-				})
-			});
-			
 			return {
 				success: true,
 				user: {
@@ -137,9 +130,9 @@ export class DbService {
 					created_at: new Date(),
 					last_login: new Date(),
 					auth_method: 'email',
-					theme: '#ffffff' // Default theme, appState will initialize/override
+					theme: '#ffffff'
 				},
-				token: loginResponse.token // Ensure token is returned
+				token: ''
 			};
 		} catch (error) {
 			throw error;
@@ -191,6 +184,57 @@ export class DbService {
 			};
 		} catch (error) {
 			console.error('Login failed:', error);
+			throw error;
+		}
+	}
+	
+	/**
+	 * Guest login for tournament/game registration
+	 * Identical to regular login but used in the context of guest authentication for tournaments
+	 * @param credentials - User credentials
+	 */
+	static async guestLogin(credentials: ILogin): Promise<AuthResponse> {
+		this.logRequest('POST', `${AUTH.GUEST_LOGIN}`, {
+			email: credentials.email,
+			password: '********',
+			context: 'guest'
+		});
+		
+		try {
+			const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.GUEST_LOGIN}`, {
+				method: 'POST',
+				body: JSON.stringify(credentials)
+			});
+			
+			if (loginResponse.status === 'NEED_2FA') {
+				return {
+					success: false,
+					requires2FA: true,
+					user: {
+						id: loginResponse.id || '',
+						username: loginResponse.username || 'User',
+						created_at: new Date(),
+						auth_method: 'email'
+					},
+					token: loginResponse.token
+				};
+			}
+			
+			return {
+				success: true,
+				user: {
+					id: loginResponse.id || '',
+					username: loginResponse.username || '',
+					email: credentials.email,
+					created_at: new Date(),
+					last_login: new Date(),
+					auth_method: 'email',
+					theme: '#ffffff'
+				},
+				token: ''
+			};
+		} catch (error) {
+			console.error('Guest login failed:', error);
 			throw error;
 		}
 	}
@@ -360,18 +404,12 @@ export class DbService {
 		
 		// Normalize profile picture URL if it exists
 		if (userProfile && userProfile.pics && userProfile.pics.link) {
-			if (userProfile.pics.link === 'default') {
-				userProfile.pics.link = '/images/default-avatar.svg';
-			} else {
-				const pathParts = userProfile.pics.link.split('/');
-				const fileName = pathParts[pathParts.length - 1];
-				
-				if (fileName === 'default') {
-					userProfile.pics.link = '/images/default-avatar.svg';
-				}
+			if (userProfile.pics.link === 'default') userProfile.pics.link = '/images/default-avatar.svg';
+			else {
+				const path = `http://localhost:8085${userProfile.pics.link}`;
+				userProfile.pics.link = path;
 			}
 		}
-		
 		return userProfile;
 	}
 

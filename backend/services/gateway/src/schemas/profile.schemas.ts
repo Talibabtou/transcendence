@@ -213,16 +213,18 @@ export const uploadSchema = {
     properties: {},
   },
   consumes: ['multipart/form-data'],
-  body: {
-    // type: 'object',
-    // properties: {
-    //   file: { type: 'string', format: 'binary' },
-    //   description: { type: 'string' },
-    // },
-    // required: ['file'],
-  },
   response: {
-    201: {},
+    201: {
+      type: 'object',
+      properties: {
+        link: {
+          type: 'string',
+          description: 'A link to an uploaded picture.',
+        },
+      },
+      required: ['link'],
+      additionalProperties: false,
+    },
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.noFileProvided,

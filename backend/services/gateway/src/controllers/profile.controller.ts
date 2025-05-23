@@ -124,11 +124,8 @@ export async function postPic(
       method: 'POST',
       body: formData,
     });
-    if (response.status >= 400) {
-      const responseData = (await response.json()) as ErrorResponse;
-      return reply.code(response.status).send(responseData);
-    }
-    return reply.code(response.status).send();
+    const responseData = (await response.json()) as IReplyPic | ErrorResponse;
+    return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);

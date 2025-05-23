@@ -68,9 +68,7 @@ export class Server {
       server.log.info(
         `Server listening at http://${process.env.GATEWAY_ADDR || 'localhost'}:${process.env.GATEWAY_PORT || 8085}`
       );
-      setInterval(() => {
-        checkMicroservices(server);
-      }, 2000);
+      setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error(err);
     }

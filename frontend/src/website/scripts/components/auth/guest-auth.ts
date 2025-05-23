@@ -6,11 +6,13 @@ import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	private passwordStrength: PasswordStrengthComponent | null = null;
+	private twoFATimeoutId: number | null = null;
 	
 	constructor(container: HTMLElement) {
 		super(container, {
 			error: null,
-			isRegisterMode: false
+			isRegisterMode: false,
+			needsVerification: false
 		});
 		
 		// Add custom classes for styling - use existing CSS classes from auth.css
@@ -39,8 +41,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private renderContent(): any {
 		const state = this.getInternalState();
 
-		
-		if (state.isRegisterMode) {
+		if (state.needsVerification) {
+			return this.render2FAForm();
+		} else if (state.isRegisterMode) {
 			return this.renderRegisterForm();
 		} else {
 			return this.renderLoginForm();
@@ -70,6 +73,167 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				<a href="#" onclick=${this.switchToRegister}>Create account</a>
 			</div>
 		`;
+	}
+	
+	/**
+	 * Render the 2FA verification form
+	 */
+	private render2FAForm(): any {
+		return html`
+			<form class="auth-form guest-auth-form twofa-form" onsubmit=${this.handle2FAVerification}>
+				<div class="form-group">
+					<p>Please enter the 6-digit code from your authenticator app:</p>
+					<div class="twofa-input-container">
+						<input 
+							type="text" 
+							id="twofa-code" 
+							name="twofa-code" 
+							maxlength="6" 
+							pattern="[0-9]{6}" 
+							required 
+							placeholder="000000"
+							autocomplete="one-time-code"
+							autofocus
+							class="twofa-input"
+						/>
+					</div>
+				</div>
+				
+				<div class="twofa-button-container">
+					<button type="submit" class="menu-button twofa-verify-button">Verify</button>
+				</div>
+				
+				<div class="auth-links twofa-cancel-container">
+					<a href="#" onclick=${this.cancelTwoFactor}>Cancel</a>
+				</div>
+			</form>
+		`;
+	}
+	
+	/**
+	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
+	 */
+	private startTwoFATimeout(): void {
+		// Clear any existing timeout
+		this.clearTwoFATimeout();
+		
+		// Set a new timeout (1 minute = 60000 milliseconds)
+		this.twoFATimeoutId = window.setTimeout(() => {
+			console.log("2FA verification timed out after 1 minute");
+			this.cancelTwoFactor();
+		}, 60000);
+	}
+	
+	/**
+	 * Clears the 2FA timeout if it exists
+	 */
+	private clearTwoFATimeout(): void {
+		if (this.twoFATimeoutId !== null) {
+			window.clearTimeout(this.twoFATimeoutId);
+			this.twoFATimeoutId = null;
+		}
+	}
+	
+	/**
+	 * Clear 2FA-related session storage data
+	 */
+	private clearTwoFactorSessionData(): void {
+		// Use a prefix specific to guest auth to avoid conflicts with main login
+		sessionStorage.removeItem('guest_2fa_needed');
+		sessionStorage.removeItem('guest_2fa_userid');
+		sessionStorage.removeItem('guest_2fa_token');
+		sessionStorage.removeItem('guest_username');
+		sessionStorage.removeItem('guest_email');
+		sessionStorage.removeItem('guest_password');
+	}
+	
+	/**
+	 * Cancel 2FA and go back to login
+	 */
+	private cancelTwoFactor = (e?: Event): void => {
+		if (e) e.preventDefault();
+		
+		// Clear the timeout
+		this.clearTwoFATimeout();
+		
+		// Clear 2FA session data
+		this.clearTwoFactorSessionData();
+		
+		// Return to login form
+		this.updateInternalState({
+			needsVerification: false,
+			error: null
+		});
+	}
+	
+	/**
+	 * Handle 2FA verification
+	 */
+	private handle2FAVerification = async (e: Event): Promise<void> => {
+		e.preventDefault();
+		
+		const form = e.target as HTMLFormElement;
+		const formData = new FormData(form);
+		const code = formData.get('twofa-code') as string;
+		
+		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
+			this.showError('Please enter a valid 6-digit code');
+			return;
+		}
+		
+		try {
+			// Get data from session storage
+			const userId = sessionStorage.getItem('guest_2fa_userid') || '';
+			const token = sessionStorage.getItem('guest_2fa_token') || '';
+			const email = sessionStorage.getItem('guest_email') || '';
+			const password = sessionStorage.getItem('guest_password') || '';
+			
+			// Step 1: Verify 2FA code using the temporary token
+			await DbService.verify2FALogin(userId, code, token);
+			
+			// Step 2: After successful 2FA validation, perform a guest login with saved credentials
+			const loginResponse = await DbService.guestLogin({ email, password });
+			
+			if (loginResponse.success && loginResponse.user) {
+				// Clear the timeout since verification was successful
+				this.clearTwoFATimeout();
+				
+				const userData = {
+					id: loginResponse.user.id,
+					username: loginResponse.user.username,
+					email: loginResponse.user.email || '',
+					avatar: loginResponse.user.pfp || `/images/default-avatar.svg`,
+					theme: loginResponse.user.theme || '#ffffff'
+				};
+				
+				// Clear 2FA session data
+				this.clearTwoFactorSessionData();
+				
+				// Get position from container ID for tournament player position
+				const position = this.getPositionFromContainerId();
+				
+				// Dispatch guest-authenticated event
+				const authEvent = new CustomEvent('guest-authenticated', {
+					bubbles: true,
+					detail: { user: userData, position }
+				});
+				this.container.dispatchEvent(authEvent);
+				
+				// Clear the form fields
+				this.clearFormFields();
+				
+				this.hide();
+			} else {
+				this.showError('Authentication failed after 2FA verification');
+			}
+		} catch (error) {
+			console.error('2FA verification error:', error);
+			if (error instanceof ApiError && error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
+				this.showError('Invalid verification code');
+			} else {
+				this.showError('Verification failed. Please try again.');
+			}
+		}
 	}
 	
 	/**
@@ -162,6 +326,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		this.updateInternalState({
 			isRegisterMode: true,
+			needsVerification: false,
 			error: null
 		});
 		
@@ -176,6 +341,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		this.updateInternalState({
 			isRegisterMode: false,
+			needsVerification: false,
 			error: null
 		});
 		
@@ -193,12 +359,30 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
 			
-			const response = await DbService.login({ 
+			// Use dedicated guestLogin function instead of general login
+			const response = await DbService.guestLogin({ 
 				email, 
 				password: hashedPassword 
 			});
 			
-			if (response.success && response.user) {
+			if (response.requires2FA) {
+				// Store 2FA info in session storage (using guest_ prefix to avoid conflicts)
+				sessionStorage.setItem('guest_2fa_needed', 'true');
+				sessionStorage.setItem('guest_2fa_userid', response.user.id);
+				sessionStorage.setItem('guest_2fa_token', response.token);
+				sessionStorage.setItem('guest_username', response.user.username || '');
+				sessionStorage.setItem('guest_email', email);
+				sessionStorage.setItem('guest_password', hashedPassword);
+				
+				// Start the timeout for 2FA verification
+				this.startTwoFATimeout();
+				
+				// Update UI to show 2FA form
+				this.updateInternalState({ 
+					needsVerification: true,
+					error: null
+				});
+			} else if (response.success && response.user) {
 				const userData = {
 					id: response.user.id,
 					username: response.user.username,
@@ -248,19 +432,31 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
 			
-			const newUser = await DbService.register({
+			// Use dedicated registerGuest function
+			const registerResponse = await DbService.register({
 				username,
 				email,
 				password: hashedPassword
 			});
 			
-			if (newUser.success && newUser.user) {
+			if (registerResponse.success && registerResponse.user) {
+				// After successful registration, do a login to get the auth token
+				const loginResponse = await DbService.guestLogin({
+					email,
+					password: hashedPassword
+				});
+				
+				if (!loginResponse.success) {
+					this.showError('Account created but login failed. Please try logging in manually.');
+					return;
+				}
+				
 				const userData = {
-					id: String(newUser.user.id),
-					username: newUser.user.username,
-					email: newUser.user.email,
-					profilePicture: newUser.user.pfp || `/images/default-avatar.svg`,
-					theme: newUser.user.theme || '#ffffff'
+					id: registerResponse.user.id,
+					username: registerResponse.user.username,
+					email: registerResponse.user.email,
+					profilePicture: registerResponse.user.pfp || `/images/default-avatar.svg`,
+					theme: registerResponse.user.theme || '#ffffff'
 				};
 				
 				const position = this.getPositionFromContainerId();
@@ -299,7 +495,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			const parts = containerId.split('-');
 			const positionStr = parts[parts.length - 1];
 			const position = parseInt(positionStr, 10);
-			return isNaN(position) ? undefined : position + 1; // Convert to 1-based index
+			return isNaN(position) ? undefined : position + 1;
 		}
 		return undefined;
 	}
@@ -338,6 +534,8 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	destroy(): void {
 		this.passwordStrength = null;
+		this.clearTwoFATimeout();
+		this.clearTwoFactorSessionData();
 		this.container.innerHTML = '';
 		this.container.className = '';
 		super.destroy();
@@ -346,7 +544,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	/**
 	 * Add a method to handle error display with animation
 	 */
-	private showError(message: string): void {
+	public showError(message: string): void {
 		this.updateInternalState({ error: message });
 		
 		requestAnimationFrame(() => {

@@ -1,5 +1,5 @@
 import { ASCII_ART, hashPassword } from '@website/scripts/utils';
-import { DbService, html, ApiError } from '@website/scripts/services';
+import { DbService, html, ApiError, connectAuthenticatedWebSocket } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -110,7 +110,6 @@ export class LoginHandler {
 			
 			<div class="auth-form twofa-form">
 				<p>Please enter the 6-digit code from your authenticator app:</p>
-				<p class="twofa-timeout-warning">This verification will expire in 1 minute.</p>
 				
 				<form onSubmit=${(e: Event) => {
 					e.preventDefault();
@@ -192,14 +191,9 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData, loginResponse.token);
 				
-				// Initialize WebSocket connection
-				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
-					const websocketUrl = 'ws://localhost:8085/ws/status';
-					const wsClient = WebSocketClient.getInstance(websocketUrl);
-					wsClient.connect();
-				}).catch(err => {
-					console.error('Error initializing WebSocket after 2FA login:', err);
-				});
+				// Initialize WebSocket connection using centralized function
+				// Pass the token directly to ensure immediate connection
+				connectAuthenticatedWebSocket(loginResponse.token);
 				
 				// Clear 2FA session data
 				this.clearTwoFactorSessionData();
@@ -318,14 +312,9 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData, response.token);
 				
-				// Initialize WebSocket connection
-				import('@website/scripts/services/client').then(({ WebSocketClient }) => {
-					const websocketUrl = 'ws://localhost:8085/ws/status';
-					const wsClient = WebSocketClient.getInstance(websocketUrl);
-					wsClient.connect();
-				}).catch(err => {
-					console.error('Error initializing WebSocket after login:', err);
-				});
+				// Initialize WebSocket connection using centralized function
+				// Pass the token directly to ensure immediate connection
+				connectAuthenticatedWebSocket(response.token);
 				
 				this.switchToSuccessState();
 				this.resetForm(form);

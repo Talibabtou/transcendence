@@ -53,8 +53,10 @@ export const USER = {
 // Authentication paths
 export const AUTH = {
 	LOGIN: '/auth/login',
+	GUEST_LOGIN: '/auth/login/guest',
 	LOGOUT: '/auth/logout',
 	REGISTER: '/auth/register',
+	REGISTER_GUEST: '/auth/register/guest',
 	REFRESH: '/auth/refresh',
 	TWO_FA: {
 		GENERATE: '/auth/2fa/generate',

@@ -52,7 +52,7 @@ export async function checkMicroservicesHook(request: FastifyRequest, reply: Fas
  * @param fastify - FastifyInstance for logging.
  * @returns Promise<void>
  */
-export async function checkMicroservices(fastify: FastifyInstance) {
+export async function checkMicroservices() {
   try {
     const [profileStatus, authStatus, gameStatus, friendsStatus] = await Promise.all([
       checkService(process.env.PROFILE_ADDR || 'localhost', process.env.PROFILE_PORT || '8081'),
@@ -66,7 +66,7 @@ export async function checkMicroservices(fastify: FastifyInstance) {
     Server.microservices.set(process.env.GAME_ADDR || 'game', gameStatus);
     Server.microservices.set(process.env.FRIENDS_ADDR || 'friends', friendsStatus);
   } catch (err) {
-    fastify.log.error('Error checking microservices:', err);
+    console.error('Error checking microservices:', err);
   }
 }
 

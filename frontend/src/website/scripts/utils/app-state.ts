@@ -1,5 +1,5 @@
-import { Router } from '@website/scripts/services';
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
+import { Router, disconnectWebSocket } from '@website/scripts/services';
 
 // Define state change listener type
 type StateChangeListener = (newState: Partial<AppState>, oldState: Partial<AppState>) => void;
@@ -309,18 +309,9 @@ export class AppStateManager {
 	public logout(): void {
 		const oldAuth = { ...this.state.auth };
 		
-		// First disconnect WebSocket before clearing tokens
+		// Disconnect WebSocket using centralized function
 		try {
-			// Dynamically import to avoid circular dependencies
-			import('@website/scripts/services/client').then(({ WebSocketClient }) => {
-				const wsClient = WebSocketClient.getInstance();
-				if (wsClient) {
-					wsClient.disconnect();
-					console.log('WebSocket disconnected during logout');
-				}
-			}).catch(err => {
-				console.error('Error disconnecting WebSocket:', err);
-			});
+			disconnectWebSocket();
 		} catch (error) {
 			console.error('Failed to disconnect WebSocket:', error);
 		}

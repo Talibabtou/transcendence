@@ -97,6 +97,67 @@ export class WebSocketClient {
 	}
 }
 
-// Example of how to get the instance (ensure URL is provided, e.g., from env)
-// const websocketUrl = process.env.WEBSOCKET_URL || 'ws://localhost:8000/ws/status/';
-// export const webSocketClient = WebSocketClient.getInstance(websocketUrl); 
+// Centralized connection management functions
+const DEFAULT_WS_URL = 'ws://localhost:8085/ws/status';
+
+/**
+ * Connects to the WebSocket server after authentication
+ * This is a centralized function to be called after login/2FA verification
+ * @param token Optional JWT token to use directly (if not yet saved to storage)
+ */
+export function connectAuthenticatedWebSocket(token?: string): void {
+	// Add a short delay to ensure token is available in storage
+	setTimeout(() => {
+		try {
+			// If a token is provided directly, use it to initialize
+			if (token) {
+				const wsClient = WebSocketClient.getInstance(DEFAULT_WS_URL);
+				// Store a reference to use in the direct connection
+				const directToken = token;
+				
+				// Create URL with token
+				const tokenParam = `?token=${directToken}`;
+				const connectionUrl = DEFAULT_WS_URL.split('?')[0] + tokenParam;
+				
+				// Close existing connection if any
+				wsClient.disconnect();
+				
+				// Create new connection with the token
+				console.log('Establishing WebSocket connection with provided token');
+				const socket = new WebSocket(connectionUrl);
+				
+				// Set up handlers
+				socket.onopen = () => console.log('WebSocket connection established with provided token');
+				socket.onmessage = (event) => {
+					const message = JSON.parse(event.data as string);
+					console.log('WebSocket message received:', message);
+				};
+				socket.onerror = (error) => console.error('WebSocket error:', error);
+				socket.onclose = () => console.log('WebSocket connection closed');
+				
+				// Update the client's socket reference
+				(wsClient as any).socket = socket;
+			} else {
+				// Standard connection using token from storage
+				const wsClient = WebSocketClient.getInstance(DEFAULT_WS_URL);
+				wsClient.connect();
+			}
+		} catch (err) {
+			console.error('Error connecting to WebSocket after authentication:', err);
+		}
+	}, 100); 
+}
+
+/**
+ * Disconnects from the WebSocket server during logout
+ * This is a centralized function to be called during logout
+ */
+export function disconnectWebSocket(): void {
+	try {
+		const wsClient = WebSocketClient.getInstance();
+		wsClient.disconnect();
+		console.log('WebSocket disconnected');
+	} catch (err) {
+		console.error('Error disconnecting WebSocket:', err);
+	}
+}
