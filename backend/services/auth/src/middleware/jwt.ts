@@ -99,7 +99,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       request.server.log.warn(`[jwtHook] User check failed (status ${user.status}) for ID: ${id}`);
-      return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
+      return sendError(reply, 403, ErrorCodes.JWT_MISMATCH);
     }
     request.server.log.info(`[jwtHook] User check successful for ID: ${id}`);
     // Check if revoked

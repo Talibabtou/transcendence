@@ -618,6 +618,12 @@ export class DbService {
 		});
 	}
 
+	// backend jwt validity
+	// {
+	// 	if (jwterror)
+	// 		logout
+	// }
+
 	/**
 	 * Gets username for a given user ID
 	 * @param id - The user's ID
