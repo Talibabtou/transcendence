@@ -146,12 +146,16 @@ export const getHistorySchema = {
             type: ['number', 'string'],
             description: 'The number of goals scored by the second player.',
           },
+					final: {
+						type: 'boolean',
+						description: 'Whether the match is a final of a tournament.',
+					},
           created_at: {
             type: 'string',
             description: 'The timestamp when the match was created.',
           },
         },
-        required: ['matchId', 'username1', 'id1', 'goals1', 'username2', 'id2', 'goals2', 'created_at'],
+        required: ['matchId', 'username1', 'id1', 'goals1', 'username2', 'id2', 'goals2', 'final', 'created_at'],
       },
     },
     404: {

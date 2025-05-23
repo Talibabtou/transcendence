@@ -104,6 +104,8 @@ SELECT
     m.player_2,
     m.p1_score,
     m.p2_score,
+		m.tournament_id,
+		m.final,
     m.created_at
 FROM (
   -- Player 1 perspective
@@ -112,6 +114,8 @@ FROM (
     m.player_1 AS player_id,
     m.player_1 AS player_1,
     m.player_2 AS player_2,
+		m.tournament_id,
+		m.final,
     m.duration, -- though not selected, it's good to have it for potential future use in the subquery
     m.created_at AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
@@ -128,7 +132,9 @@ FROM (
     m.player_1 AS player_1,
     m.player_2 AS player_2,
     m.duration, -- though not selected, it's good to have it for potential future use in the subquery
-    m.created_at AS created_at,
+		m.tournament_id,
+		m.final,
+	  m.created_at AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
   FROM matches m

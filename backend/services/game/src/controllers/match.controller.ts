@@ -94,6 +94,7 @@ export async function getMatchHistory(
         player_2,
         p1_score,
         p2_score,
+				final,
         created_at
       FROM player_match_history
       WHERE player_id = ?
@@ -125,6 +126,7 @@ export async function getMatchHistory(
           username2: responseDataUsername2.username || 'undefined',
           id2: matches[i].player_2,
           goals2: matches[i].p2_score,
+					final: matches[i].final,
           created_at: matches[i].created_at || 'undefined',
         };
       } else {
@@ -139,6 +141,7 @@ export async function getMatchHistory(
           username2: responseDataUsername2.username || 'undefined',
           id2: matches[i].player_1,
           goals2: matches[i].p1_score,
+					final: matches[i].final,
           created_at: matches[i].created_at || 'undefined',
         };
       }
@@ -303,7 +306,7 @@ export async function matchStats(
     );
     recordFastDatabaseMetrics('SELECT', 'player_goal_durations', performance.now() - startTime);
     // Transform result into array of numbers
-    const goalDurations = goalDurationsResult ? goalDurationsResult.map((row) => Number(row.duration)) : [];
+    const goalDurations = goalDurationsResult ? goalDurationsResult.map((row: { duration: number }) => Number(row.duration)) : [];
 
     // Get match durations for histogram
     startTime = performance.now();
@@ -314,7 +317,7 @@ export async function matchStats(
     recordFastDatabaseMetrics('SELECT', 'player_match_durations', performance.now() - startTime);
     // Transform result into array of numbers
     const matchDurations = matchDurationsResult
-      ? matchDurationsResult.map((row) => Number(row.match_duration))
+      ? matchDurationsResult.map((row: { match_duration: number }) => Number(row.match_duration))
       : [];
 
     // Get player's Elo rating history (all data points)
@@ -325,7 +328,7 @@ export async function matchStats(
     );
     recordMediumDatabaseMetrics('SELECT', 'elo', performance.now() - startTime);
     // Transform result into array of numbers
-    const eloRatings = eloRatingsResult ? eloRatingsResult.map((row) => Number(row.elo)) : [];
+    const eloRatings = eloRatingsResult ? eloRatingsResult.map((row: { elo: number }) => Number(row.elo)) : [];
 
     // Calculate goal stats with safe handling of empty arrays
     let longestGoalDuration = null;
@@ -333,7 +336,7 @@ export async function matchStats(
 
     if (goalDurations.length > 0) {
       longestGoalDuration = Math.max(...goalDurations);
-      averageGoalDuration = goalDurations.reduce((sum, duration) => sum + duration, 0) / goalDurations.length;
+      averageGoalDuration = goalDurations.reduce((sum: number, duration: number) => sum + duration, 0) / goalDurations.length;
     }
 
     // Combine all statistics into a comprehensive response

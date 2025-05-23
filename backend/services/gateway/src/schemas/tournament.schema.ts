@@ -6,7 +6,16 @@ export const getTournamentSchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: {},
+    properties: {
+      limit: {
+        type: 'integer',
+        description: 'The number of matches to return.',
+      },
+      offset: {
+        type: 'integer',
+        description: 'The number of matches to skip.',
+      },
+    },
   },
   params: {
     type: 'object',
@@ -18,7 +27,52 @@ export const getTournamentSchema = {
   response: {
     200: {
       type: 'array',
-      items: matchSchema,
+      items: {
+        type: 'object',
+        properties: {
+          matchId: {
+            type: 'string',
+            description: 'The unique identifier of the match.',
+          },
+          username1: {
+            type: 'string',
+            description: 'The username of the first player.',
+          },
+          id1: {
+            type: 'string',
+            description: 'The unique identifier of the first player.',
+          },
+          goals1: {
+            type: ['number', 'string'],
+            description: 'The number of goals scored by the first player.',
+          },
+          username2: {
+            type: 'string',
+            description: 'The username of the second player.',
+          },
+          id2: {
+            type: 'string',
+            description: 'The unique identifier of the second player.',
+          },
+          goals2: {
+            type: ['number', 'string'],
+            description: 'The number of goals scored by the second player.',
+          },
+					winner: {
+						type: 'string',
+						description: 'The winner of the match.',
+					},
+					final: {
+						type: 'boolean',
+						description: 'Whether the match is a final of a tournament.',
+					},
+          created_at: {
+            type: 'string',
+            description: 'The timestamp when the match was created.',
+          },
+        },
+        required: ['matchId', 'username1', 'id1', 'goals1', 'username2', 'id2', 'goals2', 'winner', 'final', 'created_at'],
+      },
     },
     404: {
       ...errorResponseSchema,
@@ -31,29 +85,6 @@ export const getTournamentSchema = {
   },
 };
 
-export const getTournamentsSchema = {
-  querystring: {
-    type: 'object',
-    properties: {
-      player_id: { type: 'string', format: 'uuid' },
-    },
-    required: ['player_id'],
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: matchSchema,
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.tournamentNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
 
 export const getFinalMatchesSchema = {
   querystring: {

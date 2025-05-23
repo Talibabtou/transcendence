@@ -1,9 +1,9 @@
-import { IId } from '../shared/types/auth.types.js';
-import { ErrorCodes } from '../shared/constants/error.const.js';
+import { IId, IUsername } from '../shared/types/auth.types.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 import { sendError, isValidId } from '../helper/friends.helper.js';
 import { recordFastDatabaseMetrics } from '../telemetry/metrics.js';
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
-import { Match, GetTournamentsQuery, Finalist, FinalResultObject } from '../shared/types/match.type.js';
+import { Match, Finalist, FinalResultObject, MatchHistory, TournamentMatch, GetPageQuery } from '../shared/types/match.type.js';
 
 /**
  * Retrieves all matches for a specific tournament by tournament ID.
@@ -15,56 +15,67 @@ import { Match, GetTournamentsQuery, Finalist, FinalResultObject } from '../shar
 export async function getTournament(
   request: FastifyRequest<{
     Params: IId;
+		Querystring: GetPageQuery;
   }>,
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
-  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+	const { limit = 10, offset = 0 } = request.query;
   try {
-    const startTime = performance.now();
-    const tournament = (await request.server.db.all('SELECT * FROM matches WHERE tournament_id = ?', id)) as
-      | Match[]
-      | null;
-    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
-    if (!tournament) return sendError(reply, 404, ErrorCodes.TOURNAMENT_NOT_FOUND);
-    return reply.code(200).send(tournament);
-  } catch (err) {
-    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
-  }
-}
-
-/**
- * Retrieves multiple tournament matches with optional filters (player_id, limit, offset).
- *
- * @param request - FastifyRequest object containing query parameters.
- * @param reply - FastifyReply object for sending the response.
- * @returns 200: matches array, 400: invalid player_id, 500: server error.
- */
-export async function getTournaments(
-  request: FastifyRequest<{
-    Querystring: GetTournamentsQuery;
-  }>,
-  reply: FastifyReply
-): Promise<void> {
-  const { player_id, limit = 10, offset = 0 } = request.query;
-  if (!isValidId(player_id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-  try {
-    let query = 'SELECT * FROM matches WHERE 1=1';
-    const params = [];
-    if (player_id !== undefined) {
-      query += ' AND (player_1 = ? OR player_2 = ?)';
-      params.push(player_id, player_id);
+		console.log('getTournament', id, limit, offset);
+    const matches = await request.server.db.all(
+      `
+      SELECT 
+        match_id, 
+				player_id,
+        player_1, 
+        player_2,
+        p1_score,
+        p2_score,
+				tournament_id,
+				final,
+        created_at
+      FROM player_match_history
+      WHERE tournament_id = ?
+      ORDER BY created_at DESC LIMIT ? OFFSET ?;
+      `,
+      ['c70efcc4-5598-c90b-17f1-ad615b4c8007', limit, offset]
+    );
+		console.log('getTournament', matches);
+    if (!matches) {
+      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
+      return reply.code(404).send(errorResponse);
     }
-    query += ' AND tournament_id IS NOT NULL AND final = TRUE';
-    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
-    //parameterized queries
-    const startTime = performance.now();
-    const matches = (await request.server.db.all(query, params)) as Match[];
-    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
-    return reply.code(200).send(matches);
-  } catch (err) {
-    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
+    let matchesHistory: TournamentMatch[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+      const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
+      const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
+      let responseDataUsername2: IUsername;
+			let matchHistory: TournamentMatch;
+			const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+			const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
+			responseDataUsername2 = (await responseUsername2.json()) as IUsername;
+			matchHistory = {
+				matchId: matches[i].match_id || 'undefined',
+				username1: responseDataUsername1.username || 'undefined',
+				id1: matches[i].player_1,
+				goals1: matches[i].p1_score,
+				username2: responseDataUsername2.username || 'undefined',
+				id2: matches[i].player_2,
+				goals2: matches[i].p2_score,
+				winner: matches[i].p1_score > matches[i].p2_score ? matches[i].player_1 : matches[i].player_2,
+				final: matches[i].final,
+				created_at: matches[i].created_at || 'undefined',
+			};
+      matchesHistory.push(matchHistory);
+    }
+    console.log({ matchesHistory });
+    return reply.code(200).send(matchesHistory);
+  } catch (error) {
+    console.log(error);
+    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
+    return reply.code(500).send(errorResponse);
   }
 }
 

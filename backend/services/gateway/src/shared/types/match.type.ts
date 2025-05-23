@@ -17,6 +17,7 @@ export interface MatchHistory {
   username2: string;
   id2: string;
   goals2: number;
+	final: boolean;
   created_at: string;
 }
 
@@ -38,10 +39,17 @@ export interface GetTournamentQuery {
   tournament_id: string;
 }
 
-export interface GetTournamentsQuery {
-  player_id: string;
-  limit?: number;
-  offset?: number;
+export interface TournamentMatch {
+	matchId: string;
+  username1: string;
+  id1: string;
+  goals1: number;
+  username2: string;
+  id2: string;
+  goals2: number;
+	winner: string;
+	final: boolean;
+  created_at: string;
 }
 
 export interface PlayerMatchSummary {

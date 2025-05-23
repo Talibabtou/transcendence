@@ -379,9 +379,9 @@ export class DbService {
 	 * Gets tournament information
 	 * @param tournamentId - Tournament UUID
 	 */
-	static async getTournament(tournamentId: string): Promise<any> {
-		this.logRequest('GET', `/api/tournaments/${tournamentId}`);
-		return this.fetchApi<any>(`/tournaments/${tournamentId}`);
+	static async getTournament(tournamentId: string ): Promise<any> {
+		this.logRequest('GET', `${API_PREFIX}${GAME.TOURNAMENT.BASE}/${tournamentId}`);
+		return this.fetchApi<any>(`${GAME.TOURNAMENT.BASE}/${tournamentId}`);
 	}
 
 	/**
