@@ -10,11 +10,24 @@ export default defineConfig({
 			ignored: ['!**/node_modules/**', '**/dist/**']
 		}
 	},
+	base: './',
 	resolve: {
 		alias: {
 			'@pong': path.resolve(__dirname, 'src/pong'),
 			'@website': path.resolve(__dirname, 'src/website'),
 			'@shared': path.resolve(__dirname, 'src/shared')
 		}
+	},
+	build: {
+		outDir: '../../dist/website',
+		emptyOutDir: true,
+		rollupOptions: {
+			input: 'src/website/index.html',
+			output: {
+				entryFileNames: '[name].js',
+				assetFileNames: 'assets/[name][extname]'
+			}
+		}
 	}
 });
+

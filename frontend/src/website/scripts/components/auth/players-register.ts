@@ -71,7 +71,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				pfp: currentUser.profilePicture || '/images/default-avatar.svg',
 				isConnected: true,
 				theme: hostTheme,
-				elo: 0 // Default ELO
+				elo: 0
 			};
 
 			// Chain promises to fetch detailed information
@@ -467,7 +467,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const customEvent = event as CustomEvent<{ user: any, position?: number }>;
 		if (customEvent.detail && customEvent.detail.user) {
 			const userData = customEvent.detail.user;
-			const position = customEvent.detail.position; // Get position if available
+			const position = customEvent.detail.position;
 			
 			// Use the string ID directly
 			const guestId = userData.id;
@@ -530,7 +530,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 
 		const guestData: PlayerData = {
 			...guestDataFromEvent,
-			// Use the retrieved theme. If guestSelectedTheme is a default/fallback from AppStateManager, that's fine.
 			theme: guestSelectedTheme, 
 			pfp: guestDataFromEvent.pfp || '/images/default-avatar.svg',
 			elo: guestDataFromEvent.elo !== undefined ? guestDataFromEvent.elo : 0,

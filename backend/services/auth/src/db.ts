@@ -34,7 +34,6 @@ async function initEloComputer(fastify: FastifyInstance, db: Database<sqlite3.Da
       if (response.status !== 201) throw new Error('Create elo failed');
       gameState = true;
     } catch (err) {
-      fastify.log.error(err);
       gameState = false;
     }
   }

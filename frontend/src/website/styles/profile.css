@@ -864,7 +864,7 @@
 }
 
 input:checked + .toggle-slider {
-	background-color: var(--accent-color, #3772ff);
+	background-color: rgb(127, 188, 113);
 }
 
 input:checked + .toggle-slider:before {

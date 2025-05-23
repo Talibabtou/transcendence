@@ -1,7 +1,10 @@
-import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { Goal, MatchGoals } from '../shared/types/goal.type.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import {
+  recordFastDatabaseMetrics,
+  recordMediumDatabaseMetrics,
+  recordSlowDatabaseMetrics,
+  matchCreationCounter,
+  matchTournamentCounter,
+} from '../telemetry/metrics.js';
 import {
   Match,
   CreateMatchRequest,
@@ -11,16 +14,10 @@ import {
   DailyPerformance,
   GetPageQuery,
 } from '../shared/types/match.type.js';
-import {
-  recordFastDatabaseMetrics,
-  recordMediumDatabaseMetrics,
-  recordSlowDatabaseMetrics,
-  matchCreationCounter,
-  matchTournamentCounter,
-} from '../telemetry/metrics.js';
-import { match } from 'assert';
+import { FastifyRequest, FastifyReply } from 'fastify';
 import { IUsername } from '../shared/types/auth.types.js';
-import { ErrorResponse } from '../shared/types/error.type.js';
+import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
 //check if player 1 = player 2
 // Get a single match by ID

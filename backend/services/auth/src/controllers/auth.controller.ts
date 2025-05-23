@@ -401,7 +401,17 @@ export async function loginGuest(
       };
       return reply.code(200).send(user);
     }
-    return reply.code(200).send();
+    if (data.two_factor_enabled && data.verified)
+      await request.server.db.run(
+          'UPDATE users SET verified = true, two_factor_enabled = false WHERE id = ?',
+          [data.id]
+        );
+    const user: IReplyLogin = {
+      id: data.id,
+      role: data.role,
+      username: data.username,
+    };
+    return reply.code(200).send(user);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -515,6 +525,28 @@ export async function twofaDisable(
       [id]
     );
     return reply.code(200).send();
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
+  }
+}
+
+/**
+ * Retrieves the 2FA (Two-Factor Authentication) status for a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in params.
+ * @param reply - FastifyReply object for sending the response.
+ * @returns
+ *   200 - Success, returns { two_factor_enabled }
+ *   404 - Player not found (ErrorCodes.PLAYER_NOT_FOUND)
+ *   500 - Internal server error (ErrorCodes.INTERNAL_ERROR)
+ */
+export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
+  try {
+    const id = request.params.id;
+    const data = await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id]);
+    if (!data) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
+    return reply.code(200).send(data);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);

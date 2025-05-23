@@ -45,8 +45,8 @@ export class UIManager {
 		this.countdownNumberContext = this.countdownNumberCanvas.getContext('2d');
 		if (this.countdownNumberContext) {
 			// Fixed size, large enough for biggest number/style
-			this.countdownNumberCanvas.width = 150; 
-			this.countdownNumberCanvas.height = 150;
+			this.countdownNumberCanvas.width = 200; 
+			this.countdownNumberCanvas.height = 300;
 		}
 
 		// Initialize background cache canvas

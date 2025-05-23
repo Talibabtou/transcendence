@@ -316,29 +316,24 @@ export const loginGuestSchema = {
   },
   response: {
     200: {
-      oneOf: [
-        {},
-        {
-          type: 'object',
-          properties: {
-            token: {
-              type: 'string',
-              pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
-              description: 'JWT token for user authentication',
-            },
-            id: {
-              type: 'string',
-              format: 'uuid',
-              pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-            },
-            role: { type: 'string' },
-            username: { type: 'string' },
-            status: { type: 'string' },
-          },
-          required: ['token'],
-          additionalProperties: false,
+      type: 'object',
+      properties: {
+        token: {
+           type: 'string',
+           pattern: '^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$',
+          description: 'JWT token for user authentication',
         },
-      ],
+        id: {
+          type: 'string',
+          format: 'uuid',
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+        },
+        role: { type: 'string' },
+        username: { type: 'string' },
+        status: { type: 'string' },
+      },
+      required: [],
+      additionalProperties: false,
     },
     401: {
       ...errorResponseSchema,
@@ -398,6 +393,32 @@ export const modifyUserSchema = {
     409: {
       ...errorResponseSchema,
       example: ErrorExamples.sqliteConstraint,
+    },
+    500: {
+      ...errorResponseSchema,
+      example: ErrorExamples.internalError,
+    },
+  },
+};
+
+export const twofaStatusSchema = {
+  querystring: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {},
+  },
+  response: {
+    200: {
+      type: 'object',
+      properties: {
+        two_factor_enabled: { type: 'boolean' },
+      },
+      required: ['two_factor_enabled'],
+      additionalProperties: false,
+    },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound,
     },
     500: {
       ...errorResponseSchema,

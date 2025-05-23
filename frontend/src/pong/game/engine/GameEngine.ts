@@ -25,7 +25,7 @@ export class GameEngine {
 	private totalPausedTime: number = 0;
 	private matchCreated: boolean = false;
 	private matchCompleted: boolean = false;
-	private readonly AI: string = 'computer';
+	private readonly AI: string = 'ai';
 	private aiPlayerId: string | null = null;
 	public onGameOver?: (detail: any) => void;
 	private _gameStateInfo: GameStateInfo;
