@@ -7,11 +7,13 @@ import {
   IReplyQrCode,
   IUsername,
   IId,
+  IReplyTwofaStatus,
 } from '../shared/types/auth.types.js';
 import { FastifyJWT } from '../middleware/jwt.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { sendError } from '../helper/friends.helper.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import { ErrorCodes } from '../shared/constants/error.const.js';
 
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
@@ -211,8 +213,7 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -227,16 +228,10 @@ export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) 
         Authorization: request.headers.authorization || '',
       },
     });
-    if (response.status === 200) {
-      const data = await response.json();
-      return reply.code(200).send(data);
-    } else {
-      const errorData = await response.json();
-      return reply.code(response.status).send(errorData);
-    }
+    const data = (await response.json()) as IReplyTwofaStatus | ErrorResponse;
+    return reply.code(200).send(data);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }

@@ -11,7 +11,5 @@ export async function addHeaders(request: FastifyRequest, reply: FastifyReply) {
 
 export async function blockHeaders(request: FastifyRequest, reply: FastifyReply) {
   const forbiddenMethods = ['TRACE', 'TRACK', 'CONNECT', 'PUT'];
-  if (forbiddenMethods.includes(request.raw.method || '')) {
-    reply.code(405).send({ error: 'Method Not Allowed' });
-  }
+  if (forbiddenMethods.includes(request.raw.method || '')) reply.code(405).send({ error: 'Method Not Allowed' });
 }

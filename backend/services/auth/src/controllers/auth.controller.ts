@@ -14,6 +14,7 @@ import {
   I2faCode,
   IReplyQrCode,
   IUsername,
+  IReplyTwofaStatus,
 } from '../shared/types/auth.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError, isValidId } from '../helper/auth.helper.js';
@@ -544,7 +545,7 @@ export async function twofaDisable(
 export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
-    const data = await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id]);
+    const data = (await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id])) as IReplyTwofaStatus;
     if (!data) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(data);
   } catch (err) {
