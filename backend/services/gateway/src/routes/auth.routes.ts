@@ -1,6 +1,5 @@
 import {
   getUserSchema,
-  deleteUserSchema,
   createUserSchema,
   modifyUserSchema,
   loginGuestSchema,
@@ -25,7 +24,6 @@ import {
   getUser,
   postUser,
   patchUser,
-  deleteUser,
   postLogin,
   postLoginGuest,
   postLogout,
@@ -213,20 +211,5 @@ export default async function authRoutes(fastify: FastifyInstance) {
       },
     },
     twofaDisable
-  );
-
-  fastify.delete(
-    '/auth/user',
-    {
-      schema: {
-        ...deleteUserSchema,
-        tags: ['auth'],
-      },
-      config: {
-        ...routesConfigAuth,
-        rateLimit: rateLimitConfigLow,
-      },
-    },
-    deleteUser
   );
 }
