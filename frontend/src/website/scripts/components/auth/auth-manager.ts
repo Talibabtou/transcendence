@@ -18,6 +18,12 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// INITIALIZATION
 	// =========================================
 	
+	/**
+	 * Creates a new authentication manager component
+	 * @param container - The HTML element to render the component into
+	 * @param redirectTarget - Where to redirect after successful authentication
+	 * @param persistSession - Whether to persist the session across browser restarts
+	 */
 	constructor(container: HTMLElement, redirectTarget?: 'game' | 'profile', persistSession: boolean = false) {
 		super(container, {
 			currentState: AuthState.LOGIN,
@@ -26,9 +32,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		});
 		
 		this.updateInternalState({ redirectTarget: redirectTarget || 'profile' });
-		
 		this.persistSession = persistSession;
-		
 		this.checkExistingSession();
 	}
 	
@@ -36,7 +40,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Checks localStorage for existing session
 	 */
 	private checkExistingSession(): void {
-		// Check both storage types
 		const storedUser = this.persistSession 
 			? localStorage.getItem('auth_user') 
 			: sessionStorage.getItem('auth_user');
@@ -45,7 +48,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			try {
 				this.currentUser = JSON.parse(storedUser);
 				
-				// If already logged in, redirect immediately
 				if (this.currentUser) {
 					this.handleSuccessfulAuth();
 					return;
@@ -59,51 +61,12 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	}
 	
 	// =========================================
-	// STATE MANAGEMENT
-	// =========================================
-	
-	/**
-	 * Switches to a different auth state with debouncing
-	 */
-	private switchState(newState: AuthState): void {
-		// Clear any pending state change
-		if (this.stateChangeTimeout !== null) {
-			clearTimeout(this.stateChangeTimeout);
-		}
-		
-		// Debounce state changes to prevent rapid UI updates
-		this.stateChangeTimeout = window.setTimeout(() => {
-			// No need to call specific cleanupComponents on handlers if they are recreated
-			this.updateInternalState({
-				currentState: newState
-			});
-			this.stateChangeTimeout = null;
-		}, 100);
-	}
-	
-	/**
-	 * Cancels the authentication process and dispatches an event
-	 */
-	private cancelAuth(): void {
-		// First clean up to prevent any lingering elements
-		this.destroy();
-		
-		// Dispatch the event - after cleanup is complete
-		const cancelEvent = new CustomEvent('auth-cancelled', {
-			bubbles: true,
-			detail: { timestamp: Date.now() }
-		});
-		
-		// Dispatch with a small delay to ensure proper event handling
-		setTimeout(() => {
-			document.dispatchEvent(cancelEvent);
-		}, 10);
-	}
-	
-	// =========================================
 	// RENDERING
 	// =========================================
 	
+	/**
+	 * Renders the auth component into its container
+	 */
 	render(): void {
 		this.container.className = 'auth-container';
 		
@@ -120,16 +83,15 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	
 	/**
 	 * Renders the appropriate content based on the current auth state
+	 * @returns The HTML template for the current auth state
 	 */
 	private renderAuthContent(): any {
 		const state = this.getInternalState();
 		
-		// For success state, always show success message regardless of loading state
 		if (state.currentState === AuthState.SUCCESS) {
 			return this.renderSuccessMessage();
 		}
 		
-		// For other states, only show loading indicator if needed
 		if (state.isLoading) {
 			return html`<div class="auth-processing"></div>`;
 		}
@@ -144,11 +106,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 
 		switch (state.currentState) {
 			case AuthState.LOGIN:
-				// The updateInternalState callback will trigger a full re-render
 				return new LoginHandler(
 					(newState) => {
 						this.updateInternalState({...newState});
-						// Force a re-render when state changes
 						setTimeout(() => this.render(), 0);
 					},
 					setUserAndTokenCallback,
@@ -167,7 +127,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 					() => this.switchState(AuthState.LOGIN)
 				);
 			default:
-				// Fallback to login, create a new LoginHandler instance
 				return new LoginHandler(
 					this.updateInternalState.bind(this),
 					setUserAndTokenCallback,
@@ -182,6 +141,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	
 	/**
 	 * Renders a success message after authentication
+	 * @returns The HTML template for the success message
 	 */
 	protected renderSuccessMessage(): any {
 		return html`
@@ -193,6 +153,27 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		`;
 	}
 	
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Switches to a different auth state with debouncing
+	 * @param newState - The auth state to switch to
+	 */
+	private switchState(newState: AuthState): void {
+		if (this.stateChangeTimeout !== null) {
+			clearTimeout(this.stateChangeTimeout);
+		}
+		
+		this.stateChangeTimeout = window.setTimeout(() => {
+			this.updateInternalState({
+				currentState: newState
+			});
+			this.stateChangeTimeout = null;
+		}, 100);
+	}
+	
 	/**
 	 * Handles successful authentication
 	 */
@@ -202,17 +183,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			return;
 		}
 		if (!this.activeToken) {
-			console.warn("AuthManager: handleSuccessfulAuth called with no activeToken. User might not be fully logged into appState.");
+			NotificationManager.showWarning("Authentication may be incomplete. Token is missing.");
 		}
-		
-		// Prepare the user object for appState.login.
-		// appState.login expects a simpler user object (id, username, etc.)
-		// and will enrich it with theme from localStorage.
+
 		const userForAppState = {
 			id: this.currentUser.id,
 			username: this.currentUser.username,
 			email: this.currentUser.email
-			// Any other fields appState's `login` method's `user` parameter expects
 		};
 
 		appState.login(userForAppState, this.activeToken, this.persistSession);
@@ -221,6 +198,22 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		
 		const targetPath = this.getInternalState().redirectTarget === 'game' ? '/game' : '/profile';
 		navigate(targetPath);
+	}
+	
+	/**
+	 * Cancels the authentication process and dispatches an event
+	 */
+	private cancelAuth(): void {
+		this.destroy();
+		
+		const cancelEvent = new CustomEvent('auth-cancelled', {
+			bubbles: true,
+			detail: { timestamp: Date.now() }
+		});
+		
+		setTimeout(() => {
+			document.dispatchEvent(cancelEvent);
+		}, 10);
 	}
 	
 	// =========================================
@@ -242,6 +235,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		this.container.classList.add('hidden');
 	}
 	
+	/**
+	 * Cleans up resources used by this component
+	 */
 	destroy(): void {
 		if (this.closeButton) {
 			this.closeButton.removeEventListener('click', () => this.cancelAuth());

@@ -1,6 +1,7 @@
 import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
+import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -11,8 +12,14 @@ export class RegistrationHandler {
 		private switchToSuccessState: () => void
 	) {}
 
+	// =========================================
+	// RENDERING
+	// =========================================
+
 	/**
-	 * Renders the registration form
+	 * Renders the registration form with username, email and password fields
+	 * @param switchToLogin - Callback function to switch to login form
+	 * @returns HTML template for the registration form
 	 */
 	renderRegisterForm(switchToLogin: () => void): any {
 		return html`
@@ -55,8 +62,13 @@ export class RegistrationHandler {
 		`;
 	}
 
+	// =========================================
+	// PASSWORD MANAGEMENT
+	// =========================================
+
 	/**
-	 * Initialize password strength component
+	 * Initializes the password strength component when password field is focused
+	 * @param passwordInput - The password input HTML element
 	 */
 	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
 		if (!this.passwordStrength) {
@@ -64,7 +76,6 @@ export class RegistrationHandler {
 			if (form) {
 				const container = form.querySelector('#password-strength-container');
 				if (container) {
-					// false for simplified: show requirements text
 					this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false); 
 				}
 			}
@@ -72,7 +83,8 @@ export class RegistrationHandler {
 	}
 
 	/**
-	 * Handle password input to update strength indicator
+	 * Updates password strength indicator when password input changes
+	 * @param passwordInput - The password input HTML element
 	 */
 	handlePasswordInput(passwordInput: HTMLInputElement): void {
 		const password = passwordInput.value;
@@ -81,8 +93,13 @@ export class RegistrationHandler {
 		}
 	}
 
+	// =========================================
+	// FORM MANAGEMENT
+	// =========================================
+
 	/**
-	 * Reset form and password strength component
+	 * Resets form fields and password strength component
+	 * @param form - The form HTML element to reset
 	 */
 	private resetForm(form: HTMLFormElement): void {
 		const inputs = form.querySelectorAll('input');
@@ -98,7 +115,8 @@ export class RegistrationHandler {
 	}
 
 	/**
-	 * Handles user registration
+	 * Handles user registration process including validation, registration and login
+	 * @param form - The registration form HTML element
 	 */
 	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
@@ -107,14 +125,13 @@ export class RegistrationHandler {
 		const password = formData.get('password') as string;
 		
 		if (!username || !email || !password) {
-			NotificationManager.showError('Please fill in all fields');
+			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
 			return;
 		}
 		
-		// Validate password requirements
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
-			NotificationManager.showError(passwordValidation.message);
+			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);
 			return;
 		}
 		
@@ -123,7 +140,6 @@ export class RegistrationHandler {
 		try {
 			const hashedPassword = await hashPassword(password);
 			
-			// Step 1: Register the user
 			const registerResponse = await DbService.register({ 
 				username, 
 				email, 
@@ -132,11 +148,10 @@ export class RegistrationHandler {
 			
 			if (!registerResponse.success || !registerResponse.user) {
 				this.updateState({ isLoading: false });
-				NotificationManager.showError('Registration failed. Please try again.');
+				NotificationManager.handleErrorCode('operation_failed', 'Registration failed. Please try again.');
 				return;
 			}
 			
-			// Step 2: Login the user after successful registration
 			const loginResponse = await DbService.login({
 				email,
 				password: hashedPassword
@@ -146,7 +161,6 @@ export class RegistrationHandler {
 				const userFromDb = loginResponse.user;
 				const token = loginResponse.token;
 				
-				// Construct UserData for AuthManager/appState
 				const userData: UserData = {
 					id: userFromDb.id,
 					username: userFromDb.username,
@@ -158,7 +172,6 @@ export class RegistrationHandler {
 				this.setCurrentUser(userData, token);
 				this.resetForm(form);
 				
-				// Initialize WebSocket connection using centralized function
 				connectAuthenticatedWebSocket(token);
 
 				this.updateState({ isLoading: false });
@@ -170,7 +183,18 @@ export class RegistrationHandler {
 			}
 		} catch (error) {
 			this.updateState({ isLoading: false });
-			NotificationManager.handleError(error);
+			if (error && typeof error === 'object' && 'code' in error) {
+				const errorCode = error.code as string;
+				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) {
+					NotificationManager.handleErrorCode('unique_constraint_email', 'This email is already registered');
+				} else if (errorCode === ErrorCodes.INVALID_FIELDS) {
+					NotificationManager.handleErrorCode('invalid_fields', 'Invalid registration information');
+				} else {
+					NotificationManager.handleErrorCode(errorCode, 'Registration failed');
+				}
+			} else {
+				NotificationManager.handleError(error);
+			}
 		}
 	}
 }

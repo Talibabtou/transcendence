@@ -16,6 +16,14 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	// INITIALIZATION & LIFECYCLE
 	// =========================================
 	
+	/**
+	 * Creates a new players registration component
+	 * @param container - The HTML element to render the component into
+	 * @param gameMode - The game mode (MULTI or TOURNAMENT)
+	 * @param onAllPlayersRegistered - Callback when all players are registered
+	 * @param onBack - Callback when back button is clicked
+	 * @param onShowTournamentSchedule - Callback to show tournament schedule
+	 */
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
@@ -34,22 +42,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		this.onBack = onBack;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
-		// Set max players based on game mode
 		if (gameMode === GameMode.TOURNAMENT) {
 			this.maxPlayers = 4;
 		}
 		
-		// Initialize host data
 		this.initializeHost();
 		
-		// IMPORTANT: Use bind for both event handlers to ensure correct 'this' context
 		this.handleGuestAuthenticatedEvent = this.handleGuestAuthenticatedEvent.bind(this);
 		
-		// Listen for authentication events - use guest-authenticated instead of user-authenticated
 		document.addEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this));
 		
-		// Listen for theme updates to keep UI in sync with settings changes
 		window.addEventListener('user:theme-updated', this.handleUserThemeUpdated.bind(this));
 	}
 	
@@ -63,7 +66,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const hostId = currentUser.id;
 			const hostTheme = AppStateManager.getUserAccentColor(hostId);
 			
-			// Initialize hostData with available information and defaults
 			const hostData: PlayerData = {
 				id: hostId,
 				username: currentUser.username || 'Player 1',
@@ -73,38 +75,27 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				elo: 0
 			};
 
-			// Chain promises to fetch detailed information
 			DbService.getUser(hostId)
 				.then(userFromDb => {
 					hostData.username = userFromDb.username || hostData.username;
-					// Use pfp from userFromDb as a fallback if getPic fails
 					hostData.pfp = userFromDb.pfp || hostData.pfp;
-					// Use elo from userFromDb as a fallback if getPlayerElo fails
 					hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
 					return DbService.getPlayerElo(hostId);
 				})
 				.then(eloResponse => {
-					// eloResponse is expected to be an object like { elo: number, ... }
 					if (eloResponse && eloResponse.elo !== undefined) {
 						hostData.elo = eloResponse.elo;
 					}
 					return DbService.getPic(hostId);
 				})
 				.then(picResponse => {
-					// picResponse is { link: string }
-					// The link should be a relative path like /uploads/image.png
 					if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
-                        // The backend might return API_PREFIX in the link, ensure it's a relative path for the client
-                        // However, profile service getPic returns `/uploads/${existingFile}` which is already correct.
 						hostData.pfp = picResponse.link;
 					}
 				})
 				.catch(error => {
 					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-						// Silent error for missing profile picture
 					} else {
-						// For any other error, log a warning.
-						console.warn(`Error fetching full details for host ${hostId}. Using fallbacks.`, error);
 						NotificationManager.handleError(error);
 					}
 				})
@@ -117,10 +108,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 	}
 	
+	/**
+	 * Renders the component into its container
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		
-		// Main container setup
 		this.container.className = 'players-register-container';
 		
 		let template;
@@ -157,7 +150,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				${this.renderPlayButton(state)}
 			`;
 		} else {
-			// Tournament mode with sequential authentication
 			const nextAuthIndex = state.guests.filter(g => g && g.isConnected).length;
 			
 			template = html`
@@ -222,17 +214,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		
 		render(template, this.container);
 		
-		// Initialize auth container after rendering
 		this.setupAuthComponent();
 	}
 	
+	/**
+	 * Cleans up resources and removes event listeners
+	 */
 	destroy(): void {
-		// Remove event listeners
 		document.removeEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
 		document.removeEventListener('auth-cancelled', this.handleAuthCancelled.bind(this));
 		window.removeEventListener('user:theme-updated', this.handleUserThemeUpdated.bind(this));
 		
-		// Destroy all auth managers
 		this.authManagers.forEach(manager => manager.destroy());
 		this.authManagers.clear();
 		
@@ -245,6 +237,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	
 	/**
 	 * Renders the host player with color selection
+	 * @param host - The host player data
+	 * @returns HTML template for the host player
 	 */
 	private renderHostPlayer(host: PlayerData | null): any {
 		if (!host || !host.id) return '';
@@ -291,6 +285,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	
 	/**
 	 * Renders a connected guest with color selection
+	 * @param guest - The guest player data
+	 * @returns HTML template for the guest player
 	 */
 	private renderConnectedGuest(guest: PlayerData | null): any {
 		if (!guest || !guest.id) return '';
@@ -335,8 +331,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	}
 	
 	/**
-	 * Renders or updates the play button based on player readiness
-	 * Used for both initial rendering and dynamic updates
+	 * Renders the play button based on player readiness
+	 * @param state - The current component state
+	 * @returns HTML template for the play button
 	 */
 	private renderPlayButton(state: PlayersRegisterState): any {
 		const requiredPlayers = this.maxPlayers;
@@ -344,7 +341,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			state.guests.filter(g => g && g.isConnected).length;
 		const isReady = connectedCount >= requiredPlayers;
 		
-		// Always return fresh HTML for consistency
 		return html`
 			<div class="play-button-container">
 				${isReady ? html`
@@ -361,13 +357,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	// =========================================
 	
 	/**
-	 * Setup the authentication component
+	 * Sets up the authentication component based on game mode
 	 */
 	private setupAuthComponent(): void {
 		const state = this.getInternalState();
 		
 		if (state.gameMode === GameMode.MULTI) {
-			// Only setup auth if there's no guest yet
 			if (!state.guests.length || !state.guests[0] || !state.guests[0].isConnected) {
 				const guestSide = this.container.querySelector('.guest-side');
 				if (guestSide) {
@@ -378,10 +373,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 						this.authContainer.id = 'guest-auth-container';
 						this.authContainer.className = 'player-auth-wrapper simplified-auth-container';
 						
-						// Get the player label
 						const playerLabel = guestSide.querySelector('.player-label');
 						
-						// Clear and preserve the label
 						guestSide.innerHTML = '';
 						
 						if (playerLabel) {
@@ -396,56 +389,46 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 						guestSide.appendChild(this.authContainer);
 					}
 					
-					// Clear existing auth manager
 					if (this.authManagers.has('guest')) {
 						this.authManagers.get('guest')?.destroy();
 						this.authManagers.delete('guest');
 					}
 					
-					// Create new auth manager
 					const authManager = new GuestAuthComponent(this.authContainer);
 					this.authManagers.set('guest', authManager);
 					authManager.show();
 				}
 			}
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
-			// For tournament mode, only set up one auth container at a time
 			const nextAuthIndex = state.guests.filter(g => g && g.isConnected).length;
 			
-			// Only show auth component if we still need more players
 			if (nextAuthIndex < 3) {
 				const guestSides = this.container.querySelectorAll('.guest-side');
 				const targetGuestSide = guestSides[nextAuthIndex];
 				
 				if (targetGuestSide) {
-					// Clear any existing content except the player label
 					const playerLabel = targetGuestSide.querySelector('.player-label');
 					const labelContent = playerLabel ? playerLabel.innerHTML : `PLAYER ${nextAuthIndex + 2}`;
 					
-					// Create or get the auth container
 					const authContainerId = `guest-auth-container-${nextAuthIndex}`;
-					targetGuestSide.innerHTML = ''; // Clear completely
+					targetGuestSide.innerHTML = '';
 					
-					// Add back the player label
 					const newLabel = document.createElement('div');
 					newLabel.className = 'player-label';
 					newLabel.innerHTML = labelContent;
 					targetGuestSide.appendChild(newLabel);
 					
-					// Create auth container
 					const authContainer = document.createElement('div');
 					authContainer.id = authContainerId;
 					authContainer.className = 'player-auth-wrapper simplified-auth-container';
 					targetGuestSide.appendChild(authContainer);
 					
-					// Clean up existing auth manager if it exists
 					const managerId = `guest-${nextAuthIndex}`;
 					if (this.authManagers.has(managerId)) {
 						this.authManagers.get(managerId)?.destroy();
 						this.authManagers.delete(managerId);
 					}
 					
-					// Create a new auth manager
 					const authManager = new GuestAuthComponent(authContainer);
 					this.authManagers.set(managerId, authManager);
 					authManager.show();
@@ -455,23 +438,21 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	}
 	
 	// =========================================
-	// AUTH EVENT HANDLERS
+	// EVENT HANDLERS
 	// =========================================
 	
 	/**
-	 * Handle the guest-authenticated event
+	 * Handles the guest-authenticated event
+	 * @param event - The authentication event
 	 */
 	private handleGuestAuthenticatedEvent = (event: Event): void => {
-		// Cast to CustomEvent and extract user data
 		const customEvent = event as CustomEvent<{ user: any, position?: number }>;
 		if (customEvent.detail && customEvent.detail.user) {
 			const userData = customEvent.detail.user;
 			const position = customEvent.detail.position;
 			
-			// Use the string ID directly
 			const guestId = userData.id;
 			
-			// Convert to PlayerData format
 			const guestData: PlayerData = {
 				id: guestId,
 				username: userData.username,
@@ -486,7 +467,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	};
 	
 	/**
-	 * Handle user theme updates from other components (like settings)
+	 * Handles user theme updates from other components
+	 * @param event - The theme update event
 	 */
 	private handleUserThemeUpdated(event: Event): void {
 		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
@@ -516,7 +498,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	}
 	
 	/**
-	 * Handle guest authenticated - receives data directly from GuestAuthComponent
+	 * Processes guest authentication with received data
+	 * @param guestDataFromEvent - The guest player data from auth event
 	 */
 	private handleGuestAuthenticated(guestDataFromEvent: PlayerData): void {
 		if (!guestDataFromEvent || !guestDataFromEvent.id) {
@@ -524,7 +507,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 		
-		// Retrieve the guest's stored accent color preference FIRST
 		const guestSelectedTheme = AppStateManager.getUserAccentColor(guestDataFromEvent.id);
 
 		const guestData: PlayerData = {
@@ -556,7 +538,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			.catch(error => {
 				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 				} else {
-					console.warn(`Error fetching full details for guest ${guestData.id}. Using fallbacks.`, error);
 					NotificationManager.handleError(error);
 				}
 			})
@@ -564,18 +545,18 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
 				guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
 				guestData.username = guestData.username || 'Player';
-				// guestData.theme is now correctly set before this call
 				this.continueGuestAuthentication(guestData);
 			});
 	}
 	
 	/**
-	 * Continue guest authentication after fetching all details
+	 * Continues guest authentication process after fetching details
+	 * 
+	 * @param guestData - The processed guest player data
 	 */
 	private continueGuestAuthentication(guestData: PlayerData): void {
 		const state = this.getInternalState();
 		
-		// Check if user is already the host
 		if (state.host && state.host.id === guestData.id) {
 			const currentAuthManager = this.authManagers.get('guest') || 
 				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
@@ -600,20 +581,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			return;
 		}
 
-		// Final defaults before adding to state (should be mostly covered by .finally() in handleGuestAuthenticated)
 		guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
 		guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
 		guestData.username = guestData.username || 'Player';
-		// Ensure theme is still what we expect, though it should be set by handleGuestAuthenticated
 		guestData.theme = guestData.theme || AppStateManager.getUserAccentColor(guestData.id);
 
 
 		let updatedGuests: PlayerData[] = [...state.guests];
-		let isReadyToPlay = state.isReadyToPlay; // This probably should be re-evaluated based on connected players
+		let isReadyToPlay = state.isReadyToPlay;
 
 		if (state.gameMode === GameMode.MULTI) {
-			updatedGuests = [guestData]; // Replace existing or add new
-			// Ensure appState also knows about this theme for player 2
+			updatedGuests = [guestData];
 			appState.setPlayerAccentColor(2, guestData.theme as string, guestData.id);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const nextIndex = updatedGuests.filter(g => g && g.isConnected).length;
@@ -621,21 +599,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				NotificationManager.showError('All player slots are filled');
 				return;
 			}
-			// Fill any gaps if players disconnected and reconnected out of order (less likely with current UI)
 			while (updatedGuests.length <= nextIndex) {
 				updatedGuests.push({} as PlayerData); 
 			}
 			updatedGuests[nextIndex] = guestData;
-			const playerPosition = nextIndex + 2; // Host is 1, guests start at 2
-			// Ensure appState also knows about this theme for the correct tournament position
+			const playerPosition = nextIndex + 2;
 			appState.setPlayerAccentColor(playerPosition, guestData.theme as string, guestData.id);
 		}
 
-		// Re-evaluate readiness
 		const connectedCount = (state.host ? 1 : 0) + 
 			updatedGuests.filter(g => g && g.isConnected).length;
 		isReadyToPlay = connectedCount >= this.maxPlayers;
-
 
 		this.updateInternalState({
 			guests: updatedGuests,
@@ -649,15 +623,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Handle auth cancelled event
 	 */
 	private handleAuthCancelled(): void {
-		// Replace direct state error with notification
 		NotificationManager.showWarning('Guest registration cancelled. Please try again.');
 		
-		// Reset the auth component
 		if (this.authManagers.has('guest')) {
 			this.authManagers.get('guest')?.destroy();
 			this.authManagers.delete('guest');
 			
-			// Recreate the auth component
 			this.setupAuthComponent();
 		}
 	}
@@ -678,7 +649,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 		
 		if (state.gameMode === GameMode.MULTI) {
-			// Hide the menu and immediately clean up
 			document.getElementById('game-menu')?.remove();
 			
 			if (!state.guests[0]) {
@@ -686,7 +656,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				return;
 			}
 			
-			// Prepare all data before calling callback
 			const hostId = state.host.id;
 			const guestId = state.guests[0].id;
 			const hostName = state.host.username || 'Player 1';
@@ -694,11 +663,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const hostColor = state.host.theme || '#ffffff';
 			const guestColor = state.guests[0].theme || '#ffffff';
 
-			// Clean up auth managers before transitioning
 			this.authManagers.forEach(manager => manager.destroy());
 			this.authManagers.clear();
 
-			// Call callback with all data
 			this.onAllPlayersRegistered(
 				[hostId, guestId], 
 				[hostName, guestName],
@@ -710,8 +677,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				NotificationManager.showError('Cannot start tournament: Not enough players');
 				return;
 			}
-			
-			// Clear any existing tournament data when starting a new one
+
 			if (typeof TournamentCache !== 'undefined' && TournamentCache.getTournamentData()) {
 				TournamentCache.clearTournament();
 			}
@@ -771,13 +737,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Handle back button click
 	 */
 	private handleBack(): void {
-		// Clean up before going back
 		this.authManagers.forEach(manager => {
 			manager.destroy();
 		});
 		this.authManagers.clear();
 		
-		// Call the onBack callback to return to the game menu
 		this.onBack();
 	}
 }

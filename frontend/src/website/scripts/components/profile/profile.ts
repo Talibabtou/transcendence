@@ -406,7 +406,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			summaryElement.className = 'profile-hero';
 			summaryElement.innerHTML = `
 				<div class="profile-avatar">
-					<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
+					<img src="${state.profile.username.toLowerCase() === 'ai' ? '/images/ai-avatar.jpg' : state.profile.avatarUrl}" alt="${state.profile.username}">
 				</div>
 				<div class="profile-info">
 					<h2 class="username">
