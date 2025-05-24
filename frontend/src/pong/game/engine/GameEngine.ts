@@ -3,7 +3,6 @@ import { GameScene } from '@pong/game/scenes';
 import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
 import { DbService, NotificationManager } from '@website/scripts/services';
 import { GameMode } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
 
 /**
  * Main game engine that coordinates game scenes, handles input,
@@ -240,7 +239,6 @@ export class GameEngine {
 	 * @param tournamentId Optional tournament ID if the match is part of a tournament.
 	 */
 	private async createMatch(tournamentId?: string): Promise<void> {
-		// Skip if already created, in background demo, or currently initializing
 		if (this.matchCreated || this.scene.isBackgroundDemo()) {
 			return;
 		}

@@ -407,13 +407,9 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Handles play again button from game over screen
 	 */
 	private handlePlayAgain(mode: GameMode): void {
-		// Prevent multiple transitions
 		if (this.isTransitioning === true) {
 			return;
 		}
-		
-		// Set flag immediately to prevent duplicate calls
-		this.isTransitioning = true;
 		
 		// Stop monitoring game state
 		this.stopGameStateMonitoring();
@@ -462,7 +458,6 @@ export class GameComponent extends Component<GameComponentState> {
 				this.updateGameState(GameState.MENU);
 			})
 			.finally(() => {
-				// Add a small delay before resetting the transition flag
 				setTimeout(() => {
 					this.isTransitioning = false;
 				}, 500);
@@ -571,26 +566,6 @@ export class GameComponent extends Component<GameComponentState> {
 			// Ensure the canvas component is rendered
 			if (this.canvasComponent) {
 				this.canvasComponent.render();
-				
-				const state = this.getInternalState();
-				const gameInfo = MatchCache.getCurrentGameInfo();
-				
-				// Use cache info if available, fallback to current user info
-				const currentUser = appState.getCurrentUser();
-				const playerName = currentUser?.username || 'Player 1';
-				const playerColor = appState.getAccentColorHex() || '#ffffff';
-				
-				// Prioritize cached info over defaults
-				const playerNames = state.playerNames || gameInfo.playerNames || [playerName];
-				const playerColors = state.playerColors || gameInfo.playerColors || [playerColor];
-				const playerIds = state.playerIds || gameInfo.playerIds;
-				
-				// Start the game with all available info
-				this.canvasComponent.startGame(mode, {
-					playerIds: playerIds,
-					playerNames: playerNames,
-					playerColors: playerColors
-				});
 			} else {
 				NotificationManager.showError('Failed to create canvas component');
 			}
