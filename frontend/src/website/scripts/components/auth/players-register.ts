@@ -1,6 +1,6 @@
 import { Component, GuestAuthComponent } from '@website/scripts/components';
 import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/scripts/utils';
-import { DbService, html, render, ApiError } from '@website/scripts/services';
+import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -27,8 +27,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			gameMode,
 			host: null,
 			guests: [],
-			isReadyToPlay: false,
-			error: null
+			isReadyToPlay: false
 		});
 		
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
@@ -101,11 +100,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					}
 				})
 				.catch(error => {
-					// Check if it's an ApiError for PICTURE_NOT_FOUND
-					if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PICTURE_NOT_FOUND)) {
+					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
+						// Silent error for missing profile picture
 					} else {
 						// For any other error, log a warning.
 						console.warn(`Error fetching full details for host ${hostId}. Using fallbacks.`, error);
+						NotificationManager.handleError(error);
 					}
 				})
 				.finally(() => {
@@ -113,8 +113,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					this.updateInternalState({ host: { ...hostData } });
 				});
 		} else {
-			console.error('No authenticated host found or host ID missing');
-			this.updateInternalState({ error: 'Host authentication required' });
+			NotificationManager.showError('Host authentication required');
 		}
 	}
 	
@@ -555,9 +554,10 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				}
 			})
 			.catch(error => {
-				if (error instanceof ApiError && error.isErrorCode(ErrorCodes.PICTURE_NOT_FOUND)) {
+				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 				} else {
 					console.warn(`Error fetching full details for guest ${guestData.id}. Using fallbacks.`, error);
+					NotificationManager.handleError(error);
 				}
 			})
 			.finally(() => {
@@ -617,11 +617,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			appState.setPlayerAccentColor(2, guestData.theme as string, guestData.id);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const nextIndex = updatedGuests.filter(g => g && g.isConnected).length;
-			if (nextIndex >= 3) { // Max 3 guests (players 2, 3, 4)
-				this.updateInternalState({
-					error: 'All player slots are filled'
-				});
-				return; // Exit if tournament is full
+			if (nextIndex >= 3) {
+				NotificationManager.showError('All player slots are filled');
+				return;
 			}
 			// Fill any gaps if players disconnected and reconnected out of order (less likely with current UI)
 			while (updatedGuests.length <= nextIndex) {
@@ -641,22 +639,18 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 
 		this.updateInternalState({
 			guests: updatedGuests,
-			isReadyToPlay: isReadyToPlay,
-			error: null // Clear any previous error
+			isReadyToPlay: isReadyToPlay
 		});
 
-		this.renderComponent(); // Re-render to show the new player or updated details
+		this.renderComponent();
 	}
 	
 	/**
 	 * Handle auth cancelled event
 	 */
 	private handleAuthCancelled(): void {
-		// For cancellation, we'll just show an error message
-		// but keep the auth component visible since we still need a guest
-		this.updateInternalState({
-			error: 'Guest registration cancelled. Please try again.'
-		});
+		// Replace direct state error with notification
+		NotificationManager.showWarning('Guest registration cancelled. Please try again.');
 		
 		// Reset the auth component
 		if (this.authManagers.has('guest')) {
@@ -714,6 +708,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			const connectedGuests = state.guests.filter(g => g && g.isConnected);
 			if (connectedGuests.length < 3) {
 				console.error('Cannot start tournament: Not enough players');
+				NotificationManager.showError('Cannot start tournament: Not enough players');
 				return;
 			}
 			

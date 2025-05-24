@@ -1,6 +1,6 @@
 import { Component } from '@website/scripts/components';
 import { ASCII_ART, appState } from '@website/scripts/utils';
-import { DbService, html, render, navigate, ApiError } from '@website/scripts/services';
+import { DbService, html, render, navigate } from '@website/scripts/services';
 import { LeaderboardState } from '@website/types';
 
 /**
@@ -29,24 +29,18 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Handles loading states and error conditions
 	 */
 	private async initialize(): Promise<void> {
+		this.updateInternalState({ 
+			isLoading: true
+		});
+		
 		try {
-			this.updateInternalState({ 
-				isLoading: true,
-				errorMessage: undefined
-			});
-			
-			// Now fetch the leaderboard data
+			// Fetch the leaderboard data
 			await this.fetchLeaderboardData();
-			
+		} catch (error) {
+			// Error will be handled by DbService through NotificationManager
+		} finally {
 			this.updateInternalState({ 
 				isLoading: false 
-			});
-		} catch (error) {
-			console.error('Error initializing leaderboard:', error);
-			const errorMessage = error instanceof Error ? error.message : 'Failed to load leaderboard data';
-			this.updateInternalState({ 
-				isLoading: false,
-				errorMessage 
 			});
 		}
 	}
@@ -59,13 +53,11 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Renders the component based on current state
 	 */
 	render(): void {
-		const state = this.getInternalState();
-		this.renderView(state.errorMessage);
+		this.renderView();
 	}
 	
 	/**
 	 * Cleans up the component when it's destroyed
-	 * Calls parent's destroy method to handle state cleanup
 	 */
 	destroy(): void {
 		super.destroy();
@@ -79,32 +71,21 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Fetches leaderboard data from the database
 	 */
 	private async fetchLeaderboardData(): Promise<void> {
-		try {
-			const apiResponse = await DbService.getLeaderboard();
-			console.log({apiResponse})
-			// Map the API response to the format expected by the component
-			// Sort by ELO first to ensure proper ranking
-			const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);
-			
-			const formattedLeaderboard = sortedData.map((entry, index) => ({
-				rank: index + 1,
-				player: entry.player,
-				username: entry.username,
-				elo: entry.elo,
-				victories: entry.victories,
-				defeats: entry.defeats
-			}));
-			
-			this.updateInternalState({ leaderboardData: formattedLeaderboard });
-			console.log('Leaderboard data processed:', formattedLeaderboard);
-		} catch (error) {
-			if (error instanceof ApiError) {
-				console.error(`Error fetching leaderboard data: ${error.message}`);
-			} else {
-				console.error('Error fetching leaderboard data:', error);
-			}
-			throw new Error('Failed to fetch leaderboard data.');
-		}
+		// DbService will handle displaying any errors through NotificationManager
+		const apiResponse = await DbService.getLeaderboard();
+		// Sort by ELO first to ensure proper ranking
+		const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);
+		
+		const formattedLeaderboard = sortedData.map((entry, index) => ({
+			rank: index + 1,
+			player: entry.player,
+			username: entry.username,
+			elo: entry.elo,
+			victories: entry.victories,
+			defeats: entry.defeats
+		}));
+		
+		this.updateInternalState({ leaderboardData: formattedLeaderboard });
 	}
 
 	// =========================================
@@ -113,7 +94,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 
 	/**
 	 * Handles clicks on player names in the leaderboard
-	 * Only navigates to profiles if the user is authenticated
 	 * @param playerId - The ID of the clicked player
 	 */
 	private handlePlayerClick(playerId: string): void {
@@ -121,15 +101,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		if (appState.isAuthenticated()) {
 			navigate(`/profile?id=${playerId}`);
 		}
-		// Do nothing if not authenticated
-	}
-	
-	/**
-	 * Handles retry button clicks when loading fails
-	 * Reinitializes the component to fetch data again
-	 */
-	private handleRetry(): void {
-		this.initialize();
 	}
 
 	// =========================================
@@ -138,9 +109,8 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 
 	/**
 	 * Renders the leaderboard view based on current state
-	 * @param errorMessage - Optional error message to display
 	 */
-	private renderView(errorMessage?: string): void {
+	private renderView(): void {
 		const state = this.getInternalState();
 		
 		const template = html`
@@ -152,44 +122,39 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 				<div class="leaderboard-content">
 					${state.isLoading ? 
 						html`<p class="loading-text">Loading leaderboard data...</p>` : 
-						errorMessage ? 
-							html`
-								<div class="error-message">${errorMessage}</div>
-								<button class="retry-button" onClick=${() => this.handleRetry()}>Retry</button>
-							` : 
-							html`
-								<table class="leaderboard-table">
-									<thead>
-										<tr>
-											<th>RANK</th>
-											<th>PLAYER</th>
-											<th>ELO</th>
-											<th>WINS</th>
-											<th>LOSSES</th>
-										</tr>
-									</thead>
-									<tbody>
-										${state.leaderboardData.length ? 
-											state.leaderboardData.map((entry, index) => html`
-												<tr class="${index < 3 ? `top-${index+1}` : ''}">
-													<td class="rank-cell">${entry.rank.toString()}</td>
-													<td 
-														class="player-cell ${appState.isAuthenticated() ? 'clickable' : ''}" 
-														onClick=${() => this.handlePlayerClick(entry.player)}
-														title=${appState.isAuthenticated() ? 'View profile' : 'Log in to view profiles'}
-													>
-														${entry.username}
-													</td>
-													<td class="elo-cell">${entry.elo.toString()}</td>
-													<td class="wins-cell">${entry.victories.toString()}</td>
-													<td class="losses-cell">${entry.defeats.toString()}</td>
-												</tr>
-											`) : 
-											html`<tr><td colspan="5" class="no-data">No leaderboard data available</td></tr>`
-										}
-									</tbody>
-								</table>
-							`
+						html`
+							<table class="leaderboard-table">
+								<thead>
+									<tr>
+										<th>RANK</th>
+										<th>PLAYER</th>
+										<th>ELO</th>
+										<th>WINS</th>
+										<th>LOSSES</th>
+									</tr>
+								</thead>
+								<tbody>
+									${state.leaderboardData.length ? 
+										state.leaderboardData.map((entry, index) => html`
+											<tr class="${index < 3 ? `top-${index+1}` : ''}">
+												<td class="rank-cell">${entry.rank.toString()}</td>
+												<td 
+													class="player-cell ${appState.isAuthenticated() ? 'clickable' : ''}" 
+													onClick=${() => this.handlePlayerClick(entry.player)}
+													title=${appState.isAuthenticated() ? 'View profile' : 'Log in to view profiles'}
+												>
+													${entry.username}
+												</td>
+												<td class="elo-cell">${entry.elo.toString()}</td>
+												<td class="wins-cell">${entry.victories.toString()}</td>
+												<td class="losses-cell">${entry.defeats.toString()}</td>
+											</tr>
+										`) : 
+										html`<tr><td colspan="5" class="no-data">No leaderboard data available</td></tr>`
+									}
+								</tbody>
+							</table>
+						`
 					}
 				</div>
 			</div>

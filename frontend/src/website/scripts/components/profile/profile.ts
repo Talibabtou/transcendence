@@ -1,6 +1,6 @@
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
 import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
-import { DbService, html, render, navigate } from '@website/scripts/services';
+import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
 /**
@@ -54,13 +54,12 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		if (state.initialized || state.isLoading) return;
 		
+		this.updateInternalState({ 
+			isLoading: true,
+			initialized: true
+		});
+		
 		try {
-			this.updateInternalState({ 
-				isLoading: true, 
-				errorMessage: undefined,
-				initialized: true
-			});
-			
 			await this.fetchProfileData();
 			
 			this.updateInternalState({ 
@@ -75,11 +74,11 @@ export class ProfileComponent extends Component<ProfileState> {
 			// Initialize tab content only once
 			this.initializeTabContent();
 		} catch (error) {
+			// NotificationManager will already have displayed the error
 			console.error('Error initializing profile:', error);
-			const errorMessage = error instanceof Error ? error.message : 'Failed to load profile data';
+			
 			this.updateInternalState({ 
-				isLoading: false, 
-				errorMessage,
+				isLoading: false,
 				initialized: false
 			});
 		}
@@ -117,7 +116,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		tabContainer.id = `tab-content-${tabName}`;
 		tabContentDiv.appendChild(tabContainer);
 
-		// Reuse existing components when possible (extending the settings pattern to all tabs)
+		// Reuse existing components when possible
 		switch (tabName) {
 			case 'stats':
 				if (this.statsComponent) {
@@ -218,28 +217,32 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Fetches profile data from the database
 	 */
 	private async fetchProfileData(): Promise<void> {
-		try {
-			// Get userId from URL
-			const url = new URL(window.location.href);
-			let userId = url.searchParams.get('id');
-			
-			// Handle 'current' user case
+		// Get userId from URL
+		const url = new URL(window.location.href);
+		let userId = url.searchParams.get('id');
+		
+		// Handle 'current' user case
+		if (!userId) {
+			const currentUser = JSON.parse(localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user') || '{}');
+			userId = currentUser?.id;
 			if (!userId) {
-				const currentUser = JSON.parse(localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user') || '{}');
-				userId = currentUser?.id;
-				if (!userId) {
-					this.updateInternalState({ errorMessage: 'No user ID provided', isLoading: false });
-					return;
-				}
+				NotificationManager.showError('No user ID provided');
+				this.updateInternalState({ isLoading: false });
+				return;
 			}
-			
-			this.updateInternalState({ currentProfileId: userId });
-			
+		}
+		
+		this.updateInternalState({ currentProfileId: userId });
+		
+		try {
 			// Get profile data
 			const userProfile = await DbService.getUserProfile(userId);
+			
 			if (!userProfile) {
+				NotificationManager.showError(`User profile not found`);
 				throw new Error(`User with ID ${userId} not found`);
 			}
+			
 			const profile = {
 				id: String(userProfile.id),
 				username: userProfile.username,
@@ -283,6 +286,7 @@ export class ProfileComponent extends Component<ProfileState> {
 									break; // Stop after finding first incoming request
 								}
 							} catch (error) {
+								// No need to show notifications for this error
 								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
 							}
 						}
@@ -293,6 +297,7 @@ export class ProfileComponent extends Component<ProfileState> {
 						}
 					}
 				} catch (error) {
+					// Don't show notifications for this warning
 					console.warn('Could not fetch pending friend requests:', error);
 				}
 			}
@@ -303,6 +308,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				try {
 					friendshipStatus = await DbService.getFriendship(userId);
 				} catch (error) {
+					// This is not a real error, just no friendship exists
 					console.log("No friendship exists");
 				}
 			}
@@ -316,11 +322,10 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 		} catch (error) {
+			// The error will be displayed by DbService through NotificationManager
 			console.error('Error fetching profile data:', error);
-			this.updateInternalState({
-				errorMessage: error instanceof Error ? error.message : 'Failed to load profile data',
-				isLoading: false
-			});
+			
+			this.updateInternalState({ isLoading: false });
 		}
 	}
 
@@ -342,6 +347,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			const userId = await DbService.getIdByUsername(username);
 			navigate(`/profile?id=${userId}`);
 		} catch (error) {
+			NotificationManager.showError(`Could not find user: ${username}`);
 			console.error(`Could not find user with username: ${username}`, error);
 		}
 	}
@@ -359,6 +365,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
 			newProfileDataForParent.username = updatedFields.username;
 			profileWasActuallyUpdatedInParent = true;
+			
+			// Show notification for successful update
+			NotificationManager.showSuccess("Profile updated successfully");
 		}
 
 		if (profileWasActuallyUpdatedInParent) {
@@ -380,21 +389,16 @@ export class ProfileComponent extends Component<ProfileState> {
 				
 				${state.isLoading ? 
 					html`<p class="loading-text">Loading profile data...</p>` :
-					state.errorMessage ?
-						html`
-							<div class="error-message">${state.errorMessage}</div>
-							<button class="retry-button" onClick=${() => this.render()}>Retry</button>
-						` :
-						html`
-							<div class="profile-content"></div>
-						`
+					html`
+						<div class="profile-content"></div>
+					`
 				}
 			</div>
 		`;
 		
 		render(template, this.container);
 		
-		if (!state.isLoading && !state.errorMessage && state.profile) {
+		if (!state.isLoading && state.profile) {
 			// Get profile content element
 			const profileContent = this.container.querySelector('.profile-content');
 			if (!profileContent) return;
@@ -570,6 +574,9 @@ export class ProfileComponent extends Component<ProfileState> {
 				// After removal, check the new status
 				const newStatus = await DbService.getFriendship(state.profile.id);
 				
+				// Show appropriate notification
+				NotificationManager.showSuccess('Friend request cancelled');
+				
 				// Update button based on new status
 				if (newStatus === null) {
 					friendButton.textContent = 'Add Friend';
@@ -594,6 +601,9 @@ export class ProfileComponent extends Component<ProfileState> {
 				// After adding, check the new status
 				const newStatus = await DbService.getFriendship(state.profile.id);
 				
+				// Show appropriate notification
+				NotificationManager.showSuccess('Friend request sent');
+				
 				// Update button based on new status
 				if (newStatus === null) {
 					friendButton.textContent = 'Add Friend';
@@ -614,7 +624,9 @@ export class ProfileComponent extends Component<ProfileState> {
 				});
 			}
 		} catch (error) {
+			// Error will be shown by NotificationManager via DbService
 			console.error('Error managing friend relationship:', error);
+			
 			// Reset button to previous state
 			if (isPending) {
 				friendButton.textContent = 'Pending';

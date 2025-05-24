@@ -1,8 +1,7 @@
 import { Component } from '@website/scripts/components';
 import { appState, hashPassword } from '@website/scripts/utils';
-import { DbService, html, render, ApiError } from '@website/scripts/services';
+import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
 import { AppStateManager } from '@website/scripts/utils/app-state';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
@@ -15,7 +14,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			profile: null,
 			isUploading: false,
 			uploadSuccess: false,
-			uploadError: null,
 			saveSuccess: false,
 			noChangesMessage: null,
 			formData: {
@@ -143,7 +141,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								<div class="upload-info">
 									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
 									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
-									${state.uploadError ? html`<span class="upload-error">${state.uploadError}</span>` : ''}
 									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
 								</div>
 							</div>
@@ -283,8 +280,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			
 			const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
 			if (!validTypes.includes(file.type)) {
+				NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
 				this.updateInternalState({
-					uploadError: 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.',
 					uploadSuccess: false,
 					isUploading: false
 				});
@@ -292,8 +289,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			}
 			
 			if (file.size > 1 * 1024 * 1024) { // 1MB
+				NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
 				this.updateInternalState({
-					uploadError: 'File too large. Maximum size is 1MB.',
 					uploadSuccess: false,
 					isUploading: false
 				});
@@ -302,16 +299,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			
 			this.updateInternalState({
 				isUploading: true,
-				uploadError: null,
 				uploadSuccess: false
 			});
 			
 			DbService.updateProfilePicture(file) 
 				.then((response) => {
+					NotificationManager.showSuccess('Profile picture updated successfully');
 					this.updateInternalState({
 						isUploading: false,
 						uploadSuccess: true,
-						uploadError: null,
 						profile: {
 							...this.getInternalState().profile!,
 							avatarUrl: response.avatarUrl || this.getInternalState().profile!.avatarUrl
@@ -319,21 +315,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					});
 				})
 				.catch(error => {
-					let specificError = "Upload failed. Please try again.";
-					if (error instanceof ApiError) {
-						if (error.isErrorCode(ErrorCodes.INVALID_TYPE)) {
-							specificError = 'Invalid image format';
-						} else if (error.isErrorCode(ErrorCodes.NO_FILE_PROVIDED)) {
-							specificError = 'No file provided for upload';
-						} else {
-							specificError = `Upload failed: ${error.message}`;
-						}
-					} else if (error instanceof Error) {
-						specificError = error.message;
-					}
+					NotificationManager.showError('Upload failed. Please try again: ' + error);
 					this.updateInternalState({
 						isUploading: false,
-						uploadError: specificError,
 						uploadSuccess: false
 					});
 				});
@@ -348,8 +332,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (!state.profile) return;
 
 		AppStateManager.setUserAccentColor(state.profile.id, colorHex);
-		
 		appState.setPlayerAccentColor(1, colorHex, state.profile.id);
+		
+		NotificationManager.showSuccess('Theme color updated');
 	}
 	
 	/**
@@ -399,9 +384,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 		
 		if (Object.keys(errors).length > 0) {
+			// Show validation errors in UI
 			this.updateInternalState({ formErrors: errors, saveSuccess: false, noChangesMessage: null });
+			
+			// Also show the first error in a notification
+			const firstError = Object.values(errors)[0];
+			NotificationManager.showError(firstError);
 			return;
 		}
+		
 		this.updateInternalState({ formErrors: {}, noChangesMessage: null });
 		const updateData: Partial<User> = {};
 		
@@ -409,7 +400,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			updateData.username = state.formData.username;
 		}
 		if (state.formData.email !== this.initialDbEmail) {
-
 			updateData.email = state.formData.email;
 		}
 		if (state.formData.password) {
@@ -418,6 +408,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 		
 		if (Object.keys(updateData).length === 0) {
+			NotificationManager.showInfo('No changes detected');
 			this.updateInternalState({ 
 				saveSuccess: false,
 				noChangesMessage: 'No changes detected.',
@@ -472,45 +463,48 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			this.updateInternalState({ saveSuccess: false });
 		}, 2000);
 
-		DbService.updateUser(state.profile.id, updateData)
-			.catch(error => {
-				// Rollback optimistic updates
-				this.initialDbUsername = this.initialDbUsername;
-				this.initialDbEmail = this.initialDbEmail;
+		try {
+			await DbService.updateUser(state.profile.id, updateData);
+			// Show success notification
+			NotificationManager.showSuccess('Profile updated successfully');
+		} catch (error) {
+			// Errors already shown by DbService via NotificationManager
+			// Rollback optimistic updates
+			this.initialDbUsername = this.initialDbUsername;
+			this.initialDbEmail = this.initialDbEmail;
 
-				const currentFormErrors = { ...state.formErrors };
-				if (error instanceof ApiError) {
-					switch(error.code) {
-						case ErrorCodes.SQLITE_CONSTRAINT:
-							currentFormErrors.form = 'Username or email already in use';
-							break;
-						case ErrorCodes.INVALID_FIELDS:
-							currentFormErrors.form = 'Invalid user information provided';
-							break;
-						case ErrorCodes.PLAYER_NOT_FOUND:
-							currentFormErrors.form = 'User not found';
-							break;
-						default:
-							currentFormErrors.form = `Failed to update profile: ${error.message}`;
-					}
+			// Update form with error indicators
+			const currentFormErrors = { ...state.formErrors };
+			
+			if (error instanceof Error) {
+				if (error.message.includes('constraint') || error.message.includes('already in use')) {
+					currentFormErrors.form = 'Username or email already in use';
+				} else if (error.message.includes('Invalid') || error.message.includes('fields')) {
+					currentFormErrors.form = 'Invalid user information provided';
+				} else if (error.message.includes('not found')) {
+					currentFormErrors.form = 'User not found';
 				} else {
-					currentFormErrors.form = `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`;
+					currentFormErrors.form = `Failed to update profile: ${error.message}`;
 				}
-				this.updateInternalState({ 
-					formErrors: currentFormErrors, 
-					saveSuccess: false,
-					formData: {
-						username: this.initialDbUsername || '',
-						email: this.initialDbEmail || '',
-						password: '',
-						confirmPassword: ''
-					},
-					profile: {
-						...state.profile!,
-						username: this.initialDbUsername || '',
-					}
-				});
+			} else {
+				currentFormErrors.form = 'Failed to update profile';
+			}
+			
+			this.updateInternalState({ 
+				formErrors: currentFormErrors, 
+				saveSuccess: false,
+				formData: {
+					username: this.initialDbUsername || '',
+					email: this.initialDbEmail || '',
+					password: '',
+					confirmPassword: ''
+				},
+				profile: {
+					...state.profile!,
+					username: this.initialDbUsername || '',
+				}
 			});
+		}
 	}
 	
 	/**
@@ -562,11 +556,13 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			} else {
 				// Disabling 2FA
 				await DbService.disable2FA();
+				NotificationManager.showSuccess('Two-factor authentication disabled');
 				this.updateInternalState({
 					profile: { ...state.profile, twoFactorEnabled: false }
 				});
 			}
 		} catch (error) {
+			// Error already shown by DbService via NotificationManager
 			console.error('2FA operation failed:', error);
 			
 			// Revert toggle to previous state
@@ -621,7 +617,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 
 	private async verify2FACode(code: string): Promise<void> {
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
-			// Add error styling to input instead of alert
+			// Show notification for invalid code
+			NotificationManager.showError('Please enter a valid 6-digit code');
+			
+			// Add error styling to input
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
 			if (codeInput) {
 				codeInput.classList.add('error');
@@ -632,6 +631,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		try {
 			await DbService.validate2FA(code);
+			
+			// Show success notification
+			NotificationManager.showSuccess('Two-factor authentication enabled successfully');
 			
 			// Single state update
 			this.updateInternalState({
@@ -654,8 +656,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
 			if (toggle) toggle.checked = true;
 		} catch (error) {
+			// Error already shown by DbService via NotificationManager
 			console.error('Failed to verify 2FA code:', error);
-			// Visual error indication instead of alert
+			
+			// Visual error indication
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
 			if (codeInput) {
 				codeInput.value = '';

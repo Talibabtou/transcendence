@@ -1,5 +1,5 @@
 export * from './client'
 export * from './db'
-export * from './error'
+export * from './notification-manager'
 export * from './htm'
 export * from './router'

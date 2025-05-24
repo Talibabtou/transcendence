@@ -27,6 +27,10 @@
 	/* Status Colors */
 	--win-color: #98FB98;
 	--loss-color: #ff7a7a;
+
+	/* Notification Colors */
+	--warning-color: #ffe57b;
+	--info-color: #7bc3ff;
 	
 	/* Layout */
 	--navbar-height: 5rem;

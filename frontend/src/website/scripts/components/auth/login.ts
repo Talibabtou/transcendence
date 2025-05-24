@@ -1,7 +1,6 @@
 import { ASCII_ART, hashPassword } from '@website/scripts/utils';
-import { DbService, html, ApiError, connectAuthenticatedWebSocket } from '@website/scripts/services';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
 
 export class LoginHandler {
 	private persistSession: boolean = false;
@@ -26,8 +25,6 @@ export class LoginHandler {
 		const needsVerification = sessionStorage.getItem('auth_2fa_needed') === 'true';
 		
 		if (needsVerification) {
-			console.log("Showing 2FA form from session storage");
-			// Set a timeout to cancel 2FA if not completed within 1 minute
 			this.startTwoFATimeout();
 			return this.render2FAForm();
 		}
@@ -84,7 +81,7 @@ export class LoginHandler {
 		
 		// Set a new timeout (1 minute = 60000 milliseconds)
 		this.twoFATimeoutId = window.setTimeout(() => {
-			console.log("2FA verification timed out after 1 minute");
+			NotificationManager.showWarning("2FA verification timed out");
 			this.cancelTwoFactor();
 		}, 60000);
 	}
@@ -156,12 +153,12 @@ export class LoginHandler {
 		const code = formData.get('twofa-code') as string;
 		
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
-			this.updateState({ error: 'Please enter a valid 6-digit code' });
+			NotificationManager.showError('Please enter a valid 6-digit code');
 			return;
 		}
 		
 		try {
-			this.updateState({ isLoading: true, error: null });
+			this.updateState({ isLoading: true });
 			
 			// Get data from session storage
 			const userId = sessionStorage.getItem('auth_2fa_userid') || '';
@@ -191,27 +188,17 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData, loginResponse.token);
 				
-				// Initialize WebSocket connection using centralized function
-				// Pass the token directly to ensure immediate connection
 				connectAuthenticatedWebSocket(loginResponse.token);
 				
 				// Clear 2FA session data
 				this.clearTwoFactorSessionData();
 				
 				this.switchToSuccessState();
-			} else {
-				this.updateState({ 
-					isLoading: false,
-					error: 'Authentication failed after 2FA verification'
-				});
+				NotificationManager.showSuccess('Login successful');
 			}
 		} catch (error) {
-			console.error('2FA verification error:', error);
-			this.updateState({ 
-				isLoading: false,
-				error: error instanceof ApiError && error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE) ?
-					'Invalid verification code' : 'Verification failed. Please try again.'
-			});
+			this.updateState({ isLoading: false });
+			NotificationManager.handleError(error);
 		}
 	}
 	
@@ -238,6 +225,7 @@ export class LoginHandler {
 		this.clearTwoFactorSessionData();
 		
 		this.updateState({});
+		NotificationManager.showInfo('2FA verification cancelled');
 	}
 
 	/**
@@ -252,7 +240,7 @@ export class LoginHandler {
 		const password = formData.get('password') as string;
 		
 		if (!email || !password) {
-			this.updateState({ error: 'Please enter both email and password' });
+			NotificationManager.showError('Please enter both email and password');
 			return;
 		}
 		
@@ -263,7 +251,7 @@ export class LoginHandler {
 		if (this.loginAttempts > 5) {
 			const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
-				this.updateState({ error: 'Too many login attempts. Please try again later.' });
+				NotificationManager.showError('Too many login attempts. Please try again later.');
 				return;
 			} else {
 				this.loginAttempts = 1;
@@ -271,7 +259,7 @@ export class LoginHandler {
 		}
 		
 		try {
-			this.updateState({ isLoading: true, error: null });
+			this.updateState({ isLoading: true });
 			
 			const hashedPassword = await hashPassword(password);
 			
@@ -281,9 +269,6 @@ export class LoginHandler {
 			});
 			
 			if (response.requires2FA) {
-				console.log("2FA required for user:", response.user.id);
-				
-				// Store 2FA info in session storage
 				sessionStorage.setItem('auth_2fa_needed', 'true');
 				sessionStorage.setItem('auth_2fa_userid', response.user.id);
 				sessionStorage.setItem('auth_2fa_token', response.token);
@@ -291,16 +276,13 @@ export class LoginHandler {
 				sessionStorage.setItem('auth_email', email);
 				sessionStorage.setItem('auth_password', hashedPassword);
 				
-				// Update UI state
-				this.updateState({ isLoading: false, error: null });
+				this.updateState({ isLoading: false });
 				
-				// Start the timeout for 2FA verification
 				this.startTwoFATimeout();
 				
-				// Force re-render to show 2FA form
 				this.updateState({});
+				NotificationManager.showInfo('Please enter your 2FA verification code');
 			} else if (response.success && response.user && response.token) {
-				// Standard login success - no 2FA required
 				const userData: UserData = {
 					id: response.user.id,
 					username: response.user.username,
@@ -312,43 +294,15 @@ export class LoginHandler {
 				
 				this.setCurrentUser(userData, response.token);
 				
-				// Initialize WebSocket connection using centralized function
-				// Pass the token directly to ensure immediate connection
 				connectAuthenticatedWebSocket(response.token);
 				
 				this.switchToSuccessState();
 				this.resetForm(form);
-			} else {
-				this.updateState({ 
-					isLoading: false,
-					error: 'Invalid username or password' 
-				});
+				NotificationManager.showSuccess('Login successful');
 			}
 		} catch (error) {
-			if (error instanceof ApiError) {
-				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
-					this.updateState({ 
-						isLoading: false,
-						error: 'Invalid username or password' 
-					});
-				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
-					this.updateState({ 
-						isLoading: false,
-						error: 'Invalid two-factor authentication code' 
-					});
-				} else {
-					this.updateState({ 
-						isLoading: false,
-						error: error.message 
-					});
-				}
-			} else {
-				console.error('Auth: Login error', error);
-				this.updateState({ 
-					isLoading: false,
-					error: error instanceof Error ? error.message : 'Authentication failed'
-				});
-			}
+			this.updateState({ isLoading: false });
+			NotificationManager.handleError(error);
 		}
 	}
 

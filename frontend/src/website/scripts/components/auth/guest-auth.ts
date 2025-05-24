@@ -1,7 +1,7 @@
 import { Component } from '@website/scripts/components';
 import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { IAuthComponent, GuestAuthState } from '@website/types';
-import { DbService, html, render, ApiError } from '@website/scripts/services';
+import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
@@ -10,7 +10,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	
 	constructor(container: HTMLElement) {
 		super(container, {
-			error: null,
 			isRegisterMode: false,
 			needsVerification: false
 		});
@@ -26,9 +25,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const template = html`
 			<div class="auth-form-container simplified-auth-form-container">
 				${this.renderContent()}
-				${this.getInternalState().error ? html`
-					<div class="register-error shake">${this.getInternalState().error}</div>
-				` : ''}
 			</div>
 		`;
 		
@@ -161,8 +157,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		
 		// Return to login form
 		this.updateInternalState({
-			needsVerification: false,
-			error: null
+			needsVerification: false
 		});
 	}
 	
@@ -177,7 +172,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const code = formData.get('twofa-code') as string;
 		
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
-			this.showError('Please enter a valid 6-digit code');
+			NotificationManager.showError('Please enter a valid 6-digit code');
 			return;
 		}
 		
@@ -224,14 +219,13 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				this.hide();
 			} else {
-				this.showError('Authentication failed after 2FA verification');
+				NotificationManager.showError('Authentication failed after 2FA verification');
 			}
 		} catch (error) {
-			console.error('2FA verification error:', error);
-			if (error instanceof ApiError && error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
-				this.showError('Invalid verification code');
+			if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.TWOFA_BAD_CODE) {
+				NotificationManager.showError('Invalid verification code');
 			} else {
-				this.showError('Verification failed. Please try again.');
+				NotificationManager.handleError(error);
 			}
 		}
 	}
@@ -311,7 +305,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			// Add password validation
 			const passwordValidation = validatePassword(password);
 			if (!passwordValidation.valid) {
-				this.showError(passwordValidation.message);
+				NotificationManager.showError(passwordValidation.message);
 				return;
 			}
 			
@@ -326,8 +320,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		this.updateInternalState({
 			isRegisterMode: true,
-			needsVerification: false,
-			error: null
+			needsVerification: false
 		});
 		
 		// Reset password strength when switching modes
@@ -341,8 +334,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		this.updateInternalState({
 			isRegisterMode: false,
-			needsVerification: false,
-			error: null
+			needsVerification: false
 		});
 		
 		// Reset password strength when switching modes
@@ -353,8 +345,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Authenticate a guest using email/password
 	 */
 	private async authenticateGuest(email: string, password: string): Promise<void> {
-		this.updateInternalState({ error: null });
-		
 		try {
 			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
@@ -379,8 +369,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				// Update UI to show 2FA form
 				this.updateInternalState({ 
-					needsVerification: true,
-					error: null
+					needsVerification: true
 				});
 			} else if (response.success && response.user) {
 				const userData = {
@@ -404,20 +393,21 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				this.hide();
 			} else {
-				this.showError('Invalid email or password');
+				NotificationManager.showError('Invalid email or password');
 			}
 		} catch (error) {
-			if (error instanceof ApiError) {
-				if (error.isErrorCode(ErrorCodes.LOGIN_FAILURE)) {
-					this.showError('Invalid email or password');
-				} else if (error.isErrorCode(ErrorCodes.TWOFA_BAD_CODE)) {
-					this.showError('Invalid two-factor authentication code');
+			if (error && typeof error === 'object' && 'code' in error) {
+				const errorCode = error.code as string;
+				if (errorCode === ErrorCodes.LOGIN_FAILURE) {
+					NotificationManager.showError('Invalid email or password');
+				} else if (errorCode === ErrorCodes.TWOFA_BAD_CODE) {
+					NotificationManager.showError('Invalid two-factor authentication code');
 				} else {
-					this.showError(error.message);
+					NotificationManager.showError('Authentication failed');
 				}
 			} else {
-				console.error('Guest authentication error:', error);
-				this.showError('Authentication failed. Please try again.');
+				NotificationManager.showError('Authentication failed. Please try again.');
+				NotificationManager.handleError(error);
 			}
 		}
 	}
@@ -426,8 +416,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Register a new guest user directly to the database
 	 */
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
-		this.updateInternalState({ error: null });
-		
 		try {
 			// Hash the password before sending to the server
 			const hashedPassword = await hashPassword(password);
@@ -447,7 +435,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				});
 				
 				if (!loginResponse.success) {
-					this.showError('Account created but login failed. Please try logging in manually.');
+					NotificationManager.showError('Account created but login failed. Please try logging in manually.');
 					return;
 				}
 				
@@ -473,15 +461,15 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				this.hide();
 			}
 		} catch (error) {
-			if (error instanceof ApiError) {
-				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
-					this.showError('Email already in use');
+			if (error && typeof error === 'object' && 'code' in error) {
+				const errorCode = error.code as string;
+				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) {
+					NotificationManager.showError('Email already in use');
 				} else {
-					this.showError(error.message);
+					NotificationManager.showError('Registration failed');
 				}
 			} else {
-				console.error('Guest registration error:', error);
-				this.showError(error instanceof Error ? error.message : 'Registration failed. Please try again.');
+				NotificationManager.handleError(error);
 			}
 		}
 	}
@@ -539,22 +527,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.container.innerHTML = '';
 		this.container.className = '';
 		super.destroy();
-	}
-	
-	/**
-	 * Add a method to handle error display with animation
-	 */
-	public showError(message: string): void {
-		this.updateInternalState({ error: message });
-		
-		requestAnimationFrame(() => {
-			const errorElement = this.container.querySelector('.register-error') as HTMLElement;
-			if (errorElement) {
-				errorElement.classList.remove('shake');
-				void errorElement.offsetWidth;
-				errorElement.classList.add('shake');
-			}
-		});
 	}
 	
 	/**

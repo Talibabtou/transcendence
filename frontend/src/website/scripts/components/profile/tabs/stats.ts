@@ -81,11 +81,9 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			}, 0);
 		} catch (error) {
 			console.error('Error loading stats data:', error);
-			const errorMessage = error instanceof Error ? error.message : 'Failed to load statistics data';
 			this.updateInternalState({ 
 				dataLoadInProgress: false,
-				isLoading: false, // CRITICAL: Also update this in error case
-				errorMessage
+				isLoading: false
 			});
 		}
 	}
@@ -155,38 +153,36 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			<div class="stats-content">
 				${state.isLoading ? 
 					html`<p class="loading-text">Loading statistics...</p>` :
-					state.errorMessage ?
-						html`<div class="error-message">${state.errorMessage}</div>` :
-						html`
-							<div class="chart-container">
-								<div class="chart-section">
-									<h3 class="chart-title first-chart-title">ELO Rating History</h3>
-									<div id="elo-chart" class="chart"></div>
-								</div>
-								
-								<div class="chart-section">
-									<h3 class="chart-title">Match Duration Distribution</h3>
-									<div id="match-duration-chart" class="chart"></div>
-								</div>
-								
-								<div class="chart-section">
-									<h3 class="chart-title activity-title">Daily Activity</h3>
-									<div id="daily-activity-chart" class="chart"></div>
-								</div>
-								
-								<div class="chart-section">
-									<h3 class="chart-title">Goal Time Distribution</h3>
-									<div id="goal-duration-chart" class="chart"></div>
-								</div>
+					html`
+						<div class="chart-container">
+							<div class="chart-section">
+								<h3 class="chart-title first-chart-title">ELO Rating History</h3>
+								<div id="elo-chart" class="chart"></div>
 							</div>
-						`
+							
+							<div class="chart-section">
+								<h3 class="chart-title">Match Duration Distribution</h3>
+								<div id="match-duration-chart" class="chart"></div>
+							</div>
+							
+							<div class="chart-section">
+								<h3 class="chart-title activity-title">Daily Activity</h3>
+								<div id="daily-activity-chart" class="chart"></div>
+							</div>
+							
+							<div class="chart-section">
+								<h3 class="chart-title">Goal Time Distribution</h3>
+								<div id="goal-duration-chart" class="chart"></div>
+							</div>
+						</div>
+					`
 				}
 			</div>
 		`;
 		
 		render(template, this.container);
 		
-		if (!state.isLoading && !state.errorMessage) {
+		if (!state.isLoading) {
 			requestAnimationFrame(() => {
 				this.renderCharts();
 			});

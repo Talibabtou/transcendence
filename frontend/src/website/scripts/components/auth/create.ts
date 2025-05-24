@@ -1,7 +1,6 @@
 import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, ApiError, connectAuthenticatedWebSocket } from '@website/scripts/services';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -108,22 +107,18 @@ export class RegistrationHandler {
 		const password = formData.get('password') as string;
 		
 		if (!username || !email || !password) {
-			this.updateState({
-				error: 'Please fill in all fields'
-			});
+			NotificationManager.showError('Please fill in all fields');
 			return;
 		}
 		
 		// Validate password requirements
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
-			this.updateState({
-				error: passwordValidation.message
-			});
+			NotificationManager.showError(passwordValidation.message);
 			return;
 		}
 		
-		this.updateState({ isLoading: true, error: null });
+		this.updateState({ isLoading: true });
 		
 		try {
 			const hashedPassword = await hashPassword(password);
@@ -136,10 +131,8 @@ export class RegistrationHandler {
 			});
 			
 			if (!registerResponse.success || !registerResponse.user) {
-				this.updateState({
-					isLoading: false,
-					error: 'Registration failed. Please try again.'
-				});
+				this.updateState({ isLoading: false });
+				NotificationManager.showError('Registration failed. Please try again.');
 				return;
 			}
 			
@@ -169,40 +162,15 @@ export class RegistrationHandler {
 				connectAuthenticatedWebSocket(token);
 
 				this.updateState({ isLoading: false });
+				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();
 			} else {
-				this.updateState({
-					isLoading: false,
-					error: 'Account created but login failed. Please try logging in manually.'
-				});
+				this.updateState({ isLoading: false });
+				NotificationManager.showWarning('Account created but login failed. Please try logging in manually.');
 			}
-		} catch (error: unknown) {
-			console.error('Auth: Registration error', error);
-			
-			if (error instanceof ApiError) {
-				// Handle specific API errors
-				if (error.isErrorCode(ErrorCodes.SQLITE_CONSTRAINT)) {
-					this.updateState({
-						isLoading: false,
-						error: 'Email or username already in use'
-					});
-				} else if (error.isErrorCode(ErrorCodes.INVALID_FIELDS)) {
-					this.updateState({
-						isLoading: false,
-						error: 'Invalid registration information provided'
-					});
-				} else {
-					this.updateState({
-						isLoading: false,
-						error: error.message || 'Registration failed. Please try again.'
-					});
-				}
-			} else {
-				this.updateState({
-					isLoading: false,
-					error: 'Registration failed. Please try again.'
-				});
-			}
+		} catch (error) {
+			this.updateState({ isLoading: false });
+			NotificationManager.handleError(error);
 		}
 	}
 }

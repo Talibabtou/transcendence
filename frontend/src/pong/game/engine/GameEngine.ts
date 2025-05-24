@@ -1,7 +1,7 @@
 import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
 import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
-import { DbService, ApiError } from '@website/scripts/services';
+import { DbService, NotificationManager } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -276,10 +276,10 @@ export class GameEngine {
 			this.matchId = match.id;
 		} catch (error) {
 			// Handle errors
-			if (error instanceof ApiError) {
-				console.error(`Failed to create match: ${error.message}`);
+			if (error instanceof Error) {
+				NotificationManager.showError(`Failed to create match: ${error.message}`);
 			} else {
-				console.error('Failed to create match:', error);
+				NotificationManager.showError('Failed to create match: ' + error);
 			}
 			// Reset flag to allow retry
 			this.matchCreated = false;
@@ -427,18 +427,18 @@ export class GameEngine {
 				this.resetGoalTimer();
 			})
 			.catch((error: any) => {
-				if (error instanceof ApiError) {
-					if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
-						console.error('Cannot record goal: Match no longer exists');
-					} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_ACTIVE)) {
+				if (error instanceof Error) {
+					if (error.message.includes('Match not found')) {
+						NotificationManager.showError('Cannot record goal: Match no longer exists');
+					} else if (error.message.includes('Match not active')) {
 						// Expected when match is completed, can ignore
-					} else if (error.isErrorCode(ErrorCodes.PLAYER_NOT_IN_MATCH)) {
-						console.error('Cannot record goal: Player not in match');
+					} else if (error.message.includes('Player not in match')) {
+						NotificationManager.showError('Cannot record goal: Player not in match');
 					} else {
-						console.error(`Failed to record goal: ${error.message}`);
+						NotificationManager.showError(`Failed to record goal: ${error.message}`);
 					}
 				} else if (!(error && error.message && error.message.includes('already completed'))) {
-					console.error('Failed to record goal:', error);
+					NotificationManager.showError('Failed to record goal: ' + error);
 				}
 			});
 	}

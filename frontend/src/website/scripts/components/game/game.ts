@@ -1,8 +1,8 @@
 import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
 import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
-import { ApiError } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { NotificationManager } from '@website/scripts/services';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -270,7 +270,7 @@ export class GameComponent extends Component<GameComponentState> {
 			);
 			this.menuComponent.show();
 		} else {
-			console.error('Game container not found, cannot create menu.');
+			NotificationManager.showError('Game container not found, cannot create menu.');
 		}
 
 		// Show background game
@@ -315,7 +315,7 @@ export class GameComponent extends Component<GameComponentState> {
 				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
 				this.canvasComponent.render();
 			} else {
-				console.error('Game container not available');
+				NotificationManager.showError('Game container not available');
 				return;
 			}
 		} else {
@@ -350,7 +350,7 @@ export class GameComponent extends Component<GameComponentState> {
 		const gameInfo = MatchCache.getCurrentGameInfo();
 		
 		if (!cachedResult) {
-			console.error('No game result found in cache');
+			NotificationManager.showError('No game result found in cache');
 			return;
 		}
 		
@@ -387,7 +387,7 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleModeSelected(mode: GameMode): void {
 		// Check if user is authenticated before starting game
 		if (!appState.isAuthenticated()) {
-			console.error('User not authenticated');
+			NotificationManager.showError('User not authenticated');
 			this.updateGameState(GameState.MENU);
 			return;
 		}
@@ -457,7 +457,7 @@ export class GameComponent extends Component<GameComponentState> {
 				return this.startNewGame(mode);
 			})
 			.catch(error => {
-				console.error('Error restarting game:', error);
+				NotificationManager.showError('Error restarting game: ' + error);
 				// On error, go back to menu
 				this.updateGameState(GameState.MENU);
 			})
@@ -475,7 +475,7 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleBackToMenu(): void {
 		// Prevent multiple transitions happening simultaneously
 		if (this.isTransitioning) {
-			console.warn('Ignoring back to menu request - transition already in progress');
+			NotificationManager.showWarning('Ignoring back to menu request - transition already in progress');
 			return;
 		}
 		
@@ -525,7 +525,7 @@ export class GameComponent extends Component<GameComponentState> {
 				}
 			})
 			.catch(error => {
-				console.error('Error returning to menu:', error);
+				NotificationManager.showError('Error returning to menu: ' + error);
 				// Force a menu state even on error
 				this.forceMenuState();
 			})
@@ -592,7 +592,7 @@ export class GameComponent extends Component<GameComponentState> {
 					playerColors: playerColors
 				});
 			} else {
-				console.error('Failed to create canvas component');
+				NotificationManager.showError('Failed to create canvas component');
 			}
 			
 			// Then transition to playing state
@@ -682,7 +682,7 @@ export class GameComponent extends Component<GameComponentState> {
 					this.updateGameState(GameState.GAME_OVER);
 				}
 			} catch (error) {
-				console.error('Error checking game state:', error);
+				NotificationManager.showError('Error checking game state: ' + error);
 				// Prevent error loop by stopping monitoring on error
 				this.stopGameStateMonitoring();
 			}
@@ -875,22 +875,19 @@ export class GameComponent extends Component<GameComponentState> {
 			// Start the actual game
 			this.updateGameState(GameState.PLAYING);
 		} catch (error) {
-			if (error instanceof ApiError) {
-				if (error.isErrorCode(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
-					console.error('Tournament not found:', error.message);
-					// Show error to user or handle gracefully
-					this.handleBackToMenu();
-				} else if (error.isErrorCode(ErrorCodes.MATCH_NOT_FOUND)) {
-					console.error('Match not found:', error.message);
-					this.handleBackToMenu();
+			// Use the correct notification manager methods
+			if (error instanceof Error) {
+				if (error.message.includes(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
+					NotificationManager.showError('Tournament not found');
+				} else if (error.message.includes(ErrorCodes.MATCH_NOT_FOUND)) {
+					NotificationManager.showError('Match not found');
 				} else {
-					console.error('Tournament error:', error.message);
-					this.handleBackToMenu();
+					NotificationManager.handleError(error);
 				}
 			} else {
-				console.error('Error continuing tournament:', error);
-				this.handleBackToMenu();
+				NotificationManager.handleError(error);
 			}
+			this.handleBackToMenu();
 		}
 	}
 

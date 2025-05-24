@@ -1,12 +1,6 @@
-/**
- * Main application entry point that initializes core components of the website.
- * This file handles the setup of navigation, game functionality, and routing.
- */
-
 import { NavbarComponent } from '@website/scripts/utils';
-import { Router } from '@website/scripts/services';
+import { Router, NotificationManager, WebSocketClient } from '@website/scripts/services';
 import { GameManager } from '@website/scripts/components';
-import { WebSocketClient } from '@website/scripts/services/client';
 
 // Extend the Window interface to include global properties
 declare global {
@@ -37,11 +31,20 @@ export class App {
 	 * @private
 	 */
 	private initialize(): void {
+		this.initializeNotificationManager();
 		this.initializeNavbar();
 		this.initializeGameManager();
 		this.initializeWebSocketClient();
 		this.initializeRouter();
 		this.setupEventListeners();
+	}
+
+	private initializeNotificationManager(): void {
+		try {
+			NotificationManager;
+		} catch (error) {
+			console.error('Failed to initialize notification manager:', error);
+		}
 	}
 
 	private initializeNavbar(): void {
