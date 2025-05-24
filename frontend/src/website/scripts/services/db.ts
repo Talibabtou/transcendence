@@ -453,7 +453,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `http://localhost:8085/uploads/${fileName}`;
+				response.link = `https://localhost:8085/uploads/${fileName}`;
 			}
 		}
 		

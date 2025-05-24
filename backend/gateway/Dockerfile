@@ -19,6 +19,6 @@ COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://0.0.0.0:8080/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "fetch('https://gateway:8085/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
 
 CMD ["node", "dist/server.js"]

@@ -9,4 +9,7 @@ export async function routes(server: FastifyInstance) {
   await server.register(goalRoutes);
   await server.register(matchRoutes);
   await server.register(tournamentRoutes);
+  server.get('/health', async (request, reply) => {
+    reply.code(200).send({ status: 'ok' });
+  });
 }

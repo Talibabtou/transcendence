@@ -18,4 +18,7 @@ export default async function routes(server: FastifyInstance) {
   await server.register(profileRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });
   await server.register(tournamentRoutes, { prefix: API_PREFIX });
+  server.get('/health', async (request, reply) => {
+    reply.code(200).send({ status: 'ok' });
+  });
 }
