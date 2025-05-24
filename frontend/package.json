@@ -1,0 +1,28 @@
+{
+	"name": "pong-website",
+	"version": "1.0.0",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"dev": "BROWSER=firefox vite",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"author": "Talibabtou",
+	"license": "ISC",
+	"devDependencies": {
+		"@types/node": "^22.14.1",
+		"@types/plotly.js": "^2.35.5",
+		"typescript": "^5.8.3",
+		"vite": "^6.3.3"
+	},
+	"dependencies": {
+		"htm": "^3.1.1",
+		"navigo": "^8.11.1",
+		"plotly.js-dist": "^3.0.1",
+		"@types/plotly.js": "^2.35.5",
+		"uuid": "^11.1.0",
+		"speakeasy": "^2.0.0",
+		"qrcode": "^1.5.4"
+	}
+}

@@ -1,39 +1,66 @@
 services:
-
-  prometheus:
-    image: prom/prometheus:v3.2.0
-    container_name: prometheus
-    ports:
-      - "9090:9090"
+  cert-generator:
+    image: alpine/openssl
+    container_name: cert_generator
+    entrypoint: ""
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      # Specify the configuration file for Prometheus
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      # Set the path for Prometheus to store its time series database
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=15d'
-      # Specify the path for console libraries used in the web UI
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      # Specify the path for console templates used in the web UI
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    depends_on:
-      - cadvisor
-      - tempo
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    restart: unless-stopped
+      - ./scripts:/scripts
+      - certs_data:/etc/certs
+    command: ["/bin/sh", "-c", "/scripts/generate-certs.sh && echo 'Cert generator finished'"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend_nginx
+    ports:
+      - "80:80"
+      - "443:443"
     networks:
-      - backend
-    labels:
-      - "container_name=prometheus"
+      - transcendance-net
+    volumes:
+      - certs_data:/etc/certs:ro
+      - profile_pictures:/usr/share/nginx/html/uploads/profile_pictures
+    depends_on:
+      cert-generator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # prometheus:
+  #   image: prom/prometheus:v3.2.0
+  #   container_name: prometheus
+  #   ports:
+  #     - "9090:9090"
+  #   volumes:
+  #     - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+  #     - ./monitoring/prometheus-web-config.yml:/etc/prometheus/web-config.yml:ro
+  #     - certs_data:/etc/certs:ro
+  #     - prometheus_data:/prometheus
+  #   command:
+  #     - '--config.file=/etc/prometheus/prometheus.yml'
+  #     - '--web.config.file=/etc/prometheus/web-config.yml'
+  #     - '--storage.tsdb.path=/prometheus'
+  #     - '--storage.tsdb.retention.time=15d'
+  #     - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+  #     - '--web.console.templates=/usr/share/prometheus/consoles'
+  #   depends_on:
+  #     cert-generator:
+  #       condition: service_completed_successfully
+  #     cadvisor:
+  #       condition: service_started
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   restart: unless-stopped
+  #   networks:
+  #     - transcendance-net
+  #   labels:
+  #     - "container_name=prometheus"
   
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
     container_name: cadvisor
     ports:
-      - "8080:8080"
+      - "8090:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -41,58 +68,131 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
     networks:
-      - backend
+      - transcendance-net
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
     labels:
       - "container_name=cadvisor"
-      
-  tempo:
-    image: grafana/tempo:2.3.1
-    container_name: tempo
-    command: ["-config.file=/etc/tempo.yaml"]
-    volumes:
-      - ./monitoring/tempo.yaml:/etc/tempo.yaml
-      - tempo_data:/tmp/tempo
-    ports:
-      - "3200:3200"   # Tempo UI & API port
-      - "4317:4317"   # OTLP gRPC
-      - "4318:4318"   # OTLP HTTP
-    networks:
-      - backend
-    labels:
-      - "container_name=tempo"
 
-  grafana:
-    image: grafana/grafana:10.3.1
-    container_name: grafana
+  # grafana:
+  #   image: grafana/grafana:10.3.1
+  #   container_name: grafana
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - grafana_data:/var/lib/grafana
+  #     - ./monitoring/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
+  #     - ./monitoring/dashboards:/var/lib/grafana/dashboards
+  #     - ./monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+  #     - certs_data:/etc/certs:ro
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=admin
+  #     - GF_USERS_ALLOW_SIGN_UP=false
+  #     - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
+  #     - GF_SERVER_PROTOCOL=https
+  #     - GF_SERVER_CERT_FILE=/etc/certs/nginx.crt
+  #     - GF_SERVER_CERT_KEY=/etc/certs/nginx.key
+  #     - GF_SERVER_HTTP_PORT=3000
+  #   depends_on:
+  #     cert-generator:
+  #       condition: service_completed_successfully
+  #     prometheus:
+  #       condition: service_started
+  #   restart: unless-stopped
+  #   networks:
+  #     - transcendance-net
+  #   labels:
+  #     - "container_name=grafana"
+  gateway:
+    build: ./backend/gateway
+    container_name: gateway
+    env_file:
+      - .env
     ports:
-      - "3000:3000"
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
-      - ./monitoring/dashboards:/var/lib/grafana/dashboards
-      - ./monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_FEATURE_TOGGLES_ENABLE=traceqlEditor
-    depends_on:
-      - prometheus
-      - tempo
-    restart: unless-stopped
+      - 8080:8080
     networks:
-      - backend
-    labels:
-      - "container_name=grafana"
+      - transcendance-net
+    volumes:
+      - profile_pictures:/app/uploads
+      - certs_data:/etc/certs:ro
+    depends_on:
+      cert-generator:
+        condition: service_completed_successfully
+    # restart: always
+  profil:
+    build: ./backend/profile
+    container_name: profile
+    env_file:
+      - .env
+    expose:
+      - 8081
+    networks:
+      - transcendance-net
+    volumes:
+      - profile_pictures:/app/uploads
+    # restart: always
+  auth:
+    build: ./backend/auth
+    container_name: auth
+    env_file:
+      - .env
+    expose:
+      - 8082
+    networks:
+      - transcendance-net
+    volumes:
+      - auth:/app/db
+    # restart: always
+  game:
+    build: ./backend/game
+    container_name: game
+    env_file:
+      - .env
+    expose:
+      - 8083
+    networks:
+      - transcendance-net
+    # restart: always
+  friends:
+    build: ./backend/friends
+    container_name: friends
+    env_file:
+      - .env
+    expose:
+      - 8084
+    networks:
+      - transcendance-net
+    volumes:
+      - friends:/app/db
+    # restart: always
 
 volumes:
+  certs_data:
+  profile_pictures:
+  auth:
+  friends:
+  game:
   prometheus_data:
   grafana_data:
-  tempo_data:
 
 networks:
-  backend:
+  transcendance-net:
+    driver: bridge
+
+##42 volumes mount
+# volumes:
+#   certs_data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/bboissen/sgoinfre/certs_data"
+#       o: bind
+#   profile_pictures:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/bboissen/sgoinfre/profile_pictures"
+#       o: bind
+

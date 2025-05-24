@@ -1,0 +1,355 @@
+/* ===== LAYOUT CONTAINERS ===== */
+.auth-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: var(--z-content);
+}
+
+.auth-section {
+	position: relative;
+	width: 100%;
+	height: calc(100vh - var(--navbar-height) - var(--footer-height));
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	z-index: var(--z-ui);
+}
+
+/* ===== FORM CONTAINERS ===== */
+.auth-form-container {
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	width: 90%;
+	max-width: 31.25rem;
+	position: relative;
+	box-shadow: var(--shadow-normal);
+	animation: fadeIn 0.3s ease;
+	min-width: 18.75rem;
+	min-height: 18.75rem;
+	display: flex;
+	flex-direction: column;
+	margin: 0 auto;
+}
+
+.simplified-auth-form-container {
+	width: 90%;
+	max-width: 25rem;
+}
+
+.simplified-auth-form-container .auth-close-button,
+.simplified-auth-form-container .ascii-title-container {
+	display: none;
+}
+
+.small-container {
+	max-width: 90%;
+	padding: var(--spacing-md);
+}
+
+.small-container .auth-form {
+	gap: var(--spacing-xs);
+}
+
+.small-container .form-title {
+	text-align: center;
+	margin-bottom: var(--spacing-sm);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color);
+}
+
+/* ===== FORM ELEMENTS ===== */
+.auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	margin-bottom: var(--spacing-md);
+}
+
+.form-container {
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	padding: var(--spacing-lg);
+	width: 90%;
+	max-width: 31.25rem;
+	box-shadow: var(--shadow-normal);
+	animation: fadeIn 0.3s ease;
+	margin: 0 auto;
+}
+
+.form-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-bottom: var(--spacing-sm);
+}
+
+.form-group label {
+	font-size: var(--font-size-small);
+	color: var(--text-color);
+}
+
+.form-group input {
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	padding: 0.8rem;
+	color: var(--text-color);
+	font-family: var(--font-family);
+	transition: all var(--transition-normal);
+}
+
+.form-group input:focus {
+	outline: none;
+	border-color: var(--text-color);
+	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* ===== CHECKBOX STYLING ===== */
+.checkbox-group {
+	display: flex;
+	align-items: center;
+	margin-bottom: var(--spacing-sm);
+}
+
+.checkbox-label {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	cursor: pointer;
+	font-size: var(--font-size-small);
+}
+
+.checkbox-label input[type="checkbox"] {
+	width: 1rem;
+	height: 1rem;
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+	appearance: none;
+	-webkit-appearance: none;
+	cursor: pointer;
+	position: relative;
+	vertical-align: middle;
+}
+
+.checkbox-label input[type="checkbox"]:checked::after {
+	content: '✓';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: var(--accent1-color);
+	font-size: 0.75rem;
+}
+
+.checkbox-label input[type="checkbox"]:focus {
+	outline: none;
+	border-color: var(--text-color);
+	box-shadow: 0 0 5px rgba(255, 255, 255, 0.2);
+}
+
+.checkbox-label span {
+	padding: var(--spacing-sm);
+	vertical-align: middle;
+}
+
+/* ===== LINKS ===== */
+.auth-links {
+	margin-top: var(--spacing-md);
+	text-align: center;
+	font-size: var(--font-size-small);
+}
+
+.auth-links a {
+	color: var(--accent1-color);
+	text-decoration: none;
+	transition: all var(--transition-normal);
+}
+
+.auth-links a:hover {
+	text-shadow: 0 0 5px var(--accent1-color);
+}
+
+/* ===== BUTTONS ===== */
+.auth-close-button {
+	position: absolute;
+	top: 0.625rem;
+	right: 0.625rem;
+	width: 1.875rem;
+	height: 1.875rem;
+	background: none;
+	border: none;
+	color: var(--text-color);
+	font-size: 1.5rem;
+	cursor: pointer;
+	z-index: var(--z-ui);
+	transition: all var(--transition-normal);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.auth-close-button:hover {
+	transform: scale(1.1);
+}
+
+.logout-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--error-color);
+	text-decoration: none;
+	padding: 0.8rem 1rem;
+	transition: all var(--transition-normal);
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: relative;
+	overflow: hidden;
+	cursor: pointer;
+	font-size: var(--font-size-small);
+}
+
+.logout-button:hover {
+	text-shadow: 0 0 10px var(--error-color);
+	border-color: var(--error-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+/* ===== SOCIAL AUTH ===== */
+.auth-social-options {
+	display: flex;
+	justify-content: center;
+	gap: var(--spacing-sm);
+	margin-top: var(--spacing-md);
+}
+
+.auth-social-button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--spacing-sm);
+}
+
+.auth-social-button::before {
+	content: '';
+	width: 1.25rem;
+	height: 1.25rem;
+	display: inline-block;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-height: 31.25rem), (max-width: 25rem) {
+	.auth-form-container {
+		padding: var(--spacing-sm);
+	}
+	
+	.auth-social-options {
+		gap: var(--spacing-xs);
+	}
+	
+	.form-group input {
+		padding: 0.5rem;
+	}
+}
+
+/* Password strength indicator styling */
+.password-strength {
+	margin-top: 0.5rem;
+}
+
+.password-strength-bar {
+	height: 0.5rem;
+	background-color: rgba(0, 0, 0, 0.2);
+	border: 1px solid var(--border-color);
+	margin-bottom: 0.75rem;
+}
+
+.password-strength-fill {
+	height: 100%;
+	transition: width 0.3s ease-in-out;
+}
+
+.password-strength-fill.very-weak { background-color: #ff4d4d; }
+.password-strength-fill.weak { background-color: #ff9933; }
+.password-strength-fill.medium { background-color: #ffcc00; }
+.password-strength-fill.strong { background-color: #99cc33; }
+.password-strength-fill.very-strong { background-color: #33cc33; }
+
+.password-requirements {
+	list-style-type: none;
+	padding: 0;
+	margin: 0;
+}
+
+.password-requirements li {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0.25rem;
+	font-size: 0.85rem;
+	color: var(--text-color);
+}
+
+.password-requirements li span {
+	margin-right: 0.5rem;
+	font-weight: bold;
+}
+
+.password-requirements li.valid {
+	opacity: 0.9;
+}
+
+.password-requirements li.invalid {
+	opacity: 0.7;
+}
+
+/* Two-column layout for password requirements in main auth form */
+.auth-form:not(.guest-auth-form) .password-requirements {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.5rem;
+}
+
+.auth-form:not(.guest-auth-form) .password-requirements li {
+	margin-bottom: 0.1rem;
+	font-size: 0.75rem;
+}
+
+/* 2FA Form Styling */
+.twofa-form p {
+	text-align: center;
+	margin: 1.5rem;
+	margin-left: 2rem;
+	margin-right: 2rem;
+	font-size: 1rem;
+}
+
+.twofa-input-container {
+	max-width: 40%;
+	margin: 0 auto;
+}
+
+.twofa-input {
+	text-align: center;
+	font-size: 1.25rem;
+	letter-spacing: 0.25rem;
+}
+
+.twofa-button-container {
+	display: flex;
+	justify-content: center;
+	margin-top: 1rem;
+}
+
+.twofa-verify-button {
+	width: 40%;
+	padding: 0.85rem;
+}
+
+.twofa-cancel-container {
+	margin-top: 2.5rem;
+	margin-bottom: -1rem;
+}
