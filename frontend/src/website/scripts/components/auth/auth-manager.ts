@@ -1,5 +1,5 @@
 import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
-import { html, render, navigate } from '@website/scripts/services';
+import { html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 
@@ -22,7 +22,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		super(container, {
 			currentState: AuthState.LOGIN,
 			isLoading: false,
-			error: null,
 			redirectTarget: redirectTarget || 'profile'
 		});
 		
@@ -52,7 +51,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 					return;
 				}
 			} catch (error) {
-				console.error('Failed to parse stored user data', error);
+				NotificationManager.showError('Failed to parse stored user data: ' + error);
 				localStorage.removeItem('auth_user');
 				sessionStorage.removeItem('auth_user');
 			}
@@ -76,8 +75,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		this.stateChangeTimeout = window.setTimeout(() => {
 			// No need to call specific cleanupComponents on handlers if they are recreated
 			this.updateInternalState({
-				currentState: newState,
-				error: null
+				currentState: newState
 			});
 			this.stateChangeTimeout = null;
 		}, 100);
@@ -113,12 +111,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			<div class="auth-form-container">
 				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
-				${this.getInternalState().error ? html`
-					<div class="register-error shake">${this.getInternalState().error}</div>
-				` : ''}
 			</div>
 		`;
-		
+
 		render(template, this.container);
 		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
@@ -203,13 +198,10 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	protected handleSuccessfulAuth(): void {
 		if (!this.currentUser) {
-			console.error("AuthManager: handleSuccessfulAuth called with no currentUser.");
+			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			return;
 		}
 		if (!this.activeToken) {
-			// This case should ideally not happen for email/password or new OAuth flows if token is always passed.
-			// Could happen if checkExistingSession calls this without a token.
-			// For now, let's log if it's missing during an active auth flow.
 			console.warn("AuthManager: handleSuccessfulAuth called with no activeToken. User might not be fully logged into appState.");
 		}
 		

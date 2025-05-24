@@ -520,7 +520,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleGuestAuthenticated(guestDataFromEvent: PlayerData): void {
 		if (!guestDataFromEvent || !guestDataFromEvent.id) {
-			console.error('No guest data or guest ID received from auth event');
+			NotificationManager.showError('No guest data or guest ID received from auth event');
 			return;
 		}
 		
@@ -673,7 +673,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const state = this.getInternalState();
 		
 		if (!state.host) {
-			console.error('Cannot start game: Missing host');
+			NotificationManager.showError('Cannot start game: Missing host');
 			return;
 		}
 		
@@ -682,7 +682,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			document.getElementById('game-menu')?.remove();
 			
 			if (!state.guests[0]) {
-				console.error('Cannot start game: Missing guest');
+				NotificationManager.showError('Cannot start game: Missing guest');
 				return;
 			}
 			
@@ -707,7 +707,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const connectedGuests = state.guests.filter(g => g && g.isConnected);
 			if (connectedGuests.length < 3) {
-				console.error('Cannot start tournament: Not enough players');
 				NotificationManager.showError('Cannot start tournament: Not enough players');
 				return;
 			}

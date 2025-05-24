@@ -262,7 +262,6 @@ class TournamentCacheSingleton {
 			this.tournamentMatches[finalsMatchIndex].player1Index = finalist1Index;
 			this.tournamentMatches[finalsMatchIndex].player2Index = finalist2Index;
 		} else {
-			// Fallback: Should not happen if generatePoolMatches worked correctly
 			console.error("Finals match placeholder not found!");
 		}
 		
@@ -603,7 +602,6 @@ class TournamentCacheSingleton {
 			localStorage.setItem('tournament_timestamp', Date.now().toString());
 		} catch (error) {
 			console.error("Failed to save tournament state:", error);
-			// Decide how to handle potential storage errors (e.g., quota exceeded)
 		}
 	}
 	

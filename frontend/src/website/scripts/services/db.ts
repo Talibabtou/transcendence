@@ -80,14 +80,7 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
-			
-			console.log('Received error data from server (status ' + response.status + '):', JSON.stringify(errorData, null, 2));
-			
-			// Use the NotificationManager to display the error
-			NotificationManager.handleError(errorData);
-			
-			// Throw a simplified error to interrupt the promise chain
-			throw new Error(errorData.message || 'An error occurred');
+			throw errorData;
 		}
 		
 		const contentType = response.headers.get("content-type");
@@ -110,7 +103,6 @@ export class DbService {
 			try {
 				return JSON.parse(text) as T;
 			} catch (e) {
-				console.error("Failed to parse JSON response:", text);
 				NotificationManager.showError("Invalid JSON response from server");
 				throw new Error("Invalid JSON response from server");
 			}
@@ -494,7 +486,6 @@ export class DbService {
 			const response = await this.fetchApi<{username: string}>(`/auth/username/${id}`);
 			return response.username;
 		} catch (error) {
-			console.error(`Error getting username for ID ${id}:`, error);
 			return 'Unknown User';
 		}
 	}
@@ -599,7 +590,6 @@ export class DbService {
 			}
 			return response;
 		} catch (error) {
-			// Suppress error and return null
 			return null;
 		}
 	}

@@ -350,7 +350,6 @@
 /* Match player cell to leaderboard style */
 .player-cell {
 	position: relative;
-	cursor: pointer;
 	transition: transform 0.2s ease, color 0.2s ease;
 	white-space: nowrap;
 	overflow: hidden;
@@ -370,6 +369,7 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	z-index: 1;
+	cursor: pointer;
 }
 
 .player-cell:hover:before {
@@ -792,18 +792,6 @@
 	min-height: 15rem;
 }
 
-/* New style for "No changes detected" message */
-.no-changes-message {
-	color: var(--text-color, #ffffff);
-	font-size: 0.9rem;
-	text-align: center;
-	width: 100%;
-	padding-top: 0.5rem;
-	margin-bottom: -0.5rem;
-	animation: fadeOut 2s forwards;
-	opacity: 1;
-}
-
 .settings-form {
 	width: 100%;
 	display: flex;
@@ -975,4 +963,17 @@ input:checked + .toggle-slider:before {
 	border-color: var(--win-color);
 	color: var(--win-color);
 	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.bot-badge {
+	color: var(--text-color);
+	padding: 0.3rem 1rem;
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	font-size: 0.875rem;
+	margin-left: 0.5rem;
+	vertical-align: middle;
+	display: inline-block;
+	transition: all 0.3s ease;
 }

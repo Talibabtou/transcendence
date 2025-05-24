@@ -2,6 +2,7 @@ import { GameEngine } from '@pong/game/engine';
 import { GAME_CONFIG} from '@pong/constants';
 import { MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@website/types';
+import { NotificationManager } from '@website/scripts/services';
 
 declare global {
 	interface Window {
@@ -104,7 +105,7 @@ export class GameManager {
 				container.innerHTML = '';
 				container.appendChild(canvas);
 			} else {
-				console.error('No container provided for main game');
+				NotificationManager.showError('No container provided for main game');
 				return;
 			}
 		} else {
@@ -122,7 +123,7 @@ export class GameManager {
 		this.resizeCanvas(canvas);
 		const ctx = canvas.getContext('2d');
 		if (!ctx) {
-			console.error(`Could not get canvas context for ${instance.type} game`);
+			NotificationManager.showError(`Could not get canvas context for ${instance.type} game`);
 			return;
 		}
 
@@ -410,7 +411,6 @@ export class GameManager {
 	}
 	
 	private handleGameEngineError(error: Error, gameType: 'main' | 'background'): void {
-		console.error(`Error in ${gameType} game engine:`, error);
 		const errorEvent = new CustomEvent('game-error', {
 			detail: {
 				gameType,
@@ -466,15 +466,11 @@ export class GameManager {
 				}
 			}
 		} catch (error) {
-			console.error('Error showing background game:', error);
-			try {
-				this.cleanupBackgroundGame();
-				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
-				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
-				}
-			} catch (secondError) {
-				console.error('Failed to recover background game:', secondError);
+			NotificationManager.showError('Error showing background game');
+			this.cleanupBackgroundGame();
+			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
+			if (this.backgroundGameInstance.engine) {
+				this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 			}
 		}
 	}
@@ -483,22 +479,18 @@ export class GameManager {
 	 * Hides the background game
 	 */
 	public hideBackgroundGame(): void {
-		try {
-			if (this.backgroundGameInstance.animationFrameId !== null) {
-				cancelAnimationFrame(this.backgroundGameInstance.animationFrameId);
-				this.backgroundGameInstance.animationFrameId = null;
-			}
-			if (this.backgroundGameInstance.updateIntervalId !== null) {
-				clearInterval(this.backgroundGameInstance.updateIntervalId);
-				this.backgroundGameInstance.updateIntervalId = null;
-			}
+		if (this.backgroundGameInstance.animationFrameId !== null) {
+			cancelAnimationFrame(this.backgroundGameInstance.animationFrameId);
+			this.backgroundGameInstance.animationFrameId = null;
+		}
+		if (this.backgroundGameInstance.updateIntervalId !== null) {
+			clearInterval(this.backgroundGameInstance.updateIntervalId);
+			this.backgroundGameInstance.updateIntervalId = null;
+		}
 
-			if (this.backgroundGameInstance.canvas) {
-				this.backgroundGameInstance.canvas.style.display = 'none';
-				this.backgroundGameInstance.canvas.style.opacity = '0';
-			}
-		} catch (error) {
-			console.error('Error hiding background game:', error);
+		if (this.backgroundGameInstance.canvas) {
+			this.backgroundGameInstance.canvas.style.display = 'none';
+			this.backgroundGameInstance.canvas.style.opacity = '0';
 		}
 	}
 

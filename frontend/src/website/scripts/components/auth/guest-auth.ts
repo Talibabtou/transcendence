@@ -115,7 +115,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		
 		// Set a new timeout (1 minute = 60000 milliseconds)
 		this.twoFATimeoutId = window.setTimeout(() => {
-			console.log("2FA verification timed out after 1 minute");
 			this.cancelTwoFactor();
 		}, 60000);
 	}

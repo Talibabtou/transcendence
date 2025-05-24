@@ -259,7 +259,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						${state.saveSuccess && !state.noChangesMessage ? html`<span class="save-success-icon">✓</span>` : ''}
 						${state.formErrors.form && !state.noChangesMessage ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
 					</div>
-					${state.noChangesMessage ? html`<div class="no-changes-message">${state.noChangesMessage}</div>` : ''}
 				</form>
 			</div>
 		`;
@@ -411,7 +410,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			NotificationManager.showInfo('No changes detected');
 			this.updateInternalState({ 
 				saveSuccess: false,
-				noChangesMessage: 'No changes detected.',
 				formErrors: { form: undefined }
 			});
 			setTimeout(() => {
@@ -465,15 +463,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 
 		try {
 			await DbService.updateUser(state.profile.id, updateData);
-			// Show success notification
-			NotificationManager.showSuccess('Profile updated successfully');
 		} catch (error) {
-			// Errors already shown by DbService via NotificationManager
-			// Rollback optimistic updates
 			this.initialDbUsername = this.initialDbUsername;
 			this.initialDbEmail = this.initialDbEmail;
 
-			// Update form with error indicators
 			const currentFormErrors = { ...state.formErrors };
 			
 			if (error instanceof Error) {
@@ -513,22 +506,18 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private updateAuthUserInStorage(updatedUser: any): void {
 		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (authUserJson) {
-			try {
-				const authUser = JSON.parse(authUserJson);
-				const updatedAuthUser = {
-					...authUser,
-					pseudo: updatedUser.username,
-					username: updatedUser.username,
-					email: updatedUser.email || authUser.email
-				};
-				
-				if (localStorage.getItem('auth_user')) {
-					localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-				} else if (sessionStorage.getItem('auth_user')) {
-					sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-				}
-			} catch (error) {
-				console.error('Error updating auth user in storage:', error);
+			const authUser = JSON.parse(authUserJson);
+			const updatedAuthUser = {
+				...authUser,
+				pseudo: updatedUser.username,
+				username: updatedUser.username,
+				email: updatedUser.email || authUser.email
+			};
+			
+			if (localStorage.getItem('auth_user')) {
+				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+			} else if (sessionStorage.getItem('auth_user')) {
+				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 			}
 		}
 	}

@@ -212,44 +212,73 @@ class NotificationManagerService {
 	 * Register common frontend errors that aren't in the error constants
 	 */
 	private registerCommonFrontendErrors(): void {
-		// Network errors
+		// Network errors - keep these as they're not in ErrorCodes
 		this.registerError('network_error', 'Network connection error. Please check your internet connection.', NotificationType.ERROR);
 		this.registerError('timeout', 'Request timed out. Please try again.', NotificationType.WARNING);
 		
-		// Form validation errors
+		// Form validation errors - keep these as they're frontend-specific
 		this.registerError('required_field', 'This field is required', NotificationType.ERROR);
 		this.registerError('invalid_email', 'Please enter a valid email address', NotificationType.ERROR);
 		this.registerError('password_mismatch', 'Passwords do not match', NotificationType.ERROR);
 		this.registerError('password_too_short', 'Password must be at least 8 characters', NotificationType.ERROR);
-		this.registerError('username_taken', 'Username is already taken', NotificationType.ERROR);
-		this.registerError('email_taken', 'Email is already registered', NotificationType.ERROR);
 		
-		// Game-specific errors
+		// Game-specific errors - keep and enhance
 		this.registerError('game_connection_lost', 'Connection to the game server was lost', NotificationType.ERROR);
 		this.registerError('opponent_disconnected', 'Your opponent has disconnected', NotificationType.WARNING);
 		this.registerError('game_full', 'This game is already full', NotificationType.ERROR);
 		this.registerError('tournament_full', 'This tournament is already full', NotificationType.ERROR);
+		this.registerError('match_creation_failed', 'Failed to create a new match', NotificationType.ERROR);
+		this.registerError('match_canceled', 'The match was canceled', NotificationType.WARNING);
 		
-		// File upload errors
-		this.registerError('file_too_large', 'File is too large', NotificationType.ERROR);
-		this.registerError('invalid_file_type', 'Invalid file type', NotificationType.ERROR);
+		// File upload errors - keep these
+		this.registerError('file_too_large', 'File is too large (max 1MB)', NotificationType.ERROR);
+		this.registerError('invalid_file_type', 'Invalid file type. Please use JPG, PNG, or GIF.', NotificationType.ERROR);
 		this.registerError('upload_failed', 'File upload failed', NotificationType.ERROR);
 		
-		// WebSocket errors
+		// WebSocket errors - keep these
 		this.registerError('websocket_connection_failed', 'Failed to connect to server', NotificationType.ERROR);
 		this.registerError('websocket_disconnected', 'Disconnected from server', NotificationType.WARNING);
 		
-		// Authentication errors
+		// Authentication errors - update to avoid duplicates
 		this.registerError('session_expired', 'Your session has expired. Please log in again.', NotificationType.WARNING);
-		this.registerError('invalid_credentials', 'Invalid username or password', NotificationType.ERROR);
 		this.registerError('account_locked', 'Your account has been locked. Please contact support.', NotificationType.ERROR);
 		
-		// Permission errors
-		this.registerError('permission_denied', 'You do not have permission to perform this action', NotificationType.ERROR);
-		
-		// General errors
+		// General errors - keep these
 		this.registerError('unknown_error', 'An unknown error occurred', NotificationType.ERROR);
 		this.registerError('operation_failed', 'Operation failed. Please try again.', NotificationType.ERROR);
+		
+		// NEW: Add these additional error types
+		// Profile errors
+		this.registerError('profile_update_failed', 'Failed to update your profile', NotificationType.ERROR);
+		this.registerError('username_reserved', 'This username is reserved or contains restricted words', NotificationType.ERROR);
+		
+		// Social errors
+		this.registerError('friend_request_failed', 'Failed to send friend request', NotificationType.ERROR);
+		this.registerError('friend_request_duplicate', 'A friend request has already been sent to this user', NotificationType.INFO);
+		this.registerError('friend_request_blocked', 'This user is not accepting friend requests', NotificationType.WARNING);
+		
+		// Input validation errors
+		this.registerError('invalid_username_format', 'Username can only contain letters, numbers, and underscores', NotificationType.ERROR);
+		this.registerError('username_too_short', 'Username must be at least 3 characters', NotificationType.ERROR);
+		this.registerError('username_too_long', 'Username cannot exceed 20 characters', NotificationType.ERROR);
+		
+		// Database specific errors with better messages
+		this.registerError('unique_constraint_username', 'This username is already taken', NotificationType.ERROR);
+		this.registerError('unique_constraint_email', 'This email address is already registered', NotificationType.ERROR);
+		this.registerError('unique_constraint_friendship', 'You are already friends with this user', NotificationType.INFO);
+		
+		// Server errors
+		this.registerError('service_overloaded', 'The service is experiencing high traffic. Please try again later.', NotificationType.WARNING);
+		this.registerError('maintenance', 'The system is currently undergoing maintenance', NotificationType.INFO);
+		
+		// Two-factor authentication errors
+		this.registerError('twofa_setup_failed', 'Failed to set up two-factor authentication', NotificationType.ERROR);
+		this.registerError('twofa_disabled', 'Two-factor authentication has been disabled', NotificationType.INFO);
+		
+		// Tournament errors
+		this.registerError('tournament_join_failed', 'Failed to join tournament', NotificationType.ERROR);
+		this.registerError('tournament_ended', 'This tournament has already ended', NotificationType.WARNING);
+		this.registerError('tournament_in_progress', 'Cannot join tournament in progress', NotificationType.WARNING);
 	}
 
 	/**
@@ -394,9 +423,6 @@ class NotificationManagerService {
 	 * Handle an error and show appropriate notification
 	 */
 	public handleError(error: unknown): string {
-		console.error('Error caught by NotificationManager:', error);
-		
-		// Handle errors based on their structure
 		if (typeof error === 'object' && error !== null) {
 			if ('code' in error && typeof error.code === 'string') {
 				const errorCode = error.code as string;
