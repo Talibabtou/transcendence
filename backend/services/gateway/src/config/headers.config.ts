@@ -7,6 +7,7 @@ export async function addHeaders(request: FastifyRequest, reply: FastifyReply) {
   );
   reply.header('Cache-Control', 'no-store');
   reply.header('Vary', 'Origin');
+  reply.header('Access-Control-Allow-Origin', 'http://localhost:3000');
 }
 
 export async function blockHeaders(request: FastifyRequest, reply: FastifyReply) {

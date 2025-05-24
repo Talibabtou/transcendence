@@ -1,4 +1,3 @@
-import path from 'path';
 import { User, Match, Goal, AuthResponse, LeaderboardEntry } from '@website/types';
 import { AppStateManager } from '@website/scripts/utils';
 import { ApiError, ErrorResponse } from '@website/scripts/services';
@@ -18,7 +17,6 @@ import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types
 export class DbService {
 	private static async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 		const url = `${API_PREFIX}${endpoint}`;
-		
 		// Get token from the correct storage type - use sessionStorage by default
 		// This ensures each tab can maintain its own session
 		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
@@ -57,7 +55,6 @@ export class DbService {
 				...options,
 				headers: effectiveHeaders // Use the potentially modified headers
 			});
-
 			return this.handleApiResponse<T>(response);
 		} catch (error) {
 			// Handle token-related errors
@@ -75,6 +72,12 @@ export class DbService {
 	}
 
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (response.status === 403) {
+			console.warn('Session expired or unauthorized, deconnection...');
+			const { appState } = await import('../utils/app-state');
+      appState.logout();
+			throw new Error('Your session has expired. You have to login again.');
+		}
 		if (!response.ok) {
 			const errorData: ErrorResponse = await response.json();
 			console.log('Received error data from server (status ' + response.status + '):', JSON.stringify(errorData, null, 2));
@@ -617,12 +620,6 @@ export class DbService {
 			requestId
 		});
 	}
-
-	// backend jwt validity
-	// {
-	// 	if (jwterror)
-	// 		logout
-	// }
 
 	/**
 	 * Gets username for a given user ID

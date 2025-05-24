@@ -1,6 +1,6 @@
 import {
   corsConfig,
-  // helmetConfig,
+  helmetConfig,
   staticConfig,
   fastifyConfig,
   multipartConfig,
@@ -9,7 +9,7 @@ import {
   swaggerUiConfig,
 } from './config/index.config.js';
 import cors from '@fastify/cors';
-// import helmet from '@fastify/helmet';
+import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
@@ -54,7 +54,7 @@ export class Server {
       await server.register(rateLimit, rateLimitConfig);
       await server.register(fastifyMultipart, multipartConfig);
       await server.register(fastifyStatic, staticConfig);
-      // await server.register(helmet, helmetConfig);
+      await server.register(helmet, helmetConfig);
       await server.register(cors, corsConfig);
       await server.register(fastifyJwt, jwtRegister);
       await server.register(websocketPlugin);

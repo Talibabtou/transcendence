@@ -116,7 +116,7 @@ export async function postPic(
     const file: MultipartFile | undefined = await request.file();
     if (!file) return sendError(reply, 404, ErrorCodes.NO_FILE_PROVIDED);
     const verif = verifTypeFile(file);
-    if (!verif) return sendError(reply, 403, ErrorCodes.INVALID_TYPE);
+    if (!verif) return sendError(reply, 401, ErrorCodes.INVALID_TYPE);
     const buffer: Buffer = await file.toBuffer();
     const formData: FormData = new FormData();
     formData.append('file', new Blob([buffer]), file.filename);

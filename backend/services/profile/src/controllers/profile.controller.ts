@@ -104,9 +104,6 @@ export async function getSummary(
         summary: reponseDataMatchSummary,
         pics: 'link' in reponseDataPic ? reponseDataPic : { link: 'undefined' },
       };
-      console.log({
-        summary: summary,
-      });
       return reply.code(200).send(summary);
     } else return sendError(reply, 404, ErrorCodes.SUMMARY_NOT_FOUND);
   } catch (err) {

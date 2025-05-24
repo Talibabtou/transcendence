@@ -264,9 +264,9 @@ export const ErrorExamples = {
     message: ErrorMessages.get(ErrorCodes.NO_FILE_PROVIDED),
   },
   invalidType: {
-    statusCode: 403,
+    statusCode: 401,
     code: ErrorCodes.INVALID_TYPE,
-    error: ErrorTypes.get(403),
+    error: ErrorTypes.get(401),
     message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
   },
   summaryNotFound: {
@@ -292,21 +292,21 @@ export const ErrorExamples = {
 
   // Jwt
   jwtBadHeader: {
-    statusCode: 401,
+    statusCode: 403,
     code: ErrorCodes.JWT_BAD_HEADER,
-    error: ErrorTypes.get(401),
+    error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.JWT_BAD_HEADER),
   },
   jwtInsufficientPerm: {
-    statusCode: 403,
-    code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
-    error: ErrorTypes.get(403),
-    message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
-  },
-  jwtTokenExpired: {
     statusCode: 401,
     code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
     error: ErrorTypes.get(401),
+    message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
+  },
+  jwtTokenExpired: {
+    statusCode: 403,
+    code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
+    error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
   },
   jwtRevoked: {
