@@ -23,10 +23,16 @@ const resource = new Resource({
   [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
 });
 
+// Configure the trace exporter (pointing to Tempo)
+const traceExporter = new OTLPTraceExporter({
+  url: 'http://localhost:4318/v1/traces', // Tempo OTLP endpoint
+});
+
 // Configure the NodeSDK
 const sdk = new NodeSDK({
   resource: resource,
   metricReader: prometheusExporter,
+  spanProcessor: new BatchSpanProcessor(traceExporter),
   instrumentations: [
     // getNodeAutoInstrumentations will include http by default
     getNodeAutoInstrumentations({

@@ -308,8 +308,6 @@ export class ProfileComponent extends Component<ProfileState> {
 				try {
 					friendshipStatus = await DbService.getFriendship(userId);
 				} catch (error) {
-					// This is not a real error, just no friendship exists
-					console.log("No friendship exists");
 				}
 			}
 			
@@ -365,9 +363,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
 			newProfileDataForParent.username = updatedFields.username;
 			profileWasActuallyUpdatedInParent = true;
-			
-			// Show notification for successful update
-			NotificationManager.showSuccess("Profile updated successfully");
 		}
 
 		if (profileWasActuallyUpdatedInParent) {
@@ -411,10 +406,16 @@ export class ProfileComponent extends Component<ProfileState> {
 			summaryElement.className = 'profile-hero';
 			summaryElement.innerHTML = `
 				<div class="profile-avatar">
-					<img src="${state.profile.avatarUrl}" alt="${state.profile.username}">
+					<img src="${state.profile.username.toLowerCase() === 'ai' ? '/images/ai-avatar.jpg' : state.profile.avatarUrl}" alt="${state.profile.username}">
 				</div>
 				<div class="profile-info">
-					<h2 class="username">${state.profile.username}</h2>
+					<h2 class="username">
+						${state.profile.username}
+						${state.profile.username.toLowerCase() === 'ai' ? 
+							'<span class="bot-badge">BOT</span>' : 
+							''
+						}
+					</h2>
 					<div class="summary-stats">
 						<div class="stat">
 							<span class="stat-value elo-value">${state.profile.elo || 1000}</span>
@@ -443,6 +444,9 @@ export class ProfileComponent extends Component<ProfileState> {
 			
 			// Check if this is current user's profile
 			const isCurrentUserProfile = this.isCurrentUserProfile(urlProfileId || state.profile.id);
+			
+			// Check if this is the AI bot profile
+			const isAiBot = state.profile.username.toLowerCase() === 'ai';
 			
 			// Determine friend button text and styling
 			let friendButtonText = 'Add Friend';
@@ -473,6 +477,7 @@ export class ProfileComponent extends Component<ProfileState> {
 							<button class="tab-button">Match History</button>
 						</li>
 						<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
+							${isAiBot ? '' : `
 							<button class="tab-button">
 								Friends
 								${isCurrentUserProfile && state.pendingFriends.length > 0 ? 
@@ -480,16 +485,17 @@ export class ProfileComponent extends Component<ProfileState> {
 									''
 								}
 							</button>
+							`}
 						</li>
-						${isCurrentUserProfile ? `
+						${isCurrentUserProfile && !isAiBot ? `
 							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
 								<button class="tab-button">Settings</button>
 							</li>
-						` : `
+						` : !isAiBot ? `
 							<li class="tab-item" data-tab="add-friend">
 								<button class="${friendButtonClass}">${friendButtonText}</button>
 							</li>
-						`}
+						` : ''}
 					</ul>
 				</div>
 				<div class="tab-content"></div>

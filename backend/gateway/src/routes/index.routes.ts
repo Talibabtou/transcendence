@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify';
 import eloRoutes from './elo.routes.js';
+import { FastifyInstance } from 'fastify';
 import goalRoutes from './goal.routes.js';
 import authRoutes from './auth.routes.js';
 import matchRoutes from './match.routes.js';
@@ -18,7 +18,4 @@ export default async function routes(server: FastifyInstance) {
   await server.register(profileRoutes, { prefix: API_PREFIX });
   await server.register(friendsRoutes, { prefix: API_PREFIX });
   await server.register(tournamentRoutes, { prefix: API_PREFIX });
-  server.get('/health', async (request, reply) => {
-    reply.code(200).send({ status: 'ok' });
-  });
 }

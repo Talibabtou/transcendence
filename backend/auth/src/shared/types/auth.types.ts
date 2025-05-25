@@ -49,3 +49,7 @@ export interface IReplyQrCode {
   qrcode: string;
   otpauth: string | undefined;
 }
+
+export interface IReplyTwofaStatus {
+  two_factor_enabled: boolean;
+}

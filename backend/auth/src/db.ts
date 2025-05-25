@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import { open, Database } from 'sqlite';
 import { fileURLToPath } from 'node:url';
 import { FastifyInstance } from 'fastify';
-import { IId } from './shared/types/auth.types.js';
+import { IId } from '../src/shared/types/auth.types.js';
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -25,7 +25,7 @@ const __dirname = path.dirname(__filename);
  */
 async function initEloComputer(fastify: FastifyInstance, db: Database<sqlite3.Database, sqlite3.Statement>) {
   let gameState = false;
-  const id = await db.get<{ id: IId }>('SELECT id FROM users WHERE username = ?', 'ai');
+  const id = await db.get<{ id: IId }>('SELECT id FROM users WHERE username = ?', ['ai']);
   fastify.log.info('Waiting for service GAME...');
   while (!gameState) {
     try {

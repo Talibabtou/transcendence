@@ -256,10 +256,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						<button type="submit" class="save-settings-button">
 							Save Changes
 						</button>
-						${state.saveSuccess && !state.noChangesMessage ? html`<span class="save-success-icon">✓</span>` : ''}
 						${state.formErrors.form && !state.noChangesMessage ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
 					</div>
-					${state.noChangesMessage ? html`<div class="no-changes-message">${state.noChangesMessage}</div>` : ''}
 				</form>
 			</div>
 		`;
@@ -310,16 +308,25 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						uploadSuccess: true,
 						profile: {
 							...this.getInternalState().profile!,
-							avatarUrl: response.avatarUrl || this.getInternalState().profile!.avatarUrl
+							avatarUrl: response?.avatarUrl || this.getInternalState().profile!.avatarUrl
 						}
 					});
 				})
 				.catch(error => {
-					NotificationManager.showError('Upload failed. Please try again: ' + error);
-					this.updateInternalState({
-						isUploading: false,
-						uploadSuccess: false
-					});
+					// Don't show error if it's just a null response
+					if (error instanceof TypeError && error.message.includes('null')) {
+						NotificationManager.showSuccess('Profile picture updated successfully');
+						this.updateInternalState({
+							isUploading: false,
+							uploadSuccess: true
+						});
+					} else {
+						NotificationManager.showError('Upload failed. Please try again.');
+						this.updateInternalState({
+							isUploading: false,
+							uploadSuccess: false
+						});
+					}
 				});
 		}
 	}
@@ -410,13 +417,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (Object.keys(updateData).length === 0) {
 			NotificationManager.showInfo('No changes detected');
 			this.updateInternalState({ 
-				saveSuccess: false,
-				noChangesMessage: 'No changes detected.',
 				formErrors: { form: undefined }
 			});
-			setTimeout(() => {
-				this.updateInternalState({ noChangesMessage: null });
-			}, 2000);
 			return;
 		}
 
@@ -437,7 +439,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				password: '',
 				confirmPassword: ''
 			},
-			saveSuccess: true,
 			noChangesMessage: null,
 			formErrors: { form: undefined }
 		});
@@ -457,23 +458,14 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.onProfileUpdate(actualChangesForParent);
 			}
 		}
-		
-		// Hide the green success ticker after 2 seconds for actual saves
-		setTimeout(() => {
-			this.updateInternalState({ saveSuccess: false });
-		}, 2000);
 
 		try {
 			await DbService.updateUser(state.profile.id, updateData);
-			// Show success notification
 			NotificationManager.showSuccess('Profile updated successfully');
 		} catch (error) {
-			// Errors already shown by DbService via NotificationManager
-			// Rollback optimistic updates
 			this.initialDbUsername = this.initialDbUsername;
 			this.initialDbEmail = this.initialDbEmail;
 
-			// Update form with error indicators
 			const currentFormErrors = { ...state.formErrors };
 			
 			if (error instanceof Error) {
@@ -492,13 +484,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			
 			this.updateInternalState({ 
 				formErrors: currentFormErrors, 
-				saveSuccess: false,
-				formData: {
-					username: this.initialDbUsername || '',
-					email: this.initialDbEmail || '',
-					password: '',
-					confirmPassword: ''
-				},
 				profile: {
 					...state.profile!,
 					username: this.initialDbUsername || '',
@@ -513,22 +498,18 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private updateAuthUserInStorage(updatedUser: any): void {
 		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (authUserJson) {
-			try {
-				const authUser = JSON.parse(authUserJson);
-				const updatedAuthUser = {
-					...authUser,
-					pseudo: updatedUser.username,
-					username: updatedUser.username,
-					email: updatedUser.email || authUser.email
-				};
-				
-				if (localStorage.getItem('auth_user')) {
-					localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-				} else if (sessionStorage.getItem('auth_user')) {
-					sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-				}
-			} catch (error) {
-				console.error('Error updating auth user in storage:', error);
+			const authUser = JSON.parse(authUserJson);
+			const updatedAuthUser = {
+				...authUser,
+				pseudo: updatedUser.username,
+				username: updatedUser.username,
+				email: updatedUser.email || authUser.email
+			};
+			
+			if (localStorage.getItem('auth_user')) {
+				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+			} else if (sessionStorage.getItem('auth_user')) {
+				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 			}
 		}
 	}
@@ -631,33 +612,22 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		try {
 			await DbService.validate2FA(code);
-			
-			// Show success notification
 			NotificationManager.showSuccess('Two-factor authentication enabled successfully');
-			
-			// Single state update
 			this.updateInternalState({
 				profile: { 
 					...this.getInternalState().profile!, 
 					twoFactorEnabled: true 
-				},
-				saveSuccess: true // Show success indicator
+				}
 			});
 			
-			// Hide success after 2 seconds
-			setTimeout(() => {
-				this.updateInternalState({ saveSuccess: false });
-			}, 2000);
-			
-			// Close popup and update checkbox
+			// Remove popup from DOM
 			const popupOverlay = document.querySelector('.popup-overlay');
-			if (popupOverlay) document.body.removeChild(popupOverlay);
-			
-			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-			if (toggle) toggle.checked = true;
+			if (popupOverlay && popupOverlay.parentNode) {
+				popupOverlay.parentNode.removeChild(popupOverlay);
+			}
 		} catch (error) {
 			// Error already shown by DbService via NotificationManager
-			console.error('Failed to verify 2FA code:', error);
+			NotificationManager.showError('Failed to verify 2FA code');
 			
 			// Visual error indication
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;

@@ -2,8 +2,8 @@ import { FastifyInstance } from 'fastify';
 import { IId } from '../shared/types/gateway.types.js';
 import { CreateGoalRequest, GetGoalsQuery } from '../shared/types/goal.type.js';
 import { getGoal, getGoals, createGoal } from '../controllers/goal.controller.js';
-import { getGoalSchema, getGoalsSchema, createGoalSchema } from '../schemas/goal.schemas.js';
 import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
+import { getGoalSchema, getGoalsSchema, createGoalSchema } from '../schemas/goal.schemas.js';
 
 export default async function goalRoutes(fastify: FastifyInstance) {
   fastify.get<{ Querystring: GetGoalsQuery }>(

@@ -14,6 +14,7 @@ import {
   I2faCode,
   IReplyQrCode,
   IUsername,
+  IReplyTwofaStatus,
 } from '../shared/types/auth.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError, isValidId } from '../helper/auth.helper.js';
@@ -202,37 +203,6 @@ export async function modifyUser(
         request.server.log.error(err);
         return sendError(reply, 400, ErrorCodes.SQLITE_MISMATCH);
       }
-    }
-    request.server.log.error(err);
-    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
-  }
-}
-
-/**
- * Deletes a user by ID.
- *
- * @param request - FastifyRequest object containing the user ID in params.
- * @param reply - FastifyReply object for sending the response.
- * @returns
- *   204 - Success, user deleted
- *   400 - SQLite mismatch (ErrorCodes.SQLITE_MISMATCH)
- *   404 - Player not found (ErrorCodes.PLAYER_NOT_FOUND)
- *   500 - Internal server error (ErrorCodes.INTERNAL_ERROR)
- */
-export async function deleteUser(
-  request: FastifyRequest<{ Params: IId }>,
-  reply: FastifyReply
-): Promise<void> {
-  try {
-    const id = request.params.id;
-    const result = await request.server.db.get('SELECT * FROM users WHERE id = ?', [id]);
-    if (!result) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
-    await request.server.db.run('DELETE FROM users WHERE id = ?', [id]);
-    return reply.code(204).send();
-  } catch (err) {
-    if (err instanceof Error && err.message.includes('SQLITE_MISMATCH')) {
-      request.server.log.error(err);
-      return sendError(reply, 400, ErrorCodes.SQLITE_MISMATCH);
     }
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -544,7 +514,7 @@ export async function twofaDisable(
 export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
-    const data = await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id]);
+    const data = (await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id])) as IReplyTwofaStatus;
     if (!data) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(data);
   } catch (err) {

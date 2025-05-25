@@ -7,11 +7,13 @@ import {
   IReplyQrCode,
   IUsername,
   IId,
+  IReplyTwofaStatus,
 } from '../shared/types/auth.types.js';
 import { FastifyJWT } from '../middleware/jwt.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { sendError } from '../helper/friends.helper.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import { ErrorCodes } from '../shared/constants/error.const.js';
 
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
@@ -22,8 +24,7 @@ export async function getId(request: FastifyRequest<{ Params: IUsername }>, repl
     return reply.code(response.status).send(id);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -36,8 +37,7 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
     return reply.code(response.status).send(username);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -50,8 +50,7 @@ export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: F
     return reply.code(response.status).send(user);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -68,8 +67,7 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
     return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -85,15 +83,12 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
       },
       body: JSON.stringify(request.body),
     });
-    if (response.status == 200) {
-      return reply.code(response.status).send();
-    }
+    if (response.status == 200) return reply.code(response.status).send();
     const responseData = (await response.json()) as ErrorResponse;
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -113,9 +108,7 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
     return reply.code(response.status).send(user);
   } catch (err) {
     request.server.log.error(err);
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -138,8 +131,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
     return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -156,26 +148,7 @@ export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }
     return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
-  }
-}
-
-export async function deleteUser(request: FastifyRequest, reply: FastifyReply) {
-  try {
-    const id: string = (request.user as FastifyJWT['user']).id;
-    const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
-    const response = await fetch(serviceUrl, { method: 'DELETE' });
-    if (response.status >= 400) {
-      const responseData = (await response.json()) as ErrorResponse;
-      return reply.code(response.status).send(responseData);
-    }
-    return reply.code(response.status).send();
-  } catch (err) {
-    request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -199,8 +172,7 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
     return reply.code(response.status).send();
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -223,8 +195,7 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
     return reply.code(response.status).send(data);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
@@ -242,8 +213,7 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
     return reply.code(response.status).send(responseData);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
@@ -258,16 +228,10 @@ export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) 
         Authorization: request.headers.authorization || '',
       },
     });
-    if (response.status === 200) {
-      const data = await response.json();
-      return reply.code(200).send(data);
-    } else {
-      const errorData = await response.json();
-      return reply.code(response.status).send(errorData);
-    }
+    const data = (await response.json()) as IReplyTwofaStatus | ErrorResponse;
+    return reply.code(200).send(data);
   } catch (err) {
     request.server.log.error(err);
-    const errorMessage = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorMessage);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }

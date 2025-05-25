@@ -50,6 +50,7 @@ export enum ErrorCodes {
   JWT_INSUFFICIENT_PERMISSIIONS = 'JWT_INSUFFICIENT_PERMISSIIONS',
   JWT_EXP_TOKEN = 'FST_JWT_AUTHORIZATION_TOKEN_EXPIRED',
   JWT_REVOKED = 'JWT_REVOKED',
+  JWT_MISMATCH = 'JWT_MISMATCH',
 
   //twofa
   TWOFA_BAD_CODE = 'TWOFA_BAD_CODE',
@@ -113,6 +114,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS, 'JWT insufficient permissions'],
   [ErrorCodes.JWT_EXP_TOKEN, 'Token expired'],
   [ErrorCodes.JWT_REVOKED, 'Jwt revoked'],
+  [ErrorCodes.JWT_MISMATCH, 'Jwt mismatch'],
 
   //twofa
   [ErrorCodes.TWOFA_BAD_CODE, 'Twofa bad code'],
@@ -262,9 +264,9 @@ export const ErrorExamples = {
     message: ErrorMessages.get(ErrorCodes.NO_FILE_PROVIDED),
   },
   invalidType: {
-    statusCode: 403,
+    statusCode: 401,
     code: ErrorCodes.INVALID_TYPE,
-    error: ErrorTypes.get(403),
+    error: ErrorTypes.get(401),
     message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
   },
   summaryNotFound: {
@@ -296,15 +298,15 @@ export const ErrorExamples = {
     message: ErrorMessages.get(ErrorCodes.JWT_BAD_HEADER),
   },
   jwtInsufficientPerm: {
-    statusCode: 403,
-    code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
-    error: ErrorTypes.get(403),
-    message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
-  },
-  jwtTokenExpired: {
     statusCode: 401,
     code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
     error: ErrorTypes.get(401),
+    message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
+  },
+  jwtTokenExpired: {
+    statusCode: 403,
+    code: ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS,
+    error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.JWT_INSUFFICIENT_PERMISSIIONS),
   },
   jwtRevoked: {
@@ -312,6 +314,12 @@ export const ErrorExamples = {
     code: ErrorCodes.JWT_REVOKED,
     error: ErrorTypes.get(403),
     message: ErrorMessages.get(ErrorCodes.JWT_REVOKED),
+  },
+  jwtMismatch: {
+    statusCode: 403,
+    code: ErrorCodes.JWT_MISMATCH,
+    error: ErrorTypes.get(403),
+    message: ErrorMessages.get(ErrorCodes.JWT_MISMATCH),
   },
 
   //2fa

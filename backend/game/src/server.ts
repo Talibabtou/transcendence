@@ -45,5 +45,5 @@ class Server {
   }
 }
 
-await startTelemetry();
+await startTelemetry(Server.getInstance());
 Server.start();

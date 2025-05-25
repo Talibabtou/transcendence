@@ -173,7 +173,6 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error loading template';
 			this.setErrorState(errorMessage);
-			console.error(`Error loading template from ${path}:`, error);
 			return this.getFallbackErrorTemplate(errorMessage);
 		}
 	}

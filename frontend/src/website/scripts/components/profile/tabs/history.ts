@@ -1,5 +1,5 @@
 import { Component } from '@website/scripts/components';
-import { DbService, html, render } from '@website/scripts/services';
+import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 import { UserProfile, ProfileHistoryState } from '@website/types';
 import { MatchHistory } from '@shared/types/match.type';
 
@@ -99,7 +99,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 			});
 
 		} catch (error) {
-			console.error('Error loading match history:', error);
+			NotificationManager.showError('Failed to load match history');
 			this.updateInternalState({ 
 				allMatches: [], 
 				matches: [],

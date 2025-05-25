@@ -71,7 +71,7 @@ export class App {
 		try {
 			// Replace with your actual WebSocket server URL
 			const token = localStorage.getItem('jwt_token') || ''; // Example: get token
-			const websocketUrl = `wss://localhost:8080/ws/status?token=${token}`; 
+			const websocketUrl = `ws://localhost:8085/ws/status?token=${token}`; 
 			this.webSocketClient = WebSocketClient.getInstance(websocketUrl);
 			this.webSocketClient.connect();
 			window.webSocketClient = this.webSocketClient;

@@ -76,7 +76,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
     let tokenToVerify: string | null = null;
     let userPayload: FastifyJWT['user'] | null = null;
     tokenToVerify = customExtractToken(request);
-    if (!tokenToVerify) return sendError(reply, 401, ErrorCodes.JWT_BAD_HEADER);
+    if (!tokenToVerify) return sendError(reply, 403, ErrorCodes.JWT_BAD_HEADER);
     try {
       userPayload = await request.server.jwt.verify<FastifyJWT['user']>(tokenToVerify);
       request.user = userPayload;
@@ -92,14 +92,14 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
       const errorMessage = createErrorResponse(401, errorCode);
       return reply.code(401).send(errorMessage);
     }
-    if (!request.user) return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
+    if (!request.user) return sendError(reply, 403, ErrorCodes.JWT_BAD_HEADER);
     // Check if user exist
     const id: string = (request.user as FastifyJWT['user']).id;
     const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       request.server.log.warn(`[jwtHook] User check failed (status ${user.status}) for ID: ${id}`);
-      return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
+      return sendError(reply, 403, ErrorCodes.JWT_MISMATCH);
     }
     request.server.log.info(`[jwtHook] User check successful for ID: ${id}`);
     // Check if revoked

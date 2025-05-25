@@ -8,6 +8,7 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { initializeMetrics } from './metrics.js'; // Import the initializer
 // Import the Fastify instrumentation using default import for CommonJS compatibility
 import fastifyOtel from '@fastify/otel';
+import { FastifyInstance } from 'fastify';
 const { FastifyOtelInstrumentation } = fastifyOtel;
 
 // Configure the Prometheus Exporter
@@ -23,10 +24,16 @@ const resource = new Resource({
   [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
 });
 
+// Configure the trace exporter (pointing to Tempo)
+const traceExporter = new OTLPTraceExporter({
+  url: 'http://localhost:4318/v1/traces', // Tempo OTLP endpoint
+});
+
 // Configure the NodeSDK
 const sdk = new NodeSDK({
   resource: resource,
   metricReader: prometheusExporter,
+  spanProcessor: new BatchSpanProcessor(traceExporter),
   instrumentations: [
     // getNodeAutoInstrumentations will include http by default
     getNodeAutoInstrumentations({
@@ -40,10 +47,10 @@ const sdk = new NodeSDK({
   // traceExporter and spanProcessor could be added here for tracing if needed
 });
 
-export async function startTelemetry() {
+export async function startTelemetry(fastify: FastifyInstance) {
   try {
     await sdk.start();
-    console.log('OpenTelemetry SDK started successfully.');
+    fastify.log.info('OpenTelemetry SDK started successfully.');
 
     // Initialize custom metrics AFTER the SDK has started
     initializeMetrics();
@@ -52,15 +59,15 @@ export async function startTelemetry() {
     process.on('SIGTERM', async () => {
       try {
         await sdk.shutdown();
-        console.log('OpenTelemetry SDK shut down successfully.');
+        fastify.log.info('OpenTelemetry SDK shut down successfully.');
       } catch (err) {
-        console.error('Error shutting down OpenTelemetry SDK:', err);
+        fastify.log.error('Error shutting down OpenTelemetry SDK:', err);
       } finally {
         process.exit(0);
       }
     });
   } catch (error) {
-    console.error('Error starting OpenTelemetry SDK:', error);
+    fastify.log.error('Error starting OpenTelemetry SDK:', error);
     process.exit(1);
   }
 }

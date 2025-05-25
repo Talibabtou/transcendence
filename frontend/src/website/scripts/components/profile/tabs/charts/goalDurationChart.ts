@@ -7,12 +7,6 @@ import Plotly from 'plotly.js-dist';
  * @returns A cleanup function to purge the chart
  */
 export function renderGoalDurationChart(container: HTMLElement, goalDurations: number[]): () => void {
-	// Check if we have data to display
-	if (!goalDurations || goalDurations.length === 0) {
-		container.innerHTML = '<div class="no-data-message">No goal data available</div>';
-		return () => { container.innerHTML = ''; };
-	}
-	
 	// Calculate appropriate bin size based on data range
 	const maxDuration = Math.max(...goalDurations);
 	const minDuration = Math.min(...goalDurations);

@@ -10,7 +10,6 @@ import {
 import {
   addUser,
   getUser,
-  deleteUser,
   modifyUser,
   logout,
   login,
@@ -55,6 +54,4 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.patch<{ Body: IModifyUser; Params: IId }>('/user/:id', modifyUser);
 
   fastify.patch<{ Params: IId }>('/2fa/disable/:id', twofaDisable);
-
-  fastify.delete<{ Params: IId }>('/user/:id', deleteUser);
 }

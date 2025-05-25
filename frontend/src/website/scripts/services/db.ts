@@ -7,27 +7,20 @@ import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
-
 /**
  * Service class for handling database operations
  * Uses API calls to interact with the backend
  */
 export class DbService {
-	// =========================================
-	// CORE API METHODS
-	// =========================================
-	
 	/**
-	 * Main method to interact with the API
+	 * Makes an API request to the backend with proper authentication and error handling
+	 * @param endpoint - The API endpoint to call
+	 * @param options - Optional fetch request configuration
+	 * @returns Promise resolving to the response data of type T
 	 */
 	private static async fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 		const url = `${API_PREFIX}${endpoint}`;
-		
-		// Get token from the correct storage type - use sessionStorage by default
-		// This ensures each tab can maintain its own session
 		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
-		
-		// Default headers
 		const defaultHeaders: Record<string, string> = {
 			'Content-Type': 'application/json',
 		};
@@ -37,15 +30,11 @@ export class DbService {
 
 		let effectiveHeaders: HeadersInit = { ...defaultHeaders, ...options.headers };
 
-		// If the body is FormData, DO NOT set Content-Type manually.
-		// The browser will set it correctly with the boundary.
 		if (options.body instanceof FormData) {
-			// Create new headers object, omitting Content-Type if it was the default one
 			const headersForFormData: Record<string, string> = {};
 			if (token) {
 				headersForFormData['Authorization'] = `Bearer ${token}`;
 			}
-			// Add any custom headers from options.headers, *except* Content-Type
 			if (options.headers) {
 				for (const [key, value] of Object.entries(options.headers)) {
 					if (key.toLowerCase() !== 'content-type') {
@@ -70,9 +59,17 @@ export class DbService {
 	}
 
 	/**
-	 * Process the API response
+	 * Processes and validates API responses, handling different content types and status codes
+	 * @param response - The fetch Response object to process
+	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (response.status === 403) {
+			console.warn('Session expired or unauthorized, deconnection...');
+			const { appState } = await import('../utils/app-state');
+      appState.logout();
+			throw new Error('Your session has expired. You have to login again.');
+		}
 		if (!response.ok) {
 			const errorData: ErrorResponse = await response.json().catch(() => ({
 				statusCode: response.status,
@@ -80,37 +77,25 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
-			
-			console.log('Received error data from server (status ' + response.status + '):', JSON.stringify(errorData, null, 2));
-			
-			// Use the NotificationManager to display the error
-			NotificationManager.handleError(errorData);
-			
-			// Throw a simplified error to interrupt the promise chain
-			throw new Error(errorData.message || 'An error occurred');
+			throw errorData;
 		}
 		
 		const contentType = response.headers.get("content-type");
 		
-		// Handle 204 No Content responses
 		if (response.status === 204) {
 			return Promise.resolve(null as unknown as T);
 		}
 
-		// Handle JSON responses
 		if (contentType && contentType.includes("application/json")) {
 			const text = await response.text();
 			
-			// Handle empty but successful responses
 			if (text.length === 0 && response.status === 200) {
 				return Promise.resolve({ success: true } as unknown as T);
 			}
 			
-			// Parse JSON response
 			try {
 				return JSON.parse(text) as T;
 			} catch (e) {
-				console.error("Failed to parse JSON response:", text);
 				NotificationManager.showError("Invalid JSON response from server");
 				throw new Error("Invalid JSON response from server");
 			}
@@ -120,41 +105,35 @@ export class DbService {
 	}
 	
 	/**
-	 * Handle errors that occur during fetch
+	 * Handles fetch errors, including token expiration and network issues
+	 * @param error - The error that occurred during the fetch operation
 	 */
 	private static handleFetchError(error: unknown): void {
 		if (error instanceof Error) {
-			// Handle token expiration
 			if (error.message.includes('expired') || 
 				error.message.includes('JWT') || 
 				error.message.includes('token')) {
-				
-				// Clear token and log out
 				sessionStorage.removeItem('jwt_token');
-				
-				// Show appropriate notification
 				NotificationManager.handleErrorCode(ErrorCodes.JWT_EXP_TOKEN);
-				
-				// Log out the user
 				import('../utils/app-state').then(({ appState }) => {
 					appState.logout();
 				});
 			} else if (error.message.includes('NetworkError') || 
 					  error.message.includes('Failed to fetch')) {
-				// Handle network errors
 				NotificationManager.handleErrorCode('network_error');
 			} else {
-				// Handle other errors
 				NotificationManager.handleError(error);
 			}
 		} else {
-			// Handle unknown error types
 			NotificationManager.showError('An unknown error occurred');
 		}
 	}
 	
 	/**
-	 * Helper method to standardize API request logging
+	 * Logs API requests with timestamp and request ID for debugging
+	 * @param method - HTTP method used
+	 * @param endpoint - API endpoint called
+	 * @param body - Optional request body
 	 */
 	public static logRequest(method: string, endpoint: string, body?: any): void {
 		const timestamp = new Date().toISOString();
@@ -169,12 +148,10 @@ export class DbService {
 		});
 	}
 
-	// =========================================
-	// AUTHENTICATION OPERATIONS
-	// =========================================
-	
 	/**
-	 * Registers a new user
+	 * Registers a new user in the system
+	 * @param userData - User registration data including username, email and password
+	 * @returns Promise resolving to authentication response with user data and token
 	 */
 	static async register(userData: IAddUser): Promise<AuthResponse> {
 		this.logRequest('POST', `${AUTH.REGISTER}`, {
@@ -205,6 +182,8 @@ export class DbService {
 
 	/**
 	 * Authenticates a user with email and password
+	 * @param credentials - Login credentials including email and password
+	 * @returns Promise resolving to authentication response with user data and token
 	 */
 	static async login(credentials: ILogin): Promise<AuthResponse> {
 		this.logRequest('POST', `${AUTH.LOGIN}`, {
@@ -247,7 +226,9 @@ export class DbService {
 	}
 	
 	/**
-	 * Guest login for tournament/game registration
+	 * Authenticates a guest user for tournament/game registration
+	 * @param credentials - Guest login credentials
+	 * @returns Promise resolving to authentication response with guest user data
 	 */
 	static async guestLogin(credentials: ILogin): Promise<AuthResponse> {
 		this.logRequest('POST', `${AUTH.GUEST_LOGIN}`, {
@@ -291,7 +272,9 @@ export class DbService {
 	}
 	
 	/**
-	 * Logs out the current user
+	 * Logs out the current user by invalidating their session and clearing local state
+	 * @param userId - The ID of the user to log out
+	 * @returns Promise that resolves when logout is complete
 	 */
 	static async logout(userId: string): Promise<void> {
 		this.logRequest('POST', `${AUTH.LOGOUT}`, { userId });
@@ -307,7 +290,8 @@ export class DbService {
 	}
 	
 	/**
-	 * Generate a new 2FA secret and QR code
+	 * Generates a new 2FA secret and QR code for setting up two-factor authentication
+	 * @returns Promise resolving to an object containing the QR code and OTP auth URL
 	 */
 	static async generate2FA(): Promise<{ qrcode: string, otpauth: string }> {
 		this.logRequest('GET', `${AUTH.TWO_FA.GENERATE}`);
@@ -317,7 +301,9 @@ export class DbService {
 	}
 
 	/**
-	 * Validate a 2FA code
+	 * Validates a 2FA code for the current user
+	 * @param code - The 2FA code to validate
+	 * @returns Promise that resolves when validation is complete
 	 */
 	static async validate2FA(code: string): Promise<void> {
 		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}`, { twofaCode: '******' });
@@ -328,7 +314,8 @@ export class DbService {
 	}
 
 	/**
-	 * Disable 2FA for a user
+	 * Disables two-factor authentication for the current user
+	 * @returns Promise that resolves when 2FA is disabled
 	 */
 	static async disable2FA(): Promise<void> {
 		this.logRequest('PATCH', `${AUTH.TWO_FA.DISABLE}`);
@@ -339,12 +326,15 @@ export class DbService {
 	}
 
 	/**
-	 * Verify 2FA code during login
+	 * Verifies a 2FA code during the login process
+	 * @param userId - The ID of the user attempting to log in
+	 * @param code - The 2FA code to verify
+	 * @param token - The temporary authentication token
+	 * @returns Promise that resolves when verification is complete
 	 */
 	static async verify2FALogin(userId: string, code: string, token: string): Promise<void> {
 		this.logRequest('POST', `${AUTH.TWO_FA.VALIDATE}`, { userId, twofaCode: '******' });
 		
-		// Special case: needs custom fetch for token handling
 		const response = await fetch(`${API_PREFIX}${AUTH.TWO_FA.VALIDATE}`, {
 			method: 'POST',
 			headers: {
@@ -355,13 +345,13 @@ export class DbService {
 				twofaCode: code
 			})
 		});
-		
-		// Use our standard response handler
+
 		return this.handleApiResponse<void>(response);
 	}
 
 	/**
-	 * Check if a user has 2FA enabled
+	 * Checks if two-factor authentication is enabled for the current user
+	 * @returns Promise resolving to true if 2FA is enabled, false otherwise
 	 */
 	static async check2FAStatus(): Promise<boolean> {
 		this.logRequest('GET', `${AUTH.TWO_FA.STATUS}`);
@@ -370,7 +360,6 @@ export class DbService {
 			const response = await this.fetchApi<{ two_factor_enabled: boolean }>(`${AUTH.TWO_FA.STATUS}`);
 			return response.two_factor_enabled || false;
 		} catch (error) {
-			// Suppress error and default to false
 			return false;
 		}
 	}
@@ -380,7 +369,9 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Retrieves user information by ID
+	 * Retrieves detailed user information by ID
+	 * @param id - The user ID to look up
+	 * @returns Promise resolving to the user object
 	 */
 	static async getUser(id: string): Promise<User> {
 		this.logRequest('GET', `${USER.BY_ID(id)}`);
@@ -388,7 +379,9 @@ export class DbService {
 	}
 	
 	/**
-	 * Retrieves user ID by username
+	 * Retrieves a user's ID by their username
+	 * @param username - The username to look up
+	 * @returns Promise resolving to the user's ID
 	 */
 	static async getIdByUsername(username: string): Promise<string> {
 		this.logRequest('GET', `${USER.BY_USERNAME(username)}`);
@@ -397,7 +390,10 @@ export class DbService {
 	}
 
 	/**
-	 * Updates user information
+	 * Updates a user's information
+	 * @param userId - The ID of the user to update
+	 * @param userData - Partial user object containing fields to update
+	 * @returns Promise resolving to the updated user object
 	 */
 	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
 		this.logRequest('PATCH', `${USER.ME_UPDATE} (for user ${userId})`, userData);
@@ -408,31 +404,30 @@ export class DbService {
 	}
 	
 	/**
-	 * Get user profile
+	 * Retrieves a user's complete profile information
+	 * @param userId - The ID of the user whose profile to retrieve
+	 * @returns Promise resolving to the user's profile data
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
 		this.logRequest('GET', `${USER.PROFILE}/${userId}`);
 		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
-		
-		// Normalize profile picture URL if it exists
+
 		if (userProfile?.pics?.link) {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				const pathParts = userProfile.pics.link.split('/');
-				const fileName = pathParts[pathParts.length - 1];
-				
-				if (fileName === 'default') {
-					userProfile.pics.link = '/images/default-avatar.svg';
-				}
+				userProfile.pics.link = `http://localhost:8085${userProfile.pics.link}`;
 			}
 		}
 		
+		console.log(userProfile);
 		return userProfile;
 	}
 
 	/**
-	 * Get user profile history
+	 * Retrieves a user's profile history
+	 * @param userId - The ID of the user whose history to retrieve
+	 * @returns Promise resolving to the user's profile history data
 	 */
 	static async getUserHistory(userId: string): Promise<any> {
 		this.logRequest('GET', `${USER.PROFILE_HISTORY(userId)}`);
@@ -440,7 +435,9 @@ export class DbService {
 	}
 
 	/**
-	 * Gets the uploaded profile picture link for a user
+	 * Gets the URL for a user's profile picture
+	 * @param userId - The ID of the user whose picture to retrieve
+	 * @returns Promise resolving to an object containing the picture URL
 	 */
 	static async getPic(userId: string): Promise<IGetPicResponse> {
 		this.logRequest('GET', `${USER.PROFILE_PIC_LINK(userId)}`);
@@ -453,7 +450,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `https://localhost:8085/uploads/${fileName}`;
+				response.link = `http://localhost:8085/uploads/${fileName}`;
 			}
 		}
 		
@@ -461,31 +458,42 @@ export class DbService {
 	}
 
 	/**
-	 * Update user profile picture
+	 * Updates a user's profile picture
+	 * @param imageData - Either a base64 string or File object containing the image data
+	 * @returns Promise resolving to the upload response
 	 */
 	static async updateProfilePicture(imageData: string | File): Promise<any> {
 		this.logRequest('POST', `${USER.UPLOADS}`, { imageData: '...[truncated]' });
 		
-		// Handle different types of image data
-		if (typeof imageData === 'string') {
-			return this.fetchApi<any>(`${USER.UPLOADS}`, {
-				method: 'POST',
-				body: JSON.stringify({ file: imageData }),
-			});
-		} else {
-			// File object
-			const formData = new FormData();
-			formData.append('file', imageData);
-			
-			return this.fetchApi<any>(`${USER.UPLOADS}`, {
-				method: 'POST',
-				body: formData,
-				headers: {}
-			});
+		try {
+			if (typeof imageData === 'string') {
+				return this.fetchApi<any>(`${USER.UPLOADS}`, {
+					method: 'POST',
+					body: JSON.stringify({ file: imageData }),
+				});
+			} else {
+				const formData = new FormData();
+				formData.append('file', imageData);
+				
+				const response = await this.fetchApi<any>(`${USER.UPLOADS}`, {
+					method: 'POST',
+					body: formData,
+					headers: {}
+				});
+				
+				return response || { success: true };
+			}
+		} catch (error) {
+			if (error instanceof TypeError && error.message.includes('null')) {
+				return { success: true };
+			}
+			throw error;
 		}
 	}
 	
 	/**
+	 * Retrieves a username by user ID
+	 * @param id - The user ID to look up
 	 * Gets username for a given user ID
 	 */
 	static async getUsernameById(id: string): Promise<string> {
@@ -494,7 +502,6 @@ export class DbService {
 			const response = await this.fetchApi<{username: string}>(`/auth/username/${id}`);
 			return response.username;
 		} catch (error) {
-			console.error(`Error getting username for ID ${id}:`, error);
 			return 'Unknown User';
 		}
 	}
@@ -504,7 +511,11 @@ export class DbService {
 	// =========================================
 	
 	/**
-	 * Gets all matches for a user
+	 * Retrieves all matches for a specific user with optional pagination
+	 * @param userId - The ID of the user whose matches to retrieve
+	 * @param page - Optional page number for pagination (0-based)
+	 * @param pageSize - Optional number of items per page
+	 * @returns Promise resolving to an array of Match objects
 	 */
 	static async getUserMatches(userId: string, page?: number, pageSize?: number): Promise<Match[]> {
 		const queryParams = new URLSearchParams();
@@ -521,7 +532,11 @@ export class DbService {
 	}
 
 	/**
-	 * Creates a new match between two players
+	 * Creates a new match between two players, optionally within a tournament
+	 * @param player1Id - The ID of the first player
+	 * @param player2Id - The ID of the second player
+	 * @param tournamentId - Optional ID of the tournament this match belongs to
+	 * @returns Promise resolving to the created Match object
 	 */
 	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string): Promise<Match> {
 		this.logRequest('POST', `${GAME.MATCH.BASE}`, { player1Id, player2Id, tournamentId });
@@ -537,7 +552,11 @@ export class DbService {
 	}
 
 	/**
-	 * Records a goal in a match
+	 * Records a goal scored during a match
+	 * @param matchId - The ID of the match where the goal was scored
+	 * @param playerId - The ID of the player who scored the goal
+	 * @param duration - The time in seconds when the goal was scored
+	 * @returns Promise resolving to the created Goal object
 	 */
 	static async recordGoal(matchId: string, playerId: string, duration: number): Promise<Goal> {
 		this.logRequest('POST', `${GAME.GOALS.BASE}/${playerId}`, { matchId, duration });
@@ -552,7 +571,9 @@ export class DbService {
 	}
 	
 	/**
-	 * Retrieves detailed statistics for a user
+	 * Retrieves detailed game statistics for a specific user
+	 * @param userId - The ID of the user whose statistics to retrieve
+	 * @returns Promise resolving to an object containing user statistics
 	 */
 	static async getUserStats(userId: string): Promise<any> {
 		this.logRequest('GET', `${GAME.MATCH.STATS(userId)}`);
@@ -560,7 +581,8 @@ export class DbService {
 	}
 
 	/**
-	 * Retrieves global leaderboard data
+	 * Retrieves the global leaderboard data
+	 * @returns Promise resolving to an array of LeaderboardEntry objects, limited to top 100 players
 	 */
 	static async getLeaderboard(): Promise<LeaderboardEntry[]> {
 		this.logRequest('GET', `${GAME.LEADERBOARD}`);
@@ -568,15 +590,19 @@ export class DbService {
 	}
 
 	/**
-	 * Gets tournament information
+	 * Retrieves detailed information about a specific tournament
+	 * @param tournamentId - The ID of the tournament to retrieve
+	 * @returns Promise resolving to tournament information
 	 */
-	static async getTournament(tournamentId: string ): Promise<any> {
+	static async getTournament(tournamentId: string): Promise<any> {
 		this.logRequest('GET', `${GAME.TOURNAMENT.BASE}/${tournamentId}`);
 		return this.fetchApi<any>(`${GAME.TOURNAMENT.BASE}/${tournamentId}`);
 	}
 
 	/**
-	 * Gets a player's ELO rating
+	 * Retrieves the current ELO rating for a specific player
+	 * @param playerId - The ID of the player whose ELO rating to retrieve
+	 * @returns Promise resolving to the player's ELO rating information
 	 */
 	static async getPlayerElo(playerId: string): Promise<any> {
 		this.logRequest('GET', `${GAME.ELO.BY_ID(playerId)}`);
@@ -588,7 +614,9 @@ export class DbService {
 	// =========================================
 
 	/**
-	 * Get friendship status between two users
+	 * Retrieves the friendship status between the current user and another user
+	 * @param friendId - The ID of the user to check friendship status with
+	 * @returns Promise resolving to IReplyFriendStatus object or null if no relationship exists
 	 */
 	static async getFriendship(friendId: string): Promise<IReplyFriendStatus | null> {
 		this.logRequest('GET', `${SOCIAL.FRIENDS.CHECK(friendId)}`);
@@ -599,19 +627,19 @@ export class DbService {
 			}
 			return response;
 		} catch (error) {
-			// Suppress error and return null
 			return null;
 		}
 	}
 
 	/**
-	 * Get all friends for a user
+	 * Retrieves the complete friend list for a specific user
+	 * @param userId - The ID of the user whose friends to retrieve
+	 * @returns Promise resolving to an array of IReplyGetFriend objects
 	 */
 	static async getFriendList(userId: string): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
 		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
 		
-		// Normalize profile picture URLs
 		if (Array.isArray(friends)) {
 			friends.forEach(friend => {
 				if (friend.pic === 'default') {
@@ -624,13 +652,13 @@ export class DbService {
 	}
 
 	/**
-	 * Get current user's friends
+	 * Retrieves the complete friend list for the currently authenticated user
+	 * @returns Promise resolving to an array of IReplyGetFriend objects
 	 */
 	static async getMyFriends(): Promise<IReplyGetFriend[]> {
 		this.logRequest('GET', `${SOCIAL.FRIENDS.ALL.ME}`);
 		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.ME}`);
 		
-		// Normalize profile picture URLs
 		if (Array.isArray(friends)) {
 			friends.forEach(friend => {
 				if (friend.pic === 'default') {
@@ -643,7 +671,9 @@ export class DbService {
 	}
 
 	/**
-	 * Send a friend request to another user
+	 * Sends a friend request to another user
+	 * @param friendId - The ID of the user to send the friend request to
+	 * @returns Promise resolving to the API response
 	 */
 	static async addFriend(friendId: string): Promise<any> {
 		this.logRequest('POST', `${SOCIAL.FRIENDS.CREATE}`, { id: friendId });
@@ -655,7 +685,9 @@ export class DbService {
 	}
 
 	/**
-	 * Accept a friend request
+	 * Accepts a pending friend request from another user
+	 * @param friendId - The ID of the user whose friend request to accept
+	 * @returns Promise resolving to the API response
 	 */
 	static async acceptFriendRequest(friendId: string): Promise<any> {
 		this.logRequest('PATCH', `${SOCIAL.FRIENDS.ACCEPT}`, { id: friendId });
@@ -667,7 +699,9 @@ export class DbService {
 	}
 
 	/**
-	 * Remove an existing friend
+	 * Removes a specific user from the current user's friend list
+	 * @param friendId - The ID of the friend to remove
+	 * @returns Promise resolving to the API response
 	 */
 	static async removeFriend(friendId: string): Promise<any> {
 		this.logRequest('DELETE', `${SOCIAL.FRIENDS.DELETE.BY_ID(friendId)}`);
@@ -679,7 +713,8 @@ export class DbService {
 	}
 
 	/**
-	 * Remove all friends
+	 * Removes all friends from the current user's friend list
+	 * @returns Promise resolving to the API response
 	 */
 	static async removeAllFriends(): Promise<any> {
 		this.logRequest('DELETE', `${SOCIAL.FRIENDS.DELETE.ALL}`);

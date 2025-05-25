@@ -35,7 +35,7 @@ export class Server {
 
   // FastifyInstance<Http2SecureServer> for https
   public static getInstance(): FastifyInstance {
-    if (!Server.instance) Server.instance = fastify({ ...fastifyConfig, trustProxy: true });
+    if (!Server.instance) Server.instance = fastify(fastifyConfig);
     return Server.instance;
   }
 
@@ -75,6 +75,7 @@ export class Server {
   }
 
   public static async shutdown(signal: string): Promise<void> {
+    // FastifyInstance<Http2SecureServer> for https
     const server: FastifyInstance = Server.getInstance();
     server.log.info('Server has been closed.');
     server.log.info(`Received ${signal}.`);

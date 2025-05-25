@@ -133,29 +133,6 @@ export const getUserSchema = {
   },
 };
 
-export const deleteUserSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  response: {
-    204: {},
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.sqliteMismatch,
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const createUserSchema = {
   querystring: {
     type: 'object',

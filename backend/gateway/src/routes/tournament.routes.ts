@@ -1,11 +1,11 @@
-import { FastifyInstance } from 'fastify';
-import { getTournament, getFinalMatches } from '../controllers/tournament.controller.js';
 import {
   getTournamentSchema,
   getFinalMatchesSchema,
 } from '../schemas/tournament.schema.js';
-import { IId } from '../shared/types/match.type.js';
+import { FastifyInstance } from 'fastify';
+import { IId} from '../shared/types/match.type.js';
 import { rateLimitConfigHigh, routesConfigAuth } from '../config/routes.config.js';
+import { getTournament, getFinalMatches } from '../controllers/tournament.controller.js';
 
 export default async function tournamentRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get<{ Params: IId }>(
@@ -22,7 +22,6 @@ export default async function tournamentRoutes(fastify: FastifyInstance): Promis
     },
     getTournament
   );
-
   fastify.get<{ Params: IId }>(
     '/game/tournament/:id/final',
     {

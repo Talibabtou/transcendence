@@ -141,7 +141,10 @@ export async function postPic(
     const filePath: string = path.join(uploadDir, `${id}${ext}`);
     const buffer: Buffer = await file.toBuffer();
     fs.promises.writeFile(filePath, buffer);
-    return reply.code(201).send();
+    const link: IReplyPic = {
+      link: filePath,
+    };
+    return reply.code(201).send(link);
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);

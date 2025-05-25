@@ -1,21 +1,10 @@
 import { FastifyReply, FastifyRequest } from 'fastify';
-
-interface CustomError extends Error {
-  statusCode?: number;
-  code?: string;
-  validation?: unknown[];
-  validationContext?: string;
-}
+import { CustomError } from '../shared/types/error.type.js';
 
 export default function errorHandler(error: Error, request: FastifyRequest, reply: FastifyReply) {
   const customError = error as CustomError;
   let status = customError.statusCode || 500;
-
-  // Fastify schema validation error
-  if (customError.validation) {
-    status = 400;
-  }
-
+  if (customError.validation) status = 400;
   const errorResponse = {
     statusCode: status,
     code: customError.code || 'INTERNAL_SERVER_ERROR',
@@ -26,13 +15,10 @@ export default function errorHandler(error: Error, request: FastifyRequest, repl
       validationContext: customError.validationContext,
     }),
   };
-
-  // Special handling for payload too large
   if (status === 413 || customError.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
     errorResponse.error = 'PayloadTooLarge';
     errorResponse.message = 'Payload too large';
   }
-
   request.server.log.error(error);
   return reply.status(status).send(errorResponse);
 }
