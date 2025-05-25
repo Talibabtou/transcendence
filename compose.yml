@@ -7,6 +7,8 @@ services:
       - ./scripts:/scripts
       - certs_data:/etc/certs
     command: ["/bin/sh", "-c", "/scripts/generate-certs.sh && chmod 0640 /etc/certs/nginx.key && chmod 0644 /etc/certs/nginx.crt && echo 'Cert generator finished'"]
+    labels:
+      - "container_name=cert_generator"
 
   frontend:
     build:
@@ -24,6 +26,8 @@ services:
       gateway:
         condition: service_healthy
     restart: unless-stopped
+    labels:
+      - "container_name=frontend"
 
   prometheus:
     image: prom/prometheus:v3.2.0
