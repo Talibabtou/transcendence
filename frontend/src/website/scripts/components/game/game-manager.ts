@@ -56,7 +56,10 @@ export class GameManager {
 	private isCleaningUp: boolean = false;
 	private onGameOverCallback: ((result: any) => void) | null = null;
 
-	
+	/**
+	 * Constructor for the GameManager class.
+	 * Initializes the main and background game instances and sets up event listeners.
+	 */
 	private constructor() {
 		GameManager.isBootstrapping = true;
 		this.mainGameInstance = this.createEmptyGameInstance(GameInstanceType.MAIN);
@@ -68,7 +71,7 @@ export class GameManager {
 		this.setupVisibilityHandling();
 		GameManager.isBootstrapping = false;
 	}
-	
+
 	/**
 	 * Explicitly initialize the GameManager.
 	 * This should be called ONLY ONCE by App.ts
@@ -79,7 +82,12 @@ export class GameManager {
 		}
 		GameManager.isInitialized = true;
 	}
-	
+
+	/**
+	 * Creates an empty game instance with the specified type.
+	 * @param type The type of game instance to create.
+	 * @returns A new GameInstance object.
+	 */
 	private createEmptyGameInstance(type: GameInstanceType): GameInstance {
 		return {
 			engine: null,
@@ -91,8 +99,13 @@ export class GameManager {
 			type
 		};
 	}
-	
-	// Generic method to start any game type
+
+	/**
+	 * Generic method to start any game type.
+	 * @param instance The game instance to start.
+	 * @param mode The game mode to start.
+	 * @param container The HTML element to render the game in.
+	 */
 	private startGame(instance: GameInstance, mode: GameMode, container: HTMLElement | null): void {
 		if (instance.isActive) {
 			this.cleanupGame(instance);
@@ -156,6 +169,10 @@ export class GameManager {
 		this.setupGameEventListeners(instance);
 	}
 
+	/**
+	 * Starts the game loop for the specified game instance.
+	 * @param instance The game instance to start the loop for.
+	 */
 	private startGameLoop(instance: GameInstance): void {
 		if (!instance.engine) return;
 		if (instance.animationFrameId !== null) {
@@ -208,6 +225,10 @@ export class GameManager {
 		instance.animationFrameId = requestAnimationFrame(loop);
 	}
 
+	/**
+	 * Pauses the game for the specified game instance.
+	 * @param instance The game instance to pause.
+	 */
 	private pauseGame(instance: GameInstance): void {
 		if (instance.engine && instance.type !== GameInstanceType.BACKGROUND_DEMO) {
 			if (!instance.engine.isGamePaused()) {
@@ -217,6 +238,10 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Cleans up the specified game instance.
+	 * @param instance The game instance to clean up.
+	 */
 	private cleanupGame(instance: GameInstance): void {
 		if (this.isCleaningUp) {
 			return;
@@ -260,11 +285,10 @@ export class GameManager {
 		this.isCleaningUp = false;
 	}
 
-
 	/**
-	 * Starts a tournament match with specific player information
-	 * @param container HTML element to render the game in
-	 * @param matchInfo Tournament match information
+	 * Starts a tournament match with specific player information.
+	 * @param container HTML element to render the game in.
+	 * @param matchInfo Tournament match information.
 	 */
 	public startTournamentMatch(
 		container: HTMLElement,
@@ -287,6 +311,12 @@ export class GameManager {
 		this.startMainGame(GameMode.TOURNAMENT, container, playerInfo);
 	}
 
+	/**
+	 * Starts the main game with the specified mode and player information.
+	 * @param mode The game mode to start.
+	 * @param container The HTML element to render the game in.
+	 * @param playerInfo Optional player information.
+	 */
 	public startMainGame(
 		mode: GameMode, 
 		container: HTMLElement, 
@@ -344,6 +374,9 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Starts the background game.
+	 */
 	public startBackgroundGame(): void {
 		if (!GameManager.isInitialized) {
 			return;
@@ -354,6 +387,9 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Handles the window resize event.
+	 */
 	private handleResize(): void {
 		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
 			const canvas = this.mainGameInstance.canvas;
@@ -371,6 +407,10 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Resizes the canvas to fit the window.
+	 * @param canvas The canvas to resize.
+	 */
 	private resizeCanvas(canvas: HTMLCanvasElement): void {
 		const navbar = document.querySelector('.navbar');
 		const footer = document.querySelector('.footer');
@@ -390,13 +430,18 @@ export class GameManager {
 		}
 	}
 
-
+	/**
+	 * Cleans up the game manager.
+	 */
 	public cleanup(): void {
 		this.cleanupMainGame();
 		this.cleanupBackgroundGame();
 		window.removeEventListener('resize', this.handleResize.bind(this));
 	}
 
+	/**
+	 * Sets up visibility handling for the game.
+	 */
 	private setupVisibilityHandling(): void {
 		document.addEventListener('visibilitychange', () => {
 			const isHidden = document.hidden;
@@ -410,6 +455,11 @@ export class GameManager {
 		});
 	}
 	
+	/**
+	 * Handles game engine errors.
+	 * @param error The error that occurred.
+	 * @param gameType The type of game that encountered the error.
+	 */
 	private handleGameEngineError(error: Error, gameType: 'main' | 'background'): void {
 		const errorEvent = new CustomEvent('game-error', {
 			detail: {
@@ -442,7 +492,7 @@ export class GameManager {
 	}
 	
 	/**
-	 * Shows the background game
+	 * Shows the background game.
 	 */
 	public showBackgroundGame(): void {
 		try {
@@ -476,7 +526,7 @@ export class GameManager {
 	}
 
 	/**
-	 * Hides the background game
+	 * Hides the background game.
 	 */
 	public hideBackgroundGame(): void {
 		if (this.backgroundGameInstance.animationFrameId !== null) {
@@ -494,7 +544,12 @@ export class GameManager {
 		}
 	}
 
-
+	/**
+	 * Adds an event listener for the specified game event.
+	 * @param event The game event to listen for.
+	 * @param callback The callback function to execute when the event occurs.
+	 * @returns A function to remove the event listener.
+	 */
 	public addEventListener(event: GameEvent, callback: Function): () => void {
 		if (!this.eventListeners.has(event)) {
 			this.eventListeners.set(event, []);
@@ -512,8 +567,8 @@ export class GameManager {
 	}
 
 	/**
-	 * Updates the color of player paddles in the main game
-	 * @param playerColor Color for the player's paddle (hex format)
+	 * Updates the color of player paddles in the main game.
+	 * @param playerColor Color for the player's paddle (hex format).
 	 */
 	public updateMainGamePlayerColor(playerColor: string): void {
 		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
@@ -525,6 +580,10 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Cleans up the specified game instance.
+	 * @param type The type of game instance to clean up.
+	 */
 	public cleanupInstance(type: GameInstanceType | string): void {
 		if (type === GameInstanceType.MAIN || type === 'main') {
 			this.cleanupGame(this.mainGameInstance);
@@ -533,22 +592,55 @@ export class GameManager {
 		}
 	}
 
-	////////////////////////////////////////////////////////////
-	// Helper methods
-	////////////////////////////////////////////////////////////
-
+	/**
+	 * Checks if the main game is paused.
+	 * @returns True if the main game is paused, false otherwise.
+	 */
 	public isMainGamePaused(): boolean { return this.mainGameInstance.engine ? this.mainGameInstance.engine.isGamePaused() : false; }
+
+	/**
+	 * Checks if the main game is active.
+	 * @returns True if the main game is active, false otherwise.
+	 */
 	public isMainGameActive(): boolean { return this.mainGameInstance.isActive; }
+
+	/**
+	 * Checks if the background game is active.
+	 * @returns True if the background game is active, false otherwise.
+	 */
 	public isBackgroundGameActive(): boolean { return this.backgroundGameInstance.isActive; }
+
+	/**
+	 * Cleans up the main game.
+	 */
 	public cleanupMainGame(): void { this.cleanupGame(this.mainGameInstance); }
+
+	/**
+	 * Cleans up the background game.
+	 */
 	public cleanupBackgroundGame(): void { this.cleanupGame(this.backgroundGameInstance); }
+
+	/**
+	 * Resizes the game canvas.
+	 * @param canvas The canvas to resize.
+	 */
 	public resizeGameCanvas(canvas: HTMLCanvasElement): void { this.resizeCanvas(canvas); }
+
+	/**
+	 * Dispatches a game event with optional data.
+	 * @param event The game event to dispatch.
+	 * @param data Optional data to pass with the event.
+	 */
 	private dispatchEvent(event: GameEvent, data?: any): void {
 		if (this.eventListeners.has(event)) {
 			this.eventListeners.get(event)!.forEach(callback => callback(data));
 		}
 	}
 
+	/**
+	 * Notifies that the game has ended.
+	 * @param data The data to pass with the notification.
+	 */
 	private notifyGameEnded(data: any): void {
 		if (this.eventListeners.has(GameEvent.GAME_ENDED)) {
 			this.eventListeners.get(GameEvent.GAME_ENDED)!.forEach(callback => callback(data));
@@ -558,13 +650,28 @@ export class GameManager {
 		}
 	}
 
-	////////////////////////////////////////////////////////////
-	// Getters & setters
-	////////////////////////////////////////////////////////////
-
+	/**
+	 * Gets the last game result.
+	 * @returns The last game result, or null if there is no result.
+	 */
 	public getLastGameResult(): any { return this.mainGameInstance.gameResult || null; }
+
+	/**
+	 * Gets the main game engine.
+	 * @returns The main game engine, or null if it is not active.
+	 */
 	public getMainGameEngine(): GameEngine | null { return this.mainGameInstance.engine; }
+
+	/**
+	 * Sets the callback to be executed when the game is over.
+	 * @param callback The callback function to execute.
+	 */
 	public setOnGameOverCallback(callback: (result: any) => void): void { this.onGameOverCallback = callback; }
+
+	/**
+	 * Gets the singleton instance of the GameManager.
+	 * @returns The GameManager instance.
+	 */
 	public static getInstance(): GameManager {
 		if (!GameManager.instance) {
 				GameManager.instance = new GameManager();
@@ -572,12 +679,20 @@ export class GameManager {
 		return GameManager.instance;
 	}
 
+	/**
+	 * Sets the background keyboard active state.
+	 * @param active Whether the keyboard should be active.
+	 */
 	private setBackgroundKeyboardActive(active: boolean): void {
 		if (this.backgroundGameInstance.engine) {
 			this.backgroundGameInstance.engine.setKeyboardEnabled(active);
 		}
 	}
 
+	/**
+	 * Gets the main game state.
+	 * @returns The main game state, or null if it is not active.
+	 */
 	public getMainGameState(): any {
 		if (this.mainGameInstance.engine) {
 			return this.mainGameInstance.engine.GameState;
@@ -585,6 +700,10 @@ export class GameManager {
 		return null;
 	}
 
+	/**
+	 * Sets up game event listeners for the specified game instance.
+	 * @param instance The game instance to set up listeners for.
+	 */
 	private setupGameEventListeners(instance: GameInstance): void {
 		if (instance.eventListeners) {
 			instance.eventListeners.forEach(listenerInfo => {
@@ -599,6 +718,11 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Sets the player names for the main game.
+	 * @param player1Name The name of the first player.
+	 * @param player2Name The name of the second player.
+	 */
 	public setMainGamePlayerNames(player1Name: string, player2Name: string): void {
 		if (this.mainGameInstance.isActive && this.mainGameInstance.engine) {
 			try {

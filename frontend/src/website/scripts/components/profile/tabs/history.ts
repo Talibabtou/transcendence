@@ -25,13 +25,19 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		});
 	}
 	
+	// =========================================
+	// PUBLIC METHODS
+	// =========================================
+	
+	/**
+	 * Sets the profile to display match history for
+	 * @param profile - The user profile to display
+	 */
 	public setProfile(profile: UserProfile): void {
 		const state = this.getInternalState();
-		// Only reload data if profile has changed
 		if (state.profile?.id !== profile.id) {
 			this.updateInternalState({ 
 				profile,
-				// Reset data to avoid displaying wrong user's data during loading
 				allMatches: [],
 				matches: [],
 				historyPage: 0
@@ -43,10 +49,22 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		}
 	}
 	
+	/**
+	 * Sets handlers for component interactions
+	 * @param handlers - Object containing event handlers
+	 */
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
 	}
 
+	// =========================================
+	// DATA MANAGEMENT
+	// =========================================
+
+	/**
+	 * Fetches and processes match history for a user
+	 * @param userId - The ID of the user to fetch history for
+	 */
 	private async fetchAndProcessMatchHistory(userId: string): Promise<void> {
 		const state = this.getInternalState();
 		if (state.dataLoadInProgress) return;
@@ -66,12 +84,10 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				return;
 			}
 
-			// Process all matches in one go with proper type assertions
 			const processedHistory = rawHistory
 				.map((entry: MatchHistory) => {
 					const playerScore = typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1;
 					const opponentScore = typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2;
-					// Use type assertion to satisfy TypeScript
 					const result = (playerScore > opponentScore ? 'win' : 'loss') as 'win' | 'loss';
 					
 					return {
@@ -86,11 +102,9 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				})
 				.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-			// Calculate initial matches display
 			const { historyPageSize } = state;
 			const initialMatches = processedHistory.slice(0, historyPageSize);
 			
-			// One single state update with all processed data
 			this.updateInternalState({
 				allMatches: processedHistory,
 				matches: initialMatches,
@@ -109,6 +123,9 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		}
 	}
 	
+	/**
+	 * Updates the displayed matches based on current page and page size
+	 */
 	private updateDisplayedMatches(): void {
 		const state = this.getInternalState();
 		const { allMatches, historyPage, historyPageSize } = state;
@@ -123,6 +140,13 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		});
 	}
 
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+
+	/**
+	 * Handles loading more matches when the "Load More" button is clicked
+	 */
 	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
 		if (state.isLoading || !state.hasMoreMatches) {
@@ -134,6 +158,13 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		this.render();
 	}
 	
+	// =========================================
+	// RENDERING
+	// =========================================
+	
+	/**
+	 * Renders the match history component into its container
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		const displayedMatchesToRender = state.matches;
@@ -189,7 +220,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 									</li>
 								</ul>
 							</div>
-						` : state.allMatches.length > 0 ? html` <!-- Show only if there was data -->
+						` : state.allMatches.length > 0 ? html`
 							<div class="history-end" style="margin: 2rem 0; text-align: center; color: #666;">
 								End of match history (${state.allMatches.length} total matches)
 							</div>

@@ -1,24 +1,10 @@
 import { Component } from '@website/scripts/components';
 import { DbService, html, NotificationManager, render } from '@website/scripts/services';
-import { UserProfile } from '@website/types';
+import { UserProfile, ProfileFriendsState } from '@website/types';
 import { IReplyGetFriend } from '@shared/types/friends.types';
 
-interface Friend extends IReplyGetFriend {
+export interface Friend extends IReplyGetFriend {
 	requesting: string;
-}
-
-interface ProfileFriendsState {
-	profile: UserProfile | null;
-	friends: IReplyGetFriend[];
-	pendingFriends: Friend[];
-	acceptedFriends: IReplyGetFriend[];
-	isLoading: boolean;
-	isCurrentUser: boolean;
-	handlers: {
-		onPlayerClick: (username: string) => void;
-	};
-	dataLoadInProgress: boolean;
-	currentUserId: string;
 }
 
 export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
@@ -37,10 +23,16 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			currentUserId: ''
 		});
 		
-		// Get current user ID once during initialization
 		this.initCurrentUser();
 	}
 	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
+	
+	/**
+	 * Initializes the current user from local or session storage
+	 */
 	private initCurrentUser(): void {
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (currentUserJson) {
@@ -49,17 +41,22 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	// =========================================
+	// PUBLIC METHODS
+	// =========================================
+	
+	/**
+	 * Sets the profile to display friends for
+	 * @param profile - The user profile to display
+	 */
 	public setProfile(profile: UserProfile): void {
 		const state = this.getInternalState();
-		// Only reload data if profile has changed
 		if (state.profile?.id !== profile.id) {
 			const isCurrentUser = state.currentUserId === profile.id;
 			
-			// Update profile once, then fetch data
 			this.updateInternalState({ 
 				profile,
 				isCurrentUser,
-				// Reset data only when profile changes
 				pendingFriends: [],
 				acceptedFriends: [],
 				friends: []
@@ -71,14 +68,29 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	/**
+	 * Sets handlers for component interactions
+	 * @param handlers - Object containing event handlers
+	 */
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
 	}
 	
+	/**
+	 * Sets the list of pending friends
+	 * @param pendingFriends - Array of pending friend relationships
+	 */
 	public setPendingFriends(pendingFriends: Friend[]): void {
 		this.updateInternalState({ pendingFriends });
 	}
 	
+	// =========================================
+	// DATA MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Loads friends data from the database
+	 */
 	private async loadFriendsData(): Promise<void> {
 		const state = this.getInternalState();
 		if (!state.profile || state.dataLoadInProgress) return;
@@ -86,23 +98,19 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		this.updateInternalState({ dataLoadInProgress: true });
 		
 		try {
-			// Load friends list
 			const friendsResponse = state.isCurrentUser
 				? await DbService.getMyFriends()
 				: await DbService.getFriendList(state.profile.id);
 			
 			if (Array.isArray(friendsResponse)) {
-				// Process all friendship statuses in parallel instead of sequentially
 				const pendingPromises: Promise<void>[] = [];
 				const pendingFriends: Friend[] = [];
 				const acceptedFriends: IReplyGetFriend[] = [];
 				
-				// First sort into accepted/pending without additional API calls
 				for (const friend of friendsResponse) {
 					if (friend.accepted) {
 						acceptedFriends.push(friend);
 					} else {
-						// For pending, we'll get the statuses in batch later
 						pendingPromises.push(DbService.getFriendship(friend.id)
 							.then(friendshipStatus => {
 								pendingFriends.push({
@@ -113,12 +121,10 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 					}
 				}
 				
-				// Wait for all pending status requests to complete
 				if (pendingPromises.length > 0) {
 					await Promise.all(pendingPromises);
 				}
 				
-				// Single state update with all data
 				this.updateInternalState({
 					pendingFriends,
 					acceptedFriends,
@@ -144,6 +150,14 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
+	/**
+	 * Handles removing a friend
+	 * @param friendId - ID of the friend to remove
+	 */
 	private async handleRemoveFriend(friendId: string): Promise<void> {
 		try {
 			await DbService.removeFriend(friendId);
@@ -153,6 +167,10 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	/**
+	 * Handles accepting a friend request
+	 * @param friendId - ID of the friend request to accept
+	 */
 	private async handleAcceptFriend(friendId: string): Promise<void> {
 		try {
 			await DbService.acceptFriendRequest(friendId);
@@ -162,6 +180,13 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	// =========================================
+	// RENDERING
+	// =========================================
+	
+	/**
+	 * Renders the friends component into its container
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;

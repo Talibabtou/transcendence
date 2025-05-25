@@ -1,4 +1,6 @@
-import { UserProfile, LeaderboardEntry, PlayerData, AccentColor } from '@website/types';
+import { IReplyGetFriend } from '@shared/types/friends.types';
+import { UserProfile, LeaderboardEntry, PlayerData, AccentColor, GameMode } from '@website/types';
+import { Friend } from '@website/scripts/components/profile/tabs/friends';
 
 /**
  * Profile component state interface
@@ -123,4 +125,80 @@ export interface ProfileStatsState {
 		goalDurationChart?: () => void;
 	};
 	dataLoadInProgress: boolean;
+}
+
+export interface GameCanvasState {
+	visible: boolean;
+	isPlaying: boolean;
+	isPaused: boolean;
+}
+
+export enum GameState {
+	MENU = 'menu',
+	PLAYER_REGISTRATION = 'player_registration',
+	TOURNAMENT = 'tournament',
+	PLAYING = 'playing',
+	GAME_OVER = 'game_over'
+}
+
+export interface GameComponentState {
+	currentState: GameState;
+	currentMode: GameMode;
+	playerIds?: string[];
+	playerNames?: string[];
+	playerColors?: string[];
+}
+
+export enum Route {
+	GAME = 'game',
+	LEADERBOARD = 'leaderboard',
+	PROFILE = 'profile',
+	AUTH = 'auth'
+}
+
+export interface TournamentTransitionsState {
+	visible: boolean;
+	phase: TournamentPhase;
+	currentScreen: 'schedule' | 'winner';
+}
+
+export interface TournamentPlayer {
+	id: string;
+	name: string;
+	color: string;
+	wins: number;
+	gamesWon: number;
+	gamesLost: number;
+}
+
+export interface TournamentMatch {
+	player1Index: number;
+	player2Index: number;
+	gamesPlayed: number;
+	games: {
+		winner: number;
+		player1Score: number;
+		player2Score: number;
+		matchId?: number;
+	}[];
+	winner?: number;
+	completed: boolean;
+	isCurrent?: boolean;
+	isFinals: boolean;
+}
+
+export type TournamentPhase = 'pool' | 'finals' | 'complete';
+
+export interface ProfileFriendsState {
+	profile: UserProfile | null;
+	friends: IReplyGetFriend[];
+	pendingFriends: Friend[];
+	acceptedFriends: IReplyGetFriend[];
+	isLoading: boolean;
+	isCurrentUser: boolean;
+	handlers: {
+		onPlayerClick: (username: string) => void;
+	};
+	dataLoadInProgress: boolean;
+	currentUserId: string;
 }

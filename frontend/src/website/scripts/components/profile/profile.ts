@@ -3,11 +3,6 @@ import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
-/**
- * Component that displays and manages user profiles
- * Provides tabbed interface for different sections of user data
- * Handles profile data fetching, tab navigation, and component lifecycle
- */
 export class ProfileComponent extends Component<ProfileState> {
 	private statsComponent?: ProfileStatsComponent;
 	private historyComponent?: ProfileHistoryComponent;
@@ -16,10 +11,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private lastSettingsProfileId?: string;
 	private initialRenderComplete = false;
 	
-	/**
-	 * Creates a new ProfileComponent
-	 * @param container - The HTML element to render the profile into
-	 */
 	constructor(container: HTMLElement) {
 		super(container, {
 			profile: null,
@@ -43,9 +34,12 @@ export class ProfileComponent extends Component<ProfileState> {
 			pendingFriends: []
 		});
 		
-		// Listen for URL changes to reset the component when navigating between profiles
 		window.addEventListener('popstate', () => this.handleUrlChange());
 	}
+	
+	//--------------------------------
+	// Lifecycle Methods
+	//--------------------------------
 	
 	/**
 	 * Initializes the component by fetching data
@@ -66,15 +60,12 @@ export class ProfileComponent extends Component<ProfileState> {
 				isLoading: false 
 			});
 			
-			// Render the view directly, don't trigger another render cycle
 			await this.renderView();
 			
 			this.initialRenderComplete = true;
 			
-			// Initialize tab content only once
 			this.initializeTabContent();
 		} catch (error) {
-			// NotificationManager will already have displayed the error
 			console.error('Error initializing profile:', error);
 			
 			this.updateInternalState({ 
@@ -83,6 +74,86 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 		}
 	}
+	
+	/**
+	 * Renders the component based on current state
+	 */
+	render(): void {
+		if (!this.getInternalState().initialized) {
+			this.initialize();
+		} else {
+			this.renderView();
+		}
+	}
+	
+	/**
+	 * Called after initial render
+	 */
+	afterRender(): void {
+		if (!this.initialRenderComplete && this.getInternalState().profile) {
+			this.initialRenderComplete = true;
+			this.initializeTabContent();
+		}
+	}
+	
+	/**
+	 * Force a clean reload of the profile when coming from external links
+	 */
+	public loadProfile(profileId: string): void {
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: profileId
+		});
+	}
+	
+	/**
+	 * Checks if the profile has pending friend requests
+	 */
+	public hasPendingRequests(): boolean {
+		return this.getInternalState().pendingFriends.length > 0;
+	}
+	
+	/**
+	 * Override the base refresh method to completely reset the component state
+	 */
+	public refresh(): void {
+		if (this.statsComponent) {
+			this.statsComponent = undefined;
+		}
+		if (this.historyComponent) {
+			this.historyComponent = undefined;
+		}
+		if (this.friendsComponent) {
+			this.friendsComponent = undefined;
+		}
+		if (this.settingsComponent) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+			this.lastSettingsProfileId = undefined;
+		}
+		
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: null,
+			friendshipStatus: null,
+			pendingFriends: [],
+			matchesCache: new Map()
+		});
+		
+		this.initialize();
+	}
+	
+	//--------------------------------
+	// Tab Management
+	//--------------------------------
 	
 	/**
 	 * Initialize the active tab content after the first render
@@ -109,14 +180,12 @@ export class ProfileComponent extends Component<ProfileState> {
 		const tabContentDiv = this.container.querySelector(`.tab-content`);
 		if (!tabContentDiv) return;
 		
-		// Clear tab content
 		tabContentDiv.innerHTML = '';
 		const tabContainer = document.createElement('div');
 		tabContainer.className = 'tab-pane active';
 		tabContainer.id = `tab-content-${tabName}`;
 		tabContentDiv.appendChild(tabContainer);
 
-		// Reuse existing components when possible
 		switch (tabName) {
 			case 'stats':
 				if (this.statsComponent) {
@@ -193,35 +262,26 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 	
 	/**
-	 * Renders the component based on current state
+	 * Handle tab changes with callback
 	 */
-	render(): void {
-		if (!this.getInternalState().initialized) {
-			this.initialize();
-		} else {
-			this.renderView();
-		}
+	private handleTabChange = (tabId: string): void => {
+		if (this.getInternalState().activeTab === tabId) return;
+		
+		this.updateInternalState({ activeTab: tabId });
+		this.createTabComponent(tabId);
 	}
 	
-	/**
-	 * Called after initial render
-	 */
-	afterRender(): void {
-		if (!this.initialRenderComplete && this.getInternalState().profile) {
-			this.initialRenderComplete = true;
-			this.initializeTabContent();
-		}
-	}
+	//--------------------------------
+	// Data Fetching
+	//--------------------------------
 	
 	/**
 	 * Fetches profile data from the database
 	 */
 	private async fetchProfileData(): Promise<void> {
-		// Get userId from URL
 		const url = new URL(window.location.href);
 		let userId = url.searchParams.get('id');
 		
-		// Handle 'current' user case
 		if (!userId) {
 			const currentUser = JSON.parse(localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user') || '{}');
 			userId = currentUser?.id;
@@ -235,7 +295,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		this.updateInternalState({ currentProfileId: userId });
 		
 		try {
-			// Get profile data
 			const userProfile = await DbService.getUserProfile(userId);
 			
 			if (!userProfile) {
@@ -258,51 +317,40 @@ export class ProfileComponent extends Component<ProfileState> {
 				elo: userProfile.summary?.elo || 1000
 			};
 			
-			// Check for pending friend requests if this is the current user's profile
 			const isOwnProfile = this.isCurrentUserProfile(userId);
 			let pendingFriends = [];
 			
 			if (isOwnProfile) {
 				try {
-					// Get all friend data for current user
 					const friendsResponse = await DbService.getMyFriends();
 					if (Array.isArray(friendsResponse)) {
-						// Filter to only include pending requests
 						const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
 						
-						// For notification dot, we only need to find at least one pending request from others
 						let hasIncomingRequest = false;
 						
-						// Process pending friendships until we find one where user is NOT the requester
 						for (const friendship of pendingFriendships) {
 							try {
-								// Get friendship details to check who is the requester
 								const friendshipStatus = await DbService.getFriendship(friendship.id);
 								
-								// Check if this is a request FROM someone else
 								if (friendshipStatus && friendshipStatus.requesting !== userId) {
 									pendingFriends.push(friendship);
 									hasIncomingRequest = true;
-									break; // Stop after finding first incoming request
+									break;
 								}
 							} catch (error) {
-								// No need to show notifications for this error
 								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
 							}
 						}
 						
-						// If we didn't find any incoming requests, we don't need to keep checking
 						if (!hasIncomingRequest) {
 							pendingFriends = [];
 						}
 					}
 				} catch (error) {
-					// Don't show notifications for this warning
 					console.warn('Could not fetch pending friend requests:', error);
 				}
 			}
 			
-			// Check friendship status if it's not our own profile
 			let friendshipStatus = null;
 			if (!isOwnProfile) {
 				try {
@@ -311,7 +359,6 @@ export class ProfileComponent extends Component<ProfileState> {
 				}
 			}
 			
-			// Update state with all the data
 			this.updateInternalState({
 				profile,
 				friendshipStatus,
@@ -320,22 +367,15 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 		} catch (error) {
-			// The error will be displayed by DbService through NotificationManager
 			console.error('Error fetching profile data:', error);
 			
 			this.updateInternalState({ isLoading: false });
 		}
 	}
-
-	/**
-	 * Handle tab changes with callback
-	 */
-	private handleTabChange = (tabId: string): void => {
-		if (this.getInternalState().activeTab === tabId) return;
-		
-		this.updateInternalState({ activeTab: tabId });
-		this.createTabComponent(tabId);
-	}
+	
+	//--------------------------------
+	// Event Handlers
+	//--------------------------------
 	
 	/**
 	 * Handle player profile clicks with callback
@@ -371,6 +411,127 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 	
 	/**
+	 * Handle URL changes to reset the component when navigating between profiles
+	 */
+	private handleUrlChange(): void {
+		const url = new URL(window.location.href);
+		const newProfileId = url.searchParams.get('id');
+		const state = this.getInternalState();
+		
+		if (newProfileId !== state.currentProfileId) {
+			
+			if (this.statsComponent) {
+				this.statsComponent = undefined;
+			}
+			if (this.historyComponent) {
+				this.historyComponent = undefined;
+			}
+			if (this.friendsComponent) {
+				this.friendsComponent = undefined;
+			}
+			if (this.settingsComponent) {
+				this.settingsComponent = undefined;
+				this.lastSettingsProfileId = undefined;
+			}
+			
+			this.updateInternalState({
+				profile: null,
+				initialized: false,
+				isLoading: false,
+				activeTab: 'stats',
+				currentProfileId: newProfileId,
+				friendshipStatus: null,
+			});
+			
+			this.initialize();
+		}
+	}
+	
+	/**
+	 * Handles friend actions (add/cancel request)
+	 */
+	private async handleFriendAction(): Promise<void> {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		const friendButton = this.container.querySelector('.friend-button') as HTMLButtonElement;
+		if (!friendButton) return;
+		
+		if (friendButton.classList.contains('is-friend')) {
+			return;
+		}
+		
+		const isPending = friendButton.classList.contains('pending');
+		
+		friendButton.disabled = true;
+		friendButton.textContent = 'Processing...';
+		
+		try {
+			if (isPending) {
+				await DbService.removeFriend(state.profile.id);
+				const newStatus = await DbService.getFriendship(state.profile.id);
+				
+				NotificationManager.showSuccess('Friend request cancelled');
+				
+				if (newStatus === null) {
+					friendButton.textContent = 'Add Friend';
+					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
+				} else if (newStatus.status === false) {
+					friendButton.textContent = 'Pending';
+					friendButton.classList.add('pending', 'request-sent');
+					friendButton.classList.remove('is-friend');
+				} else {
+					friendButton.textContent = 'Already Friends';
+					friendButton.classList.add('is-friend');
+					friendButton.classList.remove('pending', 'request-sent');
+				}
+				
+				this.updateInternalState({
+					friendshipStatus: newStatus
+				});
+			} else {
+				await DbService.addFriend(state.profile.id);
+				const newStatus = await DbService.getFriendship(state.profile.id);
+				
+				NotificationManager.showSuccess('Friend request sent');
+				
+				if (newStatus === null) {
+					friendButton.textContent = 'Add Friend';
+					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
+				} else if (newStatus.status === false) {
+					friendButton.textContent = 'Pending';
+					friendButton.classList.add('pending', 'request-sent');
+					friendButton.classList.remove('is-friend');
+				} else {
+					friendButton.textContent = 'Already Friends';
+					friendButton.classList.add('is-friend');
+					friendButton.classList.remove('pending', 'request-sent');
+				}
+				
+				this.updateInternalState({
+					friendshipStatus: newStatus
+				});
+			}
+		} catch (error) {
+			console.error('Error managing friend relationship:', error);
+			
+			if (isPending) {
+				friendButton.textContent = 'Pending';
+				friendButton.classList.add('pending', 'request-sent');
+			} else {
+				friendButton.textContent = 'Add Friend';
+				friendButton.classList.remove('pending', 'request-sent', 'is-friend');
+			}
+		} finally {
+			friendButton.disabled = false;
+		}
+	}
+	
+	//--------------------------------
+	// Rendering
+	//--------------------------------
+	
+	/**
 	 * Renders the profile view based on current state
 	 */
 	private async renderView(): Promise<void> {
@@ -394,14 +555,11 @@ export class ProfileComponent extends Component<ProfileState> {
 		render(template, this.container);
 		
 		if (!state.isLoading && state.profile) {
-			// Get profile content element
 			const profileContent = this.container.querySelector('.profile-content');
 			if (!profileContent) return;
 			
-			// Always clear and rebuild everything
 			profileContent.innerHTML = '';
 			
-			// Create profile summary/hero section
 			const summaryElement = document.createElement('div');
 			summaryElement.className = 'profile-hero';
 			summaryElement.innerHTML = `
@@ -434,21 +592,16 @@ export class ProfileComponent extends Component<ProfileState> {
 			`;
 			profileContent.appendChild(summaryElement);
 			
-			// Create tabs container
 			const tabsOuterContainer = document.createElement('div');
 			tabsOuterContainer.className = 'profile-tabs-outer-container';
 			
-			// Get profile ID directly from URL
 			const url = new URL(window.location.href);
 			const urlProfileId = url.searchParams.get('id');
 			
-			// Check if this is current user's profile
 			const isCurrentUserProfile = this.isCurrentUserProfile(urlProfileId || state.profile.id);
 			
-			// Check if this is the AI bot profile
 			const isAiBot = state.profile.username.toLowerCase() === 'ai';
 			
-			// Determine friend button text and styling
 			let friendButtonText = 'Add Friend';
 			let friendButtonClass = 'friend-button tab-button';
 			
@@ -461,12 +614,10 @@ export class ProfileComponent extends Component<ProfileState> {
 					friendButtonClass += ' is-friend';
 				}
 			} else {
-				// No friendship exists
 				friendButtonText = 'Add Friend';
 				friendButtonClass = 'friend-button tab-button';
 			}
 			
-			// Create tabs using HTML
 			const tabsHTML = `
 				<div class="profile-tabs">
 					<ul class="tabs-list">
@@ -504,7 +655,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			tabsOuterContainer.innerHTML = tabsHTML;
 			profileContent.appendChild(tabsOuterContainer);
 			
-			// Add event listeners after HTML rendering
 			tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
 				const tabId = (tabItem as HTMLElement).dataset.tab;
 				if (tabId === 'add-friend') {
@@ -514,17 +664,18 @@ export class ProfileComponent extends Component<ProfileState> {
 				}
 			});
 			
-			// Wait for next frame to ensure DOM is ready before creating tab content
 			await this.waitForNextFrame();
 			
-			// Create tab component after tabs are fully rendered
 			this.createTabComponent(state.activeTab);
 		}
 	}
-
+	
+	//--------------------------------
+	// Helper Methods
+	//--------------------------------
+	
 	/**
 	 * Returns a promise that resolves on the next animation frame
-	 * This ensures DOM updates have completed
 	 */
 	private waitForNextFrame(): Promise<void> {
 		return new Promise(resolve => {
@@ -540,7 +691,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private isCurrentUserProfile(profileId: string): boolean {
 		if (!profileId) return false;
 		
-		// Always get current user from storage
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (!currentUserJson) return false;
 		
@@ -551,194 +701,5 @@ export class ProfileComponent extends Component<ProfileState> {
 			console.error('Error checking if current user profile:', error);
 			return false;
 		}
-	}
-
-	/**
-	 * Handles friend actions (add/cancel request)
-	 */
-	private async handleFriendAction(): Promise<void> {
-		const state = this.getInternalState();
-		if (!state.profile) return;
-		
-		const friendButton = this.container.querySelector('.friend-button') as HTMLButtonElement;
-		if (!friendButton) return;
-		
-		// Don't allow action if already friends
-		if (friendButton.classList.contains('is-friend')) {
-			return;
-		}
-		
-		const isPending = friendButton.classList.contains('pending');
-		
-		friendButton.disabled = true;
-		friendButton.textContent = 'Processing...';
-		
-		try {
-			if (isPending) {
-				// Cancel the friend request
-				await DbService.removeFriend(state.profile.id);
-				// After removal, check the new status
-				const newStatus = await DbService.getFriendship(state.profile.id);
-				
-				// Show appropriate notification
-				NotificationManager.showSuccess('Friend request cancelled');
-				
-				// Update button based on new status
-				if (newStatus === null) {
-					friendButton.textContent = 'Add Friend';
-					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
-				} else if (newStatus.status === false) {
-					friendButton.textContent = 'Pending';
-					friendButton.classList.add('pending', 'request-sent');
-					friendButton.classList.remove('is-friend');
-				} else {
-					friendButton.textContent = 'Already Friends';
-					friendButton.classList.add('is-friend');
-					friendButton.classList.remove('pending', 'request-sent');
-				}
-				
-				// Update friendship status in state
-				this.updateInternalState({
-					friendshipStatus: newStatus
-				});
-			} else {
-				// Send friend request
-				await DbService.addFriend(state.profile.id);
-				// After adding, check the new status
-				const newStatus = await DbService.getFriendship(state.profile.id);
-				
-				// Show appropriate notification
-				NotificationManager.showSuccess('Friend request sent');
-				
-				// Update button based on new status
-				if (newStatus === null) {
-					friendButton.textContent = 'Add Friend';
-					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
-				} else if (newStatus.status === false) {
-					friendButton.textContent = 'Pending';
-					friendButton.classList.add('pending', 'request-sent');
-					friendButton.classList.remove('is-friend');
-				} else {
-					friendButton.textContent = 'Already Friends';
-					friendButton.classList.add('is-friend');
-					friendButton.classList.remove('pending', 'request-sent');
-				}
-				
-				// Update friendship status in state
-				this.updateInternalState({
-					friendshipStatus: newStatus
-				});
-			}
-		} catch (error) {
-			// Error will be shown by NotificationManager via DbService
-			console.error('Error managing friend relationship:', error);
-			
-			// Reset button to previous state
-			if (isPending) {
-				friendButton.textContent = 'Pending';
-				friendButton.classList.add('pending', 'request-sent');
-			} else {
-				friendButton.textContent = 'Add Friend';
-				friendButton.classList.remove('pending', 'request-sent', 'is-friend');
-			}
-		} finally {
-			friendButton.disabled = false;
-		}
-	}
-
-	/**
-	 * Handle URL changes to reset the component when navigating between profiles
-	 */
-	private handleUrlChange(): void {
-		const url = new URL(window.location.href);
-		const newProfileId = url.searchParams.get('id');
-		const state = this.getInternalState();
-		
-		if (newProfileId !== state.currentProfileId) {
-			
-			// Clean up existing tab components
-			if (this.statsComponent) {
-				this.statsComponent = undefined;
-			}
-			if (this.historyComponent) {
-				this.historyComponent = undefined;
-			}
-			if (this.friendsComponent) {
-				this.friendsComponent = undefined;
-			}
-			if (this.settingsComponent) {
-				this.settingsComponent = undefined;
-				this.lastSettingsProfileId = undefined;
-			}
-			
-			// Reset state completely
-			this.updateInternalState({
-				profile: null,
-				initialized: false,
-				isLoading: false,
-				activeTab: 'stats',
-				currentProfileId: newProfileId,
-				friendshipStatus: null,
-			});
-			
-			this.initialize();
-		}
-	}
-
-	/**
-	 * Force a clean reload of the profile when coming from external links
-	 */
-	public loadProfile(profileId: string): void {
-		// Reset the component state
-		this.updateInternalState({
-			profile: null,
-			initialized: false,
-			isLoading: false,
-			activeTab: 'stats',
-			currentProfileId: profileId
-		});
-	}
-
-	public hasPendingRequests(): boolean {
-		return this.getInternalState().pendingFriends.length > 0;
-	}
-
-	/**
-	 * Override the base refresh method to completely reset the component state
-	 * This ensures we get a clean slate when navigating to Profile
-	 */
-	public refresh(): void {
-		// Clean up existing tab components
-		if (this.statsComponent) {
-			this.statsComponent = undefined;
-		}
-		if (this.historyComponent) {
-			this.historyComponent = undefined;
-		}
-		if (this.friendsComponent) {
-			this.friendsComponent = undefined;
-		}
-		if (this.settingsComponent) {
-			if (typeof this.settingsComponent.destroy === 'function') {
-				this.settingsComponent.destroy();
-			}
-			this.settingsComponent = undefined;
-			this.lastSettingsProfileId = undefined;
-		}
-		
-		// Reset state completely
-		this.updateInternalState({
-			profile: null,
-			initialized: false,
-			isLoading: false,
-			activeTab: 'stats',
-			currentProfileId: null,
-			friendshipStatus: null,
-			pendingFriends: [],
-			matchesCache: new Map()
-		});
-		
-		// Force reinitialization
-		this.initialize();
 	}
 }

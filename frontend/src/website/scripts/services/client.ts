@@ -9,6 +9,15 @@ export class WebSocketClient {
 		this.url = url;
 	}
 
+	// =========================================
+	// SINGLETON MANAGEMENT
+	// =========================================
+
+	/**
+	 * Gets the singleton instance of WebSocketClient
+	 * @param url - The WebSocket server URL (required on first call)
+	 * @returns The WebSocketClient singleton instance
+	 */
 	public static getInstance(url?: string): WebSocketClient {
 		if (!WebSocketClient.instance) {
 			if (!url) {
@@ -19,8 +28,17 @@ export class WebSocketClient {
 		return WebSocketClient.instance;
 	}
 
+	// =========================================
+	// CONNECTION MANAGEMENT
+	// =========================================
+
+	/**
+	 * Establishes a connection to the WebSocket server
+	 * Uses authentication token from storage if available
+	 */
 	public connect(): void {
-		if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) {
+		if (this.socket && (this.socket.readyState === WebSocket.OPEN
+			|| this.socket.readyState === WebSocket.CONNECTING)) {
 			return;
 		}
 
@@ -37,6 +55,9 @@ export class WebSocketClient {
 		this.setupSocketHandlers();
 	}
 
+	/**
+	 * Sets up event handlers for the WebSocket connection
+	 */
 	private setupSocketHandlers(): void {
 		if (!this.socket) return;
 		
@@ -48,18 +69,29 @@ export class WebSocketClient {
 		this.socket.onclose = () => {};
 	}
 
+	/**
+	 * Sends a message through the WebSocket connection
+	 * @param message - The message to send (will be JSON stringified)
+	 */
 	public sendMessage(message: any): void {
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(JSON.stringify(message));
 		}
 	}
 
+	/**
+	 * Closes the WebSocket connection
+	 */
 	public disconnect(): void {
 		if (this.socket) {
 			this.socket.close();
 		}
 	}
 
+	/**
+	 * Updates the authentication token and reconnects
+	 * @param token - The new JWT token or null to disconnect
+	 */
 	public updateToken(token: string | null): void {
 		this.disconnect();
 		
@@ -72,12 +104,20 @@ export class WebSocketClient {
 		}
 	}
 
+	/**
+	 * Gets the current WebSocket connection state
+	 * @returns The WebSocket ready state or null if no socket exists
+	 */
 	public getReadyState(): number | null {
 		return this.socket ? this.socket.readyState : null;
 	}
 }
 
 const DEFAULT_WS_URL = 'ws://localhost:8085/ws/status';
+
+// =========================================
+// UTILITY FUNCTIONS
+// =========================================
 
 /**
  * Connects to the WebSocket server after authentication

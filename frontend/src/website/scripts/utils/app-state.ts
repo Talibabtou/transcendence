@@ -1,18 +1,13 @@
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
 import { NotificationManager, Router, disconnectWebSocket } from '@website/scripts/services';
 
-// Define state change listener type
 type StateChangeListener = (newState: Partial<AppState>, oldState: Partial<AppState>) => void;
 
 export class AppStateManager {
-	// Singleton instance
 	private static instance: AppStateManager;
-	
-	// --- Accent Color LocalStorage Constants ---
 	private static ACCENT_COLOR_STORAGE_KEY = 'playerAccentColors';
 	private static DEFAULT_ACCENT_COLOR = '#ffffff';
 	
-	// The current state
 	private state: AppState = {
 		auth: {
 			isAuthenticated: false,
@@ -29,26 +24,22 @@ export class AppStateManager {
 		players: {}
 	};
 	
-	// Listeners for state changes
 	private listeners: StateChangeListener[] = [];
 	
-	// Private constructor for singleton
 	private constructor() {
-		// Initialize state from storage
 		this.initializeFromStorage();
-		
-		// Listen for storage events (for multi-tab support)
 		window.addEventListener('storage', this.handleStorageChange.bind(this));
-		
-		// Add event listener to clear non-persistent sessions on page unload/refresh
 		window.addEventListener('beforeunload', this.handlePageUnload);
-
-		// Listen for our custom theme update event to keep state in sync
 		window.addEventListener('user:theme-updated', this.handleUserThemeUpdatedEvent);
 	}
 	
+	// =========================================
+	// SINGLETON MANAGEMENT
+	// =========================================
+
 	/**
-	 * Get the singleton instance
+	 * Get the singleton instance of the AppStateManager
+	 * @returns The AppStateManager instance
 	 */
 	public static getInstance(): AppStateManager {
 		if (!AppStateManager.instance) {
@@ -57,14 +48,19 @@ export class AppStateManager {
 		return AppStateManager.instance;
 	}
 
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
 	/**
-	 * Handles storage changes from other tabs/windows.
+	 * Handles storage changes from other tabs/windows
+	 * @param event The storage event
 	 */
 	private handleStorageChange = (event: StorageEvent): void => {
-		const oldStateSnapshot = JSON.parse(JSON.stringify(this.state)); // Deep copy for accurate old state
+		const oldStateSnapshot = JSON.parse(JSON.stringify(this.state));
 
 		const reinitializeAndNotify = () => {
-			this.initializeFromStorage(); // Updates this.state and calls applyAccentColorToCSS
+			this.initializeFromStorage();
 			const changedParts: Partial<AppState> = {
 				auth: this.state.auth,
 				accentColor: this.state.accentColor,
@@ -90,19 +86,15 @@ export class AppStateManager {
 				break;
 	
 			case AppStateManager.ACCENT_COLOR_STORAGE_KEY:
-				// This key stores themes for ALL users.
-				// Check if the CURRENT logged-in user's theme changed.
 				if (this.state.auth.isAuthenticated && this.state.auth.user) {
 					const userId = this.state.auth.user.id;
-					const newStoredTheme = AppStateManager.getUserAccentColor(userId); // Fresh from localStorage
+					const newStoredTheme = AppStateManager.getUserAccentColor(userId);
 	
 					if (this.state.auth.user.theme !== newStoredTheme) {
-						// The current user's theme preference changed in localStorage. Update app state.
 						const newAccentColorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
 							key => ACCENT_COLORS[key].toLowerCase() === newStoredTheme.toLowerCase()
 						) || 'white';
 						
-						// Use setState to update, which handles notifications and persistence.
 						this.setState({
 							auth: {
 								...this.state.auth,
@@ -112,36 +104,26 @@ export class AppStateManager {
 								},
 							},
 							accentColor: newAccentColorName,
-							accentColors: { // Also update accent1 if current user is player 1
+							accentColors: {
 								...this.state.accentColors,
 								accent1: newStoredTheme,
 							},
 						});
-						// setState calls persistState which calls applyAccentColorToCSS.
 					} else {
-						// User's theme didn't change, but the storage key did.
-						// This might be for another user or a general update.
-						// Re-apply CSS in case other player accent colors (accent2-4) are affected,
-						// though currently they are not directly tied to this storage event in a reactive way.
 						this.applyAccentColorToCSS();
 					}
 				} else {
-					// No user logged in, but playerAccentColors changed.
-					// This shouldn't affect current app state's accentColor or auth.
-					// Just re-apply CSS.
 					this.applyAccentColorToCSS();
 				}
 				break;
 			default:
-				// Not a key we're actively tracking for multi-tab sync in this specific way
 				break; 
 		}
 	};
 	
 	/**
-	 * Handles the 'user:theme-updated' event dispatched by setUserAccentColor.
-	 * This ensures that if one component changes a user's color, other parts of appState
-	 * (like the current user's theme or positional colors) are updated.
+	 * Handles the 'user:theme-updated' event dispatched by setUserAccentColor
+	 * @param event The custom event
 	 */
 	private handleUserThemeUpdatedEvent = (event: Event): void => {
 		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
@@ -164,6 +146,22 @@ export class AppStateManager {
 			});
 		}
 	};
+	
+	/**
+	 * Handle page unload/refresh - clear non-persistent sessions
+	 */
+	private handlePageUnload = (): void => {
+		const isPersistent = localStorage.getItem('auth_persistent') === 'true';
+		
+		if (!isPersistent && this.state.auth.isAuthenticated) {
+			sessionStorage.removeItem('auth_user');
+			sessionStorage.removeItem('jwt_token');
+		}
+	}
+	
+	// =========================================
+	// INITIALIZATION
+	// =========================================
 	
 	/**
 	 * Initialize state from database and localStorage/sessionStorage
@@ -197,7 +195,6 @@ export class AppStateManager {
 				sessionStorage.removeItem('auth_user');
 				localStorage.removeItem('jwt_token');
 				sessionStorage.removeItem('jwt_token');
-				// Reset to default state
 				this.state.auth.isAuthenticated = false;
 				this.state.auth.user = null;
 				this.state.auth.jwtToken = null;
@@ -210,7 +207,6 @@ export class AppStateManager {
 				};
 			}
 		} else {
-			// No user/token found, ensure default state
 			this.state.auth.isAuthenticated = false;
 			this.state.auth.user = null;
 			this.state.auth.jwtToken = null;
@@ -225,18 +221,14 @@ export class AppStateManager {
 		this.applyAccentColorToCSS();
 	}
 	
-	/**
-	 * Apply the current accent color to CSS variables
-	 */
-	private applyAccentColorToCSS(): void {
-		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
-		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
-		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
-		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
-	}
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
 	
 	/**
 	 * Subscribe to state changes
+	 * @param listener The listener function to call when state changes
+	 * @returns A function to unsubscribe the listener
 	 */
 	public subscribe(listener: StateChangeListener): () => void {
 		this.listeners.push(listener);
@@ -248,6 +240,8 @@ export class AppStateManager {
 	
 	/**
 	 * Notify listeners of state changes
+	 * @param newState The new partial state
+	 * @param oldState The old state
 	 */
 	private notifyListeners(newState: Partial<AppState>, oldState: Partial<AppState>): void {
 		this.listeners.forEach(listener => {
@@ -260,7 +254,68 @@ export class AppStateManager {
 	}
 	
 	/**
+	 * Update the application state
+	 * @param newState The new partial state to apply
+	 */
+	public setState = (newState: Partial<AppState>): void => {
+		const oldState = { ...this.state };
+		
+		const nextState = {
+			...this.state,
+			...newState,
+			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
+			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors,
+			players: newState.players ? { ...this.state.players, ...newState.players } : this.state.players,
+		};
+		
+		this.state = nextState;
+		this.notifyListeners(newState, oldState);
+		this.persistState();
+	};
+
+	/**
+	 * Persist the current state to storage
+	 */
+	private persistState = (): void => {
+		if (this.state.auth.isAuthenticated && this.state.auth.user && this.state.auth.user.id) {
+			const userTheme = AppStateManager.getUserAccentColor(this.state.auth.user.id);
+			const userToStore = { ...this.state.auth.user, theme: userTheme };
+			
+			const isPersistent = localStorage.getItem('auth_persistent') === 'true';
+
+			if (isPersistent) {
+				localStorage.setItem('auth_user', JSON.stringify(userToStore));
+				sessionStorage.removeItem('auth_user');
+				if (this.state.auth.jwtToken) {
+					localStorage.setItem('jwt_token', this.state.auth.jwtToken);
+				}
+				sessionStorage.removeItem('jwt_token');
+			} else {
+				sessionStorage.setItem('auth_user', JSON.stringify(userToStore));
+				localStorage.removeItem('auth_user');
+				if (this.state.auth.jwtToken) {
+					sessionStorage.setItem('jwt_token', this.state.auth.jwtToken);
+				}
+				localStorage.removeItem('jwt_token');
+			}
+		} else {
+			localStorage.removeItem('auth_user');
+			sessionStorage.removeItem('auth_user');
+			localStorage.removeItem('jwt_token');
+			sessionStorage.removeItem('jwt_token');
+		}
+		this.applyAccentColorToCSS();
+	};
+	
+	// =========================================
+	// AUTHENTICATION
+	// =========================================
+	
+	/**
 	 * Login user
+	 * @param user The user object
+	 * @param token The JWT token
+	 * @param persistent Whether to persist the login
 	 */
 	public login(user: any, token?: string, persistent: boolean = false): void {
 		localStorage.setItem('auth_persistent', persistent.toString());
@@ -277,7 +332,7 @@ export class AppStateManager {
 				jwtToken: token || null
 			},
 			accentColor: colorName,
-			accentColors: { ...this.state.accentColors, accent1: userTheme } // Preserve other accent colors
+			accentColors: { ...this.state.accentColors, accent1: userTheme }
 		});
 		
 		const authEvent = new CustomEvent('user-authenticated', {
@@ -299,14 +354,12 @@ export class AppStateManager {
 	public logout(): void {
 		const oldAuth = { ...this.state.auth };
 		
-		// Disconnect WebSocket using centralized function
 		try {
 			disconnectWebSocket();
 		} catch (error) {
 			console.error('Failed to disconnect WebSocket:', error);
 		}
 		
-		// Reset the entire state to initial values
 		this.setState({
 			auth: {
 				isAuthenticated: false,
@@ -329,9 +382,7 @@ export class AppStateManager {
 		sessionStorage.removeItem('jwt_token');
 		localStorage.removeItem('auth_persistent');
 		
-		// Force the profile components to completely reset by navigating to the home page
 		if (oldAuth.isAuthenticated) {
-			// Refresh all components
 			Router.refreshAllComponents();
 			if (window.location.pathname.includes('/profile')) {
 				window.location.href = '/';
@@ -341,6 +392,7 @@ export class AppStateManager {
 	
 	/**
 	 * Check if user is authenticated
+	 * @returns Whether the user is authenticated
 	 */
 	public isAuthenticated(): boolean {
 		return this.state.auth.isAuthenticated;
@@ -348,14 +400,48 @@ export class AppStateManager {
 	
 	/**
 	 * Get current user
+	 * @returns The current user or null
 	 */
 	public getCurrentUser(): any | null {
 		return this.state.auth.user;
 	}
 	
 	/**
-	 * Set accent color and update user theme in localStorage.
-	 * This method is for the *current authenticated user*.
+	 * Update user data in the app state
+	 * @param userData The user data to update
+	 */
+	public updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
+		const currentUser = this.getCurrentUser();
+		if (currentUser) {
+			this.setState({
+				auth: {
+					...this.state.auth,
+					user: {
+						...currentUser,
+						...userData
+					}
+				}
+			});
+		}
+	}
+	
+	// =========================================
+	// THEME MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Apply the current accent color to CSS variables
+	 */
+	private applyAccentColorToCSS(): void {
+		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
+		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
+		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
+		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
+	}
+	
+	/**
+	 * Set accent color and update user theme in localStorage
+	 * @param colorName The accent color name
 	 */
 	public setAccentColor(colorName: AccentColor): void {
 		if (ACCENT_COLORS[colorName]) {
@@ -363,13 +449,8 @@ export class AppStateManager {
 			
 			if (this.state.auth.isAuthenticated && this.state.auth.user) {
 				const userId = this.state.auth.user.id;
-				AppStateManager.setUserAccentColor(userId, colorHex); // This dispatches 'user:theme-updated'
+				AppStateManager.setUserAccentColor(userId, colorHex);
 				
-				// The event handler handleUserThemeUpdatedEvent will update the state.
-				// For immediate effect and clarity, we can also call setState here.
-				// Note: handleUserThemeUpdatedEvent updates auth.user.theme, accentColor, and accentColors.accent1.
-				// If that event is reliably handled, this direct setState might be partly redundant
-				// but ensures immediate consistency within this call's scope.
 				this.setState({
 					accentColor: colorName,
 					accentColors: { ...this.state.accentColors, accent1: colorHex },
@@ -380,9 +461,6 @@ export class AppStateManager {
 				});
 
 			} else {
-				// For non-authenticated users, update session visual if needed.
-				// This behavior might need further clarification based on product requirements.
-				// For now, update the main accent color and accent1.
 				this.setState({
 					accentColor: colorName,
 					accentColors: { ...this.state.accentColors, accent1: colorHex }
@@ -392,7 +470,10 @@ export class AppStateManager {
 	}
 	
 	/**
-	 * Set accent color for a specific player (1-4) for the current game session.
+	 * Set accent color for a specific player (1-4) for the current game session
+	 * @param playerIndex The player index (1-4)
+	 * @param colorHex The color hex value
+	 * @param userId Optional user ID
 	 */
 	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined, userId?: string): void {
 		if (playerIndex < 1 || playerIndex > 4) {
@@ -410,20 +491,16 @@ export class AppStateManager {
 			}
 		};
 
-		// If a userId is provided, also update their persistent preference
 		if (userId) {
-			AppStateManager.setUserAccentColor(userId, colorToSet); // This dispatches 'user:theme-updated'
+			AppStateManager.setUserAccentColor(userId, colorToSet);
 		}
 		
-		// If this is player 1 (host/current user), also update the main accentColor state
-		// and potentially the auth.user.theme if this player IS the current user.
 		if (playerIndex === 1) {
 			const colorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
 				key => ACCENT_COLORS[key].toLowerCase() === colorToSet.toLowerCase()
 			) || 'white';
 			newState.accentColor = colorName;
 
-			// If player 1 is the authenticated user, update their theme in auth state too.
 			if (this.state.auth.isAuthenticated && this.state.auth.user && (!userId || userId === this.state.auth.user.id)) {
 				newState.auth = {
 					...this.state.auth,
@@ -439,6 +516,7 @@ export class AppStateManager {
 	
 	/**
 	 * Get current accent color
+	 * @returns The current accent color
 	 */
 	public getAccentColor(): AccentColor {
 		return this.state.accentColor;
@@ -446,13 +524,16 @@ export class AppStateManager {
 	
 	/**
 	 * Get accent color hex value
+	 * @returns The accent color hex value
 	 */
 	public getAccentColorHex(): string {
 		return ACCENT_COLORS[this.state.accentColor];
 	}
 	
 	/**
-	 * Get player accent color for the game session (from accent1-accent4).
+	 * Get player accent color for the game session
+	 * @param playerIndex The player index (1-4)
+	 * @returns The player accent color
 	 */
 	public getPlayerAccentColor(playerIndex: number): string {
 		if (playerIndex < 1 || playerIndex > 4) {
@@ -466,43 +547,29 @@ export class AppStateManager {
 	
 	/**
 	 * Get all available accent colors
+	 * @returns Record of all available accent colors
 	 */
 	public getAvailableColors(): Record<AccentColor, string> {
 		return { ...ACCENT_COLORS };
 	}
 	
 	/**
-	 * Handle page unload/refresh - clear non-persistent sessions
+	 * Update player theme
+	 * @param playerId The player ID
+	 * @param colorHex The color hex value
 	 */
-	private handlePageUnload = (): void => {
-		const isPersistent = localStorage.getItem('auth_persistent') === 'true';
-		
-		if (!isPersistent && this.state.auth.isAuthenticated) {
-			sessionStorage.removeItem('auth_user');
-			sessionStorage.removeItem('jwt_token');
-		}
+	public updatePlayerTheme(playerId: string, colorHex: string): void {
+		AppStateManager.setUserAccentColor(playerId, colorHex);
 	}
 	
-	/**
-	 * Update user data in the app state
-	 */
-	public updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
-		const currentUser = this.getCurrentUser();
-		if (currentUser) {
-			this.setState({
-				auth: {
-					...this.state.auth,
-					user: {
-						...currentUser,
-						...userData
-					}
-				}
-			});
-		}
-	}
+	// =========================================
+	// PLAYER MANAGEMENT
+	// =========================================
 	
 	/**
 	 * Set player name in the app state
+	 * @param playerId The player ID
+	 * @param username The username
 	 */
 	public setPlayerName(playerId: string, username: string): void {
 		this.setState({
@@ -518,6 +585,8 @@ export class AppStateManager {
 	
 	/**
 	 * Set player avatar in the app state
+	 * @param playerId The player ID
+	 * @param pfp The profile picture URL
 	 */
 	public setPlayerAvatar(playerId: string, pfp: string): void {
 		this.setState({
@@ -531,19 +600,14 @@ export class AppStateManager {
 		});
 	}
 	
-	/**
-	 * Update player theme. This will update their persistent color in localStorage
-	 * and dispatch an event that should be handled to update game session colors if active.
-	 */
-	public updatePlayerTheme(playerId: string, colorHex: string): void {
-		AppStateManager.setUserAccentColor(playerId, colorHex);
-		// The 'user:theme-updated' event is dispatched by setUserAccentColor.
-		// handleUserThemeUpdatedEvent will catch this and update state if playerId is current user.
-		// For other players, components observing game state should react to this event
-		// or call setPlayerAccentColor for the specific slot.
-	}
+	// =========================================
+	// STATIC ACCENT COLOR METHODS
+	// =========================================
 	
-	// --- localStorage Accent Color Methods (Static) ---
+	/**
+	 * Get all accent colors from storage
+	 * @returns Record of user IDs to accent colors
+	 */
 	private static getAllAccentColorsFromStorage(): Record<string, string> {
 		const storedColors = localStorage.getItem(AppStateManager.ACCENT_COLOR_STORAGE_KEY);
 		try {
@@ -554,12 +618,22 @@ export class AppStateManager {
 		}
 	}
 
+	/**
+	 * Get a user's accent color
+	 * @param userId The user ID
+	 * @returns The user's accent color
+	 */
 	public static getUserAccentColor(userId: string): string {
 		if (!userId) return AppStateManager.DEFAULT_ACCENT_COLOR;
 		const colors = AppStateManager.getAllAccentColorsFromStorage();
 		return colors[userId] || AppStateManager.DEFAULT_ACCENT_COLOR;
 	}
 
+	/**
+	 * Set a user's accent color
+	 * @param userId The user ID
+	 * @param colorHex The color hex value
+	 */
 	public static setUserAccentColor(userId: string, colorHex: string): void {
 		if (!userId) return;
 		const colors = AppStateManager.getAllAccentColorsFromStorage();
@@ -573,6 +647,11 @@ export class AppStateManager {
 		window.dispatchEvent(event);
 	}
 
+	/**
+	 * Initialize a user's accent color
+	 * @param userId The user ID
+	 * @returns The user's accent color
+	 */
 	public static initializeUserAccentColor(userId: string): string {
 		if (!userId) return AppStateManager.DEFAULT_ACCENT_COLOR;
 		const colors = AppStateManager.getAllAccentColorsFromStorage();
@@ -588,56 +667,6 @@ export class AppStateManager {
 		}
 		return colors[userId];
 	}
-
-	// --- State Modification Methods ---
-	public setState = (newState: Partial<AppState>): void => {
-		const oldState = { ...this.state }; // Shallow copy for oldState in listeners
-		
-		// Deep merge for nested properties like auth, accentColors, players
-		const nextState = {
-			...this.state,
-			...newState, // Apply top-level changes
-			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
-			accentColors: newState.accentColors ? { ...this.state.accentColors, ...newState.accentColors } : this.state.accentColors,
-			players: newState.players ? { ...this.state.players, ...newState.players } : this.state.players,
-		};
-		
-		this.state = nextState;
-		this.notifyListeners(newState, oldState); // Pass the partial newState that was applied
-		this.persistState();
-	};
-
-	private persistState = (): void => {
-		if (this.state.auth.isAuthenticated && this.state.auth.user && this.state.auth.user.id) {
-			const userTheme = AppStateManager.getUserAccentColor(this.state.auth.user.id);
-			const userToStore = { ...this.state.auth.user, theme: userTheme };
-			
-			const isPersistent = localStorage.getItem('auth_persistent') === 'true';
-
-			if (isPersistent) {
-				localStorage.setItem('auth_user', JSON.stringify(userToStore));
-				sessionStorage.removeItem('auth_user'); // Clear from session
-				if (this.state.auth.jwtToken) {
-					localStorage.setItem('jwt_token', this.state.auth.jwtToken);
-				}
-				sessionStorage.removeItem('jwt_token'); // Ensure it's not in session if persistent
-			} else { // Not persistent (session-based)
-				sessionStorage.setItem('auth_user', JSON.stringify(userToStore));
-				localStorage.removeItem('auth_user'); // Clear from local
-				if (this.state.auth.jwtToken) {
-					sessionStorage.setItem('jwt_token', this.state.auth.jwtToken);
-				}
-				localStorage.removeItem('jwt_token'); // Ensure it's not in local if session-based
-			}
-		} else { // Not authenticated
-			localStorage.removeItem('auth_user');
-			sessionStorage.removeItem('auth_user');
-			localStorage.removeItem('jwt_token');
-			sessionStorage.removeItem('jwt_token');
-			// 'auth_persistent' is intentionally not cleared here.
-		}
-		this.applyAccentColorToCSS();
-	};
 }
 
 export const appState = AppStateManager.getInstance();

@@ -4,20 +4,12 @@ import { html, render } from '@website/scripts/services';
 import { GameMode, GameOverState } from '@website/types';
 
 export class GameOverComponent extends Component<GameOverState> {
-	// =========================================
-	// PROPERTIES
-	// =========================================
-	
 	private onPlayAgain: (mode: GameMode) => void;
 	private onBackToMenu: () => void;
 	private onShowTournamentSchedule: () => void;
 	private inTransition: boolean = false;
 	private boundGameOverHandler: EventListener;
 	private boundResizeHandler: EventListener;
-	
-	// =========================================
-	// INITIALIZATION
-	// =========================================
 	
 	constructor(
 		container: HTMLElement,
@@ -53,6 +45,10 @@ export class GameOverComponent extends Component<GameOverState> {
 	// LIFECYCLE METHODS
 	// =========================================
 	
+	/**
+	 * Renders the game over screen with player names, scores, and buttons.
+	 * If the component is not visible, it clears the container.
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		
@@ -61,7 +57,6 @@ export class GameOverComponent extends Component<GameOverState> {
 			return;
 		}
 		
-		// Get dimensions for positioning
 		let canvasWidth: number;
 		let canvasHeight: number;
 
@@ -71,19 +66,15 @@ export class GameOverComponent extends Component<GameOverState> {
 			canvasWidth = backgroundGameCanvas.width;
 			canvasHeight = backgroundGameCanvas.height;
 		} else {
-			// If background canvas isn't available or has no dimensions,
-			// fall back to the component's container size.
 			canvasWidth = this.container.clientWidth;
 			canvasHeight = this.container.clientHeight;
 
-			// If container size is also zero, try any canvas.
 			if (canvasWidth === 0 || canvasHeight === 0) {
 				const genericCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
 				if (genericCanvas && genericCanvas.width > 0 && genericCanvas.height > 0) {
 					canvasWidth = genericCanvas.width;
 					canvasHeight = genericCanvas.height;
 				} else if (canvasWidth === 0 || canvasHeight === 0) {
-					// If still zero, default to window size to prevent errors with calculateUIPositions(0,0)
 					canvasWidth = window.innerWidth;
 					canvasHeight = window.innerHeight;
 				}
@@ -92,7 +83,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		
 		const ui = calculateUIPositions(canvasWidth, canvasHeight);
 		
-		// Game over screen with player names and scores
 		const content = html`
 			<div class="game-container">
 				<div class="game-over-screen">
@@ -164,12 +154,13 @@ export class GameOverComponent extends Component<GameOverState> {
 		render(content, this.container);
 	}
 	
+	/**
+	 * Cleans up event listeners and button event handlers when the component is destroyed.
+	 */
 	destroy(): void {
-		// Use the stored reference for proper removal
 		window.removeEventListener('gameOver', this.boundGameOverHandler);
 		window.removeEventListener('resize', this.boundResizeHandler);
 		
-		// Also clean up button event listeners if any are still attached
 		const playAgainButton = this.container.querySelector('.play-again-button');
 		if (playAgainButton) {
 			playAgainButton.replaceWith(playAgainButton.cloneNode(true));
@@ -197,7 +188,8 @@ export class GameOverComponent extends Component<GameOverState> {
 	}
 	
 	/**
-	 * Shows the game over screen with results
+	 * Shows the game over screen with the provided game result.
+	 * @param result - The game result containing winner, game mode, player names, scores, and optional match ID.
 	 */
 	showGameResult(result: {
 		winner: string;
@@ -212,7 +204,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		
 		this.inTransition = true;
 		
-		// Update state with all the information
 		this.updateInternalState({
 			...result,
 			visible: true
@@ -226,32 +217,31 @@ export class GameOverComponent extends Component<GameOverState> {
 	}
 	
 	/**
-	 * Hides the game over screen
+	 * Hides the game over screen.
 	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
 	}
 	
-	// Add this method to handle game over events
+	/**
+	 * Handles the game over event, showing the game over screen with cached match data.
+	 * @param event - The game over event.
+	 */
 	private handleGameOver(event: Event): void {
 		const customEvent = event as CustomEvent;
 		if (!customEvent.detail) return;
 		
-		// Improved check for background games
 		if ((customEvent.detail.matchId === null || customEvent.detail.isBackgroundGame === true) && 
 			this.getInternalState().visible) {
 			return;
 		}
 		
-		// Prevent processing if already in transition
 		if (this.inTransition) return;
 
-		// Get all data from cache
 		const cachedResult = MatchCache.getLastMatchResult();
 		const gameInfo = MatchCache.getCurrentGameInfo();
 
 		if (cachedResult && !cachedResult.isBackgroundGame) {
-			// Show game over screen with cached data
 			this.showGameResult({
 				winner: cachedResult.winner,
 				gameMode: gameInfo.gameMode,
@@ -264,18 +254,16 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 	}
 	
-	// Add these simple handler methods
+	/**
+	 * Handles the show tournament schedule button click, transitioning to the tournament schedule.
+	 */
 	private handleShowTournamentSchedule(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
-			// Hide this component
 			this.hide();
 			
-			// First go to menu (internally only, not visually) then to tournament
-			// to follow the same flow that works from the menu
 			this.onBackToMenu();
 			
-			// Then immediately show tournament - use setTimeout to ensure proper sequence
 			setTimeout(() => {
 				if (this.onShowTournamentSchedule) {
 					this.onShowTournamentSchedule();
@@ -285,6 +273,9 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 	}
 	
+	/**
+	 * Handles the back to menu button click, transitioning back to the main menu.
+	 */
 	private handleBackToMenu(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
@@ -295,6 +286,9 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 	}
 	
+	/**
+	 * Handles the play again button click, restarting the game in the current game mode.
+	 */
 	private handlePlayAgain(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;

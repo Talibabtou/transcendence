@@ -3,19 +3,7 @@ import { ASCII_ART, appState } from '@website/scripts/utils';
 import { DbService, html, render, navigate } from '@website/scripts/services';
 import { LeaderboardState } from '@website/types';
 
-/**
- * Component that displays the global leaderboard
- * Shows player rankings based on ELO, wins, and losses
- */
 export class LeaderboardComponent extends Component<LeaderboardState> {
-	// =========================================
-	// INITIALIZATION
-	// =========================================
-	
-	/**
-	 * Creates a new LeaderboardComponent
-	 * @param container - The HTML element to render the leaderboard into
-	 */
 	constructor(container: HTMLElement) {
 		super(container, {
 			leaderboardData: [],
@@ -23,6 +11,10 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		});
 		this.initialize();
 	}
+	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	/**
 	 * Initializes the component by fetching leaderboard data
@@ -34,20 +26,14 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		});
 		
 		try {
-			// Fetch the leaderboard data
 			await this.fetchLeaderboardData();
 		} catch (error) {
-			// Error will be handled by DbService through NotificationManager
 		} finally {
 			this.updateInternalState({ 
 				isLoading: false 
 			});
 		}
 	}
-
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
 	
 	/**
 	 * Renders the component based on current state
@@ -71,9 +57,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Fetches leaderboard data from the database
 	 */
 	private async fetchLeaderboardData(): Promise<void> {
-		// DbService will handle displaying any errors through NotificationManager
 		const apiResponse = await DbService.getLeaderboard();
-		// Sort by ELO first to ensure proper ranking
 		const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);
 		
 		const formattedLeaderboard = sortedData.map((entry, index) => ({
@@ -97,7 +81,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * @param playerId - The ID of the clicked player
 	 */
 	private handlePlayerClick(playerId: string): void {
-		// Check if user is authenticated before allowing profile navigation
 		if (appState.isAuthenticated()) {
 			navigate(`/profile?id=${playerId}`);
 		}

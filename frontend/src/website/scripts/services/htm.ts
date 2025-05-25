@@ -6,7 +6,6 @@ import htm from 'htm';
 
 /**
  * Creates DOM elements from template literal tags.
- * 
  * @param type - The HTML tag name or 'fragment' for DocumentFragment
  * @param props - Object containing element attributes and event handlers
  * @param children - Child elements or text content
@@ -114,7 +113,6 @@ function appendChildren(
 /**
  * Tagged template literal function for creating DOM elements.
  * Provides JSX-like syntax using template literals.
- * 
  * @example
  * html`<div class="box">
  *     <h1>Title</h1>
@@ -126,13 +124,8 @@ export const html = htm.bind(createElement);
 /**
  * Renders virtual DOM nodes into a container element.
  * Replaces existing content of the container.
- * 
  * @param vdom - Virtual DOM node(s) to render
  * @param container - Target container element
- * 
- * @example
- * const container = document.querySelector('.app');
- * render(html`<div>Hello World</div>`, container);
  */
 export function render(
 	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
@@ -155,14 +148,8 @@ export function render(
 
 /**
  * Updates an existing DOM element with new content while preserving its position.
- * Useful for dynamic updates like progress bars or live data.
- * 
  * @param vdom - New virtual DOM node(s) to render
  * @param container - Target container element to update
- * 
- * @example
- * const container = document.querySelector('.progress-bar');
- * update(html`<div class="progress" style="width: ${progress}%"></div>`, container);
  */
 export function update(
 	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
@@ -194,35 +181,4 @@ export function update(
 			parent.appendChild(container);
 		}
 	}
-}
-
-/**
- * Creates a component that can be updated with new content.
- * Useful for creating reusable, updatable UI elements.
- * 
- * @param container - The container element for the component
- * @param initialRender - Function that returns the initial virtual DOM
- * @returns Object with update method
- * 
- * @example
- * const progressBar = createComponent(
- *   container,
- *   () => html`<div class="progress" style="width: 0%"></div>`
- * );
- * 
- * // Later update the progress
- * progressBar.update(() => html`<div class="progress" style="width: 50%"></div>`);
- */
-export function createComponent(
-	container: HTMLElement,
-	initialRender: () => HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[]
-) {
-	// Initial render
-	render(initialRender(), container);
-
-	return {
-		update: (newRender: () => HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[]) => {
-			update(newRender(), container);
-		}
-	};
 }
