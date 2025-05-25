@@ -14,16 +14,16 @@ services:
       dockerfile: Dockerfile
     container_name: frontend_nginx
     ports:
-      - "8043:80"
-      - "8080:443"
+      - "8080:80"
+      - "8043:443"
     networks:
       - transcendance-net
     volumes:
       - certs_data:/etc/certs:ro
       - profile_pictures:/usr/share/nginx/html/uploads/profile_pictures
     depends_on:
-      cert-generator:
-        condition: service_completed_successfully
+      gateway:
+        condition: service_healthy
     restart: unless-stopped
 
   # prometheus:
@@ -74,6 +74,9 @@ services:
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
+    depends_on:
+      gateway:
+        condition: service_healthy
     labels:
       - "container_name=cadvisor"
 
@@ -125,6 +128,12 @@ services:
     depends_on:
       cert-generator:
         condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://gateway:8085/api/v1/health"]
+      interval: 10s
+      timeout: 10s
+      start_period: 5s
+      retries: 5
     # restart: always
     labels:
       - "container_name=gateway"

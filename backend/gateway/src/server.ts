@@ -13,7 +13,6 @@ import helmet from '@fastify/helmet';
 import fastifyJwt from '@fastify/jwt';
 import fastifyStatic from '@fastify/static';
 import rateLimit from '@fastify/rate-limit';
-// import { Http2SecureServer } from 'http2';
 import routes from './routes/index.routes.js';
 import fastifySwagger from '@fastify/swagger';
 import websocketPlugin from '@fastify/websocket';
@@ -27,13 +26,11 @@ import { addHeaders, blockHeaders } from './config/headers.config.js';
 import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 
 export class Server {
-  // FastifyInstance<Http2SecureServer> for https
   private static instance: FastifyInstance;
   public static microservices: Map<string, boolean> = new Map();
 
   private constructor() {}
 
-  // FastifyInstance<Http2SecureServer> for https
   public static getInstance(): FastifyInstance {
     if (!Server.instance) Server.instance = fastify(fastifyConfig);
     return Server.instance;
@@ -63,10 +60,10 @@ export class Server {
 
       await server.listen({
         port: Number(process.env.GATEWAY_PORT) || 8085,
-        host: process.env.GATEWAY_ADDR || 'localhost',
+        host: process.env.GATEWAY_ADDR || '0.0.0.0',
       });
       server.log.info(
-        `Server listening at http://${process.env.GATEWAY_ADDR || 'localhost'}:${process.env.GATEWAY_PORT || 8085}`
+        `Server listening at https://${process.env.GATEWAY_ADDR || '0.0.0.0'}:${process.env.GATEWAY_PORT || 8085}`
       );
       setInterval(checkMicroservices, 2000);
     } catch (err) {
@@ -75,7 +72,6 @@ export class Server {
   }
 
   public static async shutdown(signal: string): Promise<void> {
-    // FastifyInstance<Http2SecureServer> for https
     const server: FastifyInstance = Server.getInstance();
     server.log.info('Server has been closed.');
     server.log.info(`Received ${signal}.`);

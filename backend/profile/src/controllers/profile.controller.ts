@@ -84,14 +84,14 @@ export async function getSummary(
       request.server.log.error(err);
     }
     try {
-      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8082/user/${id}`;
+      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
       reponseDataUser = (await response.json()) as IReplyUser | ErrorResponse;
     } catch (err) {
       request.server.log.error(err);
     }
     try {
-      const serviceUrlPic = `http://${process.env.GAME_ADDR || 'localhost'}:8081/pics/${id}`;
+      const serviceUrlPic = `http://${process.env.PROFILE_ADDR || 'localhost'}:8081/pics/${id}`;
       const responsePic = await fetch(serviceUrlPic, { method: 'GET' });
       reponseDataPic = (await responsePic.json()) as IReplyPic | ErrorResponse;
     } catch (err) {
