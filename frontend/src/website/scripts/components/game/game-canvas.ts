@@ -1,6 +1,7 @@
 import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
 import { GameMode } from '@website/types';
+import { NotificationManager } from '@website/scripts/services';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -122,11 +123,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			// Then clean up the game
 			this.gameManager.cleanupMainGame();
 		} catch (error) {
-			console.error('Error stopping game:', error);
-			// Force cleanup on error
-			try {
-				this.gameManager.cleanupMainGame();
-			} catch {}
+			this.gameManager.cleanupMainGame();
 		}
 	}
 
@@ -148,7 +145,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			
 			return Boolean(gameState.isGameOver);
 		} catch (error) {
-			console.error('Error checking game over state:', error);
+			NotificationManager.showError('Error checking game over state');
 			return false;
 		}
 	}

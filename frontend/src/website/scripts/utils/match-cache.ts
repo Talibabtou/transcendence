@@ -1,5 +1,4 @@
 import { Match, GameMode } from '@website/types';
-import { DbService } from '@website/scripts/services';
 
 /**
  * Extended match data returned by DB service
@@ -45,25 +44,6 @@ class MatchCacheSingleton {
 			MatchCacheSingleton.instance = new MatchCacheSingleton();
 		}
 		return MatchCacheSingleton.instance;
-	}
-	
-	/**
-	 * Gets match data, either from cache or by fetching from DB
-	 */
-	public getMatchData(matchId: string): Promise<ExtendedMatch> {
-		// Check if we already have a promise for this matchId
-		if (this.cache.has(matchId)) {
-			return this.cache.get(matchId)!;
-		}
-		
-		// Create a new promise for the DB fetch
-		// Use DbService directly from the import instead of dynamic import
-		const dataPromise = DbService.getMatchDetails(matchId);
-
-		// Store in cache
-		this.cache.set(matchId, dataPromise);
-		
-		return dataPromise;
 	}
 	
 	/**

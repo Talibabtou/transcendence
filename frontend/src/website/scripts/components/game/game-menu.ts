@@ -190,7 +190,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 				}
 
 				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
-					console.log("Restored tournament from localStorage");
 					this.onShowTournamentSchedule();
 					this.onTournamentRestored();
 					return;

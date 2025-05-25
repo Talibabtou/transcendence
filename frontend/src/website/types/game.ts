@@ -84,7 +84,6 @@ export interface PlayersRegisterState {
 	host: PlayerData | null;
 	guests: PlayerData[];
 	isReadyToPlay: boolean;
-	error: string | null;
 }
 
 /**

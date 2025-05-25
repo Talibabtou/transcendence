@@ -1,7 +1,6 @@
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { html, render, navigate, DbService } from '@website/scripts/services';
 
-// Add custom event type
 declare global {
 	interface DocumentEventMap {
 		'user-authenticated': CustomEvent<{
@@ -12,6 +11,13 @@ declare global {
 	}
 }
 
+/**
+ * NavbarComponent
+ * 
+ * This component is responsible for rendering the navbar and handling navigation.
+ * It is used to display the navbar on the website.
+ * 
+ */
 export class NavbarComponent {
 	private container: HTMLElement;
 	private authButtonActive: boolean = false;
@@ -23,14 +29,12 @@ export class NavbarComponent {
 	constructor(container: HTMLElement) {
 		this.container = container;
 		
-		// Subscribe to app state changes
 		appState.subscribe((newState) => {
 			if ('auth' in newState) {
 				this.renderNavbar();
 			}
 		});
 		
-		// Initial render
 		this.renderNavbar();
 	}
 	
@@ -39,24 +43,20 @@ export class NavbarComponent {
 	 * @param targetSelector - Query selector for the container element
 	 */
 	static initialize(targetSelector: string = 'body'): NavbarComponent {
-		// Find target container 
 		const targetContainer = document.querySelector(targetSelector);
 		
 		if (!targetContainer) {
 			throw new Error(`Navbar target container "${targetSelector}" not found`);
 		}
 		
-		// Create navbar container if needed
 		let navbarContainer = document.querySelector('nav.navbar');
 		
 		if (!navbarContainer) {
 			navbarContainer = document.createElement('nav');
 			navbarContainer.className = 'navbar';
-			// Insert at the beginning of the target
 			targetContainer.insertBefore(navbarContainer, targetContainer.firstChild);
 		}
 		
-		// Create component instance
 		return new NavbarComponent(navbarContainer as HTMLElement);
 	}
 	
@@ -65,8 +65,8 @@ export class NavbarComponent {
 	 */
 	renderNavbar(): void {
 		const isAuthenticated = appState.isAuthenticated();
+		const currentUser = appState.isAuthenticated() ? appState.getCurrentUser() : null;
 		
-		// Create navbar template
 		const navbarTemplate = html`
 			<a href="/" class="nav-logo">
 				<pre>${ASCII_ART.TRANSCENDENCE}</pre>
@@ -76,9 +76,9 @@ export class NavbarComponent {
 				<a href="/leaderboard" class="nav-item${location.pathname === '/leaderboard' ? ' active' : ''}">Leaderboard</a>
 			</div>
 			<div class="nav-right">
-				${isAuthenticated ? 
+				${isAuthenticated && currentUser ? 
 					html`
-						<a href="/profile" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
+						<a href="/profile?id=${currentUser.id}" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
 						<button class="nav-item logout-button" title="Log out" onClick=${() => this.handleLogout()}>⏻</button>
 					` : 
 					html`
@@ -88,10 +88,8 @@ export class NavbarComponent {
 			</div>
 		`;
 		
-		// Render navbar
 		render(navbarTemplate, this.container);
 		
-		// Add event listeners after rendering
 		this.setupNavLinks();
 	}
 	
@@ -99,12 +97,9 @@ export class NavbarComponent {
 	 * Sets up event listeners for navigation links
 	 */
 	private setupNavLinks(): void {
-		// Find all navigation links
 		const navLinks = this.container.querySelectorAll('a.nav-item, a.nav-logo');
 		
-		// Add click handler to each link
 		navLinks.forEach(link => {
-			// Remove existing handlers to prevent duplicates
 			link.removeEventListener('click', this.handleNavLinkClick);
 			link.addEventListener('click', this.handleNavLinkClick);
 		});
@@ -129,14 +124,11 @@ export class NavbarComponent {
 	private handleAuthClick(e: Event): void {
 		e.preventDefault();
 		
-		// Set auth button active state for UI feedback
 		this.authButtonActive = true;
-		this.renderNavbar(); // Re-render to show active state
+		this.renderNavbar();
 		
-		// Navigate to auth route
-		// The router will handle cleaning up the current component and loading AuthManager
 		navigate('/auth', { 
-			state: { returnTo: location.pathname }, // Keep returnTo for post-login redirect
+			state: { returnTo: location.pathname },
 			preventReload: true 
 		});
 	}
@@ -145,14 +137,11 @@ export class NavbarComponent {
 	 * Handles user logout
 	 */
 	private handleLogout(): void {
-		// Use AppState to logout
 		DbService.logout(appState.getCurrentUser().id);
 		
-		// Dispatch logout event
 		const logoutEvent = new CustomEvent('user-logout');
 		document.dispatchEvent(logoutEvent);
 		
-		// Redirect to home
 		navigate('/');
 	}
 	
@@ -161,12 +150,10 @@ export class NavbarComponent {
 	 * Should be called on route changes
 	 */
 	updateActiveItem(path: string): void {
-		// Reset auth button active state if not on auth page
 		if (path !== '/auth') {
 			this.authButtonActive = false;
 		}
 		
-		// Re-render with updated active states
 		this.renderNavbar();
 	}
 }

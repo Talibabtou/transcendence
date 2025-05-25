@@ -31,7 +31,7 @@ export const GAME = {
 		BY_ID: (id: string) => `/game/goal/${id}`,
 	},
 	TOURNAMENT: {
-		BASE: '/game/tournaments',
+		BASE: '/game/tournament',
 		BY_ID: (id: string) => `/game/tournament/${id}`,
 		FINAL: (id: string) => `/game/tournament/${id}/final`,
 	},

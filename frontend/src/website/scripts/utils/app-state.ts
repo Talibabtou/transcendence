@@ -1,5 +1,5 @@
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
-import { Router, disconnectWebSocket } from '@website/scripts/services';
+import { NotificationManager, Router, disconnectWebSocket } from '@website/scripts/services';
 
 // Define state change listener type
 type StateChangeListener = (newState: Partial<AppState>, oldState: Partial<AppState>) => void;
@@ -77,8 +77,7 @@ export class AppStateManager {
 			}
 		};
 	
-		if (!event.key) { // Storage.clear() was called in another tab
-			console.log('AppStateManager: Detected storage.clear() event.');
+		if (!event.key) {
 			reinitializeAndNotify();
 			return;
 		}
@@ -87,12 +86,10 @@ export class AppStateManager {
 			case 'auth_user':
 			case 'jwt_token':
 			case 'auth_persistent':
-				console.log('AppStateManager: Storage change for auth key:', event.key);
 				reinitializeAndNotify();
 				break;
 	
 			case AppStateManager.ACCENT_COLOR_STORAGE_KEY:
-				console.log('AppStateManager: Storage change for accent colors.');
 				// This key stores themes for ALL users.
 				// Check if the CURRENT logged-in user's theme changed.
 				if (this.state.auth.isAuthenticated && this.state.auth.user) {
@@ -194,15 +191,8 @@ export class AppStateManager {
 				) || 'white';
 				this.state.accentColor = colorName;
 				this.state.accentColors.accent1 = userTheme;
-				// Other accent colors (2-4) remain as they were unless explicitly reset.
-
-				console.log('AppState: Restored auth state from storage', {
-					user: user.username || user.pseudo,
-					persistent: localStorage.getItem('auth_persistent') === 'true',
-					theme: userTheme
-				});
 			} catch (error) {
-				console.error('Failed to parse stored user data', error);
+				NotificationManager.showError('Failed to parse stored user data: ' + error);
 				localStorage.removeItem('auth_user');
 				sessionStorage.removeItem('auth_user');
 				localStorage.removeItem('jwt_token');

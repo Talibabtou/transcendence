@@ -25,7 +25,6 @@ export enum AuthMethod {
 export interface AuthComponentState {
 	currentState: AuthState;
 	isLoading: boolean;
-	error: string | null;
 	redirectTarget: string | null;
 }
 
@@ -61,7 +60,6 @@ export interface IAuthComponent {
 }
 
 export interface GuestAuthState {
-	error: string | null;
 	isRegisterMode: boolean;
 	needsVerification: boolean;
 }

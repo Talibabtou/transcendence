@@ -1,5 +1,6 @@
 import Navigo from 'navigo';
 import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
+import { NotificationManager } from './notification-manager';
 
 // =========================================
 // TYPES & CONSTANTS
@@ -508,7 +509,7 @@ export class Router {
 				}
 			});
 		} catch (error) {
-			console.error('Error cleaning up auth components:', error);
+			NotificationManager.handleError(error);
 		}
 	}
 	

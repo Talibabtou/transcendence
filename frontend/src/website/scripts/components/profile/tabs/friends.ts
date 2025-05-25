@@ -1,5 +1,5 @@
 import { Component } from '@website/scripts/components';
-import { DbService, html, render } from '@website/scripts/services';
+import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 import { UserProfile } from '@website/types';
 import { IReplyGetFriend } from '@shared/types/friends.types';
 
@@ -44,12 +44,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	private initCurrentUser(): void {
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (currentUserJson) {
-			try {
-				const currentUser = JSON.parse(currentUserJson);
-				this.updateInternalState({ currentUserId: currentUser.id.toString() });
-			} catch (error) {
-				console.error('Error parsing current user data:', error);
-			}
+			const currentUser = JSON.parse(currentUserJson);
+			this.updateInternalState({ currentUserId: currentUser.id });
 		}
 	}
 	
@@ -138,7 +134,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				});
 			}
 		} catch (error) {
-			console.error('Error loading friends data:', error);
+			NotificationManager.showError('Failed to load friends data');
 			this.updateInternalState({
 				pendingFriends: [],
 				acceptedFriends: [],
@@ -153,7 +149,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			await DbService.removeFriend(friendId);
 			await this.loadFriendsData();
 		} catch (error) {
-			console.error('Error removing friend:', error);
+			NotificationManager.showError('Failed to remove friend');
 		}
 	}
 	
@@ -162,7 +158,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			await DbService.acceptFriendRequest(friendId);
 			await this.loadFriendsData();
 		} catch (error) {
-			console.error('Error accepting friend request:', error);
+			NotificationManager.showError('Failed to accept friend request');
 		}
 	}
 	

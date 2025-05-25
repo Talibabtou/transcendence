@@ -8,8 +8,11 @@ scrape_configs:
       - targets: ['localhost:9090']
 
   - job_name: 'cadvisor'
+    scheme: https
+    tls_config:
+      insecure_skip_verify: true
     static_configs:
-      - targets: ['cadvisor:8080']
+      - targets: ['cadvisor:8090']
     
   - job_name: 'game-service'
     static_configs:

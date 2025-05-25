@@ -1,0 +1,118 @@
+/* Notification Container */
+.notification-container {
+	position: fixed;
+	bottom: calc(var(--footer-height) + 1rem); /* Position above footer */
+	right: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	z-index: var(--z-notification); /* Use z-index variable from main.css */
+	max-width: 25rem;
+	width: 100%;
+}
+
+/* Rest of the notification styles remain unchanged */
+.notification {
+	padding: 0.875rem 1rem;
+	box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.2);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	font-size: 0.875rem;
+	opacity: 0.95;
+	transition: all 0.3s ease;
+	overflow: hidden;
+	position: relative;
+}
+
+.notification-message {
+	flex: 1;
+	margin-right: 0.5rem;
+	word-break: break-word;
+}
+
+/* Close Button */
+.notification-close {
+	background: none;
+	border: none;
+	font-size: 1.25rem;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	color: inherit;
+	opacity: 0.7;
+	transition: opacity 0.2s;
+}
+
+.notification-close:hover {
+	opacity: 1;
+}
+
+/* Notification Types */
+.notification-error {
+	background-color: rgba(255, 100, 100, 0.3);
+	border: 1px solid var(--loss-color);
+	color: var(--loss-color);
+}
+
+.notification-warning {
+	background-color: rgba(255, 204, 0, 0.3);
+	border: 1px solid var(--warning-color, #ffcc00);
+	color: var(--warning-color, #ffcc00);
+}
+
+.notification-info {
+	background-color: rgba(33, 150, 243, 0.3);
+	border: 1px solid var(--info-color, #2196f3);
+	color: var(--info-color, #2196f3);
+}
+
+.notification-success {
+	background-color: rgba(76, 175, 80, 0.3);
+	border: 1px solid var(--win-color);
+	color: var(--win-color);
+}
+
+/* Enter/Exit Animations */
+.notification-enter {
+	animation: notification-in 0.3s both ease-out;
+}
+
+.notification-exit {
+	animation: notification-out 0.3s both ease-in;
+}
+
+@keyframes notification-in {
+	0% {
+		transform: translateX(120%);
+		opacity: 0;
+	}
+	100% {
+		transform: translateX(0);
+		opacity: 0.95;
+	}
+}
+
+@keyframes notification-out {
+	0% {
+		transform: translateX(0);
+		opacity: 0.95;
+	}
+	100% {
+		transform: translateX(120%);
+		opacity: 0;
+	}
+}
+
+/* Screen Adaptability */
+@media (max-width: 768px) {
+	.notification-container {
+		width: calc(100% - 2rem);
+		max-width: none;
+		bottom: calc(var(--footer-height) + 0.5rem); /* Keep above footer on mobile */
+		right: 0.5rem;
+		left: 0.5rem;
+	}
+}

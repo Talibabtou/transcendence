@@ -8,7 +8,6 @@ export interface ProfileState {
 	isLoading: boolean;
 	isEditing: boolean;
 	activeTab: string;
-	errorMessage?: string;
 	initialized: boolean;
 	historyPage: number;
 	historyPageSize: number;
@@ -62,15 +61,14 @@ export interface ProcessedMatch {
 export interface LeaderboardState {
 	leaderboardData: LeaderboardEntry[];
 	isLoading: boolean;
-	errorMessage?: string;
 }
 
 // Define the app state interface
 export interface AppState {
 	auth: {
-			isAuthenticated: boolean;
-			user: any | null;
-			jwtToken: string | null;
+		isAuthenticated: boolean;
+		user: any | null;
+		jwtToken: string | null;
 	};
 	accentColor: AccentColor;
 	accentColors: {
@@ -88,7 +86,6 @@ export interface ProfileSettingsState {
 	profile: UserProfile | null;
 	isUploading: boolean;
 	uploadSuccess: boolean;
-	uploadError: string | null;
 	saveSuccess: boolean;
 	noChangesMessage: string | null;
 	is2FALoading?: boolean;
@@ -117,9 +114,8 @@ export interface ProfileStatsState {
 	matchDurationChartRendered: boolean;
 	dailyActivityChartRendered: boolean;
 	goalDurationChartRendered: boolean;
-	errorMessage?: string;
-	profile?: any; // Add profile to the state
-	playerStats?: any; // Add playerStats to the state
+	profile?: any;
+	playerStats?: any;
 	cleanup?: {
 		eloChart?: () => void;
 		matchDurationChart?: () => void;

@@ -156,67 +156,6 @@
 	vertical-align: middle;
 }
 
-/* ===== MESSAGES ===== */
-.auth-error {
-	background-color: rgba(255, 100, 100, 0.2);
-	border: 1px solid var(--error-color);
-	color: var(--error-color);
-	text-align: center;
-	margin-bottom: var(--spacing-md);
-}
-
-@keyframes shake {
-	0%, 100% { transform: translateX(-50%); }
-	10%, 30%, 50%, 70%, 90% { transform: translateX(calc(-50% - 0.3125rem)); }
-	20%, 40%, 60%, 80% { transform: translateX(calc(-50% + 0.3125rem)); }
-}
-
-.register-error {
-	position: absolute;
-	bottom: -3rem;
-	left: 50%;
-	transform: translateX(-50%);
-	background-color: rgba(255, 100, 100, 0.2);
-	border: 1px solid var(--error-color);
-	color: var(--error-color);
-	padding: 0.5rem 0.9375rem;
-	text-align: center;
-	width: 80%;
-	max-width: 31.25rem;
-	z-index: var(--z-overlay);
-}
-
-.register-error.shake {
-	animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-}
-
-/* Status messages */
-.status-message {
-	padding: var(--spacing-sm);
-	margin: var(--spacing-sm) 0;
-	text-align: center;
-	border-radius: 4px;
-}
-
-.error-message {
-	background-color: rgba(255, 100, 100, 0.2);
-	border: 1px solid var(--error-color);
-	color: var(--error-color);
-}
-
-.success-message {
-	background-color: rgba(152, 251, 152, 0.1);
-	border: 1px solid var(--win-color);
-	color: var(--win-color);
-}
-
-.loading-text {
-	text-align: center;
-	padding: var(--spacing-md);
-	color: var(--text-color);
-	font-size: var(--font-size-small);
-}
-
 /* ===== LINKS ===== */
 .auth-links {
 	margin-top: var(--spacing-md);
