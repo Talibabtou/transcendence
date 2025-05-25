@@ -48,12 +48,12 @@ export async function getTournament(
     }
     let matchesHistory: TournamentMatch[] = [];
     for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_1}`;
       const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
       const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
       let responseDataUsername2: IUsername;
 			let matchHistory: TournamentMatch;
-			const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+			const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_2}`;
 			const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
 			responseDataUsername2 = (await responseUsername2.json()) as IUsername;
 			matchHistory = {

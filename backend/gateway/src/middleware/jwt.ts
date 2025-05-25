@@ -95,7 +95,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
     if (!request.user) return sendError(reply, 403, ErrorCodes.JWT_BAD_HEADER);
     // Check if user exist
     const id: string = (request.user as FastifyJWT['user']).id;
-    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
+    const serviceUserUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/user/${id}`;
     const user = await fetch(serviceUserUrl, { method: 'GET' });
     if (user.status >= 400) {
       request.server.log.warn(`[jwtHook] User check failed (status ${user.status}) for ID: ${id}`);
@@ -106,7 +106,7 @@ export async function jwtHook(request: FastifyRequest, reply: FastifyReply): Pro
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
     if (jwtId) {
       request.server.log.info(`[jwtHook] Checking revoked status for JWT ID: ${jwtId}`);
-      const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/revoked/${jwtId}`;
+      const serviceRevokedUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/revoked/${jwtId}`;
       const revoked = await fetch(serviceRevokedUrl, { method: 'GET' });
       if (revoked.status >= 400) {
         request.server.log.warn(

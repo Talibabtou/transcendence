@@ -49,7 +49,7 @@ export async function getFriends(
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
         if ('username' in user) friends[i].username = user.username;
@@ -59,7 +59,7 @@ export async function getFriends(
         friends[i].username = 'undefined';
       }
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
         if ('link' in pic) friends[i].pic = pic.link;
@@ -108,7 +108,7 @@ export async function getFriendsMe(
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
         if ('username' in user) friends[i].username = user.username;
@@ -118,7 +118,7 @@ export async function getFriendsMe(
         friends[i].username = 'undefined';
       }
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
         if ('link' in pic) friends[i].pic = pic.link;

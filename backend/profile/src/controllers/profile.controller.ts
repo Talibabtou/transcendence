@@ -46,11 +46,13 @@ export async function getHistory(
   reply: FastifyReply
 ): Promise<void> {
   try {
+		console.log("getHistory");
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8083/match/history/${id}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/match/history/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[];
+		console.log(responseData);
     return reply.code(200).send(responseData);
   } catch (err) {
     request.server.log.error(err);
@@ -71,27 +73,28 @@ export async function getSummary(
   reply: FastifyReply
 ): Promise<void> {
   try {
+		console.log("getSummary");
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     let reponseDataMatchSummary: PlayerMatchSummary | ErrorResponse = {} as PlayerMatchSummary;
     let reponseDataUser: IReplyUser | ErrorResponse = {} as IReplyUser;
     let reponseDataPic: IReplyPic | ErrorResponse = {} as IReplyPic;
     try {
-      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/match/summary/${id}`;
+      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/match/summary/${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
       reponseDataMatchSummary = (await response.json()) as PlayerMatchSummary | ErrorResponse;
     } catch (err) {
       request.server.log.error(err);
     }
     try {
-      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${id}`;
+      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/user/${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
       reponseDataUser = (await response.json()) as IReplyUser | ErrorResponse;
     } catch (err) {
       request.server.log.error(err);
     }
     try {
-      const serviceUrlPic = `http://${process.env.PROFILE_ADDR || 'localhost'}:8081/pics/${id}`;
+      const serviceUrlPic = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}/pics/${id}`;
       const responsePic = await fetch(serviceUrlPic, { method: 'GET' });
       reponseDataPic = (await responsePic.json()) as IReplyPic | ErrorResponse;
     } catch (err) {

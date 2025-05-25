@@ -220,7 +220,7 @@ export async function getLeaderboard(
     )) as LeaderboardEntry[];
     for (let i = 0; i < leaderboard.length; i++) {
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/user/${leaderboard[i].player}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/user/${leaderboard[i].player}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IReplyUser | ErrorResponse;
         if ('username' in user && user.username !== 'ai') {

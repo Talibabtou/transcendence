@@ -109,13 +109,13 @@ export async function getMatchHistory(
     }
     const matchesHistory: MatchHistory[] = [];
     for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${id}`;
+      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
       const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
       const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
       let responseDataUsername2: IUsername;
 			let matchHistory: MatchHistory;
       if (id === matches[i].player_1) {
-        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_2}`;
         const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
         responseDataUsername2 = (await responseUsername2.json()) as IUsername;
         matchHistory = {
@@ -130,7 +130,7 @@ export async function getMatchHistory(
           created_at: matches[i].created_at || 'undefined',
         };
       } else {
-        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_1}`;
         const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
          responseDataUsername2 = (await responseUsername2.json()) as IUsername;
 				 matchHistory = {

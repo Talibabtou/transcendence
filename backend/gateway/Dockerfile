@@ -1,6 +1,9 @@
 # Stage 1: Build and test
 FROM node:23.6-alpine AS build
 
+ARG GATEWAY_PORT
+ENV PORT=${GATEWAY_PORT}
+
 WORKDIR /app
 COPY package.json ./
 COPY tsconfig.json ./
@@ -20,4 +23,5 @@ COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
 
+EXPOSE ${PORT}
 CMD ["node", "dist/server.js"]

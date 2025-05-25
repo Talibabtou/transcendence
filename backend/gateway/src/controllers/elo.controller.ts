@@ -17,7 +17,7 @@ import { Elo, LeaderboardEntry, GetElosQuery } from '../shared/types/elo.type.js
 export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuery }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Elo[] | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -39,7 +39,7 @@ export async function getElos(request: FastifyRequest<{ Querystring: GetElosQuer
 export async function getElo(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Elo | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -61,7 +61,7 @@ export async function getElo(request: FastifyRequest<{ Params: IId }>, reply: Fa
 export async function getLeaderboard(request: FastifyRequest, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as LeaderboardEntry[] | ErrorResponse;
     return reply.code(response.status).send(reponseData);

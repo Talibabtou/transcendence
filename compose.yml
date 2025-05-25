@@ -12,7 +12,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend_nginx
+    container_name: frontend
     ports:
       - "8080:80"
       - "8043:443"
@@ -111,15 +111,19 @@ services:
   #     - "container_name=grafana"
 
   gateway:
-    build: ./backend/gateway
+    build: 
+      context: ./backend/gateway
+      args:
+        - GATEWAY_PORT=${GATEWAY_PORT:-8085}
     container_name: gateway
     env_file:
       - .env
     environment:
       - SSL_KEY_PATH=/etc/certs/nginx.key
       - SSL_CERT_PATH=/etc/certs/nginx.crt
+      - GATEWAY_PORT=${GATEWAY_PORT:-8085}
     ports:
-      - 8085:8085
+      - "${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}"
     networks:
       - transcendance-net
     volumes:
@@ -129,7 +133,7 @@ services:
       cert-generator:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "-k", "https://gateway:8085/api/v1/health"]
+      test: ["CMD", "curl", "-f", "-k", "https://gateway:${GATEWAY_PORT:-8085}/api/v1/health"]
       interval: 10s
       timeout: 10s
       start_period: 5s

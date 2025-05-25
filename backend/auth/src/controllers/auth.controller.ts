@@ -136,7 +136,7 @@ export async function addUser(
       [userLower]
     );
     if (user !== undefined) {
-      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
+      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/elo/${user.id}`;
       const response = await fetch(serviceUrl, { method: 'POST' });
       if (response.status !== 201) throw new Error('Create elo failed');
     } else throw new Error('Create user failed');
