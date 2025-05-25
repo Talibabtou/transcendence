@@ -64,6 +64,12 @@ export class DbService {
 	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (response.status === 403) {
+			console.warn('Session expired or unauthorized, deconnection...');
+			const { appState } = await import('../utils/app-state');
+      appState.logout();
+			throw new Error('Your session has expired. You have to login again.');
+		}
 		if (!response.ok) {
 			const errorData: ErrorResponse = await response.json().catch(() => ({
 				statusCode: response.status,
