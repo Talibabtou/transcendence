@@ -12,10 +12,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private maxPlayers: number = 2;
 	private onShowTournamentSchedule?: () => void;
 	
-	// =========================================
-	// INITIALIZATION & LIFECYCLE
-	// =========================================
-	
 	/**
 	 * Creates a new players registration component
 	 * @param container - The HTML element to render the component into

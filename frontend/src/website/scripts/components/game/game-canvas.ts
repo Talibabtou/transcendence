@@ -1,38 +1,17 @@
 import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
-import { GameMode } from '@website/types';
+import { GameMode, GameCanvasState } from '@website/types';
 import { NotificationManager } from '@website/scripts/services';
 
-// =========================================
-// TYPES & CONSTANTS
-// =========================================
-
-/**
- * Game canvas component state interface
- */
-interface GameCanvasState {
-	visible: boolean;
-	isPlaying: boolean;
-	isPaused: boolean;
-}
-
-// =========================================
-// GAME CANVAS COMPONENT
-// =========================================
-
 export class GameCanvasComponent extends Component<GameCanvasState> {
-	// =========================================
-	// PROPERTIES
-	// =========================================
-	
 	private canvas: HTMLCanvasElement | null = null;
 	private gameManager: GameManager;
 	private gameEngine: GameEngine | null = null;
-
-	// =========================================
-	// INITIALIZATION
-	// =========================================
 	
+	/**
+	 * Creates a new game canvas component
+	 * @param container The HTML element to render the component into
+	 */
 	constructor(container: HTMLElement) {
 		super(container, {
 			visible: false,
@@ -43,18 +22,22 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 		this.gameManager = GameManager.getInstance();
 	}
 
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
-	
+	/**
+	 * Prepares the component before rendering
+	 */
 	beforeRender(): void {
-		// Preparation before rendering
 	}
 
+	/**
+	 * Renders the component
+	 */
 	render(): void {
 		this.container.innerHTML = '';
 	}
 	
+	/**
+	 * Cleans up resources used by the component
+	 */
 	destroy(): void {
 		super.destroy();
 	}
@@ -81,27 +64,21 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			isPlaying: true
 		});
 
-		// Tell the game manager to start the game in our container with player info
 		this.gameManager.startMainGame(mode, this.container, playerInfo);
 
 		if (this.gameEngine) {
-			// Set player names if available
 			if (playerInfo?.playerNames && playerInfo.playerNames.length > 0) {
 				const player1Name = playerInfo.playerNames[0] || 'Player 1';
 				const player2Name = playerInfo.playerNames.length > 1 ? playerInfo.playerNames[1] : 'Player 2';
 				this.gameEngine.setPlayerNames(player1Name, player2Name);
 			}
 			
-			// Set player colors
 			if (playerInfo?.playerColors && playerInfo.playerColors.length > 0) {
 				const player1Color = playerInfo.playerColors[0] || '#ffffff';
 				const player2Color = playerInfo.playerColors.length > 1 ? playerInfo.playerColors[1] : '#ffffff';
-				
-				// Pass both colors to the game engine
 				this.gameEngine.updatePlayerColors(player1Color, player2Color);
 			}
 			
-			// Set player IDs if available
 			if (playerInfo?.playerIds && playerInfo.playerIds.length > 0) {
 				this.gameEngine.setPlayerIds(playerInfo.playerIds);
 			}
@@ -113,14 +90,12 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 */
 	stopGame(): void {
 		try {
-			// Update internal state first
 			this.updateInternalState({
 				visible: false,
 				isPlaying: false,
 				isPaused: false
 			});
 			
-			// Then clean up the game
 			this.gameManager.cleanupMainGame();
 		} catch (error) {
 			this.gameManager.cleanupMainGame();
@@ -132,7 +107,6 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * @returns True if the game is over, false otherwise
 	 */
 	isGameOver(): boolean {
-		// Only check if component is in a valid state
 		if (!this.getInternalState().isPlaying) {
 			return false;
 		}

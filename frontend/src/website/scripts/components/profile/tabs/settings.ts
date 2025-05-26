@@ -1,8 +1,7 @@
 import { Component } from '@website/scripts/components';
-import { appState, hashPassword } from '@website/scripts/utils';
+import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
-import { AppStateManager } from '@website/scripts/utils/app-state';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
@@ -26,89 +25,14 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		});
 		window.addEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
 	}
+
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
-	private handleExternalThemeUpdate(event: Event): void {
-		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
-		if (customEvent.detail && this.getInternalState().profile) {
-			if (customEvent.detail.userId === this.getInternalState().profile!.id) {
-				this.render();
-			}
-		}
-	}
-	
-	public setProfile(profile: UserProfile): void {
-		const currentComponentState = this.getInternalState();
-		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
-		
-		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
-			this.initialDbUsername = profile.username || '';
-			this.initialDbEmail = null;
-			
-			this.updateInternalState({
-				profile: {
-					...profile,
-					preferences: {
-						...(profile.preferences || {}),
-						accentColor: userAccentColor
-					}
-				}
-			});
-			
-			if (profile.id) {
-				Promise.all([
-					DbService.getUser(profile.id),
-					DbService.check2FAStatus()
-				])
-				.then(([userFromDb, twoFactorEnabled]) => {
-					this.initialDbUsername = userFromDb.username;
-					this.initialDbEmail = userFromDb.email || null;
-					
-					this.updateInternalState({
-						profile: {
-							...profile,
-							username: userFromDb.username,
-							twoFactorEnabled,
-							preferences: {
-								...(profile.preferences || {}),
-								accentColor: userAccentColor
-							}
-						},
-						formData: {
-							username: userFromDb.username,
-							email: userFromDb.email || '',
-							password: '',
-							confirmPassword: '',
-						}
-					});
-					
-					setTimeout(() => {
-						const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-						if (toggle) toggle.checked = twoFactorEnabled;
-					}, 0);
-				})
-				.catch(err => {
-					console.warn('Error fetching user data:', err);
-				});
-			}
-		} else if (userAccentColor !== currentComponentState.profile?.preferences?.accentColor) {
-			this.updateInternalState({
-				profile: {
-					...currentComponentState.profile,
-					preferences: {
-						...(currentComponentState.profile.preferences || {}),
-						accentColor: userAccentColor
-					}
-				}
-			});
-		}
-	}
-	
-	public setHandlers(handlers: { onProfileUpdate?: (updatedFields: Partial<User>) => void }): void {
-		if (handlers.onProfileUpdate) {
-			this.onProfileUpdate = handlers.onProfileUpdate;
-		}
-	}
-	
+	/**
+	 * Renders the profile settings component
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
@@ -177,7 +101,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						<div class="security-options">
 							<h4 class="section-title">2FA Authentication</h4>
 							<div class="toggle-container">
-								<label class="toggle-label">Enable Two-Factor Authentication</label>
+								<label class="toggle-label">Two-Factor Authentication</label>
 								<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
 									<input 
 										type="checkbox" 
@@ -266,7 +190,121 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Handle file upload for profile picture
+	 * Cleans up event listeners and component resources
+	 */
+	destroy(): void {
+		window.removeEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
+		super.destroy();
+	}
+	
+	/**
+	 * Returns the DOM container for this component
+	 */
+	public getDOMContainer(): HTMLElement {
+		return this.container;
+	}
+
+	// =========================================
+	// PUBLIC API METHODS
+	// =========================================
+	
+	/**
+	 * Sets the user profile for the settings component
+	 */
+	public setProfile(profile: UserProfile): void {
+		const currentComponentState = this.getInternalState();
+		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
+		
+		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
+			this.initialDbUsername = profile.username || '';
+			this.initialDbEmail = null;
+			
+			this.updateInternalState({
+				profile: {
+					...profile,
+					preferences: {
+						...(profile.preferences || {}),
+						accentColor: userAccentColor
+					}
+				}
+			});
+			
+			if (profile.id) {
+				Promise.all([
+					DbService.getUser(profile.id),
+					DbService.check2FAStatus()
+				])
+				.then(([userFromDb, twoFactorEnabled]) => {
+					this.initialDbUsername = userFromDb.username;
+					this.initialDbEmail = userFromDb.email || null;
+					
+					this.updateInternalState({
+						profile: {
+							...profile,
+							username: userFromDb.username,
+							twoFactorEnabled,
+							preferences: {
+								...(profile.preferences || {}),
+								accentColor: userAccentColor
+							}
+						},
+						formData: {
+							username: userFromDb.username,
+							email: userFromDb.email || '',
+							password: '',
+							confirmPassword: '',
+						}
+					});
+					
+					setTimeout(() => {
+						const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+						if (toggle) toggle.checked = twoFactorEnabled;
+					}, 0);
+				})
+				.catch(err => {
+					console.warn('Error fetching user data:', err);
+				});
+			}
+		} else if (userAccentColor !== currentComponentState.profile?.preferences?.accentColor) {
+			this.updateInternalState({
+				profile: {
+					...currentComponentState.profile,
+					preferences: {
+						...(currentComponentState.profile.preferences || {}),
+						accentColor: userAccentColor
+					}
+				}
+			});
+		}
+	}
+	
+	/**
+	 * Sets handlers for component events
+	 */
+	public setHandlers(handlers: { onProfileUpdate?: (updatedFields: Partial<User>) => void }): void {
+		if (handlers.onProfileUpdate) {
+			this.onProfileUpdate = handlers.onProfileUpdate;
+		}
+	}
+
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
+	/**
+	 * Handles theme updates from external sources
+	 */
+	private handleExternalThemeUpdate(event: Event): void {
+		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
+		if (customEvent.detail && this.getInternalState().profile) {
+			if (customEvent.detail.userId === this.getInternalState().profile!.id) {
+				this.render();
+			}
+		}
+	}
+	
+	/**
+	 * Handles file upload for profile picture
 	 */
 	private handleFileChange(event: Event): void {
 		const input = event.target as HTMLInputElement;
@@ -286,7 +324,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				return;
 			}
 			
-			if (file.size > 1 * 1024 * 1024) { // 1MB
+			if (file.size > 1 * 1024 * 1024) {
 				NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
 				this.updateInternalState({
 					uploadSuccess: false,
@@ -313,7 +351,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					});
 				})
 				.catch(error => {
-					// Don't show error if it's just a null response
 					if (error instanceof TypeError && error.message.includes('null')) {
 						NotificationManager.showSuccess('Profile picture updated successfully');
 						this.updateInternalState({
@@ -332,7 +369,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Handle color selection
+	 * Handles color selection for accent color
 	 */
 	private handleColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
@@ -345,7 +382,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Handle form input changes
+	 * Handles form input changes
 	 */
 	private handleInputChange(event: Event): void {
 		const input = event.target as HTMLInputElement;
@@ -360,7 +397,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Handle form submission
+	 * Handles form submission
 	 */
 	private async handleSubmit(event: Event): Promise<void> {
 		event.preventDefault();
@@ -391,10 +428,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 		
 		if (Object.keys(errors).length > 0) {
-			// Show validation errors in UI
 			this.updateInternalState({ formErrors: errors, saveSuccess: false, noChangesMessage: null });
 			
-			// Also show the first error in a notification
 			const firstError = Object.values(errors)[0];
 			NotificationManager.showError(firstError);
 			return;
@@ -410,7 +445,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			updateData.email = state.formData.email;
 		}
 		if (state.formData.password) {
-			// Hash the password before sending to the database
 			updateData.password = await hashPassword(state.formData.password);
 		}
 		
@@ -443,7 +477,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			formErrors: { form: undefined }
 		});
 		
-		// Propagate necessary changes
 		const actualChangesForParent: Partial<User> = {};
 		if (updateData.username) actualChangesForParent.username = newUsername;
 		if (updateData.email !== undefined) actualChangesForParent.email = newEmail || undefined;
@@ -492,62 +525,41 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 	
-	/**
-	 * Helper method to update auth user in storage
-	 */
-	private updateAuthUserInStorage(updatedUser: any): void {
-		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
-		if (authUserJson) {
-			const authUser = JSON.parse(authUserJson);
-			const updatedAuthUser = {
-				...authUser,
-				pseudo: updatedUser.username,
-				username: updatedUser.username,
-				email: updatedUser.email || authUser.email
-			};
-			
-			if (localStorage.getItem('auth_user')) {
-				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			} else if (sessionStorage.getItem('auth_user')) {
-				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			}
-		}
-	}
-	
-	public getDOMContainer(): HTMLElement {
-		return this.container;
-	}
-	
-	destroy(): void {
-		window.removeEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
-		super.destroy();
-	}
+	// =========================================
+	// TWO-FACTOR AUTHENTICATION METHODS
+	// =========================================
 
+	/**
+	 * Handles toggling of two-factor authentication
+	 */
 	private async handle2FAToggle(event: Event): Promise<void> {
 		const toggle = event.target as HTMLInputElement;
+		const toggleContainer = toggle.closest('.toggle-switch');
 		const state = this.getInternalState();
 		
 		if (!state.profile) return;
 		
 		try {
 			if (toggle.checked) {
-				// Enabling 2FA
 				const qrCodeResponse = await DbService.generate2FA();
 				this.showQRCodePopup(qrCodeResponse.qrcode);
 			} else {
-				// Disabling 2FA
 				await DbService.disable2FA();
 				NotificationManager.showSuccess('Two-factor authentication disabled');
 				this.updateInternalState({
 					profile: { ...state.profile, twoFactorEnabled: false }
 				});
+				if (toggleContainer) {
+					toggleContainer.classList.remove('active');
+				}
 			}
 		} catch (error) {
-			// Error already shown by DbService via NotificationManager
-			console.error('2FA operation failed:', error);
+			NotificationManager.showError('2FA operation failed');
 			
-			// Revert toggle to previous state
 			toggle.checked = !toggle.checked;
+			if (toggleContainer) {
+				toggleContainer.classList.toggle('active', toggle.checked);
+			}
 			
 			this.updateInternalState({
 				formErrors: {
@@ -557,7 +569,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			});
 		}
 	}
-
+	
+	/**
+	 * Displays the QR code popup for 2FA setup
+	 */
 	private showQRCodePopup(qrCodeImage: string): void {
 		const popupOverlay = document.createElement('div');
 		popupOverlay.className = 'popup-overlay';
@@ -583,7 +598,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		popupOverlay.appendChild(popupContent);
 		document.body.appendChild(popupOverlay);
 		
-		// Add event listeners
 		const verifyButton = document.getElementById('verify-twofa-btn');
 		const cancelButton = document.getElementById('cancel-twofa-btn');
 		const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
@@ -595,17 +609,25 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			if (toggle) toggle.checked = false;
 		});
 	}
-
+	
+	/**
+	 * Verifies the 2FA code entered by the user
+	 */
 	private async verify2FACode(code: string): Promise<void> {
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
-			// Show notification for invalid code
 			NotificationManager.showError('Please enter a valid 6-digit code');
 			
-			// Add error styling to input
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
 			if (codeInput) {
 				codeInput.classList.add('error');
 				setTimeout(() => codeInput.classList.remove('error'), 2000);
+			}
+			
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = false;
+				toggleContainer.classList.remove('active');
 			}
 			return;
 		}
@@ -620,16 +642,27 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				}
 			});
 			
-			// Remove popup from DOM
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = true;
+				toggleContainer.classList.add('active');
+			}
+			
 			const popupOverlay = document.querySelector('.popup-overlay');
 			if (popupOverlay && popupOverlay.parentNode) {
 				popupOverlay.parentNode.removeChild(popupOverlay);
 			}
 		} catch (error) {
-			// Error already shown by DbService via NotificationManager
 			NotificationManager.showError('Failed to verify 2FA code');
 			
-			// Visual error indication
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = false;
+				toggleContainer.classList.remove('active');
+			}
+			
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
 			if (codeInput) {
 				codeInput.value = '';
@@ -639,6 +672,32 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					codeInput.placeholder = '000000';
 					codeInput.classList.remove('error');
 				}, 2000);
+			}
+		}
+	}
+
+	// =========================================
+	// HELPER METHODS
+	// =========================================
+	
+	/**
+	 * Updates the auth user in local or session storage
+	 */
+	private updateAuthUserInStorage(updatedUser: any): void {
+		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		if (authUserJson) {
+			const authUser = JSON.parse(authUserJson);
+			const updatedAuthUser = {
+				...authUser,
+				pseudo: updatedUser.username,
+				username: updatedUser.username,
+				email: updatedUser.email || authUser.email
+			};
+			
+			if (localStorage.getItem('auth_user')) {
+				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+			} else if (sessionStorage.getItem('auth_user')) {
+				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 			}
 		}
 	}

@@ -18,7 +18,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	}
 	
 	// =========================================
-	// Core Component Methods
+	// CORE METHODS
 	// =========================================
 	
 	/**
@@ -434,6 +434,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		
 		this.twoFATimeoutId = window.setTimeout(() => {
 			this.cancelTwoFactor();
+			NotificationManager.showWarning("2FA verification timed out");
 		}, 60000);
 	}
 	

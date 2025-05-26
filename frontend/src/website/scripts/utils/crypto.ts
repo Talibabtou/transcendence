@@ -15,6 +15,8 @@ export async function hashPassword(password: string): Promise<string> {
 
 /**
  * Validates password requirements based on schema requirements
+ * @param password The password to validate
+ * @returns An object with the validity of the password and a message
  */
 export function validatePassword(password: string): {valid: boolean, message: string} {
 	if (!password || password.length < 8) {
@@ -45,8 +47,10 @@ export class PasswordStrengthComponent {
 		this.initializeStaticStructure();
 	}
 	
+	/**
+	 * Initializes the static structure of the password strength component
+	 */
 	private initializeStaticStructure(): void {
-		// Create different template based on simplified mode
 		const template = html`
 			<div class="password-strength">
 				<div class="password-strength-bar">
@@ -65,11 +69,14 @@ export class PasswordStrengthComponent {
 		
 		render(template, this.container);
 		
-		// Store references to dynamic elements
 		this.strengthBar = this.container.querySelector('.password-strength-fill');
 		this.requirementsList = this.simplified ? null : this.container.querySelector('.password-requirements');
 	}
 	
+	/**
+	 * Updates the password and the strength bar
+	 * @param password The password to update
+	 */
 	updatePassword(password: string): void {
 		this.password = password;
 		this.updateStrengthBar();
@@ -78,6 +85,9 @@ export class PasswordStrengthComponent {
 		}
 	}
 	
+	/**
+	 * Updates the strength bar
+	 */
 	private updateStrengthBar(): void {
 		if (!this.strengthBar) return;
 		
@@ -101,12 +111,15 @@ export class PasswordStrengthComponent {
 		this.strengthBar.style.width = `${strengthPercentage}%`;
 	}
 	
+	/**
+	 * Updates the requirements list
+	 */
 	private updateRequirements(): void {
 		if (!this.requirementsList) return;
 		
 		const validations = [
-			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'Contains uppercase letter', valid: /[A-Z]/.test(this.password) },
+			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'Contains lowercase letter', valid: /[a-z]/.test(this.password) },
 			{ label: 'Contains a number', valid: /[0-9]/.test(this.password) }
 		];

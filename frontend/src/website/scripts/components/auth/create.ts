@@ -12,14 +12,8 @@ export class RegistrationHandler {
 		private switchToSuccessState: () => void
 	) {}
 
-	// =========================================
-	// RENDERING
-	// =========================================
-
 	/**
-	 * Renders the registration form with username, email and password fields
-	 * @param switchToLogin - Callback function to switch to login form
-	 * @returns HTML template for the registration form
+	 * Renders the registration form
 	 */
 	renderRegisterForm(switchToLogin: () => void): any {
 		return html`
@@ -62,13 +56,8 @@ export class RegistrationHandler {
 		`;
 	}
 
-	// =========================================
-	// PASSWORD MANAGEMENT
-	// =========================================
-
 	/**
-	 * Initializes the password strength component when password field is focused
-	 * @param passwordInput - The password input HTML element
+	 * Initialize password strength component
 	 */
 	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
 		if (!this.passwordStrength) {
@@ -83,8 +72,7 @@ export class RegistrationHandler {
 	}
 
 	/**
-	 * Updates password strength indicator when password input changes
-	 * @param passwordInput - The password input HTML element
+	 * Handle password input to update strength indicator
 	 */
 	handlePasswordInput(passwordInput: HTMLInputElement): void {
 		const password = passwordInput.value;
@@ -93,13 +81,8 @@ export class RegistrationHandler {
 		}
 	}
 
-	// =========================================
-	// FORM MANAGEMENT
-	// =========================================
-
 	/**
-	 * Resets form fields and password strength component
-	 * @param form - The form HTML element to reset
+	 * Reset form and password strength component
 	 */
 	private resetForm(form: HTMLFormElement): void {
 		const inputs = form.querySelectorAll('input');
@@ -115,8 +98,7 @@ export class RegistrationHandler {
 	}
 
 	/**
-	 * Handles user registration process including validation, registration and login
-	 * @param form - The registration form HTML element
+	 * Handles user registration
 	 */
 	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);

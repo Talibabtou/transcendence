@@ -11,30 +11,17 @@ declare global {
 	}
 }
 
-/**
- * NavbarComponent
- * 
- * This component is responsible for rendering the navbar and handling navigation.
- * It is used to display the navbar on the website.
- * 
- */
 export class NavbarComponent {
 	private container: HTMLElement;
 	private authButtonActive: boolean = false;
 	
-	/**
-	 * Creates a new NavbarComponent
-	 * @param container - The container element to render the navbar into
-	 */
 	constructor(container: HTMLElement) {
 		this.container = container;
-		
 		appState.subscribe((newState) => {
 			if ('auth' in newState) {
 				this.renderNavbar();
 			}
 		});
-		
 		this.renderNavbar();
 	}
 	
