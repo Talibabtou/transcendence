@@ -5,6 +5,7 @@ import { Resource } from '@opentelemetry/resources';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
+
 // Import the Fastify instrumentation using default import for CommonJS compatibility
 const { FastifyOtelInstrumentation } = fastifyOtel;
 

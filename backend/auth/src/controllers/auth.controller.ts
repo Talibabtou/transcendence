@@ -19,6 +19,7 @@ import {
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError, isValidId } from '../helper/auth.helper.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
+import { recordMediumDatabaseMetrics } from '../telemetry/metrics.js';
 
 /**
  * Retrieves the user ID for a given username.
@@ -127,14 +128,18 @@ export async function addUser(
     const ip = request.headers['from'];
     const userLower = username.toLowerCase();
     const emailLower = email.toLowerCase();
+		let startTime = performance.now();
     await request.server.db.run(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
       [userLower, password, emailLower, ip]
     );
-    const user: IReplyUser | undefined = await request.server.db.get(
+		recordMediumDatabaseMetrics('INSERT', 'users', performance.now() - startTime); // Record metric
+    startTime = performance.now();
+		const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE username = ?',
       [userLower]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (user !== undefined) {
       const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/elo/${user.id}`;
       const response = await fetch(serviceUrl, { method: 'POST' });

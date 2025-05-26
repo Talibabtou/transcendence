@@ -24,4 +24,5 @@ COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
 
 EXPOSE ${PORT}
+EXPOSE 9464
 CMD ["node", "dist/server.js"]

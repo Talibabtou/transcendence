@@ -14,7 +14,7 @@ export let eloHistogram: Histogram;
  * This function should be called *after* the OpenTelemetry SDK has started.
  */
 export function initializeMetrics() {
-  const meter = metrics.getMeter('auth-service'); // Get the meter *after* SDK start
+  const meter = metrics.getMeter('profile-service'); // Get the meter *after* SDK start
 
   fastQueryDurationHistogram = meter.createHistogram('fast_query_duration', {
     description: 'Duration of fast queries in ms',
@@ -76,7 +76,7 @@ export function initializeMetrics() {
 
 // Optional: Export the meter getter if needed elsewhere,
 // but generally import specific metrics where needed.
-export function getMeter(name = 'auth-service') {
+export function getMeter(name = 'profile-service') {
   return metrics.getMeter(name);
 }
 

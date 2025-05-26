@@ -15,3 +15,23 @@ scrape_configs:
     static_configs:
       - targets: ['game:9464']
     metrics_path: '/metrics'
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'friends-service'
+    static_configs:
+      - targets: ['friends:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'profile-service'
+    static_configs:
+      - targets: ['profile:9464']
+    metrics_path: '/metrics'
+
+  - job_name: 'gateway-service'
+    static_configs:
+      - targets: ['gateway:9464']
+    metrics_path: '/metrics'

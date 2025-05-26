@@ -24,6 +24,7 @@ import { jwtHook, jwtRegister } from './middleware/jwt.js';
 import errorHandler from './config/errorHandler.config.js';
 import { addHeaders, blockHeaders } from './config/headers.config.js';
 import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
+import { startTelemetry } from './telemetry/telemetry.js';
 
 export class Server {
   private static instance: FastifyInstance;
@@ -38,6 +39,7 @@ export class Server {
 
   public static async start(): Promise<void> {
     const server = Server.getInstance();
+		const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
@@ -65,6 +67,7 @@ export class Server {
       server.log.info(
         `Server listening at https://${process.env.GATEWAY_ADDR || '0.0.0.0'}:${process.env.GATEWAY_PORT || 8085}`
       );
+			server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
       setInterval(checkMicroservices, 2000);
     } catch (err) {
       server.log.error(err);
@@ -80,4 +83,5 @@ export class Server {
   }
 }
 
+await startTelemetry();
 Server.start();

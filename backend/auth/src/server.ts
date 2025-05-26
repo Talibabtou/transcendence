@@ -10,7 +10,6 @@ class Server {
   private static instance: FastifyInstance;
 
   private constructor() {}
-
   public static getInstance(): FastifyInstance {
     if (!Server.instance) Server.instance = fastify(fastifyConfig);
     return Server.instance;

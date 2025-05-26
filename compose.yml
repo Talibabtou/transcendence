@@ -32,6 +32,8 @@ services:
   prometheus:
     image: prom/prometheus:v3.2.0
     container_name: prometheus
+    ports:
+      - "9090:9090"
     expose:
       - 9090
     volumes:
@@ -117,6 +119,8 @@ services:
       - GATEWAY_PORT=${GATEWAY_PORT:-8085}
     ports:
       - "${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}"
+    expose:
+      - 9464
     networks:
       - frontend-net
       - transcendance-net
@@ -142,6 +146,7 @@ services:
       - .env
     expose:
       - 8081
+      - 9464
     networks:
       - transcendance-net
     volumes:
@@ -156,6 +161,7 @@ services:
       - .env
     expose:
       - 8082
+      - 9464
     networks:
       - transcendance-net
     volumes:
@@ -183,6 +189,7 @@ services:
       - .env
     expose:
       - 8084
+      - 9464
     networks:
       - transcendance-net
     volumes:

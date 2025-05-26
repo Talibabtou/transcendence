@@ -3,8 +3,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { Resource } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
-import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+
 import { initializeMetrics } from './metrics.js'; // Import the initializer
 // Import the Fastify instrumentation using default import for CommonJS compatibility
 import fastifyOtel from '@fastify/otel';
@@ -24,16 +23,10 @@ const resource = new Resource({
   [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
 });
 
-// Configure the trace exporter (pointing to Tempo)
-const traceExporter = new OTLPTraceExporter({
-  url: 'http://localhost:4318/v1/traces', // Tempo OTLP endpoint
-});
-
 // Configure the NodeSDK
 const sdk = new NodeSDK({
   resource: resource,
   metricReader: prometheusExporter,
-  spanProcessor: new BatchSpanProcessor(traceExporter),
   instrumentations: [
     // getNodeAutoInstrumentations will include http by default
     getNodeAutoInstrumentations({
