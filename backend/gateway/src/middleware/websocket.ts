@@ -17,7 +17,7 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
     (socket: WebSocket, req: FastifyRequest) => {
       const userFromJwt = req.user as AuthenticatedUser;
       const userId = userFromJwt?.id;
-
+      fastify.log.info({ user: userFromJwt });
       if (!userId) {
         fastify.log.warn('WebSocket connection missing userId after auth check. Terminating.', {
           requestId: req.id,

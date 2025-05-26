@@ -20,7 +20,7 @@ import { IUpload, IId, IReplyPic, IReplySummary } from '../shared/types/profile.
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
+    const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as IReplyPic | ErrorResponse;
     return reply.code(response.status).send(responseData);
@@ -45,7 +45,8 @@ export async function getHistory(
 ): Promise<void> {
   try {
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
+    const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
+		console.log(serviceUrl);
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[] | ErrorResponse;
     return reply.code(response.status).send(responseData);
@@ -70,7 +71,8 @@ export async function getSummary(
 ): Promise<void> {
   try {
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}`;
+    const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
+		console.log(serviceUrl);
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as IReplySummary | ErrorResponse;
     return reply.code(response.status).send(responseData);
@@ -112,7 +114,7 @@ export async function postPic(
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
+    const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}/${id}`;
     const file: MultipartFile | undefined = await request.file();
     if (!file) return sendError(reply, 404, ErrorCodes.NO_FILE_PROVIDED);
     const verif = verifTypeFile(file);
@@ -145,7 +147,7 @@ export async function deletePic(request: FastifyRequest, reply: FastifyReply): P
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath: string = request.url.split('/profile')[1];
-    const serviceUrl: string = `http://${process.env.PROFIL_ADDR || 'localhost'}:8081${subpath}/${id}`;
+    const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}/${id}`;
     const response: Response = await fetch(serviceUrl, { method: 'DELETE' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;

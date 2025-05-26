@@ -77,7 +77,7 @@ export class WebSocketClient {
 	}
 }
 
-const DEFAULT_WS_URL = 'ws://localhost:8085/ws/status';
+const DEFAULT_WS_URL = 'wss://localhost:8085/ws/status';
 
 /**
  * Connects to the WebSocket server after authentication

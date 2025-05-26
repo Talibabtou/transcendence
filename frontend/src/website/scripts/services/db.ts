@@ -416,7 +416,7 @@ export class DbService {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				userProfile.pics.link = `http://localhost:8085${userProfile.pics.link}`;
+				userProfile.pics.link = `https://localhost:8085${userProfile.pics.link}`;
 			}
 		}
 		
@@ -450,7 +450,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `http://localhost:8085/uploads/${fileName}`;
+				response.link = `https://localhost:8085/uploads/${fileName}`;
 			}
 		}
 		

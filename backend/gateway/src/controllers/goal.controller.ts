@@ -17,7 +17,7 @@ import { GetGoalsQuery, CreateGoalRequest, Goal } from '../shared/types/goal.typ
 export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQuery }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Goal[] | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -39,7 +39,7 @@ export async function getGoals(request: FastifyRequest<{ Querystring: GetGoalsQu
 export async function getGoal(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Goal | null | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -64,7 +64,7 @@ export async function createGoal(
 ) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {

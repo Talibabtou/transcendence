@@ -15,6 +15,6 @@ export default async function profilRoutes(fastify: FastifyInstance): Promise<vo
   fastify.delete<{ Params: IId }>('/uploads/:id', deletePic);
 
   fastify.get('/health', (request: FastifyRequest, reply: FastifyReply) => {
-    reply.code(204).send();
+    reply.code(200).send({ status: 'ok' });
   });
 }

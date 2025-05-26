@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 export const fastifyConfig = {
   logger: {
     transport: {
@@ -11,8 +14,8 @@ export const fastifyConfig = {
   },
   bodyLimit: 1024 * 1024, // 1 Mo
   // http2: true,
-  // https: {
-  //   key: fs.readFileSync(path.join(path.resolve(), '/certs/key.pem')),
-  //   cert: fs.readFileSync(path.join(path.resolve(), '/certs/cert.pem')),
-  // },
+  https: {
+    key: fs.readFileSync(process.env.SSL_KEY_PATH || '/etc/certs/nginx.key'),
+    cert: fs.readFileSync(process.env.SSL_CERT_PATH || '/etc/certs/nginx.crt'),
+  },
 };

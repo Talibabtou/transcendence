@@ -1,6 +1,14 @@
 export const corsConfig = {
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: [
+    'https://localhost:8043',
+    'https://localhost:8085',
+    'https://localhost:8080',
+    'http://localhost:8043',
+    'http://localhost:8085',
+    'http://localhost:8080'
+  ],
+  methods: ['GET', 'POST', 'DELETE', 'PATCH', 'PUT', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
+  optionsSuccessStatus: 200,
 };
