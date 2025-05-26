@@ -1,6 +1,6 @@
 import { Component } from '@website/scripts/components';
 import { ASCII_ART, appState } from '@website/scripts/utils';
-import { DbService, html, render, navigate } from '@website/scripts/services';
+import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { LeaderboardState } from '@website/types';
 
 export class LeaderboardComponent extends Component<LeaderboardState> {
@@ -28,6 +28,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		try {
 			await this.fetchLeaderboardData();
 		} catch (error) {
+			NotificationManager.showError('Error fetching leaderboard data');
 		} finally {
 			this.updateInternalState({ 
 				isLoading: false 

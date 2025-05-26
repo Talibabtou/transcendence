@@ -10,6 +10,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	private settingsComponent?: ProfileSettingsComponent;
 	private lastSettingsProfileId?: string;
 	private initialRenderComplete = false;
+	private dataFetchInProgress = false;
 	
 	constructor(container: HTMLElement) {
 		super(container, {
@@ -37,16 +38,16 @@ export class ProfileComponent extends Component<ProfileState> {
 		window.addEventListener('popstate', () => this.handleUrlChange());
 	}
 	
-	//--------------------------------
-	// Lifecycle Methods
-	//--------------------------------
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	/**
 	 * Initializes the component by fetching data
 	 */
 	async initialize(): Promise<void> {
 		const state = this.getInternalState();
-		if (state.initialized || state.isLoading) return;
+		if (state.initialized || state.isLoading || this.dataFetchInProgress) return;
 		
 		this.updateInternalState({ 
 			isLoading: true,
@@ -54,19 +55,19 @@ export class ProfileComponent extends Component<ProfileState> {
 		});
 		
 		try {
+			this.dataFetchInProgress = true;
 			await this.fetchProfileData();
+			this.dataFetchInProgress = false;
 			
-			this.updateInternalState({ 
-				isLoading: false 
-			});
-			
-			await this.renderView();
-			
-			this.initialRenderComplete = true;
-			
-			this.initializeTabContent();
+			// Only proceed with rendering if we successfully loaded data
+			if (state.profile) {
+				await this.renderView();
+				this.initialRenderComplete = true;
+				this.initializeTabContent();
+			}
 		} catch (error) {
-			console.error('Error initializing profile:', error);
+			NotificationManager.showError("Error initializing profile");
+			this.dataFetchInProgress = false;
 			
 			this.updateInternalState({ 
 				isLoading: false,
@@ -79,7 +80,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Renders the component based on current state
 	 */
 	render(): void {
-		if (!this.getInternalState().initialized) {
+		// Only initialize if not already in progress
+		if (!this.getInternalState().initialized && !this.dataFetchInProgress) {
 			this.initialize();
 		} else {
 			this.renderView();
@@ -100,6 +102,10 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Force a clean reload of the profile when coming from external links
 	 */
 	public loadProfile(profileId: string): void {
+		if (this.dataFetchInProgress) return;
+		
+		this.cleanupComponents();
+		
 		this.updateInternalState({
 			profile: null,
 			initialized: false,
@@ -107,6 +113,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			activeTab: 'stats',
 			currentProfileId: profileId
 		});
+		
+		// We don't need to call initialize here - it will be called by render()
 	}
 	
 	/**
@@ -120,6 +128,28 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Override the base refresh method to completely reset the component state
 	 */
 	public refresh(): void {
+		if (this.dataFetchInProgress) return;
+		
+		this.cleanupComponents();
+		
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: null,
+			friendshipStatus: null,
+			pendingFriends: [],
+			matchesCache: new Map()
+		});
+		
+		this.initialize();
+	}
+	
+	/**
+	 * Cleanup all child components
+	 */
+	private cleanupComponents(): void {
 		if (this.statsComponent) {
 			this.statsComponent = undefined;
 		}
@@ -136,24 +166,11 @@ export class ProfileComponent extends Component<ProfileState> {
 			this.settingsComponent = undefined;
 			this.lastSettingsProfileId = undefined;
 		}
-		
-		this.updateInternalState({
-			profile: null,
-			initialized: false,
-			isLoading: false,
-			activeTab: 'stats',
-			currentProfileId: null,
-			friendshipStatus: null,
-			pendingFriends: [],
-			matchesCache: new Map()
-		});
-		
-		this.initialize();
 	}
 	
-	//--------------------------------
-	// Tab Management
-	//--------------------------------
+	// =========================================
+	// TAB MANAGEMENT
+	// =========================================
 	
 	/**
 	 * Initialize the active tab content after the first render
@@ -162,6 +179,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
+		// Use requestAnimationFrame to ensure DOM is ready
 		requestAnimationFrame(() => {
 			const tabContainer = this.container.querySelector(`.tab-content`);
 			if (!tabContainer) return;
@@ -188,92 +206,152 @@ export class ProfileComponent extends Component<ProfileState> {
 
 		switch (tabName) {
 			case 'stats':
-				if (this.statsComponent) {
-					const statsContainer = this.statsComponent.getDOMContainer();
-					if (statsContainer.parentElement !== tabContentDiv) {
-						tabContentDiv.innerHTML = '';
-						tabContentDiv.appendChild(statsContainer);
-					}
-					this.statsComponent.setProfile(state.profile);
-					if (typeof this.statsComponent.refreshData === 'function') {
-						this.statsComponent.refreshData();
-					}
-					statsContainer.classList.add('active');
-				} else {
-					this.statsComponent = new ProfileStatsComponent(tabContainer);
-					this.statsComponent.setProfile(state.profile);
-				}
+				this.initializeStatsTab(tabContentDiv, tabContainer);
 				break;
 			case 'history':
-				if (this.historyComponent) {
-					const historyContainer = this.historyComponent.getDOMContainer();
-					if (historyContainer.parentElement !== tabContentDiv) {
-						tabContentDiv.innerHTML = '';
-						tabContentDiv.appendChild(historyContainer);
-					}
-					this.historyComponent.setProfile(state.profile);
-					historyContainer.classList.add('active');
-				} else {
-					this.historyComponent = new ProfileHistoryComponent(tabContainer);
-					this.historyComponent.setProfile(state.profile);
-					this.historyComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
-				}
+				this.initializeHistoryTab(tabContentDiv, tabContainer);
 				break;
 			case 'friends':
-				if (this.friendsComponent) {
-					const friendsContainer = this.friendsComponent.getDOMContainer();
-					if (friendsContainer.parentElement !== tabContentDiv) {
-						tabContentDiv.innerHTML = '';
-						tabContentDiv.appendChild(friendsContainer);
-					}
-					this.friendsComponent.setProfile(state.profile);
-					friendsContainer.classList.add('active');
-				} else {
-					this.friendsComponent = new ProfileFriendsComponent(tabContainer);
-					this.friendsComponent.setProfile(state.profile);
-					this.friendsComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
-				}
+				this.initializeFriendsTab(tabContentDiv, tabContainer);
 				break;
 			case 'settings':
-				if (this.settingsComponent && this.lastSettingsProfileId === state.profile.id) {
-					const settingsContainer = this.settingsComponent.getDOMContainer();
-					
-					if (settingsContainer.parentElement !== tabContentDiv) {
-						tabContentDiv.innerHTML = ''; 
-						tabContentDiv.appendChild(settingsContainer);
-					}
-
-					this.settingsComponent.setProfile(state.profile);
-					settingsContainer.classList.add('active');
-				} else {
-					if (this.settingsComponent) {
-						if (typeof this.settingsComponent.destroy === 'function') {
-							this.settingsComponent.destroy();
-						}
-						this.settingsComponent = undefined;
-					}
-					this.settingsComponent = new ProfileSettingsComponent(tabContainer);
-					this.settingsComponent.setProfile(state.profile);
-					this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
-					this.lastSettingsProfileId = state.profile.id;
-				}
+				this.initializeSettingsTab(tabContentDiv, tabContainer);
 				break;
 		}
+	}
+	
+	/**
+	 * Initialize the stats tab component
+	 */
+	private initializeStatsTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		if (this.statsComponent) {
+			const statsContainer = this.statsComponent.getDOMContainer();
+			if (statsContainer.parentElement !== tabContentDiv) {
+				tabContentDiv.innerHTML = '';
+				tabContentDiv.appendChild(statsContainer);
+			}
+			this.statsComponent.setProfile(state.profile);
+			statsContainer.classList.add('active');
+			this.statsComponent.refreshData();
+		} else {
+			this.statsComponent = new ProfileStatsComponent(tabContainer);
+			this.statsComponent.setProfile(state.profile);
+		}
+	}
+	
+	/**
+	 * Initialize the history tab component
+	 */
+	private initializeHistoryTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		if (this.historyComponent) {
+			const historyContainer = this.historyComponent.getDOMContainer();
+			if (historyContainer.parentElement !== tabContentDiv) {
+				tabContentDiv.innerHTML = '';
+				tabContentDiv.appendChild(historyContainer);
+			}
+			this.historyComponent.setProfile(state.profile);
+			historyContainer.classList.add('active');
+			this.historyComponent.refreshData();
+		} else {
+			this.historyComponent = new ProfileHistoryComponent(tabContainer);
+			this.historyComponent.setProfile(state.profile);
+			this.historyComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
+		}
+	}
+	
+	/**
+	 * Initialize the friends tab component
+	 */
+	private initializeFriendsTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		if (this.friendsComponent) {
+			const friendsContainer = this.friendsComponent.getDOMContainer();
+			if (friendsContainer.parentElement !== tabContentDiv) {
+				tabContentDiv.innerHTML = '';
+				tabContentDiv.appendChild(friendsContainer);
+			}
+			this.friendsComponent.setProfile(state.profile);
+			friendsContainer.classList.add('active');
+			this.friendsComponent.refreshData();
+		} else {
+			this.friendsComponent = new ProfileFriendsComponent(tabContainer);
+			this.friendsComponent.setProfile(state.profile);
+			this.friendsComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
+		}
+	}
+	
+	/**
+	 * Initialize the settings tab component
+	 */
+	private initializeSettingsTab(_tabContentDiv: Element, tabContainer: HTMLElement): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		if (this.settingsComponent) {
+			if (typeof this.settingsComponent.destroy === 'function') {
+				this.settingsComponent.destroy();
+			}
+			this.settingsComponent = undefined;
+		}
+		
+		this.settingsComponent = new ProfileSettingsComponent(tabContainer);
+		this.settingsComponent.setProfile(state.profile);
+		this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
+		this.lastSettingsProfileId = state.profile.id;
 	}
 	
 	/**
 	 * Handle tab changes with callback
 	 */
 	private handleTabChange = (tabId: string): void => {
-		if (this.getInternalState().activeTab === tabId) return;
+		if (this.getInternalState().activeTab === tabId) {
+			this.refreshActiveTab();
+			return;
+		}
 		
 		this.updateInternalState({ activeTab: tabId });
 		this.createTabComponent(tabId);
 	}
 	
-	//--------------------------------
-	// Data Fetching
-	//--------------------------------
+	/**
+	 * Refreshes the currently active tab's data
+	 */
+	private refreshActiveTab(): void {
+		const state = this.getInternalState();
+		
+		switch (state.activeTab) {
+			case 'stats':
+				if (this.statsComponent) {
+					this.statsComponent.refreshData();
+				}
+				break;
+			case 'history':
+				if (this.historyComponent) {
+					this.historyComponent.refreshData();
+				}
+				break;
+			case 'friends':
+				if (this.friendsComponent) {
+					this.friendsComponent.refreshData();
+				}
+				break;
+			case 'settings':
+				this.createTabComponent('settings');
+				break;
+		}
+	}
+	
+	// =========================================
+	// DATA FETCHING
+	// =========================================
 	
 	/**
 	 * Fetches profile data from the database
@@ -295,11 +373,13 @@ export class ProfileComponent extends Component<ProfileState> {
 		this.updateInternalState({ currentProfileId: userId });
 		
 		try {
+			// Fetch basic profile data first
 			const userProfile = await DbService.getUserProfile(userId);
 			
 			if (!userProfile) {
 				NotificationManager.showError(`User profile not found`);
-				throw new Error(`User with ID ${userId} not found`);
+				this.updateInternalState({ isLoading: false });
+				return;
 			}
 			
 			const profile = {
@@ -317,46 +397,57 @@ export class ProfileComponent extends Component<ProfileState> {
 				elo: userProfile.summary?.elo || 1000
 			};
 			
-			const isOwnProfile = this.isCurrentUserProfile(userId);
-			let pendingFriends = [];
+			this.updateInternalState({ profile });
 			
+			const isOwnProfile = this.isCurrentUserProfile(userId);
+			
+			const additionalDataPromises = [];
+			
+			let pendingFriends: any[] = [];
 			if (isOwnProfile) {
-				try {
-					const friendsResponse = await DbService.getMyFriends();
-					if (Array.isArray(friendsResponse)) {
-						const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
-						
-						let hasIncomingRequest = false;
-						
-						for (const friendship of pendingFriendships) {
-							try {
-								const friendshipStatus = await DbService.getFriendship(friendship.id);
-								
-								if (friendshipStatus && friendshipStatus.requesting !== userId) {
-									pendingFriends.push(friendship);
-									hasIncomingRequest = true;
-									break;
-								}
-							} catch (error) {
-								console.warn(`Failed to get friendship details for ${friendship.id}`, error);
+				additionalDataPromises.push(
+					DbService.getMyFriends()
+						.then(friendsResponse => {
+							if (Array.isArray(friendsResponse)) {
+								const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
+								return Promise.all(
+									pendingFriendships.map(friendship => 
+										DbService.getFriendship(friendship.id)
+											.then(friendshipStatus => ({ friendship, friendshipStatus }))
+											.catch(() => ({ friendship, friendshipStatus: null }))
+									)
+								);
 							}
-						}
-						
-						if (!hasIncomingRequest) {
-							pendingFriends = [];
-						}
-					}
-				} catch (error) {
-					console.warn('Could not fetch pending friend requests:', error);
-				}
+							return [];
+						})
+						.then(friendshipDetails => {
+							const incomingRequests = friendshipDetails
+								.filter(({ friendshipStatus }) => 
+									friendshipStatus && friendshipStatus.requesting !== userId
+								)
+								.map(({ friendship }) => friendship);
+							
+							pendingFriends = incomingRequests;
+						})
+						.catch(error => {
+							console.warn('Could not fetch pending friend requests:', error);
+						})
+				);
 			}
 			
 			let friendshipStatus = null;
 			if (!isOwnProfile) {
-				try {
-					friendshipStatus = await DbService.getFriendship(userId);
-				} catch (error) {
-				}
+				additionalDataPromises.push(
+					DbService.getFriendship(userId)
+						.then(status => {
+							friendshipStatus = status;
+						})
+						.catch(() => {})
+				);
+			}
+			
+			if (additionalDataPromises.length > 0) {
+				await Promise.all(additionalDataPromises);
 			}
 			
 			this.updateInternalState({
@@ -367,8 +458,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 		} catch (error) {
-			console.error('Error fetching profile data:', error);
-			
+			NotificationManager.showError("Error fetching profile data");
 			this.updateInternalState({ isLoading: false });
 		}
 	}
@@ -386,7 +476,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			navigate(`/profile?id=${userId}`);
 		} catch (error) {
 			NotificationManager.showError(`Could not find user: ${username}`);
-			console.error(`Could not find user with username: ${username}`, error);
 		}
 	}
 	
@@ -419,20 +508,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		
 		if (newProfileId !== state.currentProfileId) {
+			if (this.dataFetchInProgress) return;
 			
-			if (this.statsComponent) {
-				this.statsComponent = undefined;
-			}
-			if (this.historyComponent) {
-				this.historyComponent = undefined;
-			}
-			if (this.friendsComponent) {
-				this.friendsComponent = undefined;
-			}
-			if (this.settingsComponent) {
-				this.settingsComponent = undefined;
-				this.lastSettingsProfileId = undefined;
-			}
+			this.cleanupComponents();
 			
 			this.updateInternalState({
 				profile: null,
@@ -513,7 +591,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				});
 			}
 		} catch (error) {
-			console.error('Error managing friend relationship:', error);
+			NotificationManager.showError("Error managing friend relationship");
 			
 			if (isPending) {
 				friendButton.textContent = 'Pending';
@@ -698,7 +776,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			const currentUser = JSON.parse(currentUserJson);
 			return currentUser && currentUser.id && currentUser.id === profileId;
 		} catch (error) {
-			console.error('Error checking if current user profile:', error);
+			NotificationManager.showError("Error checking if current user profile");
 			return false;
 		}
 	}

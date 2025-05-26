@@ -575,7 +575,7 @@ export class GameManager {
 			try {
 				this.mainGameInstance.engine.updatePlayerColors(playerColor);
 			} catch (error) {
-				console.error('Error updating player color:', error);
+				NotificationManager.showError("Error updating player color");
 			}
 		}
 	}
@@ -728,7 +728,7 @@ export class GameManager {
 			try {
 				this.mainGameInstance.engine.setPlayerNames(player1Name, player2Name);
 			} catch (error) {
-				console.error('Error setting player names:', error);
+				NotificationManager.showError('Error setting player names');
 			}
 		}
 	}

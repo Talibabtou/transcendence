@@ -2,6 +2,7 @@ import Navigo from 'navigo';
 import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
 import { NotificationManager } from './notification-manager';
 import { Route } from '@website/types';
+import { DbService } from './db';
 
 export class Router {
 	public static routerInstance = new Navigo('/');
@@ -73,8 +74,6 @@ export class Router {
 				
 				setTimeout(() => {
 					if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
-						component.setupEventListeners();
-					} else if (this.currentRoute === Route.LEADERBOARD && typeof component.setupEventListeners === 'function') {
 						component.setupEventListeners();
 					}
 				}, 0);
@@ -148,15 +147,35 @@ export class Router {
 	private handleRouteTransition(fromRoute: Route | null, toRoute: Route): void {
 		const gameManager = GameManager.getInstance();
 		
-		if (fromRoute === Route.AUTH) {
-			Router.cleanupAuthComponent();
-			document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
-			
-			this.components.delete(toRoute);
+		// Clean up the component of the route we're leaving
+		if (fromRoute && fromRoute !== toRoute) {
+			// Special case for AUTH route
+			if (fromRoute === Route.AUTH) {
+				Router.cleanupAuthComponent();
+				document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
+			} 
+			// For Leaderboard - always destroy when navigating away
+			else if (fromRoute === Route.LEADERBOARD) {
+				const component = this.components.get(fromRoute);
+				if (component && typeof component.destroy === 'function') {
+					component.destroy();
+				}
+				this.components.delete(fromRoute);
+			}
+			// For Profile - always destroy when navigating away
+			else if (fromRoute === Route.PROFILE) {
+				const component = this.components.get(fromRoute);
+				if (component && typeof component.destroy === 'function') {
+					component.destroy();
+				}
+				this.components.delete(fromRoute);
+			}
 		}
-		
+
 		if (toRoute === Route.GAME) {
-			this.components.delete(Route.GAME);
+			if (!gameManager.isMainGameActive()) {
+				this.components.delete(Route.GAME);
+			}
 			
 			document.querySelectorAll('.section').forEach(element => {
 				if (element.id !== Route.GAME) {

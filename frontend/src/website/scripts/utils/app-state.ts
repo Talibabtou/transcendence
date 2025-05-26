@@ -248,7 +248,7 @@ export class AppStateManager {
 			try {
 				listener(newState, oldState);
 			} catch (error) {
-				console.error('Error in state change listener', error);
+				NotificationManager.showError("Error in state change listener");
 			}
 		});
 	}
@@ -357,7 +357,7 @@ export class AppStateManager {
 		try {
 			disconnectWebSocket();
 		} catch (error) {
-			console.error('Failed to disconnect WebSocket:', error);
+			NotificationManager.showError("Failed to disconnect WebSocket");
 		}
 		
 		this.setState({
@@ -477,7 +477,6 @@ export class AppStateManager {
 	 */
 	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined, userId?: string): void {
 		if (playerIndex < 1 || playerIndex > 4) {
-			console.error('Invalid player index, must be 1-4');
 			return;
 		}
 		
@@ -537,7 +536,6 @@ export class AppStateManager {
 	 */
 	public getPlayerAccentColor(playerIndex: number): string {
 		if (playerIndex < 1 || playerIndex > 4) {
-			console.error('Invalid player index, must be 1-4');
 			return AppStateManager.DEFAULT_ACCENT_COLOR;
 		}
 		
@@ -613,7 +611,7 @@ export class AppStateManager {
 		try {
 			return storedColors ? JSON.parse(storedColors) : {};
 		} catch (error) {
-			console.error('Error parsing accent colors from storage:', error);
+			NotificationManager.showError("Error parsing accent colors from storage");
 			return {};
 		}
 	}

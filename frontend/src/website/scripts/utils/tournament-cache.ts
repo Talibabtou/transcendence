@@ -1,5 +1,6 @@
 import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
 import { v4 as uuidv4 } from 'uuid';
+import { NotificationManager } from '../services/notification-manager';
 
 class TournamentCacheSingleton {
 	private static instance: TournamentCacheSingleton;
@@ -226,18 +227,9 @@ class TournamentCacheSingleton {
 	public recordGameResult(player1Score: number, player2Score: number, matchId?: number): void {
 		const currentMatch = this.getCurrentMatch();
 		if (!currentMatch) {
-			console.error("Cannot record game result: No current match found");
+			NotificationManager.showError("Cannot record game result: No current match found");
 			return;
 		}
-		
-		console.log("Recording game result:", { 
-			player1Score, 
-			player2Score, 
-			currentMatch: { 
-				player1Index: currentMatch.player1Index, 
-				player2Index: currentMatch.player2Index 
-			} 
-		});
 		
 		const winnerIndex = player1Score > player2Score ? 
 			currentMatch.player1Index : currentMatch.player2Index;
@@ -314,7 +306,7 @@ class TournamentCacheSingleton {
 			this.tournamentMatches[finalsMatchIndex].player1Index = finalist1Index;
 			this.tournamentMatches[finalsMatchIndex].player2Index = finalist2Index;
 		} else {
-			console.error("Finals match placeholder not found!");
+			NotificationManager.showError("Finals match placeholder not found");
 		}
 		
 		this.tournamentPhase = 'finals';
@@ -628,7 +620,7 @@ class TournamentCacheSingleton {
 			
 			return true;
 		} catch (error) {
-			console.error('Failed to restore tournament:', error);
+			NotificationManager.showError("Failed to restore tournament");
 			return false;
 		}
 	}
@@ -649,7 +641,7 @@ class TournamentCacheSingleton {
 			localStorage.setItem('tournament_state', JSON.stringify(state));
 			localStorage.setItem('tournament_timestamp', Date.now().toString());
 		} catch (error) {
-			console.error("Failed to save tournament state:", error);
+			NotificationManager.showError("Failed to save tournament state");
 		}
 	}
 	

@@ -140,6 +140,15 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		});
 	}
 
+		/**
+	 * Refreshes the history data
+	 */
+		public refreshData(): void {
+			const state = this.getInternalState();
+			if (state.dataLoadInProgress || !state.profile?.id) return;
+			this.fetchAndProcessMatchHistory(state.profile.id);
+		}
+
 	// =========================================
 	// EVENT HANDLERS
 	// =========================================

@@ -150,6 +150,15 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	/**
+	 * Refreshes the friends data
+	 */
+	public refreshData(): void {
+		const state = this.getInternalState();
+		if (state.dataLoadInProgress || !state.profile) return;
+		this.loadFriendsData();
+	}
+	
 	// =========================================
 	// EVENT HANDLERS
 	// =========================================

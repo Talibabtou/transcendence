@@ -23,7 +23,6 @@ export class App {
 		this.initializeGameManager();
 		this.initializeWebSocketClient();
 		this.initializeRouter();
-		this.setupEventListeners();
 	}
 
 	private initializeNotificationManager(): void {
@@ -68,9 +67,6 @@ export class App {
 		} else {
 			NotificationManager.showError('Could not find content container element');
 		}
-	}
-
-	private setupEventListeners(): void {
 	}
 }
 

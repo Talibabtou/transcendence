@@ -1,8 +1,7 @@
 import { Component } from '@website/scripts/components';
-import { appState, hashPassword } from '@website/scripts/utils';
+import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
-import { AppStateManager } from '@website/scripts/utils/app-state';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
@@ -27,9 +26,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		window.addEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
 	}
 
-	// -------------------------------------------------------------------------
-	// Lifecycle Methods
-	// -------------------------------------------------------------------------
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
 	
 	/**
 	 * Renders the profile settings component
@@ -102,7 +101,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						<div class="security-options">
 							<h4 class="section-title">2FA Authentication</h4>
 							<div class="toggle-container">
-								<label class="toggle-label">Enable Two-Factor Authentication</label>
+								<label class="toggle-label">Two-Factor Authentication</label>
 								<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
 									<input 
 										type="checkbox" 
@@ -205,9 +204,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		return this.container;
 	}
 
-	// -------------------------------------------------------------------------
-	// Public API Methods
-	// -------------------------------------------------------------------------
+	// =========================================
+	// PUBLIC API METHODS
+	// =========================================
 	
 	/**
 	 * Sets the user profile for the settings component
@@ -288,9 +287,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 
-	// -------------------------------------------------------------------------
-	// Event Handlers
-	// -------------------------------------------------------------------------
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
 	
 	/**
 	 * Handles theme updates from external sources
@@ -525,16 +524,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			});
 		}
 	}
-
-	// -------------------------------------------------------------------------
-	// Two-Factor Authentication Methods
-	// -------------------------------------------------------------------------
 	
+	// =========================================
+	// TWO-FACTOR AUTHENTICATION METHODS
+	// =========================================
+
 	/**
 	 * Handles toggling of two-factor authentication
 	 */
 	private async handle2FAToggle(event: Event): Promise<void> {
 		const toggle = event.target as HTMLInputElement;
+		const toggleContainer = toggle.closest('.toggle-switch');
 		const state = this.getInternalState();
 		
 		if (!state.profile) return;
@@ -549,11 +549,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.updateInternalState({
 					profile: { ...state.profile, twoFactorEnabled: false }
 				});
+				if (toggleContainer) {
+					toggleContainer.classList.remove('active');
+				}
 			}
 		} catch (error) {
-			console.error('2FA operation failed:', error);
+			NotificationManager.showError('2FA operation failed');
 			
 			toggle.checked = !toggle.checked;
+			if (toggleContainer) {
+				toggleContainer.classList.toggle('active', toggle.checked);
+			}
 			
 			this.updateInternalState({
 				formErrors: {
@@ -616,6 +622,13 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				codeInput.classList.add('error');
 				setTimeout(() => codeInput.classList.remove('error'), 2000);
 			}
+			
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = false;
+				toggleContainer.classList.remove('active');
+			}
 			return;
 		}
 		
@@ -629,12 +642,26 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				}
 			});
 			
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = true;
+				toggleContainer.classList.add('active');
+			}
+			
 			const popupOverlay = document.querySelector('.popup-overlay');
 			if (popupOverlay && popupOverlay.parentNode) {
 				popupOverlay.parentNode.removeChild(popupOverlay);
 			}
 		} catch (error) {
 			NotificationManager.showError('Failed to verify 2FA code');
+			
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			const toggleContainer = toggle?.closest('.toggle-switch');
+			if (toggle && toggleContainer) {
+				toggle.checked = false;
+				toggleContainer.classList.remove('active');
+			}
 			
 			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
 			if (codeInput) {
@@ -649,9 +676,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 
-	// -------------------------------------------------------------------------
-	// Helper Methods
-	// -------------------------------------------------------------------------
+	// =========================================
+	// HELPER METHODS
+	// =========================================
 	
 	/**
 	 * Updates the auth user in local or session storage

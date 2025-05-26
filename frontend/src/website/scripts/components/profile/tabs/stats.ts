@@ -1,6 +1,6 @@
 import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
 import { UserProfile, ProfileStatsState } from '@website/types';
-import { DbService, html, render } from '@website/scripts/services';
+import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 
 export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	constructor(container: HTMLElement) {
@@ -84,7 +84,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				this.renderCharts();
 			}, 0);
 		} catch (error) {
-			console.error('Error loading stats data:', error);
+			NotificationManager.showError("Error loading stats data");
 			this.updateInternalState({ 
 				dataLoadInProgress: false,
 				isLoading: false

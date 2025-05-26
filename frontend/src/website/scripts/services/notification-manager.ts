@@ -98,7 +98,7 @@ class NotificationManagerService {
 		});
 		
 		this.errorConfigMap.set(ErrorCodes.LOGIN_FAILURE, { 
-			message: 'Invalid username or password', 
+			message: 'Invalid login credentials', 
 			type: NotificationType.ERROR 
 		});
 		this.errorConfigMap.set(ErrorCodes.TWOFA_BAD_CODE, { 
@@ -229,7 +229,6 @@ class NotificationManagerService {
 		this.registerError('websocket_connection_failed', 'Failed to connect to server', NotificationType.ERROR);
 		this.registerError('websocket_disconnected', 'Disconnected from server', NotificationType.WARNING);
 		
-		this.registerError('session_expired', 'Your session has expired. Please log in again.', NotificationType.WARNING);
 		this.registerError('account_locked', 'Your account has been locked. Please contact support.', NotificationType.ERROR);
 		
 		this.registerError('unknown_error', 'An unknown error occurred', NotificationType.ERROR);
@@ -248,13 +247,12 @@ class NotificationManagerService {
 		
 		this.registerError('unique_constraint_username', 'This username is already taken', NotificationType.ERROR);
 		this.registerError('unique_constraint_email', 'This email address is already registered', NotificationType.ERROR);
-		this.registerError('unique_constraint_friendship', 'You are already friends with this user', NotificationType.INFO);
 		
 		this.registerError('service_overloaded', 'The service is experiencing high traffic. Please try again later.', NotificationType.WARNING);
 		this.registerError('maintenance', 'The system is currently undergoing maintenance', NotificationType.INFO);
 		
 		this.registerError('twofa_setup_failed', 'Failed to set up two-factor authentication', NotificationType.ERROR);
-		this.registerError('twofa_disabled', 'Two-factor authentication has been disabled', NotificationType.INFO);
+		this.registerError('twofa_disabled', 'Two-factor authentication has been disabled', NotificationType.SUCCESS);
 		
 		this.registerError('tournament_join_failed', 'Failed to join tournament', NotificationType.ERROR);
 		this.registerError('tournament_ended', 'This tournament has already ended', NotificationType.WARNING);

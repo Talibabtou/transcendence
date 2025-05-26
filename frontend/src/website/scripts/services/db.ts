@@ -68,6 +68,7 @@ export class DbService {
 			console.warn('Session expired or unauthorized, deconnection...');
 			const { appState } = await import('../utils/app-state');
 			appState.logout();
+			NotificationManager.handleErrorCode(ErrorCodes.JWT_EXP_TOKEN);
 			throw new Error('Your session has expired. You have to login again.');
 		}
 		if (!response.ok) {
@@ -424,11 +425,9 @@ export class DbService {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				userProfile.pics.link = `http://localhost:8085${userProfile.pics.link}`;
+				userProfile.pics.link = `https://localhost:8085${userProfile.pics.link}`;
 			}
 		}
-		
-		console.log(userProfile);
 		return userProfile;
 	}
 
@@ -458,7 +457,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `http://localhost:8085/uploads/${fileName}`;
+				response.link = `https://localhost:8085/uploads/${fileName}`;
 			}
 		}
 		
