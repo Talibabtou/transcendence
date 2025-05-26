@@ -373,7 +373,7 @@ export async function loginGuest(
     }
     if (data.two_factor_enabled && data.verified)
       await request.server.db.run(
-          'UPDATE users SET verified = true, two_factor_enabled = false WHERE id = ?',
+          'UPDATE users SET verified = false WHERE id = ?',
           [data.id]
         );
     const user: IReplyLogin = {

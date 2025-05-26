@@ -118,8 +118,8 @@ export class PasswordStrengthComponent {
 		if (!this.requirementsList) return;
 		
 		const validations = [
-			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'Contains uppercase letter', valid: /[A-Z]/.test(this.password) },
+			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'Contains lowercase letter', valid: /[a-z]/.test(this.password) },
 			{ label: 'Contains a number', valid: /[0-9]/.test(this.password) }
 		];

@@ -19,15 +19,11 @@ export class Router {
 			.on('/leaderboard', () => this.handleRoute(Route.LEADERBOARD))
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
 			.on('/auth', () => this.handleAuthRoute())
-			.notFound(() => {
-				this.handleRoute(Route.GAME);
-			});
+			.notFound(() => this.handleRoute(Route.GAME));
+			
 		this.setupNavClickHandlers();
-		
 		window.addEventListener('popstate', this.handlePopState.bind(this));
-		
 		Router.routerInstance.resolve();
-
 		Router.activeInstance = this;
 	}
 
@@ -37,16 +33,13 @@ export class Router {
 	
 	/**
 	 * Forces the recreation of a component on next render
-	 * @param route The route component to recreate
 	 */
 	public forceComponentRecreation(route: Route): void {
 		const component = this.components.get(route);
-		if (component) {
-			if (typeof component.destroy === 'function') {
-				component.destroy();
-			}
-			this.components.delete(route);
+		if (component && typeof component.destroy === 'function') {
+			component.destroy();
 		}
+		this.components.delete(route);
 	}
 
 	/**
@@ -58,24 +51,22 @@ export class Router {
 		const navbar = document.querySelector('nav.navbar');
 		if (navbar) {
 			const navbarComponent = (navbar as any).__component;
-			if (navbarComponent && typeof navbarComponent.renderNavbar === 'function') {
+			if (navbarComponent?.renderNavbar) {
 				navbarComponent.renderNavbar();
 			}
 		}
 		
 		const component = this.components.get(this.currentRoute);
-		if (component) {
-			if (typeof component.refresh === 'function') {
-				component.refresh();
-			} 
-			else if (typeof component.render === 'function') {
-				component.render();
-				
-				setTimeout(() => {
-					if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
-						component.setupEventListeners();
-					}
-				}, 0);
+		if (!component) return;
+		
+		if (typeof component.refresh === 'function') {
+			component.refresh();
+		} 
+		else if (typeof component.render === 'function') {
+			component.render();
+			
+			if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
+				setTimeout(() => component.setupEventListeners(), 0);
 			}
 		}
 	}
@@ -87,7 +78,6 @@ export class Router {
 	/**
 	 * Handles route changes by managing component lifecycle and visibility.
 	 * Uses a state machine approach for consistent transitions.
-	 * 
 	 * @param route - The route to handle
 	 */
 	private handleRoute(route: Route): void {
@@ -109,8 +99,7 @@ export class Router {
 		});
 		
 		const isProfileChange = route === Route.PROFILE && 
-			(urlParams.id !== this.currentParams.id || 
-				!this.components.has(route));
+			(urlParams.id !== this.currentParams.id || !this.components.has(route));
 			
 		if (isProfileChange || !this.components.has(route)) {
 			if (this.components.has(route)) {
@@ -122,12 +111,12 @@ export class Router {
 			}
 			
 			const ComponentClass = this.getComponentClass(route);
-			this.components.set(route, new ComponentClass(section));
-			this.components.get(route).render();
+			const component = new ComponentClass(section);
+			this.components.set(route, component);
+			component.render();
 			
 			setTimeout(() => {
-				const component = this.components.get(route);
-				if (component && typeof component.setupEventListeners === 'function') {
+				if (component.setupEventListeners) {
 					component.setupEventListeners();
 				}
 			}, 0);
@@ -140,31 +129,18 @@ export class Router {
 
 	/**
 	 * Handles specific route transition cases
-	 * @param fromRoute - The route we're coming from
-	 * @param toRoute - The route we're going to
 	 */
 	private handleRouteTransition(fromRoute: Route | null, toRoute: Route): void {
 		const gameManager = GameManager.getInstance();
 		
-		// Clean up the component of the route we're leaving
 		if (fromRoute && fromRoute !== toRoute) {
-			// Special case for AUTH route
 			if (fromRoute === Route.AUTH) {
 				Router.cleanupAuthComponent();
 				document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
 			} 
-			// For Leaderboard - always destroy when navigating away
-			else if (fromRoute === Route.LEADERBOARD) {
+			else if (fromRoute === Route.LEADERBOARD || fromRoute === Route.PROFILE) {
 				const component = this.components.get(fromRoute);
-				if (component && typeof component.destroy === 'function') {
-					component.destroy();
-				}
-				this.components.delete(fromRoute);
-			}
-			// For Profile - always destroy when navigating away
-			else if (fromRoute === Route.PROFILE) {
-				const component = this.components.get(fromRoute);
-				if (component && typeof component.destroy === 'function') {
+				if (component?.destroy) {
 					component.destroy();
 				}
 				this.components.delete(fromRoute);
@@ -212,14 +188,16 @@ export class Router {
 	private cleanupCurrentRoute(): void {
 		if (!this.currentRoute) return;
 		
-		const section = document.getElementById(this.currentRoute);
-		if (section) {
-			section.style.display = 'none';
+		if (this.currentRoute) {
+			const section = document.getElementById(this.currentRoute);
+			if (section) {
+				section.style.display = 'none';
+			}
 		}
 		
 		if (this.currentRoute === Route.AUTH) {
 			const authComponent = this.components.get(this.currentRoute);
-			if (authComponent && typeof authComponent.destroy === 'function') {
+			if (authComponent?.destroy) {
 				authComponent.destroy();
 			}
 			this.components.delete(this.currentRoute);
@@ -228,8 +206,7 @@ export class Router {
 		}
 		
 		const currentComponent = this.components.get(this.currentRoute);
-		if (this.currentRoute !== Route.GAME && currentComponent && typeof currentComponent.destroy === 'function') {
-			currentComponent.destroy();
+		if (this.currentRoute !== Route.GAME && currentComponent?.destroy) {
 			this.components.delete(this.currentRoute);
 		}
 		
@@ -263,9 +240,8 @@ export class Router {
 		this.currentRoute = Route.AUTH;
 		
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this), { once: true });
-		this.setupNavClickHandlers();
-
 		document.addEventListener('user-authenticated', this.handleSuccessfulAuth.bind(this), { once: true });
+		this.setupNavClickHandlers();
 	}
 	
 	/**
@@ -275,16 +251,14 @@ export class Router {
 		Router.cleanupAuthComponent();
 		
 		const routeToNavigateTo = Route.GAME;
-		
 		this.currentRoute = null;
-		
 		this.components.delete(Route.GAME);
 		
 		Router.routerInstance.navigate(`/${routeToNavigateTo}`);
 		
 		setTimeout(() => {
 			const gameComponent = this.components.get(Route.GAME) as GameComponent;
-			if (gameComponent && typeof gameComponent.resetToMenu === 'function') {
+			if (gameComponent?.resetToMenu) {
 				gameComponent.resetToMenu();
 			}
 		}, 50);
@@ -295,16 +269,14 @@ export class Router {
 	 */
 	private handleSuccessfulAuth(): void {
 		Array.from(this.components.entries()).forEach(([_route, component]) => {
-			if (typeof component.refresh === 'function') {
+			if (component.refresh) {
 				component.refresh();
-			} else if (typeof component.render === 'function') {
+			} else if (component.render) {
 				component.render();
 				
-				setTimeout(() => {
-					if (typeof component.setupEventListeners === 'function') {
-						component.setupEventListeners();
-					}
-				}, 0);
+				if (component.setupEventListeners) {
+					setTimeout(() => component.setupEventListeners(), 0);
+				}
 			}
 		});
 	}
@@ -315,12 +287,13 @@ export class Router {
 	 */
 	private handlePopState(event: PopStateEvent): void {
 		const state = event.state || {};
-		
 		const path = window.location.pathname;
 		
 		let route: Route;
 		switch (path) {
 			case '/':
+				route = Route.GAME;
+				break;
 			case '/game':
 				route = Route.GAME;
 				break;
@@ -338,8 +311,7 @@ export class Router {
 		}
 		
 		if (state.id && route === Route.PROFILE) {
-			const urlParams: Record<string, string> = { id: state.id };
-			this.currentParams = urlParams;
+			this.currentParams = { id: state.id };
 		}
 		
 		this.forceComponentRecreation(route);
@@ -375,13 +347,11 @@ export class Router {
 	// =========================================
 
 	/**
-	 * Sets up click handlers for navigation elements.
-	 * Prevents default link behavior and uses router navigation instead.
+	 * Sets up click handlers for navigation elements
 	 */
 	private setupNavClickHandlers(): void {
 		document.querySelectorAll('.nav-item, .nav-logo').forEach(link => {
 			link.removeEventListener('click', this.navClickHandler);
-			
 			link.addEventListener('click', this.navClickHandler);
 		});
 	}
@@ -392,29 +362,36 @@ export class Router {
 	private navClickHandler = (e: Event) => {
 		e.preventDefault();
 		const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-		if (href) {
-			const currentPath = window.location.pathname;
-			const targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
+		if (!href) return;
+		
+		const currentPath = window.location.pathname;
+		
+		let targetRoute: Route;
+		if (href === '/') {
+			targetRoute = Route.GAME;
+		} else {
+			targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
+		}
 
-			if (this.currentRoute === Route.AUTH && targetRoute !== Route.AUTH) {
-				document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
-				document.removeEventListener('user-authenticated', this.handleSuccessfulAuth);
-				
-				Router.cleanupAuthComponent();
-
-				this.components.delete(targetRoute);
-			}
-			
-			if (currentPath !== href) {
-				window.history.pushState({ path: href }, '', href);
-				
-				Router.routerInstance.navigate(href, { 
-					historyAPIMethod: 'replaceState',
-					updateBrowserURL: false
-				});
-			} else {
-				this.handleRoute(targetRoute);
-			}
+		if (this.currentRoute === Route.AUTH && targetRoute !== Route.AUTH) {
+			document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
+			document.removeEventListener('user-authenticated', this.handleSuccessfulAuth);
+			Router.cleanupAuthComponent();
+			this.components.delete(targetRoute);
+		}
+		
+		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game')) {
+			this.components.delete(Route.GAME);
+		}
+		
+		if (currentPath !== href) {
+			window.history.pushState({ path: href }, '', href);
+			Router.routerInstance.navigate(href, { 
+				historyAPIMethod: 'replaceState',
+				updateBrowserURL: false 
+			});
+		} else {
+			this.handleRoute(targetRoute);
 		}
 	}
 
@@ -449,14 +426,13 @@ export class Router {
 			const router = Router.activeInstance;
 			if (router) {
 				const authComponent = router.components.get(Route.AUTH);
-				if (authComponent && typeof authComponent.destroy === 'function') {
+				if (authComponent?.destroy) {
 					authComponent.destroy();
 				}
 				router.components.delete(Route.AUTH);
 			}
 			
-			const authContainers = document.querySelectorAll('.auth-container');
-			authContainers.forEach(container => {
+			document.querySelectorAll('.auth-container').forEach(container => {
 				const parentElement = container.parentElement;
 				if (parentElement) {
 					parentElement.removeChild(container);
@@ -470,12 +446,12 @@ export class Router {
 			});
 			
 			const authSection = document.getElementById(Route.AUTH);
-			if (authSection && authSection.parentElement) {
+			if (authSection?.parentElement) {
 				authSection.parentElement.removeChild(authSection);
 			}
 			
-			const authWrappers = document.querySelectorAll('.auth-wrapper');
-			authWrappers.forEach(wrapper => {
+			// Remove auth wrappers
+			document.querySelectorAll('.auth-wrapper').forEach(wrapper => {
 				if (wrapper.parentElement) {
 					wrapper.parentElement.removeChild(wrapper);
 				}
@@ -492,12 +468,10 @@ export class Router {
 	public static forceRecreateComponent(route: Route): void {
 		if (Router.activeInstance) {
 			const component = Router.activeInstance.components.get(route);
-			if (component) {
-				if (typeof component.destroy === 'function') {
-					component.destroy();
-				}
-				Router.activeInstance.components.delete(route);
+			if (component?.destroy) {
+				component.destroy();
 			}
+			Router.activeInstance.components.delete(route);
 		}
 	}
 }
@@ -520,7 +494,7 @@ export function navigate(
 	
 	if (typeof options === 'boolean') {
 		preventReload = options;
-	} else if (typeof options === 'object') {
+	} else if (options) {
 		preventReload = options.preventReload !== false;
 		if (options.state) {
 			state = { ...state, ...options.state };
@@ -532,7 +506,6 @@ export function navigate(
 		
 		if (currentPath !== path) {
 			window.history.pushState(state, '', path);
-			
 			Router.routerInstance.navigate(path, { 
 				historyAPIMethod: 'replaceState', 
 				updateBrowserURL: false 
