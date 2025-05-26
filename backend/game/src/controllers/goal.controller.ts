@@ -7,6 +7,7 @@ import {
   recordMediumDatabaseMetrics,
   goalDurationHistogram,
   matchDurationHistogram,
+	finalTournamentCounter,
 } from '../telemetry/metrics.js';
 
 import { Goal, LongestGoal, CreateGoalRequest, GetGoalsQuery } from '../shared/types/goal.type.js';
@@ -86,12 +87,12 @@ export async function createGoal(
   const player = request.params.id;
   const { match_id, duration } = request.body;
   try {
-    const selectStartTime = performance.now(); // Timer for SELECT
+    let startTime = performance.now(); // Timer for SELECT
     const match = (await request.server.db.get(
       'SELECT * FROM matches WHERE id = ?',
       match_id
     )) as Match | null;
-    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - selectStartTime); // Record SELECT
+    recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime); // Record SELECT
     goalDurationHistogram.record(duration);
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
@@ -109,15 +110,15 @@ export async function createGoal(
     }
 
     // Use db.get() with RETURNING * to get the inserted record directly
-    const insertStartTime = performance.now(); // Timer for INSERT
+    startTime = performance.now(); // Timer for INSERT
     const newGoal = (await request.server.db.get(
       'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?) RETURNING *',
       match_id,
       player,
       duration || null
     )) as Goal;
-    recordMediumDatabaseMetrics('INSERT', 'goal', performance.now() - insertStartTime); // Record INSERT
-    const startTime = performance.now(); // Start timer
+    recordMediumDatabaseMetrics('INSERT', 'goal', performance.now() - startTime); // Record INSERT
+    startTime = performance.now(); // Start timer
     const maxGoals = await request.server.db.get(
       `
 			SELECT MAX(goal_count) as max_goals FROM (
@@ -130,9 +131,15 @@ export async function createGoal(
     );
     recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime); // Record metric
     if (maxGoals && maxGoals.max_goals == 3) {
-      console.log(`Max goals reached (${maxGoals.max_goals}), triggering final goal`);
       try {
-        await finalGoal(match, player, request.server.db);
+				await finalGoal(match, player, request.server.db);
+				const matchStatus = await request.server.db.get<{ final: boolean | number }>(
+					`SELECT final FROM matches WHERE id = ?`,
+					match_id
+				);
+				if (matchStatus && matchStatus.final) {
+					finalTournamentCounter.add(1);
+				}
       } catch (error) {
         if (error instanceof Error && error.message.startsWith(ErrorCodes.ELO_NOT_FOUND)) {
           const errorResponse = createErrorResponse(404, ErrorCodes.ELO_NOT_FOUND);
@@ -141,7 +148,6 @@ export async function createGoal(
         throw error; // Rethrow if it's not our specific error
       }
     }
-    // Return 201 Created for resource creation instead of default 200
     return reply.code(201).send(newGoal);
   } catch (error) {
     request.log.error({

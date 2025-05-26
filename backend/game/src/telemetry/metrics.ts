@@ -1,12 +1,12 @@
 import { metrics, Counter, Histogram } from '@opentelemetry/api';
 
-export let matchCreationCounter: Counter;
-export let matchDurationHistogram: Histogram;
 export let fastQueryDurationHistogram: Histogram;
 export let mediumQueryDurationHistogram: Histogram;
 export let slowQueryDurationHistogram: Histogram;
-export let matchTournamentCounter: Counter;
-
+export let matchCreationCounter: Counter;
+export let matchDurationHistogram: Histogram;
+export let tournamentCreationCounter: Counter;
+export let finalTournamentCounter: Counter;
 export let goalDurationHistogram: Histogram;
 export let eloHistogram: Histogram;
 /**
@@ -48,9 +48,12 @@ export function initializeMetrics() {
   matchCreationCounter = meter.createCounter('match_creation_total', {
     description: 'Total number of matches created',
   });
-  matchTournamentCounter = meter.createCounter('match_tournament_total', {
-    description: 'Total number of matches in a tournament',
+  tournamentCreationCounter = meter.createCounter('tournament_creation_total', {
+    description: 'Total number of tournament created',
   });
+	finalTournamentCounter = meter.createCounter('final_tournament_total', {
+		description: 'Total number of final tournament created',
+	});
   matchDurationHistogram = meter.createHistogram('match_duration_seconds', {
     description: 'Duration of matches in seconds',
   });

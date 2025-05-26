@@ -1,5 +1,4 @@
 import fastifyOtel from '@fastify/otel';
-import { initializeMetrics } from './metrics.js';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { Resource } from '@opentelemetry/resources';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -18,7 +17,7 @@ const prometheusExporter = new PrometheusExporter({
 
 // Define the resource for the service
 const resource = new Resource({
-  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'auth-service',
+  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'gateway-service', // Corrected service name
   [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
 });
 
@@ -43,8 +42,6 @@ export async function startTelemetry() {
   try {
     await sdk.start();
     console.log('OpenTelemetry SDK started successfully.');
-    // Initialize custom metrics AFTER the SDK has started
-    initializeMetrics();
     process.on('SIGTERM', async () => {
       try {
         await sdk.shutdown();

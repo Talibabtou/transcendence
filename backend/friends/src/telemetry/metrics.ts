@@ -1,14 +1,10 @@
 import { metrics, Counter, Histogram } from '@opentelemetry/api';
 
-export let matchCreationCounter: Counter;
-export let matchDurationHistogram: Histogram;
 export let fastQueryDurationHistogram: Histogram;
 export let mediumQueryDurationHistogram: Histogram;
 export let slowQueryDurationHistogram: Histogram;
-export let matchTournamentCounter: Counter;
+export let friendsRequestCreationCounter: Counter;
 
-export let goalDurationHistogram: Histogram;
-export let eloHistogram: Histogram;
 /**
  * Initializes all custom application metrics.
  * This function should be called *after* the OpenTelemetry SDK has started.
@@ -44,34 +40,10 @@ export function initializeMetrics() {
     },
   });
 
-  // Match-specific metrics
-  matchCreationCounter = meter.createCounter('match_creation_total', {
-    description: 'Total number of matches created',
-  });
-  matchTournamentCounter = meter.createCounter('match_tournament_total', {
-    description: 'Total number of matches in a tournament',
-  });
-  matchDurationHistogram = meter.createHistogram('match_duration_seconds', {
-    description: 'Duration of matches in seconds',
-  });
-
-  goalDurationHistogram = meter.createHistogram('goal_duration_seconds', {
-    description: 'Duration of goals in seconds',
-    advice: {
-      explicitBucketBoundaries: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-    },
-  });
-  //Elo-specific metrics
-  //diff match update / elo creation
-  eloHistogram = meter.createHistogram('elo_creation', {
-    description: 'Elo creations for a specific match ID',
-    advice: {
-      explicitBucketBoundaries: [
-        500, 550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350,
-        1400, 1450, 1500,
-      ],
-    },
-  });
+  // Friends-specific metrics
+	friendsRequestCreationCounter = meter.createCounter('friends_request_total', {
+		description: 'Total number of friends requests',
+	});
 }
 
 // Optional: Export the meter getter if needed elsewhere,

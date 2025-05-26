@@ -22,7 +22,7 @@ export async function getTournament(
   const { id } = request.params;
 	const { limit = 10, offset = 0 } = request.query;
   try {
-		console.log('getTournament', id, limit, offset);
+		const startTime = performance.now();
     const matches = await request.server.db.all(
       `
       SELECT 
@@ -41,7 +41,7 @@ export async function getTournament(
       `,
       ['c70efcc4-5598-c90b-17f1-ad615b4c8007', limit, offset]
     );
-		console.log('getTournament', matches);
+		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
       return reply.code(404).send(errorResponse);
@@ -70,10 +70,9 @@ export async function getTournament(
 			};
       matchesHistory.push(matchHistory);
     }
-    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
-    console.log(error);
+    request.log.error(error);
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorResponse);
   }
@@ -95,17 +94,19 @@ export async function getFinalMatches(
   const { id } = request.params;
   if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
-    const startTime = performance.now();
+    let startTime = performance.now();
     const matchCountResult = await request.server.db.get(
       'SELECT total_matches FROM tournament_match_count WHERE tournament_id = ?',
       id
     );
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     if (matchCountResult.total_matches !== 6) return sendError(reply, 400, ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT);
+		startTime = performance.now();
     const topVictories = (await request.server.db.all(
       'SELECT player_id, victory_count FROM tournament_top_victories WHERE tournament_id = ? LIMIT 4', // Ensure you get top 3
       id
     )) as Finalist[];
+		recordFastDatabaseMetrics('SELECT', 'tournament_top_victories', performance.now() - startTime);
     if (topVictories.length < 3) return sendError(reply, 400, ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS);
     let finalResult: FinalResultObject = { player_1: null, player_2: null };
     if (topVictories[1].victory_count !== topVictories[2].victory_count) {
@@ -267,6 +268,7 @@ async function topScorerTrio(
   player2: string,
   player3: string
 ): Promise<Finalist[]> {
+	const startTime = performance.now();
   const topScorersQuery = `
     SELECT g.player AS player_id, COUNT(*) AS goals_scored
     FROM goal g JOIN matches m ON g.match_id = m.id
@@ -276,6 +278,7 @@ async function topScorerTrio(
     LIMIT 3;
   `;
   const topScorers = (await db.all(topScorersQuery, [tournamentId, player1, player2, player3])) as Finalist[];
+	recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
   return topScorers;
 }
 
@@ -296,6 +299,7 @@ async function topDefenseTrio(
   player2: string,
   player3: string
 ): Promise<Finalist[]> {
+	const startTime = performance.now();
   const topDefenseQuery = `
     SELECT
         p.player_id,
@@ -319,6 +323,7 @@ async function topDefenseTrio(
     player_id: string;
     goals_conceded: number;
   }[];
+	recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
   return topDefense;
 }
 
@@ -337,6 +342,7 @@ async function topDefenseDuo(
   player1: string,
   player2: string
 ): Promise<Finalist[]> {
+	const startTime = performance.now();
   const topDefenseQuery = `
     SELECT
         p.player_id,
@@ -360,6 +366,7 @@ async function topDefenseDuo(
     player_id: string;
     goals_conceded: number;
   }[];
+	recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
   return topDefense;
 }
 
@@ -380,6 +387,7 @@ async function topSpeedTrio(
   player2: string,
   player3: string
 ): Promise<Finalist[]> {
+	const startTime = performance.now();
   const topSpeedQuery = `
 		SELECT g.player AS player_id, COALESCE(SUM(g.duration), 0) AS total_duration
 		FROM goal g JOIN matches m ON g.match_id = m.id
@@ -389,6 +397,7 @@ async function topSpeedTrio(
 		LIMIT 3;
 		`;
   const topSpeed = (await db.all(topSpeedQuery, [tournamentId, player1, player2, player3])) as Finalist[];
+	recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
   return topSpeed;
 }
 
@@ -407,6 +416,7 @@ async function topSpeedDuo(
   player1: string,
   player2: string
 ): Promise<Finalist[]> {
+	const startTime = performance.now();
   const topSpeedQuery = `
 		SELECT g.player AS player_id, COALESCE(SUM(g.duration), 0) AS goal_duration
 		FROM goal g JOIN matches m ON g.match_id = m.id
@@ -416,6 +426,7 @@ async function topSpeedDuo(
 		LIMIT 2;
 		`;
   const topSpeed = (await db.all(topSpeedQuery, [tournamentId, player1, player2])) as Finalist[];
+	recordFastDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
   return topSpeed;
 }
 
