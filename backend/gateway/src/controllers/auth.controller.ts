@@ -15,6 +15,13 @@ import { sendError } from '../helper/friends.helper.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
 
+/**
+ * Retrieves the user ID based on the provided username.
+ *
+ * @param request - FastifyRequest with username in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with user ID, 404 if not found, 500 on error.
+ */
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -28,6 +35,13 @@ export async function getId(request: FastifyRequest<{ Params: IUsername }>, repl
   }
 }
 
+/**
+ * Retrieves the username based on the provided user ID.
+ *
+ * @param request - FastifyRequest with user ID in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with username, 404 if not found, 500 on error.
+ */
 export async function getUsername(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -41,6 +55,13 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
   }
 }
 
+/**
+ * Retrieves user details based on the provided user ID.
+ *
+ * @param request - FastifyRequest with user ID in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with user details, 404 if not found, 500 on error.
+ */
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -54,6 +75,13 @@ export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: F
   }
 }
 
+/**
+ * Generates a 2FA QR code for the authenticated user.
+ *
+ * @param request - FastifyRequest with authenticated user.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with QR code, 204 if already enabled, 500 on error.
+ */
 export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -71,6 +99,13 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
+/**
+ * Validates the 2FA code for the authenticated user.
+ *
+ * @param request - FastifyRequest with authenticated user and code in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 on success, error response otherwise.
+ */
 export async function twofaValidate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -92,6 +127,13 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
+/**
+ * Registers a new user.
+ *
+ * @param request - FastifyRequest with user data in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 201 with user info, error response otherwise.
+ */
 export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
   try {
 	  const subpath = request.url.split('/auth')[1];
@@ -112,6 +154,13 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
   }
 }
 
+/**
+ * Updates user information for the authenticated user.
+ *
+ * @param request - FastifyRequest with user data in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 on success, error response otherwise.
+ */
 export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -135,6 +184,13 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
   }
 }
 
+/**
+ * Disables 2FA for the authenticated user.
+ *
+ * @param request - FastifyRequest with authenticated user.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 on success, error response otherwise.
+ */
 export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
 	  const id: string = (request.user as FastifyJWT['user']).id;
@@ -152,6 +208,13 @@ export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }
   }
 }
 
+/**
+ * Logs out the authenticated user.
+ *
+ * @param request - FastifyRequest with authenticated user.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 on success, error response otherwise.
+ */
 export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   try {
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
@@ -176,6 +239,13 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+/**
+ * Logs in a user with provided credentials.
+ *
+ * @param request - FastifyRequest with login data in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with login info, 204 if 2FA required, error response otherwise.
+ */
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -198,6 +268,14 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
+
+/**
+ * Logs in a guest user.
+ *
+ * @param request - FastifyRequest with guest login data in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with login info, error response otherwise.
+ */
 export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -217,6 +295,13 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
   }
 }
 
+/**
+ * Retrieves the 2FA status for the authenticated user.
+ *
+ * @param request - FastifyRequest with authenticated user.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with 2FA status, error response otherwise.
+ */
 export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) {
   try {
 	  const id: string = (request.user as FastifyJWT['user']).id;

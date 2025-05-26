@@ -98,45 +98,6 @@ export const createMatchSchema = {
   },
 };
 
-export const updateMatchSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  params: {
-    type: 'object',
-    properties: {
-      id: { type: 'string', format: 'uuid' },
-    },
-    required: ['id'],
-  },
-  body: {
-    type: 'object',
-    properties: {
-      active: { type: 'boolean' },
-      duration: { type: ['integer', 'null'], minimum: 0 }, // duration in seconds
-    },
-    required: ['active', 'duration'],
-    additionalProperties: false,
-  },
-  response: {
-    200: matchSchema,
-    400: {
-      ...errorResponseSchema,
-      example: ErrorExamples.invalidFields,
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.matchNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const matchSummarySchema = {
   querystring: {
     type: 'object',

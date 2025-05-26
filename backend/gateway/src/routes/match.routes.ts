@@ -1,13 +1,3 @@
-import { FastifyInstance } from 'fastify';
-import { IId } from '../shared/types/gateway.types.js';
-import { GetMatchesQuery, CreateMatchRequest } from '../shared/types/match.type.js';
-import {
-  getMatch,
-  getMatches,
-  createMatch,
-  matchStats,
-  matchSummary,
-} from '../controllers/match.controller.js';
 import {
   getMatchSchema,
   getMatchesSchema,
@@ -15,6 +5,16 @@ import {
   matchStatsSchema,
   matchSummarySchema,
 } from '../schemas/match.schemas.js';
+import { FastifyInstance } from 'fastify';
+import {
+  getMatch,
+  getMatches,
+  createMatch,
+  matchStats,
+  matchSummary,
+} from '../controllers/match.controller.js';
+import { IId } from '../shared/types/gateway.types.js';
+import { GetMatchesQuery, CreateMatchRequest } from '../shared/types/match.type.js';
 import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {

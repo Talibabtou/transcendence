@@ -11,11 +11,6 @@ export interface LongestGoal {
   player: string;
   duration: number;
 }
-export interface MatchGoals {
-  match_id: string;
-  player: string;
-  duration: number;
-}
 
 export interface CreateGoalRequest {
   match_id: string;

@@ -3,5 +3,6 @@ import { getTournament, getFinalMatches } from '../controllers/tournament.contro
 
 export default async function tournamentRoutes(fastify: FastifyInstance): Promise<void> {
   fastify.get('/tournament/:id', getTournament);
+  
   fastify.get('/tournament/:id/final', getFinalMatches);
 }

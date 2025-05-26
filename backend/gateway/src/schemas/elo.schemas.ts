@@ -93,48 +93,6 @@ export const getElosSchema = {
   },
 };
 
-export const updatePlayerEloSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  body: {
-    type: 'object',
-    properties: {
-      winner: {
-        type: 'string',
-        format: 'uuid',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      },
-      loser: {
-        type: 'string',
-        format: 'uuid',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      },
-    },
-    required: ['winner', 'loser'],
-  },
-  response: {
-    200: {
-      type: 'object',
-      properties: {
-        winner: eloSchema,
-        loser: eloSchema,
-      },
-      required: ['winner', 'loser'],
-    },
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.playerNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const getLeaderboardSchema = {
   querystring: {
     type: 'object',

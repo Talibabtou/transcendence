@@ -1,9 +1,9 @@
 import { IId, IUsername } from '../shared/types/auth.types.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
+import { ErrorCodes } from '../shared/constants/error.const.js';
 import { sendError, isValidId } from '../helper/friends.helper.js';
 import { recordFastDatabaseMetrics } from '../telemetry/metrics.js';
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
-import { Match, Finalist, FinalResultObject, MatchHistory, TournamentMatch, GetPageQuery } from '../shared/types/match.type.js';
+import { Finalist, FinalResultObject, TournamentMatch, GetPageQuery } from '../shared/types/match.type.js';
 
 /**
  * Retrieves all matches for a specific tournament by tournament ID.
@@ -20,9 +20,9 @@ export async function getTournament(
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
+  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
 	const { limit = 10, offset = 0 } = request.query;
   try {
-		console.log('getTournament', id, limit, offset);
     const matches = await request.server.db.all(
       `
       SELECT 
@@ -39,13 +39,9 @@ export async function getTournament(
       WHERE tournament_id = ?
       ORDER BY created_at DESC LIMIT ? OFFSET ?;
       `,
-      ['c70efcc4-5598-c90b-17f1-ad615b4c8007', limit, offset]
+      [id, limit, offset]
     );
-		console.log('getTournament', matches);
-    if (!matches) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
-      return reply.code(404).send(errorResponse);
-    }
+    if (!matches) return sendError(reply, 404, ErrorCodes.MATCH_NOT_FOUND);
     let matchesHistory: TournamentMatch[] = [];
     for (let i = 0; i < matches.length; i++) {
       const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_1}`;
@@ -70,12 +66,10 @@ export async function getTournament(
 			};
       matchesHistory.push(matchHistory);
     }
-    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
-  } catch (error) {
-    console.log(error);
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 

@@ -35,10 +35,6 @@ export interface GetMatchesQuery {
   offset?: number;
 }
 
-export interface GetTournamentQuery {
-  tournament_id: string;
-}
-
 export interface TournamentMatch {
 	matchId: string;
   username1: string;
@@ -93,11 +89,6 @@ export interface IId {
 
 export interface IMatchId {
   id: string;
-}
-
-export interface GetLeaderboardQuery {
-  limit?: number;
-  offset?: number;
 }
 
 export interface Finalist {

@@ -16,11 +16,17 @@ import {
 } from '../shared/types/match.type.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { IUsername } from '../shared/types/auth.types.js';
+import { ErrorCodes } from '../shared/constants/error.const.js';
+import { sendError, isValidId } from '../helper/friends.helper.js';
 import { IId, IMatchId, MatchHistory } from '../shared/types/match.type.js';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
-//check if player 1 = player 2
-// Get a single match by ID
+/**
+ * Retrieves a single match by its ID.
+ *
+ * @param request - FastifyRequest with match ID in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with match data, 404 if not found, 400 if bad ID, 500 on error.
+ */
 export async function getMatch(
   request: FastifyRequest<{
     Params: IMatchId;
@@ -28,22 +34,26 @@ export async function getMatch(
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
+  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     const startTime = performance.now();
     const match = (await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)) as Match | null;
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
-    if (!match) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
-      return reply.code(404).send(errorResponse);
-    }
+    if (!match) return sendError(reply, 404, ErrorCodes.MATCH_NOT_FOUND);
     return reply.code(200).send(match);
-  } catch (error) {
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
-// Get multiple matches with optional filters
+/**
+ * Retrieves multiple matches, optionally filtered by player ID and active status.
+ *
+ * @param request - FastifyRequest with optional filters in query string.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with array of matches, 400 if bad ID, 500 on error.
+ */
 export async function getMatches(
   request: FastifyRequest<{
     Querystring: GetMatchesQuery;
@@ -51,6 +61,7 @@ export async function getMatches(
   reply: FastifyReply
 ): Promise<void> {
   const { player_id, active, limit = 10, offset = 0 } = request.query;
+  if (!isValidId(player_id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     let query = 'SELECT * FROM matches WHERE 1=1';
     const params = [];
@@ -69,12 +80,19 @@ export async function getMatches(
     const matches = (await request.server.db.all(query, params)) as Match[];
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     return reply.code(200).send(matches);
-  } catch (error) {
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
+/**
+ * Retrieves the match history for a player, including usernames and scores.
+ *
+ * @param request - FastifyRequest with player ID in params and pagination in query.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with match history, 404 if not found, 400 if bad ID, 500 on error.
+ */
 export async function getMatchHistory(
   request: FastifyRequest<{
     Params: IId;
@@ -84,6 +102,7 @@ export async function getMatchHistory(
 ): Promise<void> {
   const { id } = request.params;
   const { limit = 10, offset = 0 } = request.query;
+  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     const matches = await request.server.db.all(
       `
@@ -102,11 +121,7 @@ export async function getMatchHistory(
       `,
       [id, limit, offset]
     );
-    console.log('getMatchHistory', matches);
-    if (!matches) {
-      const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
-      return reply.code(404).send(errorResponse);
-    }
+    if (!matches) return sendError(reply, 404, ErrorCodes.MATCH_NOT_FOUND);
     const matchesHistory: MatchHistory[] = [];
     for (let i = 0; i < matches.length; i++) {
       const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
@@ -145,21 +160,22 @@ export async function getMatchHistory(
           created_at: matches[i].created_at || 'undefined',
         };
       }
-      console.log({ matchHistory });
       matchesHistory.push(matchHistory);
     }
-    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
-  } catch (error) {
-    console.log(error);
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
-// if tournament not more than 4 players
-//avoid 7 matchs not being a final
-//avoid 8 matches
+/**
+ * Creates a new match between two players, optionally for a tournament.
+ *
+ * @param request - FastifyRequest with match creation data in body.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 201 with new match, 400 if bad ID, 500 on error.
+ */
 export async function createMatch(
   request: FastifyRequest<{
     Body: CreateMatchRequest;
@@ -170,10 +186,10 @@ export async function createMatch(
   // destructuring to extract the required fields
   // match the CreateMatchRequest interface
   const { player_1, player_2, tournament_id } = request.body;
-
+  if (!isValidId(player_1)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+  else if (!isValidId(player_2)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     let startTime = performance.now();
-
     const prevMatches = (await request.server.db.all(
       "SELECT *, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE",
       [player_1, player_2]
@@ -193,14 +209,12 @@ export async function createMatch(
         }
       }
     }
-
     // Create new match
     startTime = performance.now(); // Start timer
     const newMatch = (await request.server.db.get(
       'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
       [player_1, player_2, tournament_id || null]
     )) as Match;
-
     // Record metrics
     recordSlowDatabaseMetrics('INSERT', 'matches', performance.now() - startTime);
     matchCreationCounter.add(1, { 'match.status': 'created' });
@@ -209,7 +223,6 @@ export async function createMatch(
         'match.tournament_id': tournament_id,
       });
     }
-
     return reply.code(201).send(newMatch);
   } catch (error) {
     request.log.error({
@@ -223,13 +236,17 @@ export async function createMatch(
             }
           : error,
     });
-
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
-// New function to get match summary for a player
+/**
+ * Retrieves a summary of matches for a player, including total matches, ELO, victories, and defeats.
+ *
+ * @param request - FastifyRequest with player ID in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with match summary, 400 if bad ID, 500 on error.
+ */
 export async function matchSummary(
   request: FastifyRequest<{
     Params: IId;
@@ -237,6 +254,7 @@ export async function matchSummary(
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
+  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     // Get player match summary
     const startTime = performance.now();
@@ -274,13 +292,17 @@ export async function matchSummary(
             }
           : error,
     });
-
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
 
-// Get match statistics for a player
+/**
+ * Retrieves detailed match statistics for a player, including goal stats, daily performance, and ELO history.
+ *
+ * @param request - FastifyRequest with player ID in params.
+ * @param reply - FastifyReply for sending the response.
+ * @returns 200 with player statistics, 400 if bad ID, 500 on error.
+ */
 export async function matchStats(
   request: FastifyRequest<{
     Params: IId;
@@ -288,6 +310,7 @@ export async function matchStats(
   reply: FastifyReply
 ): Promise<void> {
   const id = request.params.id;
+  if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     // Get daily performance for line plot
     let startTime = performance.now();
@@ -297,7 +320,6 @@ export async function matchStats(
         [id]
       )) as DailyPerformance[]) || [];
     recordSlowDatabaseMetrics('SELECT', 'player_daily_performance', performance.now() - startTime);
-
     // Get goal durations for heatmap
     startTime = performance.now();
     const goalDurationsResult = await request.server.db.all(
@@ -307,7 +329,6 @@ export async function matchStats(
     recordFastDatabaseMetrics('SELECT', 'player_goal_durations', performance.now() - startTime);
     // Transform result into array of numbers
     const goalDurations = goalDurationsResult ? goalDurationsResult.map((row: { duration: number }) => Number(row.duration)) : [];
-
     // Get match durations for histogram
     startTime = performance.now();
     const matchDurationsResult = await request.server.db.all(
@@ -319,7 +340,6 @@ export async function matchStats(
     const matchDurations = matchDurationsResult
       ? matchDurationsResult.map((row: { match_duration: number }) => Number(row.match_duration))
       : [];
-
     // Get player's Elo rating history (all data points)
     startTime = performance.now();
     const eloRatingsResult = await request.server.db.all(
@@ -329,16 +349,13 @@ export async function matchStats(
     recordMediumDatabaseMetrics('SELECT', 'elo', performance.now() - startTime);
     // Transform result into array of numbers
     const eloRatings = eloRatingsResult ? eloRatingsResult.map((row: { elo: number }) => Number(row.elo)) : [];
-
     // Calculate goal stats with safe handling of empty arrays
     let longestGoalDuration = null;
     let averageGoalDuration = null;
-
     if (goalDurations.length > 0) {
       longestGoalDuration = Math.max(...goalDurations);
       averageGoalDuration = goalDurations.reduce((sum: number, duration: number) => sum + duration, 0) / goalDurations.length;
     }
-
     // Combine all statistics into a comprehensive response
     const player_id = id;
     const playerStats: PlayerStats = {
@@ -365,8 +382,6 @@ export async function matchStats(
             }
           : error,
     });
-
-    const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
-    return reply.code(500).send(errorResponse);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }

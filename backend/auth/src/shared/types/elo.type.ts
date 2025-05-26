@@ -25,10 +25,6 @@ export interface DailyElo {
   elo: number;
 }
 
-export interface UpdatePlayerElo {
-  winner: string;
-  loser: string;
-}
 
 export interface IId {
   id: string;

@@ -57,7 +57,6 @@ export class Server {
       await server.register(websocketPlugin);
       await server.register(routes);
       await server.register(websocketRoutes);
-
       await server.listen({
         port: Number(process.env.GATEWAY_PORT) || 8085,
         host: process.env.GATEWAY_ADDR || '0.0.0.0',
