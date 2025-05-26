@@ -112,7 +112,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"SELECT\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"SELECT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": false,
@@ -129,7 +129,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"SELECT\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"SELECT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "hide": false,
@@ -141,7 +141,7 @@
           "useBackend": false
         }
       ],
-      "title": "SELECT operation time - Game",
+      "title": "SELECT operation time - Auth",
       "type": "timeseries"
     },
     {
@@ -213,7 +213,7 @@
         "x": 0,
         "y": 12
       },
-      "id": 6,
+      "id": 11,
       "options": {
         "legend": {
           "calcs": [],
@@ -235,7 +235,24 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"SELECT\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "avg by(operation) (histogram_quantile(0.9, rate(medium_query_duration_bucket[$__rate_interval])))",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "{{table}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"SELECT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "hide": false,
@@ -243,11 +260,11 @@
           "instant": false,
           "legendFormat": "{{table}}",
           "range": true,
-          "refId": "C",
+          "refId": "B",
           "useBackend": false
         }
       ],
-      "title": "SELECT operation time (slow) - Game",
+      "title": "SELECT operation time - Auth",
       "type": "timeseries"
     },
     {
@@ -293,6 +310,7 @@
               "mode": "off"
             }
           },
+          "decimals": 1,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -318,7 +336,7 @@
         "x": 0,
         "y": 24
       },
-      "id": 8,
+      "id": 6,
       "options": {
         "legend": {
           "calcs": [],
@@ -340,42 +358,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"INSERT\", job=\"game-service\"}[$__rate_interval]))",
-          "format": "heatmap",
-          "fullMetaSearch": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{table}}",
-          "range": true,
-          "refId": "A",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"INSERT\", job=\"game-service\"}[$__rate_interval]))",
-          "format": "heatmap",
-          "fullMetaSearch": false,
-          "hide": false,
-          "includeNullMetadata": false,
-          "instant": false,
-          "legendFormat": "{{table}}",
-          "range": true,
-          "refId": "B",
-          "useBackend": false
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "disableTextWrap": false,
-          "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"INSERT\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"SELECT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "hide": false,
@@ -387,7 +370,7 @@
           "useBackend": false
         }
       ],
-      "title": "INSERT operation time - Game",
+      "title": "SELECT operation time (slow) - Auth",
       "type": "timeseries"
     },
     {
@@ -458,7 +441,7 @@
         "x": 0,
         "y": 36
       },
-      "id": 11,
+      "id": 8,
       "options": {
         "legend": {
           "calcs": [],
@@ -480,7 +463,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"UPDATE\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"INSERT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "includeNullMetadata": false,
@@ -497,7 +480,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"UPDATE\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"INSERT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "hide": false,
@@ -515,7 +498,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"UPDATE\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"INSERT\", job=\"auth-service\"}[$__rate_interval]))",
           "format": "heatmap",
           "fullMetaSearch": false,
           "hide": false,
@@ -527,7 +510,147 @@
           "useBackend": false
         }
       ],
-      "title": "UPDATE operation time - Game",
+      "title": "INSERT operation time - Auth",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 0,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "linearThreshold": 0,
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": 3600000,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ms",
+          "unitScale": true
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 12,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "10.3.1",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.9, rate(medium_query_duration_bucket{operation=\"UPDATE\", job=\"auth-service\"}[$__rate_interval]))",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "{{table}}",
+          "range": true,
+          "refId": "A",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.9, rate(fast_query_duration_bucket{operation=\"UPDATE\", job=\"auth-service\"}[$__rate_interval]))",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "{{table}}",
+          "range": true,
+          "refId": "B",
+          "useBackend": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "disableTextWrap": false,
+          "editorMode": "builder",
+          "expr": "histogram_quantile(0.9, rate(slow_query_duration_bucket{operation=\"UPDATE\", job=\"auth-service\"}[$__rate_interval]))",
+          "format": "heatmap",
+          "fullMetaSearch": false,
+          "hide": false,
+          "includeNullMetadata": false,
+          "instant": false,
+          "legendFormat": "{{table}}",
+          "range": true,
+          "refId": "C",
+          "useBackend": false
+        }
+      ],
+      "title": "UPDATE operation time - Auth",
       "type": "timeseries"
     },
     {
@@ -595,7 +718,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 48
+        "y": 60
       },
       "id": 3,
       "options": {
@@ -618,7 +741,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"GET\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"GET\", job=\"auth-service\"}[$__rate_interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": false,
@@ -636,7 +759,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"POST\", job=\"game-service\"}[$__rate_interval]))",
+          "expr": "histogram_quantile(0.9, rate(http_server_duration_bucket{http_method=\"POST\", job=\"auth-service\"}[$__rate_interval]))",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": false,
@@ -648,7 +771,7 @@
           "useBackend": false
         }
       ],
-      "title": "HTTP request duration - Game",
+      "title": "HTTP request duration - Auth",
       "type": "timeseries"
     },
     {
@@ -696,7 +819,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 60
+        "y": 72
       },
       "id": 1,
       "options": {
@@ -724,7 +847,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"200\", job=\"game-service\"})",
+          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"200\", job=\"auth-service\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -741,7 +864,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"201\", job=\"game-service\"})",
+          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"201\", job=\"auth-service\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -758,7 +881,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code!=\"201\", http_status_code!=\"200\", http_status_code!=\"204\", http_status_code!=\"304\", job=\"game-service\"})",
+          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code!=\"201\", http_status_code!=\"200\", http_status_code!=\"204\", http_status_code!=\"304\", job=\"auth-service\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -775,7 +898,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"204\", job=\"game-service\"})",
+          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"204\", job=\"auth-service\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -792,7 +915,7 @@
           },
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"304\", job=\"game-service\"})",
+          "expr": "sum by(http_status_code) (http_server_duration_count{http_status_code=\"304\", job=\"auth-service\"})",
           "fullMetaSearch": false,
           "hide": false,
           "includeNullMetadata": true,
@@ -803,7 +926,7 @@
           "useBackend": false
         }
       ],
-      "title": "HTTP request count - Game",
+      "title": "HTTP request count - Auth",
       "type": "stat"
     }
   ],
@@ -819,8 +942,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Game service",
-  "uid": "a67af7ab-c7c4-423c-b980-da3f50af60cb",
+  "title": "Auth service",
+  "uid": "a67af7ab-c7c4-403c-b981-da3f50af60cb",
   "version": 1,
   "weekStart": ""
 }

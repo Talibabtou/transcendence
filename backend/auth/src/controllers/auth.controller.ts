@@ -458,6 +458,7 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
       qrcode: qrCodeImage,
       otpauth: secretCode.otpauth_url,
     };
+		request.server.log.info(`2FA generated for user ${id}`);
     return reply.code(200).send(qrCodeReponse);
   } catch (err) {
     request.server.log.error(err);
@@ -504,6 +505,7 @@ export async function twofaValidate(
       );
 		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
 		twofaEnabledCounter.add(1);
+		request.server.log.info(`2FA validated for user ${id}`);
 		return reply.code(200).send();
     }
     return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
@@ -542,7 +544,7 @@ export async function twofaDisable(
       [id]
     );
 		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
-		twofaEnabledCounter.add(-1);
+		request.server.log.info(`2FA disabled for user ${id}`);
 		return reply.code(200).send();
   } catch (err) {
     request.server.log.error(err);
