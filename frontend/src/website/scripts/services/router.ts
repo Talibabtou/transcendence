@@ -2,7 +2,6 @@ import Navigo from 'navigo';
 import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
 import { NotificationManager } from './notification-manager';
 import { Route } from '@website/types';
-import { DbService } from './db';
 
 export class Router {
 	public static routerInstance = new Navigo('/');

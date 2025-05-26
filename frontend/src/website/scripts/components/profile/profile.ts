@@ -8,7 +8,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private historyComponent?: ProfileHistoryComponent;
 	private friendsComponent?: ProfileFriendsComponent;
 	private settingsComponent?: ProfileSettingsComponent;
-	private lastSettingsProfileId?: string;
 	private initialRenderComplete = false;
 	private dataFetchInProgress = false;
 	
@@ -164,7 +163,6 @@ export class ProfileComponent extends Component<ProfileState> {
 				this.settingsComponent.destroy();
 			}
 			this.settingsComponent = undefined;
-			this.lastSettingsProfileId = undefined;
 		}
 	}
 	
@@ -305,7 +303,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		this.settingsComponent = new ProfileSettingsComponent(tabContainer);
 		this.settingsComponent.setProfile(state.profile);
 		this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
-		this.lastSettingsProfileId = state.profile.id;
 	}
 	
 	/**
