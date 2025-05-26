@@ -1,4 +1,4 @@
-import Navigo from 'navigo';
+import Navigo from 'navigo'; // @ts-ignore
 import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
 import { NotificationManager } from './notification-manager';
 import { Route } from '@website/types';
@@ -472,6 +472,18 @@ export class Router {
 				component.destroy();
 			}
 			Router.activeInstance.components.delete(route);
+		}
+	}
+
+	/**
+	 * Resets the GameComponent to its menu state.
+	 */
+	public static resetGameComponentToMenu(): void {
+		if (Router.activeInstance) {
+			const gameComponent = Router.activeInstance.components.get(Route.GAME) as GameComponent;
+			if (gameComponent?.resetToMenu) {
+				gameComponent.resetToMenu();
+			}
 		}
 	}
 }

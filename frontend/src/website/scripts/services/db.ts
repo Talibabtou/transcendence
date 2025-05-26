@@ -6,7 +6,8 @@ import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.ty
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
-
+import { GameManager } from '../components/game/game-manager';
+import { navigate, Router } from '../services/router';
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -78,6 +79,16 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
+			const gameManager = GameManager.getInstance();
+			if (gameManager.isMainGameActive()) {
+				gameManager.cleanupMainGame();
+				gameManager.showBackgroundGame();
+				navigate('/');
+
+				setTimeout(() => {
+					Router.resetGameComponentToMenu();
+				}, 50);
+			}
 			throw errorData;
 		}
 		
