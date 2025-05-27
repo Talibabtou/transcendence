@@ -98,47 +98,48 @@ GROUP BY m.player_id, DATE(m.created_at);
 
 CREATE VIEW IF NOT EXISTS player_match_history AS
 SELECT
-    m.match_id,
-    m.player_id as player_id,
-    m.player_1,
-    m.player_2,
-    m.p1_score,
-    m.p2_score,
-		m.tournament_id,
-		m.final,
-    m.created_at
+  m.match_id,
+  m.player_id,
+  m.player_1,
+  m.player_2,
+  m.p1_score,
+  m.p2_score,
+  m.tournament_id,
+  m.final,
+  m.duration,
+  m.created_at
 FROM (
   -- Player 1 perspective
-  SELECT 
-    m.id AS match_id,
-    m.player_1 AS player_id,
-    m.player_1 AS player_1,
-    m.player_2 AS player_2,
-		m.tournament_id,
-		m.final,
-    m.duration, -- though not selected, it's good to have it for potential future use in the subquery
-    m.created_at AS created_at,
+  SELECT
+    m.id           AS match_id,
+    m.player_1     AS player_id,
+    m.player_1     AS player_1,
+    m.player_2     AS player_2,
+    m.tournament_id,
+    m.final,
+    m.duration,
+    m.created_at   AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
   FROM matches m
-	WHERE m.duration IS NOT NULL
-  
+  WHERE m.duration IS NOT NULL
+
   UNION ALL
-  
+
   -- Player 2 perspective
-  SELECT 
-    m.id AS match_id,
-    m.player_2 AS player_id,
-    m.player_1 AS player_1,
-    m.player_2 AS player_2,
-    m.duration, -- though not selected, it's good to have it for potential future use in the subquery
-		m.tournament_id,
-		m.final,
-	  m.created_at AS created_at,
+  SELECT
+    m.id           AS match_id,
+    m.player_2     AS player_id,
+    m.player_1     AS player_1,
+    m.player_2     AS player_2,
+    m.tournament_id,
+    m.final,
+    m.duration,
+    m.created_at   AS created_at,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) AS p1_score,
     (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) AS p2_score
   FROM matches m
-	WHERE m.duration IS NOT NULL
+  WHERE m.duration IS NOT NULL
 ) AS m;
 
 -- Goal duration data for heatmap visualization
@@ -162,7 +163,7 @@ FROM (
     m.player_1 AS player_id,
     m.duration
   FROM matches m
-  WHERE m.active = FALSE
+  WHERE m.duration IS NOT NULL
   
   UNION ALL
   
@@ -171,5 +172,5 @@ FROM (
     m.player_2 AS player_id,
     m.duration
   FROM matches m
-  WHERE m.active = FALSE
+  WHERE m.duration IS NOT NULL
 ) AS player_matches;
