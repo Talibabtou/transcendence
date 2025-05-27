@@ -1,6 +1,6 @@
 import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
+import { NotificationManager, DbService } from '@website/scripts/services';
 import { v4 as uuidv4 } from 'uuid';
-import { NotificationManager } from '../services/notification-manager';
 
 class TournamentCacheSingleton {
 	private static instance: TournamentCacheSingleton;
@@ -11,7 +11,6 @@ class TournamentCacheSingleton {
 	private tournamentMatches: TournamentMatch[] = [];
 	private currentMatchIndex: number = 0;
 	private tournamentPhase: TournamentPhase = 'pool';
-	private currentGameInMatch: number = 0;
 	
 	private constructor() {}
 	
@@ -64,7 +63,6 @@ class TournamentCacheSingleton {
 		
 		this.tournamentPhase = 'pool';
 		this.currentMatchIndex = 0;
-		this.currentGameInMatch = 0;
 	}
 	
 	/**
@@ -224,7 +222,7 @@ class TournamentCacheSingleton {
 	 * @param player2Score Score of player 2
 	 * @param matchId Optional match ID
 	 */
-	public recordGameResult(player1Score: number, player2Score: number, matchId?: number): void {
+	public recordGameResult(player1Score: number, player2Score: number, matchId?: string): void {
 		const currentMatch = this.getCurrentMatch();
 		if (!currentMatch) {
 			NotificationManager.showError("Cannot record game result: No current match found");
@@ -242,7 +240,6 @@ class TournamentCacheSingleton {
 		});
 		
 		currentMatch.gamesPlayed++;
-		this.currentGameInMatch++;
 		
 		if (player1Score > player2Score) {
 			this.tournamentPlayers[currentMatch.player1Index].gamesWon++;
@@ -253,9 +250,8 @@ class TournamentCacheSingleton {
 		}
 		
 		this.completeCurrentMatch();
-		
 		this.saveToLocalStorage();
-		console.log("Tournament state after recording result:", this.getTournamentData());
+
 	}
 	
 	/**
@@ -294,29 +290,47 @@ class TournamentCacheSingleton {
 	/**
 	 * Prepare for the finals phase
 	 */
-	private prepareFinals(): void {
-		const sortedPlayers = [...this.tournamentPlayers]
-			.sort((a, b) => b.wins - a.wins || (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost));
-		
-		const finalist1Index = this.tournamentPlayers.findIndex(p => p.id === sortedPlayers[0].id);
-		const finalist2Index = this.tournamentPlayers.findIndex(p => p.id === sortedPlayers[1].id);
-		
-		const finalsMatchIndex = this.tournamentMatches.findIndex(m => m.isFinals);
-		if (finalsMatchIndex !== -1) {
-			this.tournamentMatches[finalsMatchIndex].player1Index = finalist1Index;
-			this.tournamentMatches[finalsMatchIndex].player2Index = finalist2Index;
-		} else {
-			NotificationManager.showError("Finals match placeholder not found");
+	private async prepareFinals(): Promise<void> {
+		if (!this.tournamentId) {
+			NotificationManager.showError("Tournament has no ID, cannot proceed to finals");
+			this.cancelTournament();
+			return;
 		}
 		
-		this.tournamentPhase = 'finals';
-		this.currentMatchIndex = finalsMatchIndex !== -1 ? finalsMatchIndex : this.tournamentMatches.length - 1;
-		this.currentGameInMatch = 0;
-		this.setCurrentMatchIndex(this.currentMatchIndex); 
-		
-		this.saveToLocalStorage();
+		try {
+			const finalists = await DbService.getTournamentFinalists(this.tournamentId);
+			console.log("Finalists:", finalists);
+			
+			if (!finalists || !finalists.player_1 || !finalists.player_2) {
+				NotificationManager.showError("Could not determine finalists");
+				this.cancelTournament();
+				return;
+			}
+			
+			const player1Index = this.tournamentPlayers.findIndex(p => p.id === finalists.player_1);
+			const player2Index = this.tournamentPlayers.findIndex(p => p.id === finalists.player_2);
+			
+			if (player1Index === -1 || player2Index === -1) {
+				NotificationManager.showError("Finalist players not found in tournament");
+				this.cancelTournament();
+				return;
+			}
+			
+			const finalsMatchIndex = this.tournamentMatches.length - 1;
+			this.tournamentMatches[finalsMatchIndex].player1Index = player1Index;
+			this.tournamentMatches[finalsMatchIndex].player2Index = player2Index;
+			this.tournamentMatches[finalsMatchIndex].isFinals = true;
+			
+			this.tournamentPhase = 'finals';
+			this.currentMatchIndex = finalsMatchIndex;
+			this.setCurrentMatchIndex(finalsMatchIndex);
+			
+			this.saveToLocalStorage();
+		} catch (error) {
+			NotificationManager.showError("Failed to get tournament finalists");
+			this.cancelTournament();
+		}
 	}
-	
 	// =========================================
 	// DATA ACCESS METHODS
 	// =========================================
@@ -328,7 +342,6 @@ class TournamentCacheSingleton {
 	public getNextGameInfo(): {
 		isNewMatch: boolean;
 		matchIndex: number;
-		gameInMatch: number;
 		matchInfo: {
 			player1Id: string;
 			player2Id: string;
@@ -348,7 +361,6 @@ class TournamentCacheSingleton {
 		return {
 			isNewMatch: currentMatch.gamesPlayed === 0,
 			matchIndex: this.currentMatchIndex,
-			gameInMatch: this.currentGameInMatch,
 			matchInfo: {
 				player1Id: player1.id,
 				player2Id: player2.id,
@@ -487,7 +499,7 @@ class TournamentCacheSingleton {
 	}
 	
 	/**
-	 * Get all tournament matches
+	 * Get all tournament matches structure (without results)
 	 * @returns Array of tournament matches
 	 */
 	public getTournamentMatches(): TournamentMatch[] {
@@ -531,15 +543,14 @@ class TournamentCacheSingleton {
 	}
 	
 	/**
-	 * Get complete tournament data for debugging or display
-	 * @returns Complete tournament state
+	 * Get basic tournament data for querying results
+	 * @returns Basic tournament state
 	 */
 	public getTournamentData(): {
 		tournamentId: string | null;
 		players: TournamentPlayer[];
 		matches: TournamentMatch[];
 		currentMatchIndex: number;
-		currentGameInMatch: number;
 		phase: TournamentPhase;
 	} {
 		return {
@@ -547,7 +558,6 @@ class TournamentCacheSingleton {
 			players: [...this.tournamentPlayers],
 			matches: [...this.tournamentMatches],
 			currentMatchIndex: this.currentMatchIndex,
-			currentGameInMatch: this.currentGameInMatch,
 			phase: this.tournamentPhase
 		};
 	}
@@ -586,7 +596,6 @@ class TournamentCacheSingleton {
 		this.tournamentPlayers = [];
 		this.tournamentMatches = [];
 		this.currentMatchIndex = 0;
-		this.currentGameInMatch = 0;
 		this.tournamentPhase = 'pool';
 		localStorage.removeItem('tournament_state');
 		localStorage.removeItem('tournament_timestamp');
@@ -615,7 +624,6 @@ class TournamentCacheSingleton {
 			this.tournamentPlayers = state.players;
 			this.tournamentMatches = state.matches;
 			this.currentMatchIndex = state.currentMatchIndex;
-			this.currentGameInMatch = state.currentGameInMatch;
 			this.tournamentPhase = state.phase;
 			
 			return true;
@@ -635,7 +643,6 @@ class TournamentCacheSingleton {
 				players: this.tournamentPlayers,
 				matches: this.tournamentMatches,
 				currentMatchIndex: this.currentMatchIndex,
-				currentGameInMatch: this.currentGameInMatch,
 				phase: this.tournamentPhase
 			};
 			localStorage.setItem('tournament_state', JSON.stringify(state));
@@ -658,6 +665,74 @@ class TournamentCacheSingleton {
 		const expirationTime = createTime + maxAge;
 		
 		return expirationTime;
+	}
+	
+	/**
+	 * Update tournament matches with data from server
+	 * @param serverMatches Array of tournament matches from server
+	 */
+	public updateMatchFromServer(serverMatches: any[]): void {
+		if (!serverMatches || !Array.isArray(serverMatches) || serverMatches.length === 0) {
+			return;
+		}
+		
+		// Process each match from the server and update our local matches
+		for (const serverMatch of serverMatches) {
+			// Find player indexes in our tournament players array
+			const player1Index = this.tournamentPlayers.findIndex(p => p.id === serverMatch.id1);
+			const player2Index = this.tournamentPlayers.findIndex(p => p.id === serverMatch.id2);
+			
+			if (player1Index === -1 || player2Index === -1) continue;
+			
+			// Find corresponding match in our tournament matches
+			const matchIndex = this.tournamentMatches.findIndex(m => 
+				(m.player1Index === player1Index && m.player2Index === player2Index) ||
+				(m.player1Index === player2Index && m.player2Index === player1Index)
+			);
+			
+			if (matchIndex === -1) continue;
+			
+			const match = this.tournamentMatches[matchIndex];
+			
+			// Skip finals match
+			if (match.isFinals) continue;
+			
+			// Update match with server data
+			match.completed = true;
+			match.games = [{
+				winner: serverMatch.goals1 > serverMatch.goals2 ? match.player1Index : match.player2Index,
+				player1Score: serverMatch.goals1,
+				player2Score: serverMatch.goals2,
+				matchId: serverMatch.matchId
+			}];
+			match.gamesPlayed = 1;
+			
+			// Update player stats
+			if (serverMatch.goals1 > serverMatch.goals2) {
+				match.winner = match.player1Index;
+				this.tournamentPlayers[match.player1Index].wins++;
+				this.tournamentPlayers[match.player1Index].gamesWon++;
+				this.tournamentPlayers[match.player2Index].gamesLost++;
+			} else {
+				match.winner = match.player2Index;
+				this.tournamentPlayers[match.player2Index].wins++;
+				this.tournamentPlayers[match.player2Index].gamesWon++;
+				this.tournamentPlayers[match.player1Index].gamesLost++;
+			}
+		}
+		
+		this.saveToLocalStorage();
+	}
+	
+	/**
+	 * Cancel the tournament and return to the menu
+	 */
+	public cancelTournament(): void {
+		this.clearTournament();
+		
+		// Dispatch a custom event that TournamentComponent can listen for
+		const event = new CustomEvent('tournament-cancelled');
+		document.dispatchEvent(event);
 	}
 }
 

@@ -6,8 +6,7 @@ import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.ty
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
-import { GameManager } from '../components/game/game-manager';
-import { navigate, Router } from '../services/router';
+
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -79,16 +78,6 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
-			const gameManager = GameManager.getInstance();
-			if (gameManager.isMainGameActive()) {
-				gameManager.cleanupMainGame();
-				gameManager.showBackgroundGame();
-				navigate('/');
-
-				setTimeout(() => {
-					Router.resetGameComponentToMenu();
-				}, 50);
-			}
 			throw errorData;
 		}
 		
@@ -599,6 +588,16 @@ export class DbService {
 	}
 
 	/**
+	 * Retrieves the current ELO rating for a specific player
+	 * @param playerId - The ID of the player whose ELO rating to retrieve
+	 * @returns Promise resolving to the player's ELO rating information
+	 */
+		static async getPlayerElo(playerId: string): Promise<any> {
+			this.logRequest('GET', `${GAME.ELO.BY_ID(playerId)}`);
+			return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
+		}
+
+	/**
 	 * Retrieves the global leaderboard data
 	 * @returns Promise resolving to an array of LeaderboardEntry objects, limited to top 100 players
 	 */
@@ -618,13 +617,13 @@ export class DbService {
 	}
 
 	/**
-	 * Retrieves the current ELO rating for a specific player
-	 * @param playerId - The ID of the player whose ELO rating to retrieve
-	 * @returns Promise resolving to the player's ELO rating information
+	 * Retrieves the finalists for a tournament based on server-side logic
+	 * @param tournamentId - The ID of the tournament to retrieve finalists for
+	 * @returns Promise resolving to FinalResultObject containing finalist player IDs
 	 */
-	static async getPlayerElo(playerId: string): Promise<any> {
-		this.logRequest('GET', `${GAME.ELO.BY_ID(playerId)}`);
-		return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
+	static async getTournamentFinalists(tournamentId: string): Promise<any> {
+		this.logRequest('GET', `${GAME.TOURNAMENT.FINALE(tournamentId)}`);
+		return this.fetchApi<any>(`${GAME.TOURNAMENT.FINALE(tournamentId)}`);
 	}
 
 	// =========================================

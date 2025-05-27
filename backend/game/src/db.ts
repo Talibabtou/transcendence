@@ -37,10 +37,12 @@ export async function dbConnector(fastify: FastifyInstance) {
   const goalSql = fs.readFileSync(path.join(__dirname, '../init/goal.sql'), 'utf-8');
   const eloSql = fs.readFileSync(path.join(__dirname, '../init/elo.sql'), 'utf-8');
   const playerSql = fs.readFileSync(path.join(__dirname, '../init/player.sql'), 'utf-8');
+	const tournamentSql = fs.readFileSync(path.join(__dirname, '../init/tournament.sql'), 'utf-8');
   await db.exec(matchSql);
   await db.exec(goalSql);
   await db.exec(eloSql);
   await db.exec(playerSql);
+	await db.exec(tournamentSql);
   fastify.decorate('db', db);
   fastify.addHook('onClose', async (instance) => {
     await instance.db.close();

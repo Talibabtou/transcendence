@@ -6,9 +6,9 @@
  */
 
 // Define version more explicitly
-// export const API_BASE_URL = 'http://localhost:8085';
+export const API_BASE_URL = 'http://localhost:8085';
 export const API_VERSION = 'v1';
-export const API_PREFIX = `/api/${API_VERSION}`;
+export const API_PREFIX = `${API_BASE_URL}/api/${API_VERSION}`;
 export const HEALTH_CHECK_PATH = '/health';
 
 // Game service paths
@@ -33,7 +33,7 @@ export const GAME = {
 	TOURNAMENT: {
 		BASE: '/game/tournament',
 		BY_ID: (id: string) => `/game/tournament/${id}`,
-		FINAL: (id: string) => `/game/tournament/${id}/final`,
+		FINALE: (id: string) => `/game/tournament/${id}/final`,
 	},
 };
 

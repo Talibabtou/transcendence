@@ -39,7 +39,7 @@ export async function getTournament(
       WHERE tournament_id = ?
       ORDER BY created_at DESC LIMIT ? OFFSET ?;
       `,
-      ['c70efcc4-5598-c90b-17f1-ad615b4c8007', limit, offset]
+      [id, limit, offset]
     );
 		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
@@ -92,6 +92,7 @@ export async function getFinalMatches(
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
+	request.server.log.info(`id: ${id}`);
   if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     let startTime = performance.now();
@@ -100,13 +101,16 @@ export async function getFinalMatches(
       id
     );
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
+		request.server.log.info(`matchCountResult: ${matchCountResult.total_matches}`);
     if (matchCountResult.total_matches !== 6) return sendError(reply, 400, ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT);
 		startTime = performance.now();
+		request.server.log.info(`topVictories requested`);
     const topVictories = (await request.server.db.all(
       'SELECT player_id, victory_count FROM tournament_top_victories WHERE tournament_id = ? LIMIT 4', // Ensure you get top 3
       id
     )) as Finalist[];
 		recordFastDatabaseMetrics('SELECT', 'tournament_top_victories', performance.now() - startTime);
+		request.server.log.info(`topVictories: ${topVictories}`);
     if (topVictories.length < 3) return sendError(reply, 400, ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS);
     let finalResult: FinalResultObject = { player_1: null, player_2: null };
     if (topVictories[1].victory_count !== topVictories[2].victory_count) {

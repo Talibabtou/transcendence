@@ -39,8 +39,11 @@ export async function getTournament(request: FastifyRequest<{ Params: IId }>, re
 export async function getFinalMatches(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
+		request.server.log.info(`subpath: ${subpath}`);
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
+		request.server.log.info(`serviceUrl: ${serviceUrl}`);
     const response = await fetch(serviceUrl, { method: 'GET' });
+		request.server.log.info(`response: ${response}`);
     const reponseData = (await response.json()) as FinalResultObject | ErrorResponse;
     return reply.code(response.status).send(reponseData);
   } catch (err) {

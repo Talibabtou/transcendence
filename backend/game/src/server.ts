@@ -1,8 +1,9 @@
 import { dbConnector } from './db.js';
 import { routes } from './routes/index.routes.js';
-import fastify, { FastifyInstance } from 'fastify';
+import fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { fastifyConfig } from './config/fastify.config.js';
 import { startTelemetry } from './telemetry/telemetry.js';
+import { IncomingMessage, ServerResponse } from 'http';
 
 class Server {
   private static instance: FastifyInstance;
@@ -22,6 +23,18 @@ class Server {
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       await dbConnector(server);
       await server.register(routes);
+
+			server.addHook(
+				'onRequest',
+				async (request: FastifyRequest, reply: FastifyReply) => {
+					if (!request.url.includes('health')) {
+						server.log.info(
+							`Incoming Request: ${request.method} ${request.url} from ${request.ip}`
+						);
+					}
+				}
+			);
+
       await server.listen({
         port: Number(process.env.GAME_PORT) || 8083,
         host: process.env.GAME_ADDR || 'localhost',
