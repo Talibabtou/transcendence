@@ -14,9 +14,10 @@ export const matchSchema = {
       default: null,
       format: 'uuid',
     },
+    final: { type: 'boolean', default: false },
     created_at: { type: 'string', format: 'date-time' },
   },
-  required: ['id', 'player_1', 'player_2', 'active', 'duration', 'tournament_id', 'created_at'],
+  required: ['id', 'player_1', 'player_2', 'active', 'duration', 'tournament_id', 'final', 'created_at'],
 };
 
 export const getMatchSchema = {

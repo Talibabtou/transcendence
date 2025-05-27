@@ -36,7 +36,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
 		this.onBack = onBack;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
-		
 		if (gameMode === GameMode.TOURNAMENT) this.maxPlayers = 4;
 		this.initializeHost();
 		this.handleGuestAuthenticatedEvent = this.handleGuestAuthenticatedEvent.bind(this);
@@ -61,19 +60,32 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				theme: hostTheme,
 				elo: 0
 			};
-			DbService.getUserProfile(hostId)
-				.then(userProfile => {
-					if (userProfile) {
-						hostData.username = userProfile.username || hostData.username;
-						hostData.elo = userProfile.summary?.elo || 0;
-						// Handle profile picture
-						if (userProfile.pics?.link) hostData.pfp = userProfile.pics.link;
-						appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
-						this.updateInternalState({ host: { ...hostData } });
+			DbService.getUser(hostId)
+				.then(userFromDb => {
+					hostData.username = userFromDb.username || hostData.username;
+					hostData.pfp = userFromDb.pfp || hostData.pfp;
+					hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
+					return DbService.getPlayerElo(hostId);
+				})
+				.then(eloResponse => {
+					if (eloResponse && eloResponse.elo !== undefined) {
+						hostData.elo = eloResponse.elo;
+					}
+					return DbService.getPic(hostId);
+				})
+				.then(picResponse => {
+					if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
+						hostData.pfp = picResponse.link;
 					}
 				})
 				.catch(error => {
-					NotificationManager.handleError(error);
+					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
+					} else {
+						NotificationManager.handleError(error);
+						this.handleBack();
+					}
+				})
+				.finally(() => {
 					appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
 					this.updateInternalState({ host: { ...hostData } });
 				});
@@ -182,7 +194,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		render(template, this.container);
 		this.setupAuthComponent();
 	}
-	
+
 	/**
 	 * Cleans up resources and removes event listeners
 	 */
@@ -450,18 +462,29 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			elo: guestDataFromEvent.elo !== undefined ? guestDataFromEvent.elo : 0,
 			isConnected: true
 		};
-		DbService.getUserProfile(guestData.id)
-			.then(userProfile => {
-				if (userProfile) {
-					guestData.username = userProfile.username || guestData.username;
-					guestData.elo = userProfile.summary?.elo || 0;
-					// Handle profile picture
-					if (userProfile.pics?.link) guestData.pfp = userProfile.pics.link;
+		DbService.getUser(guestData.id)
+			.then(userFromDb => {
+				guestData.username = userFromDb.username || guestData.username;
+				guestData.pfp = userFromDb.pfp || guestData.pfp;
+				guestData.elo = userFromDb.elo !== undefined ? userFromDb.elo : guestData.elo;
+				return DbService.getPlayerElo(guestData.id);
+			})
+			.then(eloResponse => {
+				if (eloResponse && eloResponse.elo !== undefined) {
+					guestData.elo = eloResponse.elo;
+				}
+				return DbService.getPic(guestData.id);
+			})
+			.then(picResponse => {
+				if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
+					guestData.pfp = picResponse.link;
 				}
 			})
 			.catch(error => {
 				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-				} else NotificationManager.handleError(error);
+				} else {
+					NotificationManager.handleError(error);
+				}
 			})
 			.finally(() => {
 				guestData.pfp = guestData.pfp || '/images/default-avatar.svg';
@@ -479,14 +502,18 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private continueGuestAuthentication(guestData: PlayerData): void {
 		const state = this.getInternalState();
 		if (state.host && state.host.id === guestData.id) {
-			NotificationManager.showWarning('This user is already registered as a player');
+			const currentAuthManager = this.authManagers.get('guest') || 
+				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
+			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') (currentAuthManager as any).showError('This user is already the host');
 			return;
 		}
 		const isDuplicate = state.guests.some(guest => 
 			guest && guest.isConnected && guest.id === guestData.id
 		);
 		if (isDuplicate) {
-			NotificationManager.showWarning('This user is already registered as a player');
+			const currentAuthManager = this.authManagers.get('guest') || 
+				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
+			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') (currentAuthManager as any).showError('This user is already registered as a player');
 			return;
 		}
 		guestData.pfp = guestData.pfp || '/images/default-avatar.svg';

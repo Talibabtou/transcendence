@@ -6,6 +6,7 @@ export interface Match {
   active: boolean;
   duration: number | null;
   tournament_id: string | null;
+	final: boolean;
   created_at: string;
 }
 

@@ -8,7 +8,7 @@ import Plotly, { ScatterData } from 'plotly.js-dist';
  */
 export function renderEloChart(container: HTMLElement, eloHistory: number[]): () => void {
 	// Create sequential x-axis values (1, 2, 3, ...) for each ELO data point
-	const xValues = Array.from({ length: eloHistory.length }, (_, i) => i + 1);
+	const xValues = Array.from({ length: eloHistory.length }, (_, i) => i);
 	
 	// Create arrays for colors based on ELO values
 	const colors = eloHistory.map(elo => elo < 1000 ? '#ff7a7a' : '#98FB98');
@@ -44,7 +44,10 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 				}
 			},
 			showgrid: false,
-			color: '#eee'
+			color: '#eee',
+			range: [0, null],
+			tickformat: 'd',
+			dtick: 1
 		},
 		yaxis: {
 			title: {
@@ -56,7 +59,9 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 			},
 			showgrid: true,
 			gridcolor: '#333',
-			color: '#eee'
+			color: '#eee',
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',

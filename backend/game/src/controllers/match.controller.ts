@@ -103,6 +103,7 @@ export async function getMatchHistory(
       `,
       [id, limit, offset]
     );
+		console.log('matches', matches);
 		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
@@ -148,6 +149,7 @@ export async function getMatchHistory(
       }
       matchesHistory.push(matchHistory);
     }
+		console.log('matchesHistory', matchesHistory);
     return reply.code(200).send(matchesHistory);
   } catch (error) {
     request.log.error(error);
