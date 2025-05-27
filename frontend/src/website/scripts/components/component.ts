@@ -112,10 +112,8 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	protected updateInternalState(newState: Partial<StateType>): void {
 		const oldState = { ...this.internalState } as StateType;
 		this.internalState = { ...this.internalState, ...newState } as StateType;
-		
 		// Notify listeners of state change
 		this.internalStateListeners.forEach(listener => listener(this.internalState, oldState));
-		
 		// Trigger re-render with new state
 		this.renderComponent();
 	}
@@ -129,7 +127,6 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		listener: (newState: StateType, oldState: StateType) => void
 	): () => void {
 		this.internalStateListeners.push(listener);
-		
 		return () => {
 			this.internalStateListeners = this.internalStateListeners.filter(l => l !== listener);
 		};
@@ -162,13 +159,11 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 		try {
 			const adjustedPath = path.startsWith('/') ? path.substring(1) : path;
 			const response = await fetch(`/src/website/${adjustedPath}`);
-			
 			if (!response.ok) {
 				const errorMessage = `Failed to load template: ${response.status} ${response.statusText}`;
 				this.setErrorState(errorMessage);
 				throw new Error(errorMessage);
 			}
-			
 			return await response.text();
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Unknown error loading template';
@@ -185,12 +180,10 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 */
 	protected bindDataToTemplate(template: string, data: TemplateDataType): string {
 		let result = template;
-		
 		Object.entries(data as Record<string, any>).forEach(([key, value]) => {
 			const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
 			result = result.replace(regex, value);
 		});
-		
 		return result;
 	}
 
@@ -203,9 +196,7 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	 */
 	protected setErrorState(message: string): void {
 		this.errorState = { hasError: true, message };
-		if (this.onError) {
-			this.onError(this.constructor.name, message);
-		}
+		if (this.onError) this.onError(this.constructor.name, message);
 	}
 	
 	/**
@@ -237,7 +228,6 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	public refresh(): void {
 		this.render();
 		this.afterRender();
-		
 		// Call setupEventListeners if component implements it
 		if (typeof (this as any).setupEventListeners === 'function') {
 			setTimeout(() => {

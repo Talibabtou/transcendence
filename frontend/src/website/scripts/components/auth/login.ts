@@ -31,10 +31,7 @@ export class LoginHandler {
 		this.persistSession = persistSession;
 		
 		const needsVerification = sessionStorage.getItem('auth_2fa_needed') === 'true';
-		
-		if (needsVerification)
-			return this.render2FAForm();
-		
+		if (needsVerification) return this.render2FAForm();
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
@@ -137,7 +134,6 @@ export class LoginHandler {
 	 */
 		handleLogin = async (e: Event): Promise<void> => {
 		e.preventDefault();
-		
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		let email = formData.get('email') as string;
@@ -152,31 +148,22 @@ export class LoginHandler {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
 			return;
 		}
-
-		
 		this.loginAttempts++;
 		this.lastLoginAttempt = new Date();
-		
 		if (this.loginAttempts > 5) {
 			const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
 				NotificationManager.handleErrorCode('account_locked', 'Too many login attempts. Please try again later.');
 				return;
-			} else {
-				this.loginAttempts = 1;
-			}
+			} else this.loginAttempts = 1;
 		}
-
 		try {
 			this.updateState({ isLoading: true });
-			
 			const hashedPassword = await hashPassword(password);
-			
 			const response = await DbService.login({ 
 				email, 
 				password: hashedPassword 
 			});
-			
 			if (response.requires2FA) {
 				sessionStorage.setItem('auth_2fa_needed', 'true');
 				sessionStorage.setItem('auth_2fa_userid', response.user.id);
@@ -206,11 +193,8 @@ export class LoginHandler {
 		} catch (error) {
 			this.resetForm(form);
 			this.updateState({ isLoading: false });
-			if (error && typeof error === 'object' && 'code' in error) {
-				NotificationManager.handleErrorCode(error.code as string);
-			} else {
-				NotificationManager.handleError(error);
-			}
+			if (error && typeof error === 'object' && 'code' in error) NotificationManager.handleErrorCode(error.code as string);
+			else NotificationManager.handleError(error);
 		}
 	}
 
@@ -235,7 +219,6 @@ export class LoginHandler {
 	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
 	 */
 	private startTwoFATimeout(): void {
-		console.log('Starting 2FA timeout');
 		this.twoFATimeoutId = window.setTimeout(() => {
 			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
 				this.cancelTwoFactor();
@@ -248,7 +231,6 @@ export class LoginHandler {
 	 * Clears the 2FA timeout if it exists
 	 */
 	private clearTwoFATimeout(): void {
-		console.log('Clearing 2FA timeout');
 		if (this.twoFATimeoutId !== null) {
 			window.clearTimeout(this.twoFATimeoutId);
 			this.twoFATimeoutId = null;
@@ -266,9 +248,7 @@ export class LoginHandler {
 		const code = formData.get('twofa-code') as string;
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
 			NotificationManager.handleErrorCode('invalid_fields', 'Please enter a valid 6-digit code');
-			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
-				this.startTwoFATimeout();
-			}
+			if (sessionStorage.getItem('auth_2fa_needed') === 'true') this.startTwoFATimeout();
 			return;
 		}
 		try {
@@ -300,17 +280,10 @@ export class LoginHandler {
 			this.updateState({ isLoading: false });
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
-				if (errorCode === ErrorCodes.TWOFA_BAD_CODE) {
-					NotificationManager.handleErrorCode(ErrorCodes.TWOFA_BAD_CODE, 'Invalid verification code');
-				} else {
-					NotificationManager.handleErrorCode(errorCode);
-				}
-			} else {
-				NotificationManager.handleError(error);
-			}
-			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
-				this.startTwoFATimeout();
-			}
+				if (errorCode === ErrorCodes.TWOFA_BAD_CODE) NotificationManager.handleErrorCode(ErrorCodes.TWOFA_BAD_CODE, 'Invalid verification code');
+				else NotificationManager.handleErrorCode(errorCode);
+			} else NotificationManager.handleError(error);
+			if (sessionStorage.getItem('auth_2fa_needed') === 'true') this.startTwoFATimeout();
 		}
 	}
 	

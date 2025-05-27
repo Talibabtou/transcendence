@@ -62,14 +62,10 @@ export class App {
 
 	private initializeRouter(): void {
 		const contentContainer = document.querySelector('.content-container') as HTMLElement;
-		if (contentContainer) {
-			new Router(contentContainer);
-		} else {
-			NotificationManager.showError('Could not find content container element');
-		}
+		if (contentContainer) new Router(contentContainer);
+		else NotificationManager.showError('Could not find content container element');
 	}
 }
-
 document.addEventListener('DOMContentLoaded', () => {
 	new App();
 });

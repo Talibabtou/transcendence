@@ -7,7 +7,6 @@ import { calculateFontSizes } from '@pong/constants';
  */
 export function calculateUIPositions(width: number, height: number) {
 	const sizes = calculateFontSizes(width, height);
-
 	return {
 		sizes,
 		playerNames: {
@@ -41,7 +40,6 @@ export function calculateUIPositions(width: number, height: number) {
 			const totalHeight = spacing * (totalLines - 1);
 			const startY = height * 0.5;
 			const offsetY = ((lineIndex * spacing) - (totalHeight * 0.5));
-			
 			return {
 				x: width * 0.5 + "px",
 				y: (startY + offsetY) + "px"
