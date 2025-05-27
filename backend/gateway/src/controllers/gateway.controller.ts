@@ -14,6 +14,11 @@ import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
  */
 export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
   try {
+    if (request.url.includes('/ws')) {
+      request.server.log.info({
+        request: request,
+      });
+    }
     if (
       request.url.includes(process.env.AUTH_ADDR || 'auth') &&
       (Server.microservices.get('auth') === false ||

@@ -6,12 +6,13 @@ import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.ty
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
-
-/**
- * Service class for handling database operations
- * Uses API calls to interact with the backend
- */
+import { GameManager } from '../components/game/game-manager';
+import { navigate, Router } from '../services/router';
 export class DbService {
+	// =========================================
+	// CORE API UTILITIES
+	// =========================================
+
 	/**
 	 * Makes an API request to the backend with proper authentication and error handling
 	 * @param endpoint - The API endpoint to call
@@ -67,7 +68,8 @@ export class DbService {
 		if (response.status === 403) {
 			console.warn('Session expired or unauthorized, deconnection...');
 			const { appState } = await import('../utils/app-state');
-      appState.logout();
+			appState.logout();
+			NotificationManager.handleErrorCode(ErrorCodes.JWT_EXP_TOKEN);
 			throw new Error('Your session has expired. You have to login again.');
 		}
 		if (!response.ok) {
@@ -77,6 +79,16 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
+			const gameManager = GameManager.getInstance();
+			if (gameManager.isMainGameActive()) {
+				gameManager.cleanupMainGame();
+				gameManager.showBackgroundGame();
+				navigate('/');
+
+				setTimeout(() => {
+					Router.resetGameComponentToMenu();
+				}, 50);
+			}
 			throw errorData;
 		}
 		
@@ -119,7 +131,7 @@ export class DbService {
 					appState.logout();
 				});
 			} else if (error.message.includes('NetworkError') || 
-					  error.message.includes('Failed to fetch')) {
+						error.message.includes('Failed to fetch')) {
 				NotificationManager.handleErrorCode('network_error');
 			} else {
 				NotificationManager.handleError(error);
@@ -147,6 +159,10 @@ export class DbService {
 			requestId
 		});
 	}
+
+	// =========================================
+	// AUTHENTICATION OPERATIONS
+	// =========================================
 
 	/**
 	 * Registers a new user in the system
@@ -289,6 +305,10 @@ export class DbService {
 		}
 	}
 	
+	// =========================================
+	// TWO-FACTOR AUTHENTICATION
+	// =========================================
+	
 	/**
 	 * Generates a new 2FA secret and QR code for setting up two-factor authentication
 	 * @returns Promise resolving to an object containing the QR code and OTP auth URL
@@ -416,11 +436,9 @@ export class DbService {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				userProfile.pics.link = `https://localhost:8085${userProfile.pics.link}`;
+				userProfile.pics.link = `https://localhost:8043${userProfile.pics.link}`;
 			}
 		}
-		
-		console.log(userProfile);
 		return userProfile;
 	}
 
@@ -450,7 +468,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `https://localhost:8085/uploads/${fileName}`;
+				response.link = `https://localhost:8043/uploads/${fileName}`;
 			}
 		}
 		
@@ -494,7 +512,7 @@ export class DbService {
 	/**
 	 * Retrieves a username by user ID
 	 * @param id - The user ID to look up
-	 * Gets username for a given user ID
+	 * @returns Promise resolving to the username
 	 */
 	static async getUsernameById(id: string): Promise<string> {
 		this.logRequest('GET', `/auth/username/${id}`);

@@ -33,6 +33,8 @@ services:
   prometheus:
     image: prom/prometheus:v3.2.0
     container_name: prometheus
+    ports:
+      - "9090:9090"
     expose:
       - 9090
     volumes:
@@ -118,6 +120,8 @@ services:
       - GATEWAY_PORT=${GATEWAY_PORT:-8085}
     ports:
       - "${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}"
+    expose:
+      - 9464
     networks:
       - frontend-net
       - transcendance-net
@@ -125,6 +129,14 @@ services:
       - profile_pictures:/app/uploads
       - certs_data:/etc/certs:ro
     depends_on:
+      auth:
+        condition: service_healthy
+      profile:
+        condition: service_healthy
+      friends:
+        condition: service_healthy
+      game:
+        condition: service_healthy
       cert-generator:
         condition: service_completed_successfully
     healthcheck:
@@ -143,6 +155,7 @@ services:
       - .env
     expose:
       - 8081
+      - 9464
     networks:
       - transcendance-net
     volumes:
@@ -157,11 +170,15 @@ services:
       - .env
     expose:
       - 8082
+      - 9464
     networks:
       - transcendance-net
     volumes:
-      - auth:/app/db
+      - db:/app/db
     restart: unless-stopped
+    depends_on:
+      game:
+        condition: service_healthy
     labels:
       - "container_name=auth"
   game:
@@ -174,6 +191,8 @@ services:
       - 9464
     networks:
       - transcendance-net
+    volumes:
+      - db:/app/db
     restart: unless-stopped
     labels:
       - "container_name=game"
@@ -184,16 +203,23 @@ services:
       - .env
     expose:
       - 8084
+      - 9464
     networks:
       - transcendance-net
     volumes:
-      - friends:/app/db
+      - db:/app/db
     restart: unless-stopped
     labels:
       - "container_name=friends"
 
 volumes:
   certs_data:
+  db:
+    driver: local
+    driver_opts:
+      o: bind
+      type: none
+      device: /home/${USER}/sgoinfre/data/db/
   profile_pictures:
   auth:
   friends:

@@ -4,18 +4,17 @@ import { html, render, navigate } from '@website/scripts/services';
 import { GameMode, GameMenuState } from '@website/types';
 
 export class GameMenuComponent extends Component<GameMenuState> {
-	// =========================================
-	// PROPERTIES
-	// =========================================
-
 	private onModeSelected: (mode: GameMode) => void;
 	private onTournamentRestored: () => void;
 	private onShowTournamentSchedule: () => void;
 	
-	// =========================================
-	// INITIALIZATION
-	// =========================================
-	
+	/**
+	 * Creates a new game menu component
+	 * @param container The HTML element to render the component into
+	 * @param onModeSelected Callback when a game mode is selected
+	 * @param onTournamentRestored Callback when a tournament is restored
+	 * @param onShowTournamentSchedule Callback to show tournament schedule
+	 */
 	constructor(
 		container: HTMLElement, 
 		onModeSelected: (mode: GameMode) => void,
@@ -31,42 +30,19 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		this.onTournamentRestored = onTournamentRestored;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
-		// Check authentication status
 		this.checkAuthentication();
 		
-		// Add event listener for authentication state changes
 		document.addEventListener('user-logout', this.handleAuthStateChange.bind(this));
 		document.addEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
 	}
-	
-	/**
-	 * Checks if the user is authenticated
-	 */
-	private checkAuthentication(): void {
-		// Check both localStorage and sessionStorage for user session
-		const localUser = localStorage.getItem('auth_user');
-		const sessionUser = sessionStorage.getItem('auth_user');
-		const storedUser = localUser || sessionUser;
-		
-		this.updateInternalState({
-			isAuthenticated: !!storedUser
-		});
-	}
-	
-	/**
-	 * Handles authentication state changes (login/logout)
-	 */
-	private handleAuthStateChange(): void {
-		this.checkAuthentication();
-		this.renderComponent();
-	}
-
-	
 	
 	// =========================================
 	// LIFECYCLE METHODS
 	// =========================================
 	
+	/**
+	 * Renders the component
+	 */
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.visible) {
@@ -74,11 +50,9 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			return;
 		}
 		
-		// Add game menu with ASCII art title - with direct event handlers
 		let menuContent;
 		
 		if (state.isAuthenticated) {
-			// User is authenticated, show game mode options with direct handlers
 			menuContent = html`
 				<div id="game-menu" class="game-menu">
 					<div class="ascii-title">
@@ -101,7 +75,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 				</div>
 			`;
 		} else {
-			// User is not authenticated, show login button
 			menuContent = html`
 				<div id="game-menu" class="game-menu">
 					<div class="ascii-title">
@@ -120,22 +93,47 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		render(menuContent, this.container);
 	}
 	
+	/**
+	 * Cleans up resources used by the component
+	 */
 	destroy(): void {
-		// Remove the event listeners when component is destroyed
 		document.removeEventListener('user-logout', this.handleAuthStateChange.bind(this));
 		document.removeEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
 		
 		super.destroy();
 	}
 	
+	// =========================================
+	// AUTHENTICATION MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Checks if the user is authenticated
+	 */
+	private checkAuthentication(): void {
+		const localUser = localStorage.getItem('auth_user');
+		const sessionUser = sessionStorage.getItem('auth_user');
+		const storedUser = localUser || sessionUser;
+		
+		this.updateInternalState({
+			isAuthenticated: !!storedUser
+		});
+	}
+	
+	/**
+	 * Handles authentication state changes (login/logout)
+	 */
+	private handleAuthStateChange(): void {
+		this.checkAuthentication();
+		this.renderComponent();
+	}
+	
 	/**
 	 * Shows the authentication component
 	 */
 	private showAuthComponent(): void {
-		// Hide the game menu
 		this.hide();
 		
-		// Use history state to store the return location
 		navigate('/auth', { 
 			state: { 
 				returnTo: '/game' 
@@ -151,11 +149,8 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 * Shows the menu
 	 */
 	show(): void {
-		// Check authentication status again
 		this.checkAuthentication();
 		this.updateInternalState({ visible: true });
-		
-		// Force a render to ensure everything is visible
 		this.renderComponent();
 	}
 	
@@ -167,17 +162,16 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	}
 	
 	// =========================================
-	// HANDLER METHODS
+	// GAME MODE MANAGEMENT
 	// =========================================
 	
 	/**
 	 * Handles game mode selection
+	 * @param mode The selected game mode
 	 */
 	private handleModeSelection(mode: GameMode): void {
-		// Special handling for tournament mode
 		if (mode === GameMode.TOURNAMENT) {
 			const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
-
 			if (hasRestoredTournament) {
 				const localUser = localStorage.getItem('auth_user');
 				const sessionUser = sessionStorage.getItem('auth_user');
@@ -188,7 +182,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 					const user = JSON.parse(storedUser);
 					currentUserId = user.id;
 				}
-
+				
 				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
 					this.onShowTournamentSchedule();
 					this.onTournamentRestored();
@@ -199,8 +193,6 @@ export class GameMenuComponent extends Component<GameMenuState> {
 				}
 			}
 		}
-
-		// Normal flow for other modes or new tournament
 		this.onModeSelected(mode);
 	}
 }

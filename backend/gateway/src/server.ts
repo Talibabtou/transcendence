@@ -22,6 +22,7 @@ import { fastify, FastifyInstance } from 'fastify';
 import websocketRoutes from './middleware/websocket.js';
 import { jwtHook, jwtRegister } from './middleware/jwt.js';
 import errorHandler from './config/errorHandler.config.js';
+import { API_PREFIX } from './shared/constants/path.const.js';
 import { addHeaders, blockHeaders } from './config/headers.config.js';
 import { checkMicroservices, checkMicroservicesHook } from './controllers/gateway.controller.js';
 

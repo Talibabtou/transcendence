@@ -1,9 +1,6 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
 import { WebSocket } from 'ws';
-
-interface AuthenticatedUser {
-  id: string;
-}
+import { IId } from '../shared/types/gateway.types.js';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 
 const connectedClients = new Map<string, WebSocket>();
 
@@ -15,9 +12,8 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
       config: { auth: true },
     },
     (socket: WebSocket, req: FastifyRequest) => {
-      const userFromJwt = req.user as AuthenticatedUser;
+      const userFromJwt = req.user as IId;
       const userId = userFromJwt?.id;
-      fastify.log.info({ user: userFromJwt });
       if (!userId) {
         fastify.log.warn('WebSocket connection missing userId after auth check. Terminating.', {
           requestId: req.id,
@@ -27,7 +23,6 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
         socket.terminate();
         return;
       }
-
       if (connectedClients.has(userId)) {
         fastify.log.info({
           msg: `User ${userId} reconnected or has existing connection. Terminating old one if different.`,
@@ -45,23 +40,16 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
           oldSocket.terminate();
         }
       }
-
       connectedClients.set(userId, socket);
       fastify.log.info({
         msg: `User ${userId} connected via WebSocket. Total clients: ${connectedClients.size}`,
         userId,
         requestId: req.id,
       });
-
       const onlineUserIds = Array.from(connectedClients.keys());
       socket.send(JSON.stringify({ type: 'online_users_list', users: onlineUserIds }));
-
-      for (const [id, clientSocket] of connectedClients.entries()) {
-        if (id !== userId) {
-          clientSocket.send(JSON.stringify({ type: 'user_online', userId }));
-        }
-      }
-
+      for (const [id, clientSocket] of connectedClients.entries())
+        if (id !== userId) clientSocket.send(JSON.stringify({ type: 'user_online', userId }));
       socket.on('close', (code, reason) => {
         connectedClients.delete(userId);
         fastify.log.info({
@@ -69,11 +57,9 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
           userId,
           requestId: req.id,
         });
-        for (const [id, clientSocket] of connectedClients.entries()) {
+        for (const [id, clientSocket] of connectedClients.entries())
           clientSocket.send(JSON.stringify({ type: 'user_offline', userId }));
-        }
       });
-
       socket.on('error', (error: Error) => {
         fastify.log.error({
           msg: `WebSocket error for user ${userId}. Removing from connected clients.`,

@@ -4,19 +4,11 @@ import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@websit
 import { appState } from '@website/scripts/utils';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
-	// =========================================
-	// PROPERTIES
-	// =========================================
-	
 	private currentUser: UserData | null = null;
 	private activeToken?: string;
 	private stateChangeTimeout: number | null = null;
 	private persistSession: boolean = true;
 	private closeButton: HTMLButtonElement | null = null;
-	
-	// =========================================
-	// INITIALIZATION
-	// =========================================
 	
 	/**
 	 * Creates a new authentication manager component
