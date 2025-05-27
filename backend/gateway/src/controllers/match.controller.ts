@@ -27,7 +27,7 @@ export async function getMatches(
 ) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Match[] | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -49,7 +49,7 @@ export async function getMatches(
 export async function getMatch(request: FastifyRequest<{ Params: IMatchId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as Match | null | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -71,7 +71,7 @@ export async function getMatch(request: FastifyRequest<{ Params: IMatchId }>, re
 export async function matchSummary(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as PlayerMatchSummary | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -93,7 +93,7 @@ export async function matchSummary(request: FastifyRequest<{ Params: IId }>, rep
 export async function matchStats(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const reponseData = (await response.json()) as PlayerStats | ErrorResponse;
     return reply.code(response.status).send(reponseData);
@@ -118,7 +118,7 @@ export async function createMatch(
 ) {
   try {
     const subpath = request.url.split('/game')[1];
-    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083${subpath}`;
+    const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {

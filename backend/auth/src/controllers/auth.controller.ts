@@ -19,6 +19,7 @@ import {
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError, isValidId } from '../helper/auth.helper.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
+import { recordMediumDatabaseMetrics, userCreationCounter, twofaEnabledCounter, JWTRevocationCounter, JWTGenerationCounter } from '../telemetry/metrics.js';
 
 /**
  * Retrieves the user ID for a given username.
@@ -36,9 +37,11 @@ export async function getId(
 ): Promise<void> {
   try {
     const username = request.params.username;
+		const startTime = performance.now();
     const id: IId | undefined = await request.server.db.get('SELECT id FROM users WHERE username = ?', [
       username,
     ]);
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!id) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(id);
   } catch (err) {
@@ -64,11 +67,13 @@ export async function getUsername(
 ): Promise<void> {
   try {
     const id = request.params.id;
+		const startTime = performance.now();
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const username: IUsername | undefined = await request.server.db.get(
       'SELECT username FROM users WHERE id = ?',
       [id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!username) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(username);
   } catch (err) {
@@ -91,10 +96,12 @@ export async function getUsername(
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     const id = request.params.id;
+		const startTime = performance.now();
     const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE id = ?',
       [id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!user) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(user);
   } catch (err) {
@@ -127,20 +134,25 @@ export async function addUser(
     const ip = request.headers['from'];
     const userLower = username.toLowerCase();
     const emailLower = email.toLowerCase();
+		let startTime = performance.now();
     await request.server.db.run(
       'INSERT INTO users (role, username, password, email, last_ip, created_at) VALUES ("user", ?, ?, ?, ?,CURRENT_TIMESTAMP);',
       [userLower, password, emailLower, ip]
     );
-    const user: IReplyUser | undefined = await request.server.db.get(
+		recordMediumDatabaseMetrics('INSERT', 'users', performance.now() - startTime); // Record metric
+    startTime = performance.now();
+		const user: IReplyUser | undefined = await request.server.db.get(
       'SELECT username, email, id FROM users WHERE username = ?',
       [userLower]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (user !== undefined) {
-      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${user.id}`;
+      const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/elo/${user.id}`;
       const response = await fetch(serviceUrl, { method: 'POST' });
       if (response.status !== 201) throw new Error('Create elo failed');
     } else throw new Error('Create user failed');
-    return reply.code(201).send(user);
+		userCreationCounter.add(1);
+		return reply.code(201).send(user);
   } catch (err) {
     if (err instanceof Error) {
       if (err.message.includes('SQLITE_MISMATCH')) {
@@ -176,23 +188,34 @@ export async function modifyUser(
     const id = request.params.id;
     const { username, password, email } = request.body;
     if (!username && !password && !email) return sendError(reply, 404, ErrorCodes.BAD_REQUEST);
+		let startTime = performance.now();
     const result = await request.server.db.run('SELECT id FROM users WHERE id = ?', [id]);
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!result) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
-    if (username)
+    if (username) {
+			startTime = performance.now();
       await request.server.db.run(
         'UPDATE users SET username = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [username, id]
       );
-    if (password)
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+    }
+    if (password) {
+			startTime = performance.now();
       await request.server.db.run(
         'UPDATE users SET password = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [password, id]
       );
-    if (email)
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+    }
+    if (email) {
+			startTime = performance.now();
       await request.server.db.run(
         'UPDATE users SET email = ?, updated_at = (CURRENT_TIMESTAMP) WHERE id = ?',
         [email, id]
       );
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+    }
     return reply.code(200).send();
   } catch (err) {
     if (err instanceof Error) {
@@ -258,7 +281,9 @@ export async function logout(
   try {
     const jwtId = request.body;
     const id = request.params.id;
+		const startTime = performance.now();
     await request.server.db.run('UPDATE users SET verified = false WHERE id = ?', [id]);
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
     const revokedPath = path.join(path.resolve(), 'db/revoked.json');
     const fd = fs.openSync(revokedPath, 'a+');
     const existingData = fs.readFileSync(fd, 'utf-8');
@@ -266,6 +291,7 @@ export async function logout(
     revokedIds.push(jwtId);
     fs.writeFileSync(revokedPath, JSON.stringify(revokedIds, null, 2));
     fs.closeSync(fd);
+		JWTRevocationCounter.add(1);
     return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
@@ -287,10 +313,12 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
   try {
     const { email, password } = request.body;
     const ip = request.headers['from'];
+		let startTime = performance.now();
     const data = await request.server.db.get(
       'SELECT id, role, username, two_factor_enabled, verified FROM users WHERE email = ? AND password = ?;',
       [email, password]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!data) return sendError(reply, 401, ErrorCodes.LOGIN_FAILURE);
     if (data.two_factor_enabled && !data.verified) {
       const token: string = request.server.jwt.sign(
@@ -308,11 +336,13 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
         status: 'NEED_2FA',
       };
       return reply.code(200).send(user);
-    }
+    }	
+		startTime = performance.now();
     await request.server.db.run(
       'UPDATE users SET last_login = (CURRENT_TIMESTAMP), last_ip = ? WHERE email = ? AND password = ?',
       [ip, email, password]
     );
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
     const jti = uuid();
     const token = request.server.jwt.sign({
       id: data.id,
@@ -326,6 +356,7 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       role: data.role,
       username: data.username,
     };
+		JWTGenerationCounter.add(1);
     return reply.code(200).send(user);
   } catch (err) {
     request.server.log.error(err);
@@ -349,10 +380,12 @@ export async function loginGuest(
 ): Promise<void> {
   try {
     const { email, password } = request.body;
+		let startTime = performance.now();
     const data = await request.server.db.get(
       'SELECT id, role, username, two_factor_enabled, verified FROM users WHERE email = ? AND password = ?;',
       [email, password]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!data) return sendError(reply, 401, ErrorCodes.LOGIN_FAILURE);
     if (data.two_factor_enabled && !data.verified) {
       const token: string = request.server.jwt.sign(
@@ -371,11 +404,14 @@ export async function loginGuest(
       };
       return reply.code(200).send(user);
     }
-    if (data.two_factor_enabled && data.verified)
+    if (data.two_factor_enabled && data.verified) {
+			startTime = performance.now();
       await request.server.db.run(
-          'UPDATE users SET verified = false WHERE id = ?',
-          [data.id]
-        );
+        'UPDATE users SET verified = true, two_factor_enabled = false WHERE id = ?',
+        [data.id]
+      );
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+		}
     const user: IReplyLogin = {
       id: data.id,
       role: data.role,
@@ -401,23 +437,28 @@ export async function loginGuest(
 export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
+		let startTime = performance.now();
     const { two_factor_enabled } = await request.server.db.get(
       'SELECT two_factor_enabled FROM users WHERE id = ?;',
       [id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (two_factor_enabled) return reply.code(204).send();
     const secretCode = speakeasy.generateSecret({
       name: 'Transcendance',
     });
+		startTime = performance.now();
     await request.server.db.run('UPDATE users SET two_factor_secret = ? WHERE id = ?', [
       secretCode.base32,
       id,
     ]);
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
     const qrCodeImage = await qrcode.toDataURL(secretCode.otpauth_url as string);
     const qrCodeReponse: IReplyQrCode = {
       qrcode: qrCodeImage,
       otpauth: secretCode.otpauth_url,
     };
+		request.server.log.info(`2FA generated for user ${id}`);
     return reply.code(200).send(qrCodeReponse);
   } catch (err) {
     request.server.log.error(err);
@@ -445,21 +486,27 @@ export async function twofaValidate(
   try {
     const id = request.params.id;
     const { twofaCode } = request.body;
+		let startTime = performance.now();
     const data = await request.server.db.get(
       'SELECT two_factor_secret, two_factor_enabled FROM users WHERE id = ?;',
       [id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     const verify = speakeasy.totp.verify({
       secret: data.two_factor_secret,
       encoding: 'base32',
       token: twofaCode,
     });
     if (verify) {
+			startTime = performance.now();
       await request.server.db.run(
         'UPDATE users SET verified = true, two_factor_enabled = true WHERE id = ?',
         [id]
       );
-      return reply.code(200).send();
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+		twofaEnabledCounter.add(1);
+		request.server.log.info(`2FA validated for user ${id}`);
+		return reply.code(200).send();
     }
     return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
   } catch (err) {
@@ -484,17 +531,21 @@ export async function twofaDisable(
 ): Promise<void> {
   try {
     const id = request.params.id;
-
+		let startTime = performance.now();
     const two_factor_enabled = await request.server.db.get(
       'SELECT two_factor_enabled FROM users WHERE id = ?;',
       [id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!two_factor_enabled) return reply.code(204).send();
+		startTime = performance.now();
     await request.server.db.run(
       'UPDATE users SET two_factor_enabled = false, two_factor_secret = null WHERE id = ?',
       [id]
     );
-    return reply.code(200).send();
+		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime); // Record metric
+		request.server.log.info(`2FA disabled for user ${id}`);
+		return reply.code(200).send();
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -514,7 +565,9 @@ export async function twofaDisable(
 export async function twofaStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const id = request.params.id;
+		const startTime = performance.now();
     const data = (await request.server.db.get('SELECT two_factor_enabled FROM users WHERE id = ?;', [id])) as IReplyTwofaStatus;
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
     if (!data) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     return reply.code(200).send(data);
   } catch (err) {

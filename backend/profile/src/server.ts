@@ -3,6 +3,7 @@ import fastifyMultipart from '@fastify/multipart';
 import { fastify, FastifyInstance } from 'fastify';
 import { fastifyConfig } from './config/fastify.config.js';
 import { multipartConfig } from './config/multipart.config.js';
+import { startTelemetry } from './telemetry/telemetry.js';
 
 class Server {
   private static instance: FastifyInstance;
@@ -16,6 +17,7 @@ class Server {
 
   public static async start(): Promise<void> {
     const server = Server.getInstance();
+		const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
@@ -28,6 +30,7 @@ class Server {
       server.log.info(
         `Server listening at http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}`
       );
+			server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
       server.log.error('Startup error:');
       server.log.error(err);
@@ -43,4 +46,5 @@ class Server {
   }
 }
 
+await startTelemetry();
 Server.start();

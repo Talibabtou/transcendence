@@ -18,7 +18,7 @@ import { ErrorCodes } from '../shared/constants/error.const.js';
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const id = (await response.json()) as IId | ErrorResponse;
     return reply.code(response.status).send(id);
@@ -31,7 +31,7 @@ export async function getId(request: FastifyRequest<{ Params: IUsername }>, repl
 export async function getUsername(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const username = (await response.json()) as IUsername | ErrorResponse;
     return reply.code(response.status).send(username);
@@ -44,7 +44,7 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const user = (await response.json()) as IReplyUser | ErrorResponse;
     return reply.code(response.status).send(user);
@@ -58,7 +58,7 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     if (response.status != 204) {
       const responseData = (await response.json()) as IReplyQrCode | ErrorResponse;
@@ -75,7 +75,7 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -94,8 +94,8 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
 
 export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
   try {
-    const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+	  const subpath = request.url.split('/auth')[1];
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -116,7 +116,7 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'PATCH',
       headers: {
@@ -137,9 +137,9 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
 
 export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
-    const id: string = (request.user as FastifyJWT['user']).id;
+	  const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'PATCH' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
@@ -157,7 +157,7 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
     const id = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -179,7 +179,7 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -201,7 +201,7 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
 export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -219,9 +219,9 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
 
 export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) {
   try {
-    const id: string = (request.user as FastifyJWT['user']).id;
+	  const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/auth')[1];
-    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'GET',
       headers: {

@@ -3,7 +3,7 @@ import {
   recordMediumDatabaseMetrics,
   recordSlowDatabaseMetrics,
   matchCreationCounter,
-  matchTournamentCounter,
+  tournamentCreationCounter,
 } from '../telemetry/metrics.js';
 import {
   Match,
@@ -85,6 +85,7 @@ export async function getMatchHistory(
   const { id } = request.params;
   const { limit = 10, offset = 0 } = request.query;
   try {
+		const startTime = performance.now();
     const matches = await request.server.db.all(
       `
       SELECT 
@@ -102,20 +103,20 @@ export async function getMatchHistory(
       `,
       [id, limit, offset]
     );
-    console.log('getMatchHistory', matches);
+		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
       return reply.code(404).send(errorResponse);
     }
     const matchesHistory: MatchHistory[] = [];
     for (let i = 0; i < matches.length; i++) {
-      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${id}`;
+      const serviceUrlUsername1 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
       const responseUsername1 = await fetch(serviceUrlUsername1, { method: 'GET' });
       const responseDataUsername1 = (await responseUsername1.json()) as IUsername;
       let responseDataUsername2: IUsername;
 			let matchHistory: MatchHistory;
       if (id === matches[i].player_1) {
-        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_2}`;
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_2}`;
         const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
         responseDataUsername2 = (await responseUsername2.json()) as IUsername;
         matchHistory = {
@@ -130,7 +131,7 @@ export async function getMatchHistory(
           created_at: matches[i].created_at || 'undefined',
         };
       } else {
-        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${matches[i].player_1}`;
+        const serviceUrlUsername2 = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${matches[i].player_1}`;
         const responseUsername2 = await fetch(serviceUrlUsername2, { method: 'GET' });
          responseDataUsername2 = (await responseUsername2.json()) as IUsername;
 				 matchHistory = {
@@ -145,13 +146,11 @@ export async function getMatchHistory(
           created_at: matches[i].created_at || 'undefined',
         };
       }
-      console.log({ matchHistory });
       matchesHistory.push(matchHistory);
     }
-    console.log({ matchesHistory });
     return reply.code(200).send(matchesHistory);
   } catch (error) {
-    console.log(error);
+    request.log.error(error);
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorResponse);
   }
@@ -166,14 +165,10 @@ export async function createMatch(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  //Request Body Extraction
-  // destructuring to extract the required fields
-  // match the CreateMatchRequest interface
   const { player_1, player_2, tournament_id } = request.body;
 
   try {
     let startTime = performance.now();
-
     const prevMatches = (await request.server.db.all(
       "SELECT *, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE",
       [player_1, player_2]
@@ -205,9 +200,7 @@ export async function createMatch(
     recordSlowDatabaseMetrics('INSERT', 'matches', performance.now() - startTime);
     matchCreationCounter.add(1, { 'match.status': 'created' });
     if (tournament_id) {
-      matchTournamentCounter.add(1, {
-        'match.tournament_id': tournament_id,
-      });
+      tournamentCreationCounter.add(1);
     }
 
     return reply.code(201).send(newMatch);

@@ -18,7 +18,7 @@ import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.typ
 export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const friends = (await response.json()) as IReplyGetFriend[] | ErrorResponse;
     return reply.code(response.status).send(friends);
@@ -41,7 +41,7 @@ export async function getFriendsMe(request: FastifyRequest, reply: FastifyReply)
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const friends = (await response.json()) as IReplyGetFriend[] | ErrorResponse;
     return reply.code(response.status).send(friends);
@@ -64,7 +64,7 @@ export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, 
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}?id=${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as IReplyFriendStatus | ErrorResponse;
     return reply.code(response.status).send(responseData);
@@ -88,7 +88,7 @@ export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: 
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -121,7 +121,7 @@ export async function patchFriend(request: FastifyRequest<{ Body: IId }>, reply:
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
     const response = await fetch(serviceUrl, {
       method: 'PATCH',
       headers: {
@@ -154,7 +154,7 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}/${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
     const response = await fetch(serviceUrl, { method: 'DELETE' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;
@@ -181,7 +181,7 @@ export async function deleteFriend(request: FastifyRequest<{ Params: IId }>, rep
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
-    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:8084${subpath}?id=${id}`;
+    const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}?id=${id}`;
     const response = await fetch(serviceUrl, { method: 'DELETE' });
     if (response.status >= 400) {
       const responseData = (await response.json()) as ErrorResponse;

@@ -6,6 +6,7 @@ import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
 import { sendError, isValidId } from '../helper/friends.helper.js';
 import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.types.js';
+import { friendsRequestCreationCounter, recordMediumDatabaseMetrics } from '../telemetry/metrics.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -31,6 +32,7 @@ export async function getFriends(
   try {
     const { id } = request.params;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		const startTime = performance.now();
     const friends: IReplyGetFriend[] = await request.server.db.all(
       `
       SELECT 
@@ -45,11 +47,12 @@ export async function getFriends(
       WHERE id_1 = ? OR id_2 = ?`,
       [id, id, id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
         if ('username' in user) friends[i].username = user.username;
@@ -59,7 +62,7 @@ export async function getFriends(
         friends[i].username = 'undefined';
       }
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
         if ('link' in pic) friends[i].pic = pic.link;
@@ -90,6 +93,7 @@ export async function getFriendsMe(
   try {
     const { id } = request.params;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		const startTime = performance.now();
     const friends: IReplyGetFriend[] = await request.server.db.all(
       `
       SELECT 
@@ -104,11 +108,12 @@ export async function getFriendsMe(
       WHERE id_1 = ? OR id_2 = ?`,
       [id, id, id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8082/username/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const user = (await response.json()) as IUsername | ErrorResponse;
         if ('username' in user) friends[i].username = user.username;
@@ -118,7 +123,7 @@ export async function getFriendsMe(
         friends[i].username = 'undefined';
       }
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:8081/pics/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
         if ('link' in pic) friends[i].pic = pic.link;
@@ -149,6 +154,7 @@ export async function getFriendStatus(
   try {
     const { id } = request.query;
     if (!isValidId(id) || id === request.params.id) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		const startTime = performance.now();
     const friendStatus = await request.server.db.get<IReplyFriendStatus>(
       `
       SELECT
@@ -161,6 +167,7 @@ export async function getFriendStatus(
       `,
       [id, request.params.id, request.params.id, id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
     if (!friendStatus) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     return reply.code(200).send(friendStatus);
   } catch (err) {
@@ -183,17 +190,22 @@ export async function postFriend(
   try {
     const { id } = request.body;
     if (!isValidId(id) || id === request.params.id) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		let startTime = performance.now();
     const friend = await request.server.db.get(
       `
       SELECT
           EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`,
       [request.params.id, id, request.params.id, id]
     );
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
     if (friend.FriendExists) return sendError(reply, 409, ErrorCodes.FRIENDSHIP_EXISTS);
+		startTime = performance.now();
     await request.server.db.run(
       'INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);',
       [request.params.id, id]
     );
+		recordMediumDatabaseMetrics('INSERT', 'friends', performance.now() - startTime); // Record metric
+		friendsRequestCreationCounter.add(1);
     return reply.code(201).send();
   } catch (err) {
     if (err instanceof Error) {
@@ -221,12 +233,14 @@ export async function patchFriend(
   try {
     const { id } = request.body;
     if (!isValidId(id) || id === request.params.id) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		const startTime = performance.now();
     const friend = await request.server.db.run(
       'UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?',
       [request.params.id, id]
     );
+		recordMediumDatabaseMetrics('UPDATE', 'friends', performance.now() - startTime); // Record metric
     if (friend.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-    return reply.code(204).send();
+		return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -245,12 +259,14 @@ export async function deleteFriends(
   reply: FastifyReply
 ): Promise<void> {
   try {
+		const startTime = performance.now();
     const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? OR id_2 = ?', [
       request.params.id,
       request.params.id,
     ]);
+		recordMediumDatabaseMetrics('DELETE', 'friends', performance.now() - startTime); // Record metric
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-    return reply.code(204).send();
+		return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
@@ -271,10 +287,12 @@ export async function deleteFriend(
   try {
     const { id } = request.query;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
+		const startTime = performance.now();
     const result = await request.server.db.run(
       'DELETE FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?)',
       [request.params.id, id, id, request.params.id]
     );
+		recordMediumDatabaseMetrics('DELETE', 'friends', performance.now() - startTime); // Record metric
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     return reply.code(204).send();
   } catch (err) {

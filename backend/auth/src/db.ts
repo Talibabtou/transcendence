@@ -29,7 +29,7 @@ async function initEloComputer(fastify: FastifyInstance, db: Database<sqlite3.Da
   fastify.log.info('Waiting for service GAME...');
   while (!gameState) {
     try {
-      const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:8083/elo/${id?.id}`;
+      const eloUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/elo/${id?.id}`;
       const response = await fetch(eloUrl, { method: 'POST' });
       if (response.status !== 201) throw new Error('Create elo failed');
       gameState = true;

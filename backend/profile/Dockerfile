@@ -22,4 +22,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "fetch('http://profile:8081/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
 
 EXPOSE 8081
+EXPOSE 9464
 CMD ["node", "dist/server.js"]

@@ -3,7 +3,7 @@ CREATE VIEW IF NOT EXISTS tournament_match_count AS
 SELECT
   tournament_id,
   COUNT(id) AS total_matches
-FROM matches WHERE active = FALSE AND tournament_id IS NOT NULL
+FROM matches WHERE DURATION IS NOT NULL AND tournament_id IS NOT NULL
 GROUP BY tournament_id;
 
 -- Top 3 players with most victories in tournaments
@@ -19,7 +19,7 @@ FROM (
     m.tournament_id
   FROM matches m
   WHERE m.tournament_id IS NOT NULL 
-    AND m.active = FALSE
+    AND m.duration IS NOT NULL
     AND (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1) > 
         (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2)
   
@@ -31,7 +31,7 @@ FROM (
     m.tournament_id
   FROM matches m
   WHERE m.tournament_id IS NOT NULL 
-    AND m.active = FALSE
+    AND m.duration IS NOT NULL
     AND (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_2) > 
         (SELECT COUNT(*) FROM goal WHERE match_id = m.id AND player = m.player_1)
 ) AS victories
@@ -47,6 +47,6 @@ SELECT
   m.tournament_id
 FROM goal g
 JOIN matches m ON g.match_id = m.id
-WHERE m.tournament_id IS NOT NULL AND m.active = FALSE
+WHERE m.tournament_id IS NOT NULL AND m.duration IS NOT NULL
 GROUP BY g.player, m.tournament_id -- Groups by player AND tournament
 ORDER BY m.tournament_id, goals_scored DESC;

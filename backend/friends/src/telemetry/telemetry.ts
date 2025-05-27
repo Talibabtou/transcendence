@@ -1,5 +1,5 @@
 import fastifyOtel from '@fastify/otel';
-import { initializeMetrics } from './metrics.js';
+import { initializeMetrics } from './metrics.js'; // Import the initializer
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { Resource } from '@opentelemetry/resources';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
@@ -17,7 +17,7 @@ const prometheusExporter = new PrometheusExporter({
 
 // Define the resource for the service
 const resource = new Resource({
-  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'auth-service',
+  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'friends-service',
   [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
 });
 

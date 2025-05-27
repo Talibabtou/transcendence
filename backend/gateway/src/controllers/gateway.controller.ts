@@ -16,16 +16,17 @@ export async function checkMicroservicesHook(request: FastifyRequest, reply: Fas
   try {
     if (
       request.url.includes(process.env.AUTH_ADDR || 'auth') &&
-      (Server.microservices.get('auth') === false ||
-        Server.microservices.get('game') === false ||
-        Server.microservices.get('profile') === false ||
-        Server.microservices.get('friends') === false)
+      (Server.microservices.get(process.env.AUTH_ADDR || 'auth') === false)
+        // Server.microservices.get('game') === false ||
+        // Server.microservices.get('profile') === false ||
+        // Server.microservices.get('friends') === false)
     ) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     } else if (
       request.url.includes(process.env.PROFILE_ADDR || 'profile') &&
-      (Server.microservices.get('auth') === false ||
-        Server.microservices.get(process.env.PROFILE_ADDR || 'profile') === false)
+      (Server.microservices.get(process.env.AUTH_ADDR || 'auth') === false ||
+        Server.microservices.get(process.env.PROFILE_ADDR || 'profile') === false ||
+				Server.microservices.get(process.env.GAME_ADDR || 'game') === false)
     ) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     } else if (
