@@ -57,6 +57,7 @@ export interface IAuthComponent {
 	show(): void;
 	hide(): void;
 	destroy(): void;
+	showError?(message: string): void;
 }
 
 export interface GuestAuthState {

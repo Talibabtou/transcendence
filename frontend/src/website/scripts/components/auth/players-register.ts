@@ -71,31 +71,23 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				elo: 0
 			};
 
-			DbService.getUser(hostId)
-				.then(userFromDb => {
-					hostData.username = userFromDb.username || hostData.username;
-					hostData.pfp = userFromDb.pfp || hostData.pfp;
-					hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
-					return DbService.getPlayerElo(hostId);
-				})
-				.then(eloResponse => {
-					if (eloResponse && eloResponse.elo !== undefined) {
-						hostData.elo = eloResponse.elo;
-					}
-					return DbService.getPic(hostId);
-				})
-				.then(picResponse => {
-					if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
-						hostData.pfp = picResponse.link;
+			DbService.getUserProfile(hostId)
+				.then(userProfile => {
+					if (userProfile) {
+						hostData.username = userProfile.username || hostData.username;
+						hostData.elo = userProfile.summary?.elo || 0;
+						
+						// Handle profile picture
+						if (userProfile.pics?.link) {
+							hostData.pfp = userProfile.pics.link;
+						}
+						
+						appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
+						this.updateInternalState({ host: { ...hostData } });
 					}
 				})
 				.catch(error => {
-					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-					} else {
-						NotificationManager.handleError(error);
-					}
-				})
-				.finally(() => {
+					NotificationManager.handleError(error);
 					appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
 					this.updateInternalState({ host: { ...hostData } });
 				});
@@ -513,22 +505,16 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			isConnected: true
 		};
 
-		DbService.getUser(guestData.id)
-			.then(userFromDb => {
-				guestData.username = userFromDb.username || guestData.username;
-				guestData.pfp = userFromDb.pfp || guestData.pfp;
-				guestData.elo = userFromDb.elo !== undefined ? userFromDb.elo : guestData.elo;
-				return DbService.getPlayerElo(guestData.id);
-			})
-			.then(eloResponse => {
-				if (eloResponse && eloResponse.elo !== undefined) {
-					guestData.elo = eloResponse.elo;
-				}
-				return DbService.getPic(guestData.id);
-			})
-			.then(picResponse => {
-				if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
-					guestData.pfp = picResponse.link;
+		DbService.getUserProfile(guestData.id)
+			.then(userProfile => {
+				if (userProfile) {
+					guestData.username = userProfile.username || guestData.username;
+					guestData.elo = userProfile.summary?.elo || 0;
+					
+					// Handle profile picture
+					if (userProfile.pics?.link) {
+						guestData.pfp = userProfile.pics.link;
+					}
 				}
 			})
 			.catch(error => {
@@ -554,12 +540,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const state = this.getInternalState();
 		
 		if (state.host && state.host.id === guestData.id) {
-			const currentAuthManager = this.authManagers.get('guest') || 
-				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
-			
-			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') {
-				(currentAuthManager as any).showError('This user is already the host');
-			}
+			NotificationManager.showWarning('This user is already registered as a player');
 			return;
 		}
 		
@@ -568,12 +549,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		);
 		
 		if (isDuplicate) {
-			const currentAuthManager = this.authManagers.get('guest') || 
-				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
-			
-			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') {
-				(currentAuthManager as any).showError('This user is already registered as a player');
-			}
+			NotificationManager.showWarning('This user is already registered as a player');
 			return;
 		}
 
@@ -581,7 +557,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		guestData.elo = guestData.elo !== undefined ? guestData.elo : 0;
 		guestData.username = guestData.username || 'Player';
 		guestData.theme = guestData.theme || AppStateManager.getUserAccentColor(guestData.id);
-
 
 		let updatedGuests: PlayerData[] = [...state.guests];
 		let isReadyToPlay = state.isReadyToPlay;
