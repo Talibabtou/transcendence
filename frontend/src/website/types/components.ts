@@ -147,6 +147,7 @@ export interface GameComponentState {
 	playerIds?: string[];
 	playerNames?: string[];
 	playerColors?: string[];
+	tournamentId?: string;
 }
 
 export enum Route {
@@ -179,7 +180,7 @@ export interface TournamentMatch {
 		winner: number;
 		player1Score: number;
 		player2Score: number;
-		matchId?: number;
+		matchId?: string;
 	}[];
 	winner?: number;
 	completed: boolean;

@@ -33,7 +33,7 @@ export const GAME = {
 	TOURNAMENT: {
 		BASE: '/game/tournament',
 		BY_ID: (id: string) => `/game/tournament/${id}`,
-		FINAL: (id: string) => `/game/tournament/${id}/final`,
+		FINALE: (id: string) => `/game/tournament/${id}/final`,
 	},
 };
 

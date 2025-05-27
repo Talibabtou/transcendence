@@ -56,7 +56,8 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 		playerInfo?: { 
 			playerIds?: string[],
 			playerNames?: string[],
-			playerColors?: string[]
+			playerColors?: string[],
+			tournamentId?: string
 		}
 	): void {
 		this.updateInternalState({
@@ -80,7 +81,11 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			}
 			
 			if (playerInfo?.playerIds && playerInfo.playerIds.length > 0) {
-				this.gameEngine.setPlayerIds(playerInfo.playerIds);
+				if (playerInfo.tournamentId) {
+					this.gameEngine.setPlayerIds(playerInfo.playerIds, playerInfo.tournamentId);
+				} else {
+					this.gameEngine.setPlayerIds(playerInfo.playerIds);
+				}
 			}
 		}
 	}

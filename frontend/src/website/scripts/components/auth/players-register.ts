@@ -619,8 +619,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Handle auth cancelled event
 	 */
 	private handleAuthCancelled(): void {
-		NotificationManager.showWarning('Guest registration cancelled. Please try again.');
-		
 		if (this.authManagers.has('guest')) {
 			this.authManagers.get('guest')?.destroy();
 			this.authManagers.delete('guest');

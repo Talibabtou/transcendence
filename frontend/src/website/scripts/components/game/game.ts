@@ -31,17 +31,13 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameManager = GameManager.getInstance();
 		this.lastAuthState = appState.isAuthenticated();
 		
-		// Subscribe to app state changes
 		this.unsubscribe = appState.subscribe((newState) => {
 			this.handleStateChange(newState);
 		});
 		
-		// Set game over callback
 		this.gameManager.setOnGameOverCallback((result) => {
 			
-			// If in tournament mode, process the result in the tournament component
 			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
-				// Process the game result in the tournament
 				this.TournamentComponent.processGameResult(
 					result.player1Score,
 					result.player2Score,
@@ -49,7 +45,6 @@ export class GameComponent extends Component<GameComponentState> {
 				);
 			}
 			
-			// Force transition to game over state
 			this.updateGameState(GameState.GAME_OVER);
 		});
 	}
@@ -236,11 +231,22 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.canvasComponent) {
 			const playerNames = state.playerNames || [playerName];
 			const playerColors = state.playerColors || [playerColor];
-			this.canvasComponent.startGame(state.currentMode, {
+			
+			const playerInfo: any = {
 				playerIds: state.playerIds,
 				playerNames: playerNames,
 				playerColors: playerColors
-			});
+			};
+			
+			// Add tournamentId for tournament mode
+			if (state.currentMode === GameMode.TOURNAMENT) {
+				const tournamentId = TournamentCache.getTournamentId();
+				if (tournamentId) {
+					playerInfo.tournamentId = tournamentId;
+				}
+			}
+			
+			this.canvasComponent.startGame(state.currentMode, playerInfo);
 		}
 		this.startGameStateMonitoring();
 	}
@@ -343,7 +349,6 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private handleBackToMenu(): void {
 		if (this.isTransitioning) {
-			NotificationManager.showWarning('Ignoring back to menu request - transition already in progress');
 			return;
 		}
 		this.isTransitioning = true;
@@ -507,6 +512,20 @@ export class GameComponent extends Component<GameComponentState> {
 			this.lastAuthState = currentAuth;
 			this.renderComponent();
 		}
+		
+		// Don't destroy game during tournament when switching tabs
+		const state = this.getInternalState();
+		if ('isPlaying' in newState && !newState.isPlaying && 
+			state.currentMode === GameMode.TOURNAMENT && 
+			this.canvasComponent && this.canvasComponent.getEngine()) {
+			// Pause the game but don't destroy it
+			const engine = this.canvasComponent.getEngine();
+			if (engine && !engine.isGamePaused()) {
+				engine.requestPause();
+			}
+			return;
+		}
+		
 		if ('accentColor' in newState) {
 			const accentColorHex = appState.getAccentColorHex();
 			if (this.gameManager.isMainGameActive()) {
@@ -624,7 +643,8 @@ export class GameComponent extends Component<GameComponentState> {
 			this.updateInternalState({
 				playerIds: playerInfo.playerIds,
 				playerNames: playerInfo.playerNames,
-				playerColors: playerInfo.playerColors
+				playerColors: playerInfo.playerColors,
+				tournamentId: playerInfo.tournamentId
 			});
 			this.updateGameState(GameState.PLAYING);
 		} catch (error) {

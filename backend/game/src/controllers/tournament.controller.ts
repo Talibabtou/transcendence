@@ -39,7 +39,7 @@ export async function getTournament(
       WHERE tournament_id = ?
       ORDER BY created_at DESC LIMIT ? OFFSET ?;
       `,
-      ['c70efcc4-5598-c90b-17f1-ad615b4c8007', limit, offset]
+      [id, limit, offset]
     );
 		console.log('getTournament', matches);
     if (!matches) {
@@ -114,6 +114,7 @@ export async function getFinalMatches(
         player_1: topVictories[0].player_id,
         player_2: topVictories[1].player_id,
       };
+      request.server.log.info('finalResult:', finalResult);
       return reply.code(200).send(finalResult);
     }
     let player1 = topVictories[0].player_id;

@@ -175,7 +175,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			return;
 		}
 		if (!this.activeToken) {
-			NotificationManager.showWarning("Authentication may be incomplete. Token is missing.");
+			NotificationManager.showError("Authentication may be incomplete. Token is missing.");
 		}
 
 		const userForAppState = {
