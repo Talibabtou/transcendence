@@ -25,6 +25,7 @@ export interface CreateMatchRequest {
   player_1: string;
   player_2: string;
   tournament_id?: string | null;
+	final?: boolean;
 }
 
 export interface GetMatchesQuery {

@@ -165,7 +165,7 @@ export async function createMatch(
   }>,
   reply: FastifyReply
 ): Promise<void> {
-  const { player_1, player_2, tournament_id } = request.body;
+  const { player_1, player_2, tournament_id, final } = request.body;
 
   try {
     let startTime = performance.now();
@@ -192,8 +192,8 @@ export async function createMatch(
     // Create new match
     startTime = performance.now(); // Start timer
     const newMatch = (await request.server.db.get(
-      'INSERT INTO matches (player_1, player_2, tournament_id) VALUES (?, ?, ?) RETURNING *',
-      [player_1, player_2, tournament_id || null]
+      'INSERT INTO matches (player_1, player_2, tournament_id, final) VALUES (?, ?, ?, ?) RETURNING *',
+      [player_1, player_2, tournament_id || null, final || false]
     )) as Match;
 
     // Record metrics
