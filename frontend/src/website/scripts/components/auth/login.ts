@@ -184,11 +184,9 @@ export class LoginHandler {
 				sessionStorage.setItem('auth_username', response.user.username || '');
 				sessionStorage.setItem('auth_email', email);
 				sessionStorage.setItem('auth_password', hashedPassword);
-				
+				this.resetForm(form);
 				this.updateState({ isLoading: false });
-				
 				this.startTwoFATimeout();
-				
 				NotificationManager.showInfo('Please enter your 2FA verification code');
 			} else if (response.success && response.user && response.token) {
 				const userData: UserData = {
@@ -199,16 +197,14 @@ export class LoginHandler {
 					lastLogin: new Date(),
 					persistent: this.persistSession
 				};
-				
 				this.setCurrentUser(userData, response.token);
-				
 				connectAuthenticatedWebSocket(response.token);
-				
 				this.switchToSuccessState();
 				this.resetForm(form);
 				NotificationManager.showSuccess('Login successful');
 			}
 		} catch (error) {
+			this.resetForm(form);
 			this.updateState({ isLoading: false });
 			if (error && typeof error === 'object' && 'code' in error) {
 				NotificationManager.handleErrorCode(error.code as string);
@@ -265,12 +261,9 @@ export class LoginHandler {
 	 */
 	private async handle2FAVerification(e: Event): Promise<void> {
 		e.preventDefault();
-		
-		
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const code = formData.get('twofa-code') as string;
-		
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
 			NotificationManager.handleErrorCode('invalid_fields', 'Please enter a valid 6-digit code');
 			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
@@ -278,22 +271,17 @@ export class LoginHandler {
 			}
 			return;
 		}
-		
 		try {
 			this.updateState({ isLoading: true });
-			
 			const userId = sessionStorage.getItem('auth_2fa_userid') || '';
 			const token = sessionStorage.getItem('auth_2fa_token') || '';
 			const email = sessionStorage.getItem('auth_email') || '';
 			const password = sessionStorage.getItem('auth_password') || '';
-			
+			this.resetForm(form);
 			await DbService.verify2FALogin(userId, code, token);
-			
 			const loginResponse = await DbService.login({ email, password });
-			
 			if (loginResponse.success && loginResponse.user && loginResponse.token) {
 				this.clearTwoFactorSessionData();
-				
 				const userData: UserData = {
 					id: loginResponse.user.id,
 					username: loginResponse.user.username,
@@ -302,15 +290,13 @@ export class LoginHandler {
 					lastLogin: new Date(),
 					persistent: this.persistSession
 				};
-				
 				this.setCurrentUser(userData, loginResponse.token);
-				
 				connectAuthenticatedWebSocket(loginResponse.token);
-				
 				this.switchToSuccessState();
 				NotificationManager.showSuccess('Login successful');
 			}
 		} catch (error) {
+			this.resetForm(form);
 			this.updateState({ isLoading: false });
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
@@ -322,7 +308,6 @@ export class LoginHandler {
 			} else {
 				NotificationManager.handleError(error);
 			}
-			
 			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
 				this.startTwoFATimeout();
 			}

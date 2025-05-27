@@ -117,6 +117,19 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			</div>
 		`;
 	}
+
+	/**
+	 * Reset form inputs
+	 * 
+	 * @param form - The form element to reset
+	 */
+	private resetForm(form: HTMLFormElement): void {
+		const inputs = form.querySelectorAll('input');
+		inputs.forEach(input => {
+			input.value = '';
+		});
+		form.reset();
+	}
 	
 	/**
 	 * Renders the register form for guest creation
@@ -206,10 +219,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
-		
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
-		
+		this.resetForm(form);
 		if (email && password) {
 			this.authenticateGuest(email.toLowerCase(), password);
 		}
@@ -223,11 +235,10 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
-		
 		const username = formData.get('username') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
-		
+		this.resetForm(form);
 		if (username && email && password) {
 			const passwordValidation = validatePassword(password);
 			if (!emailRegex.test(email)) {
@@ -238,7 +249,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				NotificationManager.showError(passwordValidation.message);
 				return;
 			}
-			
 			this.registerGuest(username.toLowerCase(), email.toLowerCase(), password);
 		}
 	}
@@ -249,7 +259,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private async authenticateGuest(email: string, password: string): Promise<void> {
 		try {
 			const hashedPassword = await hashPassword(password);
-			
 			const response = await DbService.guestLogin({ 
 				email, 
 				password: hashedPassword 
@@ -390,7 +399,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			const token = sessionStorage.getItem('guest_2fa_token') || '';
 			const email = sessionStorage.getItem('guest_email') || '';
 			const password = sessionStorage.getItem('guest_password') || '';
-			
+			this.resetForm(form);
 			await DbService.verify2FALogin(userId, code, token);
 			
 			const loginResponse = await DbService.guestLogin({ email, password });
