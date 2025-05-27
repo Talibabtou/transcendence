@@ -128,6 +128,14 @@ services:
       - profile_pictures:/app/uploads
       - certs_data:/etc/certs:ro
     depends_on:
+      auth:
+        condition: service_healthy
+      profile:
+        condition: service_healthy
+      friends:
+        condition: service_healthy
+      game:
+        condition: service_healthy
       cert-generator:
         condition: service_completed_successfully
     healthcheck:
@@ -167,6 +175,9 @@ services:
     volumes:
       - auth:/app/db
     restart: unless-stopped
+    depends_on:
+      game:
+        condition: service_healthy
     labels:
       - "container_name=auth"
   game:
