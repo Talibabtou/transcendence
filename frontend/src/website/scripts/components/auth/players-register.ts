@@ -93,6 +93,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 					} else {
 						NotificationManager.handleError(error);
+						this.handleBack();
 					}
 				})
 				.finally(() => {
@@ -535,6 +536,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 				} else {
 					NotificationManager.handleError(error);
+					this.handleBack();
 				}
 			})
 			.finally(() => {
