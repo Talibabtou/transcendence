@@ -10,3 +10,4 @@ db
 *.sqlite-shm
 *.sqlite-wal
 revoked.json
+.env

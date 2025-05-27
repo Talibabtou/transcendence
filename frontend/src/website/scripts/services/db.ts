@@ -192,10 +192,10 @@ export class DbService {
 	 */
 	static async login(credentials: ILogin): Promise<AuthResponse> {
 		this.logRequest('POST', `${AUTH.LOGIN}`, {
-			email: credentials.email,
+			email: credentials.email.toLowerCase(),
 			password: '********'
 		});
-		
+		credentials.email = credentials.email.toLowerCase()
 		const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
 			method: 'POST',
 			body: JSON.stringify(credentials)

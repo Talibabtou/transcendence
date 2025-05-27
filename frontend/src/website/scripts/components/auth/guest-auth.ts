@@ -126,7 +126,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input type="text" id="username" name="username" required autocomplete="off" />
+					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
@@ -211,7 +211,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const password = formData.get('password') as string;
 		
 		if (email && password) {
-			this.authenticateGuest(email, password);
+			this.authenticateGuest(email.toLowerCase(), password);
 		}
 	}
 	
@@ -222,6 +222,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
+		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
 		
 		const username = formData.get('username') as string;
 		const email = formData.get('email') as string;
@@ -229,12 +230,16 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		
 		if (username && email && password) {
 			const passwordValidation = validatePassword(password);
+			if (!emailRegex.test(email)) {
+				NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
+				return;
+			}
 			if (!passwordValidation.valid) {
 				NotificationManager.showError(passwordValidation.message);
 				return;
 			}
 			
-			this.registerGuest(username, email, password);
+			this.registerGuest(username.toLowerCase(), email.toLowerCase(), password);
 		}
 	}
 	

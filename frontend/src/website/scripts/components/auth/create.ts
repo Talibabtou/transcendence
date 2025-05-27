@@ -27,7 +27,7 @@ export class RegistrationHandler {
 			}}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input type="text" id="username" name="username" required autocomplete="off" />
+					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
@@ -102,15 +102,21 @@ export class RegistrationHandler {
 	 */
 	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
-		const username = formData.get('username') as string;
-		const email = formData.get('email') as string;
+		let username = formData.get('username') as string;
+		username = username.toLowerCase();
+		let email = formData.get('email') as string;
+		email = email.toLowerCase();
 		const password = formData.get('password') as string;
+		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
 		
 		if (!username || !email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
 			return;
 		}
-		
+		if (!emailRegex.test(email)) {
+				NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
+				return;
+		}
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
 			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);

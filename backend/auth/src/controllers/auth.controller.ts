@@ -131,6 +131,7 @@ export async function addUser(
 ): Promise<void> {
   try {
     const { username, password, email } = request.body;
+    if (!username || !password || !email) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const ip = request.headers['from'];
     const userLower = username.toLowerCase();
     const emailLower = email.toLowerCase();
@@ -187,7 +188,7 @@ export async function modifyUser(
   try {
     const id = request.params.id;
     const { username, password, email } = request.body;
-    if (!username && !password && !email) return sendError(reply, 404, ErrorCodes.BAD_REQUEST);
+    if (!username && !password && !email) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
 		let startTime = performance.now();
     const result = await request.server.db.run('SELECT id FROM users WHERE id = ?', [id]);
 		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime); // Record metric
@@ -312,6 +313,7 @@ export async function logout(
 export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply): Promise<void> {
   try {
     const { email, password } = request.body;
+    if (!password || !email) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const ip = request.headers['from'];
 		let startTime = performance.now();
     const data = await request.server.db.get(

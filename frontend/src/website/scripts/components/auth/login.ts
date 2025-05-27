@@ -135,18 +135,24 @@ export class LoginHandler {
 	 * 
 	 * @param e - Form submission event
 	 */
-	handleLogin = async (e: Event): Promise<void> => {
+		handleLogin = async (e: Event): Promise<void> => {
 		e.preventDefault();
 		
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
-		const email = formData.get('email') as string;
+		let email = formData.get('email') as string;
+		email = email.toLowerCase();
 		const password = formData.get('password') as string;
-		
+		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		if (!emailRegex.test(email)) {
+				NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
+				return;
+		}
 		if (!email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
 			return;
 		}
+
 		
 		this.loginAttempts++;
 		this.lastLoginAttempt = new Date();
@@ -160,7 +166,7 @@ export class LoginHandler {
 				this.loginAttempts = 1;
 			}
 		}
-		
+
 		try {
 			this.updateState({ isLoading: true });
 			

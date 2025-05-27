@@ -46,7 +46,6 @@ export async function getHistory(
   reply: FastifyReply
 ): Promise<void> {
   try {
-		console.log("getHistory");
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/match/history/${id}`;
@@ -73,7 +72,6 @@ export async function getSummary(
   reply: FastifyReply
 ): Promise<void> {
   try {
-		console.log("getSummary");
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     let reponseDataMatchSummary: PlayerMatchSummary | ErrorResponse = {} as PlayerMatchSummary;
