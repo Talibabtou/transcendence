@@ -54,7 +54,9 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			},
 			showgrid: false,
 			color: '#eee',
-			fixedrange: true
+			fixedrange: true,
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		yaxis: {
 			title: {
@@ -67,7 +69,9 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			showgrid: true,
 			gridcolor: '#333',
 			color: '#eee',
-			fixedrange: true
+			fixedrange: true,
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
