@@ -55,6 +55,7 @@ export interface ProcessedMatch {
 	playerScore: number;
 	opponentScore: number;
 	result: 'win' | 'loss';
+	finals: boolean;
 }
 
 /**
@@ -148,6 +149,7 @@ export interface GameComponentState {
 	playerNames?: string[];
 	playerColors?: string[];
 	tournamentId?: string;
+	isFinal?: boolean;
 }
 
 export enum Route {

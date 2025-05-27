@@ -17,7 +17,7 @@ export interface MatchHistory {
 	username2: string;
 	id2: string;
 	goals2: number | string;
-	final: boolean;
+	finals: boolean;
 	created_at: string;
 }
 

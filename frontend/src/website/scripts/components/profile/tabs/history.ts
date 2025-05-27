@@ -97,7 +97,8 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 						opponentId: entry.id2,
 						playerScore,
 						opponentScore,
-						result
+						result,
+						finals: entry.finals
 					};
 				})
 				.sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -205,7 +206,10 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 										>
 											${game.opponent}
 										</td>
-										<td class="result-cell-${game.result}">${game.result.toUpperCase()}</td>
+										<td class="result-cell-${game.result}">
+											${game.result.toUpperCase()}
+											${game.finals && game.result === 'win' ? ' 👑' : ''}
+										</td>
 										<td>${game.playerScore} - ${game.opponentScore}</td>
 									</tr>
 								`)}

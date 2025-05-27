@@ -69,16 +69,21 @@ class MatchCacheSingleton {
 		this.completedMatches.add(matchId);
 	}
 	
-	public setCurrentGameInfo(info: {
+	/**
+	 * Set current game information
+	 * @param gameInfo Game information to set
+	 */
+	public setCurrentGameInfo(gameInfo: {
 		gameMode: GameMode;
 		playerIds?: string[];
 		playerNames?: string[];
 		playerColors?: string[];
+		isFinal?: boolean;
 	}): void {
-		this.lastGameMode = info.gameMode;
-		if (info.playerIds) this.lastPlayerIds = [...info.playerIds];
-		if (info.playerNames) this.lastPlayerNames = [...info.playerNames];
-		if (info.playerColors) this.lastPlayerColors = [...info.playerColors];
+		this.lastGameMode = gameInfo.gameMode;
+		if (gameInfo.playerIds) this.lastPlayerIds = [...gameInfo.playerIds];
+		if (gameInfo.playerNames) this.lastPlayerNames = [...gameInfo.playerNames];
+		if (gameInfo.playerColors) this.lastPlayerColors = [...gameInfo.playerColors];
 	}
 	
 	public getCurrentGameInfo(): {

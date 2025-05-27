@@ -238,7 +238,7 @@ export class GameEngine {
 	 * Creates a new match in the database.
 	 * @param tournamentId Optional tournament ID if the match is part of a tournament.
 	 */
-	private async createMatch(tournamentId?: string): Promise<void> {
+	private async createMatch(tournamentId?: string, isFinal: boolean = false): Promise<void> {
 		if (this.matchCreated || this.scene.isBackgroundDemo()) {
 			return;
 		}
@@ -267,10 +267,9 @@ export class GameEngine {
 				player2Id = this.playerIds[1];
 			}
 
-			// Only proceed if we're still in a valid state
 			if (!this.matchCreated) return;
 			
-			const match = await DbService.createMatch(player1Id, player2Id, tournamentId);
+			const match = await DbService.createMatch(player1Id, player2Id, tournamentId, isFinal);
 			this.matchId = match.id;
 		} catch (error) {
 			// Handle errors
@@ -296,9 +295,6 @@ export class GameEngine {
 		this.goalStartTime = Date.now();
 		this.totalPausedTime = 0;
 		this.isPaused = false;
-		if (!this.matchCreated) {
-			this.createMatch();
-		}
 		this.setupMatchTimeout();
 	}
 
@@ -557,10 +553,11 @@ export class GameEngine {
 			this.keyboardEventListener = null;
 		}
 	}
-	public setPlayerIds(ids: string[], tournamentId?: string): void {
+	public setPlayerIds(ids: string[], tournamentId?: string, isFinal: boolean = false): void {
 		this.playerIds = ids;
+		console.log('setPlayerIds', ids, tournamentId, isFinal);
 		if (!this.matchCreated) {
-			this.createMatch(tournamentId);
+			this.createMatch(tournamentId, isFinal);
 		}
 	}
 }

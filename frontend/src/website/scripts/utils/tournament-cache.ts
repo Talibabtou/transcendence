@@ -1,5 +1,5 @@
 import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
-import { NotificationManager, DbService } from '@website/scripts/services';
+import { NotificationManager } from '@website/scripts/services';
 import { v4 as uuidv4 } from 'uuid';
 
 class TournamentCacheSingleton {
@@ -277,9 +277,6 @@ class TournamentCacheSingleton {
 		
 		if (this.tournamentPhase === 'pool') {
 			this.currentMatchIndex++;
-			if (this.currentMatchIndex >= this.tournamentMatches.length - 1) {
-				this.prepareFinals();
-			}
 		} else if (this.tournamentPhase === 'finals') {
 			this.tournamentPhase = 'complete';
 		}
@@ -288,49 +285,22 @@ class TournamentCacheSingleton {
 	}
 	
 	/**
-	 * Prepare for the finals phase
+	 * Check if all pool matches are completed
+	 * @returns true if all pool matches except finals are completed
 	 */
-	private async prepareFinals(): Promise<void> {
-		if (!this.tournamentId) {
-			NotificationManager.showError("Tournament has no ID, cannot proceed to finals");
-			this.cancelTournament();
-			return;
+	public areAllPoolMatchesCompleted(): boolean {
+		if (this.tournamentPhase !== 'pool') return false;
+		
+		// Check if all non-finals matches are completed
+		for (let i = 0; i < this.tournamentMatches.length - 1; i++) {
+			if (!this.tournamentMatches[i].completed) {
+				return false;
+			}
 		}
 		
-		try {
-			const finalists = await DbService.getTournamentFinalists(this.tournamentId);
-			console.log("Finalists:", finalists);
-			
-			if (!finalists || !finalists.player_1 || !finalists.player_2) {
-				NotificationManager.showError("Could not determine finalists");
-				this.cancelTournament();
-				return;
-			}
-			
-			const player1Index = this.tournamentPlayers.findIndex(p => p.id === finalists.player_1);
-			const player2Index = this.tournamentPlayers.findIndex(p => p.id === finalists.player_2);
-			
-			if (player1Index === -1 || player2Index === -1) {
-				NotificationManager.showError("Finalist players not found in tournament");
-				this.cancelTournament();
-				return;
-			}
-			
-			const finalsMatchIndex = this.tournamentMatches.length - 1;
-			this.tournamentMatches[finalsMatchIndex].player1Index = player1Index;
-			this.tournamentMatches[finalsMatchIndex].player2Index = player2Index;
-			this.tournamentMatches[finalsMatchIndex].isFinals = true;
-			
-			this.tournamentPhase = 'finals';
-			this.currentMatchIndex = finalsMatchIndex;
-			this.setCurrentMatchIndex(finalsMatchIndex);
-			
-			this.saveToLocalStorage();
-		} catch (error) {
-			NotificationManager.showError("Failed to get tournament finalists");
-			this.cancelTournament();
-		}
+		return true;
 	}
+	
 	// =========================================
 	// DATA ACCESS METHODS
 	// =========================================

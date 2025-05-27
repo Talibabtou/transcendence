@@ -238,11 +238,11 @@ export class GameComponent extends Component<GameComponentState> {
 				playerColors: playerColors
 			};
 			
-			// Add tournamentId for tournament mode
 			if (state.currentMode === GameMode.TOURNAMENT) {
 				const tournamentId = TournamentCache.getTournamentId();
 				if (tournamentId) {
 					playerInfo.tournamentId = tournamentId;
+					playerInfo.isFinal = state.isFinal;
 				}
 			}
 			
@@ -644,8 +644,10 @@ export class GameComponent extends Component<GameComponentState> {
 				playerIds: playerInfo.playerIds,
 				playerNames: playerInfo.playerNames,
 				playerColors: playerInfo.playerColors,
-				tournamentId: playerInfo.tournamentId
+				tournamentId: playerInfo.tournamentId,
+				isFinal: playerInfo.isFinal
 			});
+			console.log(`GameComponent.handleTournamentContinue - isFinal:`, playerInfo.isFinal);
 			this.updateGameState(GameState.PLAYING);
 		} catch (error) {
 			if (error instanceof Error) {

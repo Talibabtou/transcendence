@@ -268,13 +268,17 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const tournamentId = TournamentCache.getTournamentId();
 		if (tournamentId) {
 			try {
-				// Update the matches display with server data
+
 				const serverMatches = await DbService.getTournament(tournamentId);
 				if (!serverMatches || !Array.isArray(serverMatches) || serverMatches.length === 0) {
 					console.log("No tournament matches found on server");
 				} else {
 					console.log("Updating matches from server data:", serverMatches);
 					TournamentCache.updateMatchFromServer(serverMatches);
+				}
+				
+				if (TournamentCache.areAllPoolMatchesCompleted() && phase === 'pool') {
+					await this.determineTournamentFinalists();
 				}
 			} catch (error) {
 				console.error("Failed to fetch tournament data:", error);
@@ -285,6 +289,51 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		
 		this.renderComponent();
+	}
+	
+	/**
+	 * Determine tournament finalists after all pool matches are completed
+	 */
+	private async determineTournamentFinalists(): Promise<void> {
+		const tournamentId = TournamentCache.getTournamentId();
+		if (!tournamentId) {
+			NotificationManager.showError("Tournament has no ID");
+			return;
+		}
+		
+		try {
+			console.log("Determining tournament finalists for tournament:", tournamentId);
+			const finalists = await DbService.getTournamentFinalists(tournamentId);
+			console.log("Finalists determined:", finalists);
+			
+			if (!finalists || !finalists.player_1 || !finalists.player_2) {
+				NotificationManager.showError("Could not determine finalists");
+				return;
+			}
+			
+			const tournamentPlayers = TournamentCache.getTournamentPlayers();
+			const player1Index = tournamentPlayers.findIndex(p => p.id === finalists.player_1);
+			const player2Index = tournamentPlayers.findIndex(p => p.id === finalists.player_2);
+			
+			if (player1Index === -1 || player2Index === -1) {
+				NotificationManager.showError("Finalist players not found in tournament");
+				return;
+			}
+			
+			const tournamentMatches = TournamentCache.getTournamentMatches();
+			const finalsMatchIndex = tournamentMatches.length - 1;
+			
+			tournamentMatches[finalsMatchIndex].player1Index = player1Index;
+			tournamentMatches[finalsMatchIndex].player2Index = player2Index;
+			
+			TournamentCache.setTournamentPhase('finals');
+			TournamentCache.setCurrentMatchIndex(finalsMatchIndex);
+			
+			this.renderComponent();
+		} catch (error) {
+			console.error("Failed to determine finalists:", error);
+			NotificationManager.showError("Failed to determine tournament finalists");
+		}
 	}
 	
 	/**
@@ -333,7 +382,8 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				TournamentCache.getTournamentMatches()[nextIndex].isFinals;
 			
 			if (isMovingToFinals) {
-				TournamentCache.setTournamentPhase('finals');
+				this.showTournamentSchedule();
+				return;
 			}
 			
 			TournamentCache.setCurrentMatchIndex(nextIndex);
@@ -353,15 +403,19 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		playerNames: string[];
 		playerColors: string[];
 		tournamentId: string;
+		isFinal: boolean;
 	} | null {
 		const nextMatch = TournamentCache.getNextGameInfo();
 		const tournamentId = TournamentCache.getTournamentId();
+		const phase = TournamentCache.getTournamentPhase();
 		
 		if (!nextMatch || !tournamentId) {
 			return null;
 		}
 		
 		this.hide();
+		
+		const isFinal = phase === 'finals';
 		
 		return {
 			playerIds: [
@@ -376,7 +430,8 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				nextMatch.matchInfo.player1Color,
 				nextMatch.matchInfo.player2Color
 			],
-			tournamentId: tournamentId
+			tournamentId: tournamentId,
+			isFinal: isFinal
 		};
 	}
 	

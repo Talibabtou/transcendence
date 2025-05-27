@@ -543,17 +543,19 @@ export class DbService {
 	 * @param player1Id - The ID of the first player
 	 * @param player2Id - The ID of the second player
 	 * @param tournamentId - Optional ID of the tournament this match belongs to
+	 * @param isFinal - Optional flag indicating if this is a tournament final match
 	 * @returns Promise resolving to the created Match object
 	 */
-	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string): Promise<Match> {
-		this.logRequest('POST', `${GAME.MATCH.BASE}`, { player1Id, player2Id, tournamentId });
+	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string, isFinal: boolean = false): Promise<Match> {
+		this.logRequest('POST', `${GAME.MATCH.BASE}`, { player1Id, player2Id, tournamentId, isFinal });
 		
 		return this.fetchApi<Match>(`${GAME.MATCH.BASE}`, {
 			method: 'POST',
 			body: JSON.stringify({
 				player_1: player1Id,
 				player_2: player2Id,
-				tournament_id: tournamentId || null
+				tournament_id: tournamentId || null,
+				final: isFinal
 			})
 		});
 	}

@@ -300,13 +300,15 @@ export class GameManager {
 			player1Color: string;
 			player2Color: string;
 			tournamentId: string;
+			isFinal?: boolean;
 		}
 	): void {
 		const playerInfo = {
 			playerIds: [matchInfo.player1Id, matchInfo.player2Id],
 			playerNames: [matchInfo.player1Name, matchInfo.player2Name],
 			playerColors: [matchInfo.player1Color, matchInfo.player2Color],
-			tournamentId: matchInfo.tournamentId
+			tournamentId: matchInfo.tournamentId,
+			isFinal: matchInfo.isFinal || false
 		};
 		this.startMainGame(GameMode.TOURNAMENT, container, playerInfo);
 	}
@@ -326,7 +328,8 @@ export class GameManager {
 			playerIds?: string[],
 			playerNames?: string[],
 			playerColors?: string[],
-			tournamentId?: string
+			tournamentId?: string,
+			isFinal?: boolean
 		}
 	): void {
 		this.startGame(this.mainGameInstance, mode, container);
@@ -337,7 +340,8 @@ export class GameManager {
 			gameMode: mode,
 			playerIds: playerInfo?.playerIds,
 			playerNames: playerInfo?.playerNames,
-			playerColors: playerInfo?.playerColors
+			playerColors: playerInfo?.playerColors,
+			isFinal: playerInfo?.isFinal
 		});
 		if (playerInfo) {
 			const playerNames = playerInfo.playerNames || [];
@@ -362,7 +366,7 @@ export class GameManager {
 				if (playerInfo.playerIds && playerInfo.playerIds.length > 0) {
 					const playerIdsCopy = [...playerInfo.playerIds];
 					if (playerInfo.tournamentId) {
-						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy, playerInfo.tournamentId);
+						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy, playerInfo.tournamentId, playerInfo.isFinal || false);
 					} else {
 						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
 					}
