@@ -1,5 +1,6 @@
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { html, render, navigate, DbService } from '@website/scripts/services';
+import { GameManager } from '../components/game/game-manager';
 
 declare global {
 	interface DocumentEventMap {
@@ -108,6 +109,10 @@ export class NavbarComponent {
 	 * Handles user logout
 	 */
 	private handleLogout(): void {
+		const gameManager = GameManager.getInstance();
+		if (gameManager.isMainGameActive()) {
+			gameManager.cleanupMainGame();
+		}
 		DbService.logout(appState.getCurrentUser().id);
 		const logoutEvent = new CustomEvent('user-logout');
 		document.dispatchEvent(logoutEvent);
