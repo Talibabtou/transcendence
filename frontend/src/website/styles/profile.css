@@ -157,16 +157,34 @@
 
 .profile-avatar {
 	margin-bottom: 0.8rem;
+	position: relative;
 }
 
 .profile-avatar img {
 	width: 120px;
 	height: 120px;
 	border-radius: 50%;
-	border: 3px solid rgba(150, 150, 150, 0.8);
+	border: 3px solid var(--border-color);
 	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 	background-color: #2a2a2a;
 	object-fit: cover;
+}
+
+/* Online Status Indicator */
+.online-status-indicator {
+	position: absolute;
+	bottom: 10px;
+	right: 10px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background-color: #555;
+	border: 2px solid var(--border-color);
+	z-index: 2;
+}
+
+.online-status-indicator.online {
+	background-color: var(--win-color);
 }
 
 .profile-info {

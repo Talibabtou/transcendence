@@ -1,9 +1,13 @@
 import { NotificationManager } from "./notification-manager";
 
+type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
+
 export class WebSocketClient {
 	private socket: WebSocket | null = null;
 	private readonly url: string;
 	private static instance: WebSocketClient;
+	private onlineUsers: Set<string> = new Set();
+	private statusChangeListeners: OnlineStatusChangeCallback[] = [];
 
 	private constructor(url: string) {
 		this.url = url;
@@ -62,11 +66,103 @@ export class WebSocketClient {
 		if (!this.socket) return;
 		
 		this.socket.onopen = () => {};
+		
 		this.socket.onmessage = (event) => {
-			JSON.parse(event.data as string);
+			try {
+				const data = JSON.parse(event.data as string);
+				this.handleWebSocketMessage(data);
+			} catch (error) {
+				NotificationManager.showError('Error parsing WebSocket message: ' + error);
+			}
 		};
-		this.socket.onerror = () => {};
+		
+		this.socket.onerror = (error) => {
+			NotificationManager.showError('WebSocket error: ' + error);
+		};
+		
 		this.socket.onclose = () => {};
+	}
+
+	/**
+	 * Handle incoming WebSocket messages
+	 */
+	private handleWebSocketMessage(data: any): void {
+		switch (data.type) {
+			case 'online_users_list':
+				this.handleOnlineUsersList(data.users);
+				break;
+			case 'user_online':
+				this.handleUserOnline(data.userId);
+				break;
+			case 'user_offline':
+				this.handleUserOffline(data.userId);
+				break;
+		}
+	}
+
+	/**
+	 * Handle initial list of online users
+	 */
+	private handleOnlineUsersList(users: string[]): void {
+		this.onlineUsers.clear();
+		users.forEach(userId => this.onlineUsers.add(userId));
+	}
+
+	/**
+	 * Handle user coming online
+	 */
+	private handleUserOnline(userId: string): void {
+		if (!this.onlineUsers.has(userId)) {
+			this.onlineUsers.add(userId);
+			this.notifyStatusChangeListeners(userId, true);
+		}
+	}
+
+	/**
+	 * Handle user going offline
+	 */
+	private handleUserOffline(userId: string): void {
+		if (this.onlineUsers.has(userId)) {
+			this.onlineUsers.delete(userId);
+			this.notifyStatusChangeListeners(userId, false);
+		}
+	}
+
+	/**
+	 * Notify listeners about status changes
+	 */
+	private notifyStatusChangeListeners(userId: string, isOnline: boolean): void {
+		this.statusChangeListeners.forEach(listener => {
+			try {
+				listener(userId, isOnline);
+			} catch (error) {
+				NotificationManager.showError('Error in status change listener: ' + error);
+			}
+		});
+	}
+
+	/**
+	 * Add a listener for online status changes
+	 */
+	public addStatusChangeListener(callback: OnlineStatusChangeCallback): () => void {
+		this.statusChangeListeners.push(callback);
+		return () => {
+			this.statusChangeListeners = this.statusChangeListeners.filter(cb => cb !== callback);
+		};
+	}
+
+	/**
+	 * Check if a user is online
+	 */
+	public isUserOnline(userId: string): boolean {
+		return this.onlineUsers.has(userId);
+	}
+
+	/**
+	 * Get the list of online users
+	 */
+	public getOnlineUsers(): string[] {
+		return Array.from(this.onlineUsers);
 	}
 
 	/**
@@ -138,10 +234,22 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 				const socket = new WebSocket(connectionUrl);
 				
 				socket.onopen = () => {};
+				
 				socket.onmessage = (event) => {
-					JSON.parse(event.data as string);
+					try {
+						const data = JSON.parse(event.data as string);
+						if (wsClient) {
+							(wsClient as any).handleWebSocketMessage(data);
+						}
+					} catch (error) {
+						NotificationManager.showError('Error parsing WebSocket message: ' + error);
+					}
 				};
-				socket.onerror = () => {};
+				
+				socket.onerror = (error) => {
+					NotificationManager.showError('WebSocket error: ' + error);
+				};
+				
 				socket.onclose = () => {};
 				
 				(wsClient as any).socket = socket;
@@ -152,7 +260,7 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 		} catch (err) {
 			NotificationManager.showError('Error connecting to WebSocket after authentication: ' + err);
 		}
-	}, 100); 
+	}, 100);
 }
 
 /**

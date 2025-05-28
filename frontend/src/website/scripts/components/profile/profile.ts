@@ -1,6 +1,6 @@
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
 import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
-import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
+import { DbService, html, render, navigate, NotificationManager, WebSocketClient } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
 export class ProfileComponent extends Component<ProfileState> {
@@ -10,6 +10,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	private settingsComponent?: ProfileSettingsComponent;
 	private initialRenderComplete = false;
 	private dataFetchInProgress = false;
+	private wsClient: WebSocketClient;
+	private statusChangeUnsubscribe?: () => void;
 	
 	constructor(container: HTMLElement) {
 		super(container, {
@@ -31,10 +33,12 @@ export class ProfileComponent extends Component<ProfileState> {
 			matchesCache: new Map(),
 			currentProfileId: null,
 			friendshipStatus: false,
-			pendingFriends: []
+			pendingFriends: [],
+			isUserOnline: false
 		});
 		
 		window.addEventListener('popstate', () => this.handleUrlChange());
+		this.wsClient = WebSocketClient.getInstance();
 	}
 	
 	// =========================================
@@ -46,7 +50,9 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	async initialize(): Promise<void> {
 		const state = this.getInternalState();
-		if (state.initialized || state.isLoading || this.dataFetchInProgress) return;
+		if (state.initialized || state.isLoading || this.dataFetchInProgress) {
+			return;
+		}
 		
 		this.updateInternalState({ 
 			isLoading: true,
@@ -58,8 +64,15 @@ export class ProfileComponent extends Component<ProfileState> {
 			await this.fetchProfileData();
 			this.dataFetchInProgress = false;
 			
-			// Only proceed with rendering if we successfully loaded data
-			if (state.profile) {
+			const updatedState = this.getInternalState();
+			
+			if (updatedState.profile) {
+				this.setupOnlineStatusListener();
+				
+				const userId = updatedState.profile.id;
+				const isOnline = this.wsClient.isUserOnline(userId);
+				this.updateInternalState({ isUserOnline: isOnline });
+				
 				await this.renderView();
 				this.initialRenderComplete = true;
 				this.initializeTabContent();
@@ -76,10 +89,42 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 	
 	/**
+	 * Set up listener for online status changes
+	 */
+	private setupOnlineStatusListener(): void {
+		if (this.statusChangeUnsubscribe) {
+			this.statusChangeUnsubscribe();
+		}
+		
+		this.statusChangeUnsubscribe = this.wsClient.addStatusChangeListener((userId, isOnline) => {
+			const state = this.getInternalState();
+			if (state.profile && state.profile.id === userId) {
+				this.updateOnlineStatusIndicator(isOnline);
+				const newState = { ...state, isUserOnline: isOnline };
+				(this as any).state = newState;
+			}
+		});
+	}
+	
+	/**
+	 * Updates the online status indicator in the DOM
+	 */
+	private updateOnlineStatusIndicator(isOnline: boolean): void {
+		const indicator = this.container.querySelector('.online-status-indicator');
+		
+		if (indicator) {
+			if (isOnline) {
+				indicator.classList.add('online');
+			} else {
+				indicator.classList.remove('online');
+			}
+		}
+	}
+	
+	/**
 	 * Renders the component based on current state
 	 */
 	render(): void {
-		// Only initialize if not already in progress
 		if (!this.getInternalState().initialized && !this.dataFetchInProgress) {
 			this.initialize();
 		} else {
@@ -104,16 +149,19 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (this.dataFetchInProgress) return;
 		
 		this.cleanupComponents();
+		if (this.statusChangeUnsubscribe) {
+			this.statusChangeUnsubscribe();
+			this.statusChangeUnsubscribe = undefined;
+		}
 		
 		this.updateInternalState({
 			profile: null,
 			initialized: false,
 			isLoading: false,
 			activeTab: 'stats',
-			currentProfileId: profileId
+			currentProfileId: profileId,
+			isUserOnline: false
 		});
-		
-		// We don't need to call initialize here - it will be called by render()
 	}
 	
 	/**
@@ -131,6 +179,11 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		this.cleanupComponents();
 		
+		if (this.statusChangeUnsubscribe) {
+			this.statusChangeUnsubscribe();
+			this.statusChangeUnsubscribe = undefined;
+		}
+		
 		this.updateInternalState({
 			profile: null,
 			initialized: false,
@@ -139,7 +192,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			currentProfileId: null,
 			friendshipStatus: null,
 			pendingFriends: [],
-			matchesCache: new Map()
+			matchesCache: new Map(),
+			isUserOnline: false
 		});
 		
 		this.initialize();
@@ -166,6 +220,16 @@ export class ProfileComponent extends Component<ProfileState> {
 		}
 	}
 	
+	/**
+	 * Cleanup resources when component is destroyed
+	 */
+	public destroy(): void {
+		if (this.statusChangeUnsubscribe) {
+			this.statusChangeUnsubscribe();
+		}
+		super.destroy();
+	}
+	
 	// =========================================
 	// TAB MANAGEMENT
 	// =========================================
@@ -177,7 +241,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
-		// Use requestAnimationFrame to ensure DOM is ready
 		requestAnimationFrame(() => {
 			const tabContainer = this.container.querySelector(`.tab-content`);
 			if (!tabContainer) return;
@@ -602,9 +665,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		}
 	}
 	
-	//--------------------------------
-	// Rendering
-	//--------------------------------
+	// =========================================
+	// RENDERING
+	// =========================================
 	
 	/**
 	 * Renders the profile view based on current state
@@ -637,10 +700,18 @@ export class ProfileComponent extends Component<ProfileState> {
 			
 			const summaryElement = document.createElement('div');
 			summaryElement.className = 'profile-hero';
-			summaryElement.innerHTML = `
+			
+			const avatarHtml = `
 				<div class="profile-avatar">
 					<img src="${state.profile.username.toLowerCase() === 'ai' ? '/images/ai-avatar.jpg' : state.profile.avatarUrl}" alt="${state.profile.username}">
+					${state.profile.username.toLowerCase() !== 'ai' ? `
+						<div class="online-status-indicator ${state.isUserOnline ? 'online' : ''}"></div>
+					` : ''}
 				</div>
+			`;
+			
+			summaryElement.innerHTML = `
+				${avatarHtml}
 				<div class="profile-info">
 					<h2 class="username">
 						${state.profile.username}
@@ -745,9 +816,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		}
 	}
 	
-	//--------------------------------
-	// Helper Methods
-	//--------------------------------
+	// =========================================
+	// HELPER METHODS
+	// =========================================
 	
 	/**
 	 * Returns a promise that resolves on the next animation frame

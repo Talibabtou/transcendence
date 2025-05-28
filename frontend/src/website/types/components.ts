@@ -25,6 +25,7 @@ export interface ProfileState {
 	currentProfileId: string | null;
 	friendshipStatus?: any;
 	pendingFriends: any[];
+	isUserOnline?: boolean;
 }
 
 /**
