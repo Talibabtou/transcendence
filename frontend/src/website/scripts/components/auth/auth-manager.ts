@@ -37,7 +37,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		if (storedUser) {
 			try {
 				this.currentUser = JSON.parse(storedUser);
-				
 				if (this.currentUser) {
 					this.handleSuccessfulAuth();
 					return;
@@ -80,9 +79,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
 			this.currentUser = user;
 			this.activeToken = token;
-			if (!user) {
-				this.activeToken = undefined;
-			}
+			if (!user) this.activeToken = undefined;
 		};
 		switch (state.currentState) {
 			case AuthState.LOGIN:

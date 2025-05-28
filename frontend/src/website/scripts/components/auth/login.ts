@@ -29,7 +29,6 @@ export class LoginHandler {
 	 */
 	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): any {
 		this.persistSession = persistSession;
-		
 		const needsVerification = sessionStorage.getItem('auth_2fa_needed') === 'true';
 		if (needsVerification) return this.render2FAForm();
 		return html`
