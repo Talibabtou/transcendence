@@ -19,10 +19,19 @@ export class App {
 
 	private initialize(): void {
 		this.initializeNotificationManager();
+		this.initializeNotificationManager();
 		this.initializeNavbar();
 		this.initializeGameManager();
 		this.initializeWebSocketClient();
 		this.initializeRouter();
+	}
+
+	private initializeNotificationManager(): void {
+		try {
+			NotificationManager;
+		} catch (error) {
+			console.error('Failed to initialize notification manager:', error);
+		}
 	}
 
 	private initializeNotificationManager(): void {
@@ -45,6 +54,7 @@ export class App {
 			window.gameManager = this.gameManager;
 		} catch (error) {
 			NotificationManager.showError('Failed to initialize game manager');
+			NotificationManager.showError('Failed to initialize game manager');
 		}
 	}
 
@@ -56,6 +66,7 @@ export class App {
 			this.webSocketClient.connect();
 			window.webSocketClient = this.webSocketClient;
 		} catch (error) {
+			NotificationManager.showError('Failed to initialize WebSocket client');
 			NotificationManager.showError('Failed to initialize WebSocket client');
 		}
 	}

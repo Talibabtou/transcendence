@@ -23,7 +23,6 @@ class Server {
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
       await dbConnector(server);
       await server.register(routes);
-
 			server.addHook(
 				'onRequest',
 				async (request: FastifyRequest, reply: FastifyReply) => {
@@ -34,7 +33,6 @@ class Server {
 					}
 				}
 			);
-
       await server.listen({
         port: Number(process.env.GAME_PORT) || 8083,
         host: process.env.GAME_ADDR || 'localhost',

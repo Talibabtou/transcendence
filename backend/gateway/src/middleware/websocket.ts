@@ -1,9 +1,6 @@
-import { FastifyInstance, FastifyRequest } from 'fastify';
 import { WebSocket } from 'ws';
-
-interface AuthenticatedUser {
-  id: string;
-}
+import { IId } from '../shared/types/gateway.types.js';
+import { FastifyInstance, FastifyRequest } from 'fastify';
 
 const connectedClients = new Map<string, WebSocket>();
 
@@ -15,7 +12,7 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
       config: { auth: true },
     },
     (socket: WebSocket, req: FastifyRequest) => {
-      const userFromJwt = req.user as AuthenticatedUser;
+      const userFromJwt = req.user as IId;
       const userId = userFromJwt?.id;
 
       if (!userId) {

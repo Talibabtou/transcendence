@@ -12,6 +12,11 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * Creates a new game canvas component
 	 * @param container The HTML element to render the component into
 	 */
+	
+	/**
+	 * Creates a new game canvas component
+	 * @param container The HTML element to render the component into
+	 */
 	constructor(container: HTMLElement) {
 		super(container, {
 			visible: false,
@@ -24,9 +29,15 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	/**
 	 * Prepares the component before rendering
 	 */
+	/**
+	 * Prepares the component before rendering
+	 */
 	beforeRender(): void {
 	}
 
+	/**
+	 * Renders the component
+	 */
 	/**
 	 * Renders the component
 	 */
@@ -34,6 +45,9 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 		this.container.innerHTML = '';
 	}
 	
+	/**
+	 * Cleans up resources used by the component
+	 */
 	/**
 	 * Cleans up resources used by the component
 	 */
@@ -96,6 +110,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			this.gameManager.cleanupMainGame();
 		} catch (error) {
 			this.gameManager.cleanupMainGame();
+			this.gameManager.cleanupMainGame();
 		}
 	}
 
@@ -110,6 +125,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			if (!gameState) return false;
 			return Boolean(gameState.isGameOver);
 		} catch (error) {
+			NotificationManager.showError('Error checking game over state');
 			NotificationManager.showError('Error checking game over state');
 			return false;
 		}

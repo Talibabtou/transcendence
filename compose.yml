@@ -17,6 +17,7 @@ services:
     container_name: frontend
     ports:
       - "8043:443"
+      - "8080:80"
     networks:
       - frontend-net
     volumes:

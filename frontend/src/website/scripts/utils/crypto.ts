@@ -1,4 +1,5 @@
 import { html, render } from '@website/scripts/services';
+import { html, render } from '@website/scripts/services';
 
 /**
  * Hashes a password using SHA-256
@@ -15,6 +16,8 @@ export async function hashPassword(password: string): Promise<string> {
 
 /**
  * Validates password requirements based on schema requirements
+ * @param password The password to validate
+ * @returns An object with the validity of the password and a message
  * @param password The password to validate
  * @returns An object with the validity of the password and a message
  */
@@ -39,6 +42,7 @@ export class PasswordStrengthComponent {
 	constructor(container: HTMLElement, simplified: boolean = false) {
 		this.container = container;
 		this.simplified = simplified;
+		this.simplified = simplified;
 		this.initializeStaticStructure();
 	}
 
@@ -50,22 +54,34 @@ export class PasswordStrengthComponent {
 			<div class="password-strength">
 				<div class="password-strength-bar">
 					<div class="password-strength-fill"></div>
+					<div class="password-strength-fill"></div>
 				</div>
+				${!this.simplified ? html`
 				${!this.simplified ? html`
 				<ul class="password-requirements">
 					<li><span>✗</span>An uppercase</li>
 					<li><span>✗</span>8 characters</li>
 					<li><span>✗</span>A lowercase</li>
 					<li><span>✗</span>A number</li>
+					<li><span>✗</span>An uppercase</li>
+					<li><span>✗</span>8 characters</li>
+					<li><span>✗</span>A lowercase</li>
+					<li><span>✗</span>A number</li>
 				</ul>
+				` : ''}
 				` : ''}
 			</div>
 		`;
 		render(template, this.container);
 		this.strengthBar = this.container.querySelector('.password-strength-fill');
 		this.requirementsList = this.simplified ? null : this.container.querySelector('.password-requirements');
+		this.requirementsList = this.simplified ? null : this.container.querySelector('.password-requirements');
 	}
 	
+	/**
+	 * Updates the password and the strength bar
+	 * @param password The password to update
+	 */
 	/**
 	 * Updates the password and the strength bar
 	 * @param password The password to update
@@ -76,6 +92,9 @@ export class PasswordStrengthComponent {
 		if (!this.simplified) this.updateRequirements();
 	}
 	
+	/**
+	 * Updates the strength bar
+	 */
 	/**
 	 * Updates the strength bar
 	 */
@@ -101,10 +120,14 @@ export class PasswordStrengthComponent {
 	/**
 	 * Updates the requirements list
 	 */
+	/**
+	 * Updates the requirements list
+	 */
 	private updateRequirements(): void {
 		if (!this.requirementsList) return;
 		const validations = [
 			{ label: 'Contains uppercase letter', valid: /[A-Z]/.test(this.password) },
+			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'At least 8 characters', valid: this.password.length >= 8 },
 			{ label: 'Contains lowercase letter', valid: /[a-z]/.test(this.password) },
 			{ label: 'Contains a number', valid: /[0-9]/.test(this.password) }
@@ -122,3 +145,4 @@ export class PasswordStrengthComponent {
 		});
 	}
 }
+

@@ -16,6 +16,10 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	// LIFECYCLE METHODS
 	// =========================================
 	
+	// =========================================
+	// LIFECYCLE METHODS
+	// =========================================
+	
 	/**
 	 * Initializes the component by fetching leaderboard data
 	 * Handles loading states and error conditions
@@ -29,6 +33,9 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		} catch (error) {
 			NotificationManager.showError('Error fetching leaderboard data');
 		} finally {
+		} catch (error) {
+			NotificationManager.showError('Error fetching leaderboard data');
+		} finally {
 			this.updateInternalState({ 
 				isLoading: false 
 			});
@@ -39,6 +46,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Renders the component based on current state
 	 */
 	render(): void {
+		this.renderView();
 		this.renderView();
 	}
 
@@ -90,6 +98,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Renders the leaderboard view based on current state
 	 */
 	private renderView(): void {
+	private renderView(): void {
 		const state = this.getInternalState();
 		const template = html`
 			<div class="component-container leaderboard-container">
@@ -100,6 +109,39 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 				<div class="leaderboard-content">
 					${state.isLoading ? 
 						html`<p class="loading-text">Loading leaderboard data...</p>` : 
+						html`
+							<table class="leaderboard-table">
+								<thead>
+									<tr>
+										<th>RANK</th>
+										<th>PLAYER</th>
+										<th>ELO</th>
+										<th>WINS</th>
+										<th>LOSSES</th>
+									</tr>
+								</thead>
+								<tbody>
+									${state.leaderboardData.length ? 
+										state.leaderboardData.map((entry, index) => html`
+											<tr class="${index < 3 ? `top-${index+1}` : ''}">
+												<td class="rank-cell">${entry.rank.toString()}</td>
+												<td 
+													class="player-cell ${appState.isAuthenticated() ? 'clickable' : ''}" 
+													onClick=${() => this.handlePlayerClick(entry.player)}
+													title=${appState.isAuthenticated() ? 'View profile' : 'Log in to view profiles'}
+												>
+													${entry.username}
+												</td>
+												<td class="elo-cell">${entry.elo.toString()}</td>
+												<td class="wins-cell">${entry.victories.toString()}</td>
+												<td class="losses-cell">${entry.defeats.toString()}</td>
+											</tr>
+										`) : 
+										html`<tr><td colspan="5" class="no-data">No leaderboard data available</td></tr>`
+									}
+								</tbody>
+							</table>
+						`
 						html`
 							<table class="leaderboard-table">
 								<thead>

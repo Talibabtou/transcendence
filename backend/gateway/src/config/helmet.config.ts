@@ -1,13 +1,13 @@
 export const helmetConfig = {
-  global: true,
+  global: false,
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:'],
-      connectSrc: ["'self'"],
+      defaultSrc: ["'self'", 'https://localhost:8085'],
+      scriptSrc: ["'self'", 'https://localhost:8085'],
+      styleSrc: ["'self'", 'https://localhost:8085', 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://localhost:8085', 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https://localhost:8085'],
+      connectSrc: ["'self'", 'https://localhost:8085'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"], // anti clickjacking
       upgradeInsecureRequests: [], // force https
@@ -31,6 +31,6 @@ export const helmetConfig = {
       usb: ['none'],
     },
   },
-  crossOriginEmbedderPolicy: true,
-  crossOriginOpenerPolicy: { policy: 'same-origin' as const },
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' as const },
 };

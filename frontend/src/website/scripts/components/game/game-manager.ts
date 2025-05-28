@@ -60,6 +60,11 @@ export class GameManager {
 	 * Constructor for the GameManager class.
 	 * Initializes the main and background game instances and sets up event listeners.
 	 */
+
+	/**
+	 * Constructor for the GameManager class.
+	 * Initializes the main and background game instances and sets up event listeners.
+	 */
 	private constructor() {
 		GameManager.isBootstrapping = true;
 		this.mainGameInstance = this.createEmptyGameInstance(GameInstanceType.MAIN);
@@ -72,6 +77,7 @@ export class GameManager {
 		GameManager.isBootstrapping = false;
 	}
 
+
 	/**
 	 * Explicitly initialize the GameManager.
 	 * This should be called ONLY ONCE by App.ts
@@ -80,6 +86,12 @@ export class GameManager {
 		if (GameManager.isInitialized) return;
 		GameManager.isInitialized = true;
 	}
+
+	/**
+	 * Creates an empty game instance with the specified type.
+	 * @param type The type of game instance to create.
+	 * @returns A new GameInstance object.
+	 */
 
 	/**
 	 * Creates an empty game instance with the specified type.
@@ -104,6 +116,13 @@ export class GameManager {
 	 * @param mode The game mode to start.
 	 * @param container The HTML element to render the game in.
 	 */
+
+	/**
+	 * Generic method to start any game type.
+	 * @param instance The game instance to start.
+	 * @param mode The game mode to start.
+	 * @param container The HTML element to render the game in.
+	 */
 	private startGame(instance: GameInstance, mode: GameMode, container: HTMLElement | null): void {
 		if (instance.isActive) this.cleanupGame(instance);
 		const canvas = document.createElement('canvas');
@@ -113,6 +132,7 @@ export class GameManager {
 				container.innerHTML = '';
 				container.appendChild(canvas);
 			} else {
+				NotificationManager.showError('No container provided for main game');
 				NotificationManager.showError('No container provided for main game');
 				return;
 			}
@@ -129,6 +149,7 @@ export class GameManager {
 		this.resizeCanvas(canvas);
 		const ctx = canvas.getContext('2d');
 		if (!ctx) {
+			NotificationManager.showError(`Could not get canvas context for ${instance.type} game`);
 			NotificationManager.showError(`Could not get canvas context for ${instance.type} game`);
 			return;
 		}
@@ -155,6 +176,11 @@ export class GameManager {
 		this.dispatchEvent(GameEvent.GAME_STARTED, { type: instance.type, mode });
 		this.setupGameEventListeners(instance);
 	}
+
+	/**
+	 * Starts the game loop for the specified game instance.
+	 * @param instance The game instance to start the loop for.
+	 */
 
 	/**
 	 * Starts the game loop for the specified game instance.
@@ -205,8 +231,28 @@ export class GameManager {
 			}
 		};
 		instance.animationFrameId = requestAnimationFrame(loop);
+					this.handleGameEngineError(
+						error as Error,
+						instance.type === GameInstanceType.MAIN ? 'main' : 'background'
+					);
+					instance.isActive = false; 
+					return; 
+				}
+				instance.animationFrameId = requestAnimationFrame(loop);
+			} else {
+				if (instance.animationFrameId !== null) {
+					cancelAnimationFrame(instance.animationFrameId);
+					instance.animationFrameId = null;
+				}
+			}
+		};
+		instance.animationFrameId = requestAnimationFrame(loop);
 	}
 
+	/**
+	 * Pauses the game for the specified game instance.
+	 * @param instance The game instance to pause.
+	 */
 	/**
 	 * Pauses the game for the specified game instance.
 	 * @param instance The game instance to pause.
@@ -220,6 +266,10 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Cleans up the specified game instance.
+	 * @param instance The game instance to clean up.
+	 */
 	/**
 	 * Cleans up the specified game instance.
 	 * @param instance The game instance to clean up.
@@ -269,6 +319,9 @@ export class GameManager {
 	 * Starts a tournament match with specific player information.
 	 * @param container HTML element to render the game in.
 	 * @param matchInfo Tournament match information.
+	 * Starts a tournament match with specific player information.
+	 * @param container HTML element to render the game in.
+	 * @param matchInfo Tournament match information.
 	 */
 	public startTournamentMatch(
 		container: HTMLElement,
@@ -291,6 +344,14 @@ export class GameManager {
 			isFinal: matchInfo.isFinal || false
 		};
 		this.startMainGame(GameMode.TOURNAMENT, container, playerInfo);
+	}
+
+	/**
+	 * Starts the main game with the specified mode and player information.
+	 * @param mode The game mode to start.
+	 * @param container The HTML element to render the game in.
+	 * @param playerInfo Optional player information.
+	 */
 	}
 
 	/**
@@ -348,6 +409,8 @@ export class GameManager {
 	/**
 	 * Starts the background game.
 	 */
+	 * Starts the background game.
+	 */
 	public startBackgroundGame(): void {
 		if (!GameManager.isInitialized) return;
 		if (!this.backgroundGameInstance.isActive) {
@@ -355,6 +418,10 @@ export class GameManager {
 			this.setBackgroundKeyboardActive(false);
 		}
 	}
+
+	/**
+	 * Handles the window resize event.
+	 */
 
 	/**
 	 * Handles the window resize event.
@@ -376,6 +443,10 @@ export class GameManager {
 		}
 	}
 
+	/**
+	 * Resizes the canvas to fit the window.
+	 * @param canvas The canvas to resize.
+	 */
 	/**
 	 * Resizes the canvas to fit the window.
 	 * @param canvas The canvas to resize.
@@ -402,12 +473,18 @@ export class GameManager {
 	/**
 	 * Cleans up the game manager.
 	 */
+	/**
+	 * Cleans up the game manager.
+	 */
 	public cleanup(): void {
 		this.cleanupMainGame();
 		this.cleanupBackgroundGame();
 		window.removeEventListener('resize', this.handleResize.bind(this));
 	}
 
+	/**
+	 * Sets up visibility handling for the game.
+	 */
 	/**
 	 * Sets up visibility handling for the game.
 	 */
@@ -424,6 +501,11 @@ export class GameManager {
 		});
 	}
 	
+	/**
+	 * Handles game engine errors.
+	 * @param error The error that occurred.
+	 * @param gameType The type of game that encountered the error.
+	 */
 	/**
 	 * Handles game engine errors.
 	 * @param error The error that occurred.
@@ -459,9 +541,12 @@ export class GameManager {
 	
 	/**
 	 * Shows the background game.
+	 * Shows the background game.
 	 */
 	public showBackgroundGame(): void {
 		try {
+			if (!this.backgroundGameInstance.isActive || !this.backgroundGameInstance.engine) {
+				this.cleanupGame(this.backgroundGameInstance);
 			if (!this.backgroundGameInstance.isActive || !this.backgroundGameInstance.engine) {
 				this.cleanupGame(this.backgroundGameInstance);
 				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
@@ -481,14 +566,41 @@ export class GameManager {
 			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
 			if (this.backgroundGameInstance.engine) {
 				this.backgroundGameInstance.engine.setKeyboardEnabled(false);
+			NotificationManager.showError('Error showing background game');
+			this.cleanupBackgroundGame();
+			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
+			if (this.backgroundGameInstance.engine) {
+				this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 			}
 		}
 	}
 
 	/**
 	 * Hides the background game.
+	 * Hides the background game.
 	 */
 	public hideBackgroundGame(): void {
+		if (this.backgroundGameInstance.animationFrameId !== null) {
+			cancelAnimationFrame(this.backgroundGameInstance.animationFrameId);
+			this.backgroundGameInstance.animationFrameId = null;
+		}
+		if (this.backgroundGameInstance.updateIntervalId !== null) {
+			clearInterval(this.backgroundGameInstance.updateIntervalId);
+			this.backgroundGameInstance.updateIntervalId = null;
+		}
+
+		if (this.backgroundGameInstance.canvas) {
+			this.backgroundGameInstance.canvas.style.display = 'none';
+			this.backgroundGameInstance.canvas.style.opacity = '0';
+		}
+	}
+
+	/**
+	 * Adds an event listener for the specified game event.
+	 * @param event The game event to listen for.
+	 * @param callback The callback function to execute when the event occurs.
+	 * @returns A function to remove the event listener.
+	 */
 		if (this.backgroundGameInstance.animationFrameId !== null) {
 			cancelAnimationFrame(this.backgroundGameInstance.animationFrameId);
 			this.backgroundGameInstance.animationFrameId = null;

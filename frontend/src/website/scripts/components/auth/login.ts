@@ -9,12 +9,28 @@ export class LoginHandler {
 	private loginAttempts: number = 0;
 	private lastLoginAttempt: Date | null = null;
 
+	private persistSession: boolean = false;
+	private twoFATimeoutId: number | null = null;
+	private loginAttempts: number = 0;
+	private lastLoginAttempt: Date | null = null;
+
 	constructor(
 		private updateState: (state: any) => void,
 		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
 
+	// =========================================
+	// RENDERING
+	// =========================================
+
+	/**
+	 * Renders the login form or 2FA form based on current state
+	 * 
+	 * @param persistSession - Whether to persist the session by default
+	 * @param onPersistChange - Callback for when persistence option changes
+	 * @param switchToRegister - Callback to switch to registration form
+	 * @returns HTML template for the login form
 	// =========================================
 	// RENDERING
 	// =========================================
@@ -39,6 +55,7 @@ export class LoginHandler {
 			<form class="auth-form" onSubmit=${(e: Event) => {
 				e.preventDefault();
 				this.handleLogin(e);
+				this.handleLogin(e);
 			}}>
 				<div class="form-group">
 					<label for="email">Email:</label>
@@ -48,11 +65,17 @@ export class LoginHandler {
 				<div class="form-group">
 					<label for="password">Password:</label>
 					<input type="password" id="password" name="password" required/>
+					<input type="password" id="password" name="password" required/>
 				</div>
 				
 				<div class="form-group checkbox-group">
 					<label class="checkbox-label">
 						<input type="checkbox" id="remember-me" name="remember-me" 
+							 checked=${persistSession}
+							 onChange=${(e: Event) => {
+								this.persistSession = (e.target as HTMLInputElement).checked;
+								onPersistChange((e.target as HTMLInputElement).checked);
+							 }} />
 							 checked=${persistSession}
 							 onChange=${(e: Event) => {
 								this.persistSession = (e.target as HTMLInputElement).checked;
@@ -126,8 +149,63 @@ export class LoginHandler {
 	// LOGIN METHODS
 	// =========================================
 	
+	
+	/**
+	 * Renders the 2FA verification form
+	 * 
+	 * @returns HTML template for the 2FA verification form
+	 */
+	private render2FAForm(): any {
+		return html`
+			<div class="ascii-title-container">
+				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
+			</div>
+			
+			<div class="auth-form twofa-form">
+				<p>Please enter the 6-digit code from your authenticator app:</p>
+				
+				<form onSubmit=${(e: Event) => {
+					e.preventDefault();
+					this.handle2FAVerification(e);
+				}}>
+					<div class="form-group twofa-input-container">
+						<input 
+							type="text" 
+							id="twofa-code" 
+							name="twofa-code" 
+							maxlength="6" 
+							pattern="[0-9]{6}" 
+							required 
+							placeholder="000000"
+							autocomplete="one-time-code"
+							autofocus
+							class="twofa-input"
+						/>
+					</div>
+					
+					<div class="twofa-button-container">
+						<button type="submit" class="menu-button twofa-verify-button">Verify</button>
+					</div>
+				</form>
+				
+				<div class="auth-links twofa-cancel-container">
+					<a href="#" onClick=${(e: Event) => {
+						e.preventDefault();
+						this.cancelTwoFactor();
+					}}>Cancel</a>
+				</div>
+			</div>
+		`;
+	}
+
+	// =========================================
+	// LOGIN METHODS
+	// =========================================
+	
 	/**
 	 * Handles login with email/password
+	 * 
+	 * @param e - Form submission event
 	 * 
 	 * @param e - Form submission event
 	 */
@@ -145,6 +223,7 @@ export class LoginHandler {
 		}
 		if (!email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
+			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
 			return;
 		}
 		this.loginAttempts++;
@@ -152,6 +231,7 @@ export class LoginHandler {
 		if (this.loginAttempts > 5) {
 			const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
+				NotificationManager.handleErrorCode('account_locked', 'Too many login attempts. Please try again later.');
 				NotificationManager.handleErrorCode('account_locked', 'Too many login attempts. Please try again later.');
 				return;
 			} else this.loginAttempts = 1;
@@ -179,8 +259,12 @@ export class LoginHandler {
 					id: response.user.id,
 					username: response.user.username,
 					email: response.user.email || email,
+					id: response.user.id,
+					username: response.user.username,
+					email: response.user.email || email,
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: new Date(),
+					persistent: this.persistSession
 					persistent: this.persistSession
 				};
 				this.setCurrentUser(userData, response.token);

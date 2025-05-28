@@ -16,6 +16,12 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * @param redirectTarget - Where to redirect after successful authentication
 	 * @param persistSession - Whether to persist the session across browser restarts
 	 */
+	/**
+	 * Creates a new authentication manager component
+	 * @param container - The HTML element to render the component into
+	 * @param redirectTarget - Where to redirect after successful authentication
+	 * @param persistSession - Whether to persist the session across browser restarts
+	 */
 	constructor(container: HTMLElement, redirectTarget?: 'game' | 'profile', persistSession: boolean = false) {
 		super(container, {
 			currentState: AuthState.LOGIN,
@@ -43,6 +49,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 				}
 			} catch (error) {
 				NotificationManager.showError('Failed to parse stored user data: ' + error);
+				NotificationManager.showError('Failed to parse stored user data: ' + error);
 				localStorage.removeItem('auth_user');
 				sessionStorage.removeItem('auth_user');
 			}
@@ -53,6 +60,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	// RENDERING
 	// =========================================
 	
+	/**
+	 * Renders the auth component into its container
+	 */
 	/**
 	 * Renders the auth component into its container
 	 */
@@ -70,6 +80,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	
 	/**
 	 * Renders the appropriate content based on the current auth state
+	 * @returns The HTML template for the current auth state
 	 * @returns The HTML template for the current auth state
 	 */
 	private renderAuthContent(): any {
@@ -91,11 +102,26 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 					setUserAndTokenCallback,
 					this.handleSuccessfulAuth.bind(this)
 				).renderLoginForm(
+				return new LoginHandler(
+					(newState) => {
+						this.updateInternalState({...newState});
+						setTimeout(() => this.render(), 0);
+					},
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderLoginForm(
 					this.persistSession,
 					(value) => this.persistSession = value,
 					() => this.switchState(AuthState.REGISTER)
+					() => this.switchState(AuthState.REGISTER)
 				);
 			case AuthState.REGISTER:
+				return new RegistrationHandler(
+					this.updateInternalState.bind(this),
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderRegisterForm(
+					() => this.switchState(AuthState.LOGIN)
 				return new RegistrationHandler(
 					this.updateInternalState.bind(this),
 					setUserAndTokenCallback,
@@ -109,8 +135,14 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 					setUserAndTokenCallback,
 					this.handleSuccessfulAuth.bind(this)
 				).renderLoginForm(
+				return new LoginHandler(
+					this.updateInternalState.bind(this),
+					setUserAndTokenCallback,
+					this.handleSuccessfulAuth.bind(this)
+				).renderLoginForm(
 					this.persistSession,
 					(value) => this.persistSession = value,
+					() => this.switchState(AuthState.REGISTER)
 					() => this.switchState(AuthState.REGISTER)
 				);
 		}
@@ -118,6 +150,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	
 	/**
 	 * Renders a success message after authentication
+	 * @returns The HTML template for the success message
 	 * @returns The HTML template for the success message
 	 */
 	protected renderSuccessMessage(): any {
@@ -153,6 +186,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	protected handleSuccessfulAuth(): void {
 		if (!this.currentUser) {
+			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			return;
 		}
@@ -201,6 +235,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		this.container.classList.add('hidden');
 	}
 	
+	/**
+	 * Cleans up resources used by this component
+	 */
 	/**
 	 * Cleans up resources used by this component
 	 */

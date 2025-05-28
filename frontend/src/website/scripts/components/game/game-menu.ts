@@ -15,6 +15,13 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 * @param onTournamentRestored Callback when a tournament is restored
 	 * @param onShowTournamentSchedule Callback to show tournament schedule
 	 */
+	/**
+	 * Creates a new game menu component
+	 * @param container The HTML element to render the component into
+	 * @param onModeSelected Callback when a game mode is selected
+	 * @param onTournamentRestored Callback when a tournament is restored
+	 * @param onShowTournamentSchedule Callback to show tournament schedule
+	 */
 	constructor(
 		container: HTMLElement, 
 		onModeSelected: (mode: GameMode) => void,
@@ -40,6 +47,9 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	// LIFECYCLE METHODS
 	// =========================================
 	
+	/**
+	 * Renders the component
+	 */
 	/**
 	 * Renders the component
 	 */
@@ -96,11 +106,39 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	/**
 	 * Cleans up resources used by the component
 	 */
+	/**
+	 * Cleans up resources used by the component
+	 */
 	destroy(): void {
 		document.removeEventListener('user-logout', this.handleAuthStateChange.bind(this));
 		document.removeEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
 		
 		super.destroy();
+	}
+	
+	// =========================================
+	// AUTHENTICATION MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Checks if the user is authenticated
+	 */
+	private checkAuthentication(): void {
+		const localUser = localStorage.getItem('auth_user');
+		const sessionUser = sessionStorage.getItem('auth_user');
+		const storedUser = localUser || sessionUser;
+		
+		this.updateInternalState({
+			isAuthenticated: !!storedUser
+		});
+	}
+	
+	/**
+	 * Handles authentication state changes (login/logout)
+	 */
+	private handleAuthStateChange(): void {
+		this.checkAuthentication();
+		this.renderComponent();
 	}
 	
 	// =========================================
@@ -162,10 +200,12 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	
 	// =========================================
 	// GAME MODE MANAGEMENT
+	// GAME MODE MANAGEMENT
 	// =========================================
 	
 	/**
 	 * Handles game mode selection
+	 * @param mode The selected game mode
 	 * @param mode The selected game mode
 	 */
 	private handleModeSelection(mode: GameMode): void {

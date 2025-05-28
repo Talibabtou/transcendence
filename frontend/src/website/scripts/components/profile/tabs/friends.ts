@@ -67,6 +67,10 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	 * Sets handlers for component interactions
 	 * @param handlers - Object containing event handlers
 	 */
+	/**
+	 * Sets handlers for component interactions
+	 * @param handlers - Object containing event handlers
+	 */
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
 	}
@@ -75,10 +79,21 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	 * Sets the list of pending friends
 	 * @param pendingFriends - Array of pending friend relationships
 	 */
+	/**
+	 * Sets the list of pending friends
+	 * @param pendingFriends - Array of pending friend relationships
+	 */
 	public setPendingFriends(pendingFriends: Friend[]): void {
 		this.updateInternalState({ pendingFriends });
 	}
 	
+	// =========================================
+	// DATA MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Loads friends data from the database
+	 */
 	// =========================================
 	// DATA MANAGEMENT
 	// =========================================
@@ -128,12 +143,33 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			}
 		} catch (error) {
 			NotificationManager.showError('Failed to load friends data');
+			NotificationManager.showError('Failed to load friends data');
 			this.updateInternalState({
 				pendingFriends: [],
 				acceptedFriends: [],
 				friends: [],
 				dataLoadInProgress: false
 			});
+		}
+	}
+	
+	/**
+	 * Refreshes the friends data
+	 */
+	public refreshData(): void {
+		const state = this.getInternalState();
+		if (state.dataLoadInProgress || !state.profile) return;
+		this.loadFriendsData();
+	}
+	
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
+	/**
+	 * Handles removing a friend
+	 * @param friendId - ID of the friend to remove
+	 */
 		}
 	}
 	
@@ -171,11 +207,33 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		try {
 			await DbService.acceptFriendRequest(friendId);
 			await this.loadFriendsData();
+			await this.loadFriendsData();
 		} catch (error) {
+			NotificationManager.showError('Failed to remove friend');
+		}
+	}
+	
+	/**
+	 * Handles accepting a friend request
+	 * @param friendId - ID of the friend request to accept
+	 */
+	private async handleAcceptFriend(friendId: string): Promise<void> {
+		try {
+			await DbService.acceptFriendRequest(friendId);
+			await this.loadFriendsData();
+		} catch (error) {
+			NotificationManager.showError('Failed to accept friend request');
 			NotificationManager.showError('Failed to accept friend request');
 		}
 	}
 	
+	// =========================================
+	// RENDERING
+	// =========================================
+	
+	/**
+	 * Renders the friends component into its container
+	 */
 	// =========================================
 	// RENDERING
 	// =========================================
@@ -194,15 +252,23 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 						${state.isCurrentUser && state.pendingFriends.length > 0 ? html`
 							<div class="friends-section pending-friends-section">
 								<h3>Pending Requests (${state.pendingFriends.length})</h3>
+								<h3>Pending Requests (${state.pendingFriends.length})</h3>
 								<div class="friends-list">
 									${state.pendingFriends.map(friend => html`
 										<div class="friend-card pending">
 											<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
 												<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
+												<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 												<div class="friend-details">
+													<span class="friend-name">${friend.username || 'Unknown User'}</span>
 													<span class="friend-name">${friend.username || 'Unknown User'}</span>
 												</div>
 											</div>
+											${state.isCurrentUser ? 
+												(friend.requesting === state.currentUserId
+													? html`<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>` 
+													: html`<button class="accept-friend-button" onClick=${() => this.handleAcceptFriend(friend.id)}>Accept</button>`)
+												: ''}
 											${state.isCurrentUser ? 
 												(friend.requesting === state.currentUserId
 													? html`<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>` 
@@ -224,7 +290,9 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 											<div class="friend-card">
 												<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
 													<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
+													<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 													<div class="friend-details">
+														<span class="friend-name">${friend.username || 'Unknown User'}</span>
 														<span class="friend-name">${friend.username || 'Unknown User'}</span>
 													</div>
 												</div>
@@ -243,4 +311,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		`;
 		render(template, this.container);
 	}
+}
+
 }

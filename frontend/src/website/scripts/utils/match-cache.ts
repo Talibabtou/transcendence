@@ -1,4 +1,5 @@
 import { Match, GameMode } from '@website/types';
+import { Match, GameMode } from '@website/types';
 
 /**
  * Extended match data returned by DB service
@@ -100,6 +101,9 @@ class MatchCacheSingleton {
 	/**
 	 * Stores the last match result
 	 */
+	/**
+	 * Stores the last match result
+	 */
 	public setLastMatchResult(result: MatchResult): void {
 		this.lastMatchResult = {
 			...result,
@@ -113,8 +117,19 @@ class MatchCacheSingleton {
 	/**
 	 * Gets the last match result
 	 */
+	/**
+	 * Gets the last match result
+	 */
 	public getLastMatchResult(): MatchResult | null {
 		return this.lastMatchResult ? { ...this.lastMatchResult } : null;
+	}
+	
+	/**
+	 * Invalidates cache for a specific match
+	 */
+	public invalidateMatch(matchId: string): void {
+		this.cache.delete(matchId);
+		this.completedMatches.delete(matchId);
 	}
 	
 	/**

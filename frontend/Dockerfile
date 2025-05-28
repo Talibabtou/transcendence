@@ -24,6 +24,9 @@ FROM nginx:stable-alpine AS production
 # Copy built assets from the build stage
 COPY --from=build /code/dist/website /usr/share/nginx/html
 
+# Copy custom error pages to nginx html directory
+COPY  ./errors /usr/share/nginx/html/errors
+
 # Copy custom Nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 

@@ -16,6 +16,7 @@ export class RegistrationHandler {
 	 * Renders the registration form
 	 */
 	renderRegisterForm(switchToLogin: () => void): any {
+	renderRegisterForm(switchToLogin: () => void): any {
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.REGISTER}</pre>
@@ -33,11 +34,15 @@ export class RegistrationHandler {
 				<div class="form-group">
 					<label for="email">Email:</label>
 					<input type="email" id="email" name="email" required autocomplete="off" />
+					<input type="email" id="email" name="email" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
 					<input type="password" id="password" name="password" required 
+						   autocomplete="new-password" 
+						   onInput=${(e: Event) => this.handlePasswordInput(e.target as HTMLInputElement)}
+						   onFocus=${(e: Event) => this.initializePasswordStrength(e.target as HTMLInputElement)} />
 						   autocomplete="new-password" 
 						   onInput=${(e: Event) => this.handlePasswordInput(e.target as HTMLInputElement)}
 						   onFocus=${(e: Event) => this.initializePasswordStrength(e.target as HTMLInputElement)} />
@@ -59,6 +64,7 @@ export class RegistrationHandler {
 	/**
 	 * Initialize password strength component
 	 */
+	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
 	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
 		if (!this.passwordStrength) {
 			const form = passwordInput.closest('form');
@@ -103,6 +109,7 @@ export class RegistrationHandler {
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
 		if (!username || !email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
+			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
 			return;
 		}
 		if (!emailRegex.test(email)) {
@@ -111,6 +118,7 @@ export class RegistrationHandler {
 		}
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
+			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);
 			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);
 			return;
 		}
@@ -146,8 +154,11 @@ export class RegistrationHandler {
 				connectAuthenticatedWebSocket(token);
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
+				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();
 			} else {
+				this.updateState({ isLoading: false });
+				NotificationManager.showWarning('Account created but login failed. Please try logging in manually.');
 				this.updateState({ isLoading: false });
 				NotificationManager.showWarning('Account created but login failed. Please try logging in manually.');
 			}

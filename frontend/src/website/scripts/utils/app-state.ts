@@ -1,5 +1,6 @@
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
 import { NotificationManager, Router, disconnectWebSocket } from '@website/scripts/services';
+import { NotificationManager, Router, disconnectWebSocket } from '@website/scripts/services';
 
 type StateChangeListener = (newState: Partial<AppState>, oldState: Partial<AppState>) => void;
 
@@ -37,6 +38,8 @@ export class AppStateManager {
 	/**
 	 * Get the singleton instance of the AppStateManager
 	 * @returns The AppStateManager instance
+	 * Get the singleton instance of the AppStateManager
+	 * @returns The AppStateManager instance
 	 */
 	public static getInstance(): AppStateManager {
 		if (!AppStateManager.instance) AppStateManager.instance = new AppStateManager();
@@ -47,13 +50,21 @@ export class AppStateManager {
 	// EVENT HANDLERS
 	// =========================================
 	
+
+	// =========================================
+	// EVENT HANDLERS
+	// =========================================
+	
 	/**
+	 * Handles storage changes from other tabs/windows
+	 * @param event The storage event
 	 * Handles storage changes from other tabs/windows
 	 * @param event The storage event
 	 */
 	private handleStorageChange = (event: StorageEvent): void => {
 		const oldStateSnapshot = JSON.parse(JSON.stringify(this.state));
 		const reinitializeAndNotify = () => {
+			this.initializeFromStorage();
 			this.initializeFromStorage();
 			const changedParts: Partial<AppState> = {
 				auth: this.state.auth,
@@ -94,6 +105,7 @@ export class AppStateManager {
 							},
 							accentColor: newAccentColorName,
 							accentColors: {
+							accentColors: {
 								...this.state.accentColors,
 								accent1: newStoredTheme,
 							},
@@ -107,6 +119,8 @@ export class AppStateManager {
 	};
 
 	/**
+	 * Handles the 'user:theme-updated' event dispatched by setUserAccentColor
+	 * @param event The custom event
 	 * Handles the 'user:theme-updated' event dispatched by setUserAccentColor
 	 * @param event The custom event
 	 */
@@ -169,6 +183,7 @@ export class AppStateManager {
 				this.state.accentColors.accent1 = userTheme;
 			} catch (error) {
 				NotificationManager.showError('Failed to parse stored user data: ' + error);
+				NotificationManager.showError('Failed to parse stored user data: ' + error);
 				localStorage.removeItem('auth_user');
 				sessionStorage.removeItem('auth_user');
 				localStorage.removeItem('jwt_token');
@@ -202,9 +217,14 @@ export class AppStateManager {
 	// =========================================
 	// STATE MANAGEMENT
 	// =========================================
+	// =========================================
+	// STATE MANAGEMENT
+	// =========================================
 	
 	/**
 	 * Subscribe to state changes
+	 * @param listener The listener function to call when state changes
+	 * @returns A function to unsubscribe the listener
 	 * @param listener The listener function to call when state changes
 	 * @returns A function to unsubscribe the listener
 	 */
@@ -219,12 +239,15 @@ export class AppStateManager {
 	 * Notify listeners of state changes
 	 * @param newState The new partial state
 	 * @param oldState The old state
+	 * @param newState The new partial state
+	 * @param oldState The old state
 	 */
 	private notifyListeners(newState: Partial<AppState>, oldState: Partial<AppState>): void {
 		this.listeners.forEach(listener => {
 			try {
 				listener(newState, oldState);
 			} catch (error) {
+				NotificationManager.showError("Error in state change listener");
 				NotificationManager.showError("Error in state change listener");
 			}
 		});
@@ -285,6 +308,9 @@ export class AppStateManager {
 	 * @param user The user object
 	 * @param token The JWT token
 	 * @param persistent Whether to persist the login
+	 * @param user The user object
+	 * @param token The JWT token
+	 * @param persistent Whether to persist the login
 	 */
 	public login(user: any, token?: string, persistent: boolean = false): void {
 		localStorage.setItem('auth_persistent', persistent.toString());
@@ -298,6 +324,7 @@ export class AppStateManager {
 				jwtToken: token || null
 			},
 			accentColor: colorName,
+			accentColors: { ...this.state.accentColors, accent1: userTheme }
 			accentColors: { ...this.state.accentColors, accent1: userTheme }
 		});
 		const authEvent = new CustomEvent('user-authenticated', {
@@ -336,6 +363,11 @@ export class AppStateManager {
 				accent4: AppStateManager.DEFAULT_ACCENT_COLOR
 			},
 			players: {}
+				accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
+				accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
+				accent4: AppStateManager.DEFAULT_ACCENT_COLOR
+			},
+			players: {}
 		});
 		localStorage.removeItem('auth_user');
 		sessionStorage.removeItem('auth_user');
@@ -351,6 +383,7 @@ export class AppStateManager {
 	/**
 	 * Check if user is authenticated
 	 * @returns Whether the user is authenticated
+	 * @returns Whether the user is authenticated
 	 */
 	public isAuthenticated(): boolean {
 		return this.state.auth.isAuthenticated;
@@ -359,12 +392,48 @@ export class AppStateManager {
 	/**
 	 * Get current user
 	 * @returns The current user or null
+	 * @returns The current user or null
 	 */
 	public getCurrentUser(): any | null {
 		return this.state.auth.user;
 	}
 	
 	/**
+	 * Update user data in the app state
+	 * @param userData The user data to update
+	 */
+	public updateUserData(userData: Partial<{username: string, email: string, profilePicture: string, password: string}>) {
+		const currentUser = this.getCurrentUser();
+		if (currentUser) {
+			this.setState({
+				auth: {
+					...this.state.auth,
+					user: {
+						...currentUser,
+						...userData
+					}
+				}
+			});
+		}
+	}
+	
+	// =========================================
+	// THEME MANAGEMENT
+	// =========================================
+	
+	/**
+	 * Apply the current accent color to CSS variables
+	 */
+	private applyAccentColorToCSS(): void {
+		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
+		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
+		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
+		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
+	}
+	
+	/**
+	 * Set accent color and update user theme in localStorage
+	 * @param colorName The accent color name
 	 * Update user data in the app state
 	 * @param userData The user data to update
 	 */
@@ -429,6 +498,10 @@ export class AppStateManager {
 	 * @param playerIndex The player index (1-4)
 	 * @param colorHex The color hex value
 	 * @param userId Optional user ID
+	 * Set accent color for a specific player (1-4) for the current game session
+	 * @param playerIndex The player index (1-4)
+	 * @param colorHex The color hex value
+	 * @param userId Optional user ID
 	 */
 	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined, userId?: string): void {
 		if (playerIndex < 1 || playerIndex > 4) return;
@@ -462,6 +535,7 @@ export class AppStateManager {
 	/**
 	 * Get current accent color
 	 * @returns The current accent color
+	 * @returns The current accent color
 	 */
 	public getAccentColor(): AccentColor {
 		return this.state.accentColor;
@@ -470,12 +544,16 @@ export class AppStateManager {
 	/**
 	 * Get accent color hex value
 	 * @returns The accent color hex value
+	 * @returns The accent color hex value
 	 */
 	public getAccentColorHex(): string {
 		return ACCENT_COLORS[this.state.accentColor];
 	}
 
 	/**
+	 * Get player accent color for the game session
+	 * @param playerIndex The player index (1-4)
+	 * @returns The player accent color
 	 * Get player accent color for the game session
 	 * @param playerIndex The player index (1-4)
 	 * @returns The player accent color
@@ -489,12 +567,16 @@ export class AppStateManager {
 	/**
 	 * Get all available accent colors
 	 * @returns Record of all available accent colors
+	 * @returns Record of all available accent colors
 	 */
 	public getAvailableColors(): Record<AccentColor, string> {
 		return { ...ACCENT_COLORS };
 	}
 	
 	/**
+	 * Update player theme
+	 * @param playerId The player ID
+	 * @param colorHex The color hex value
 	 * Update player theme
 	 * @param playerId The player ID
 	 * @param colorHex The color hex value
@@ -506,9 +588,18 @@ export class AppStateManager {
 	// =========================================
 	// PLAYER MANAGEMENT
 	// =========================================
+	public updatePlayerTheme(playerId: string, colorHex: string): void {
+		AppStateManager.setUserAccentColor(playerId, colorHex);
+	}
+	
+	// =========================================
+	// PLAYER MANAGEMENT
+	// =========================================
 	
 	/**
 	 * Set player name in the app state
+	 * @param playerId The player ID
+	 * @param username The username
 	 * @param playerId The player ID
 	 * @param username The username
 	 */
@@ -526,6 +617,8 @@ export class AppStateManager {
 	
 	/**
 	 * Set player avatar in the app state
+	 * @param playerId The player ID
+	 * @param pfp The profile picture URL
 	 * @param playerId The player ID
 	 * @param pfp The profile picture URL
 	 */
@@ -549,16 +642,30 @@ export class AppStateManager {
 	 * Get all accent colors from storage
 	 * @returns Record of user IDs to accent colors
 	 */
+	// =========================================
+	// STATIC ACCENT COLOR METHODS
+	// =========================================
+	
+	/**
+	 * Get all accent colors from storage
+	 * @returns Record of user IDs to accent colors
+	 */
 	private static getAllAccentColorsFromStorage(): Record<string, string> {
 		const storedColors = localStorage.getItem(AppStateManager.ACCENT_COLOR_STORAGE_KEY);
 		try {
 			return storedColors ? JSON.parse(storedColors) : {};
 		} catch (error) {
 			NotificationManager.showError("Error parsing accent colors from storage");
+			NotificationManager.showError("Error parsing accent colors from storage");
 			return {};
 		}
 	}
 
+	/**
+	 * Get a user's accent color
+	 * @param userId The user ID
+	 * @returns The user's accent color
+	 */
 	/**
 	 * Get a user's accent color
 	 * @param userId The user ID
@@ -570,6 +677,11 @@ export class AppStateManager {
 		return colors[userId] || AppStateManager.DEFAULT_ACCENT_COLOR;
 	}
 
+	/**
+	 * Set a user's accent color
+	 * @param userId The user ID
+	 * @param colorHex The color hex value
+	 */
 	/**
 	 * Set a user's accent color
 	 * @param userId The user ID
@@ -587,6 +699,11 @@ export class AppStateManager {
 		window.dispatchEvent(event);
 	}
 
+	/**
+	 * Initialize a user's accent color
+	 * @param userId The user ID
+	 * @returns The user's accent color
+	 */
 	/**
 	 * Initialize a user's accent color
 	 * @param userId The user ID
