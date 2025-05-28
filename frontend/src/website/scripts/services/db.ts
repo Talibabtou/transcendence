@@ -5,7 +5,8 @@ import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types
 import { User, Match, Goal, AuthResponse, LeaderboardEntry } from '@website/types';
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
-
+import { GameManager } from '../components/game/game-manager';
+import { navigate, Router } from '../services/router';
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -58,6 +59,16 @@ export class DbService {
 			console.warn(errorData.message);
 			const { appState } = await import('../utils/app-state');
 			if (!response.ok || response.status === 403) appState.logout();
+			const gameManager = GameManager.getInstance();
+			if (gameManager.isMainGameActive()) {
+				gameManager.cleanupMainGame();
+				gameManager.showBackgroundGame();
+				navigate('/');
+
+				setTimeout(() => {
+					Router.resetGameComponentToMenu();
+				}, 50);
+			}
 			throw new Error(errorData.message);
 		}
 		const contentType = response.headers.get("content-type");

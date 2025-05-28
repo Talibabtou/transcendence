@@ -370,6 +370,17 @@ export class Router {
 			Router.activeInstance.components.delete(route);
 		}
 	}
+		/**
+	 * Resets the GameComponent to its menu state.
+	 */
+		public static resetGameComponentToMenu(): void {
+			if (Router.activeInstance) {
+				const gameComponent = Router.activeInstance.components.get(Route.GAME) as GameComponent;
+				if (gameComponent?.resetToMenu) {
+					gameComponent.resetToMenu();
+				}
+			}
+		}
 }
 
 // =========================================
