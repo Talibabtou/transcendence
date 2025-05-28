@@ -31,8 +31,6 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 			}
 		}
 	};
-	
-	// Layout configuration
 	const layout = {
 		xaxis: {
 			title: {
@@ -75,22 +73,16 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 		},
 		bargap: 0.05
 	};
-	
-	// Config options
 	const config = {
 		responsive: true,
 		displayModeBar: false
 	};
-	
-	// Create the plot
 	Plotly.newPlot(
 		container,
 		[trace as Plotly.Data],
 		layout,
 		config
 	);
-	
-	// Return a cleanup function
 	return () => {
 		Plotly.purge(container);
 	};

@@ -1,8 +1,8 @@
+import { ErrorCodes } from '@shared/constants/error.const';
 import { Component, GuestAuthComponent } from '@website/scripts/components';
-import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
-import { ErrorCodes } from '@shared/constants/error.const';
+import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/scripts/utils';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManagers: Map<string, IAuthComponent> = new Map();

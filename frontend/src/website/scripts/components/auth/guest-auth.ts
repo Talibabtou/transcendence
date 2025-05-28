@@ -1,8 +1,8 @@
 import { Component } from '@website/scripts/components';
-import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { ErrorCodes } from '@shared/constants/error.const';
 import { IAuthComponent, GuestAuthState } from '@website/types';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
-import { ErrorCodes } from '@shared/constants/error.const';
+import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	private passwordStrength: PasswordStrengthComponent | null = null;

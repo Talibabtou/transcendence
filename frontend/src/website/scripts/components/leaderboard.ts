@@ -1,7 +1,7 @@
+import { LeaderboardState } from '@website/types';
 import { Component } from '@website/scripts/components';
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
-import { LeaderboardState } from '@website/types';
 
 export class LeaderboardComponent extends Component<LeaderboardState> {
 	constructor(container: HTMLElement) {

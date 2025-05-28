@@ -1,7 +1,7 @@
-import { GameEngine } from '@pong/game/engine';
-import { GAME_CONFIG} from '@pong/constants';
-import { MatchCache } from '@website/scripts/utils';
 import { GameMode } from '@website/types';
+import { GAME_CONFIG} from '@pong/constants';
+import { GameEngine } from '@pong/game/engine';
+import { MatchCache } from '@website/scripts/utils';
 import { NotificationManager } from '@website/scripts/services';
 
 declare global {
@@ -77,9 +77,7 @@ export class GameManager {
 	 * This should be called ONLY ONCE by App.ts
 	 */
 	public initialize(): void {
-		if (GameManager.isInitialized) {
-			return;
-		}
+		if (GameManager.isInitialized) return;
 		GameManager.isInitialized = true;
 	}
 
@@ -107,11 +105,8 @@ export class GameManager {
 	 * @param container The HTML element to render the game in.
 	 */
 	private startGame(instance: GameInstance, mode: GameMode, container: HTMLElement | null): void {
-		if (instance.isActive) {
-			this.cleanupGame(instance);
-		}
+		if (instance.isActive) this.cleanupGame(instance);
 		const canvas = document.createElement('canvas');
-		
 		if (instance.type === GameInstanceType.MAIN) {
 			canvas.id = 'game-canvas';
 			if (container) {
@@ -124,9 +119,7 @@ export class GameManager {
 		} else {
 			canvas.id = 'background-game-canvas';
 			const existingBgCanvas = document.getElementById('background-game-canvas');
-			if (existingBgCanvas) {
-				existingBgCanvas.remove();
-			}
+			if (existingBgCanvas) existingBgCanvas.remove();
 			canvas.style.position = 'absolute';
 			canvas.style.zIndex = '-1';
 			canvas.style.top = '0';
@@ -139,7 +132,6 @@ export class GameManager {
 			NotificationManager.showError(`Could not get canvas context for ${instance.type} game`);
 			return;
 		}
-
 		const gameEngine = new GameEngine(ctx);
 		gameEngine.onGameOver = (detail) => {
 			if (instance.isActive && instance.engine) {
@@ -147,19 +139,14 @@ export class GameManager {
 				if (instance.type === GameInstanceType.MAIN && !instance.cleanupScheduled) {
 					instance.cleanupScheduled = true;
 					setTimeout(() => {
-						if (instance.isActive) { 
-							this.cleanupGame(instance);
-						}
+						if (instance.isActive) this.cleanupGame(instance);
 						instance.cleanupScheduled = false;
 					}, 500);
 				}
 			}
 		};
-		if (instance.type === GameInstanceType.MAIN) {
-			gameEngine.initialize(mode);
-		} else {
-			gameEngine.initialize(GameMode.BACKGROUND_DEMO);
-		}
+		if (instance.type === GameInstanceType.MAIN) gameEngine.initialize(mode);
+		else gameEngine.initialize(GameMode.BACKGROUND_DEMO);
 		instance.canvas = canvas;
 		instance.engine = gameEngine;
 		instance.isActive = true;
@@ -183,16 +170,13 @@ export class GameManager {
 			clearInterval(instance.updateIntervalId);
 			instance.updateIntervalId = null;
 		}
-
 		let lastTime = performance.now();
 		let accumulator = 0;
 		const loop = (currentTime: number) => {
 			if (instance.isActive && instance.engine) {
 				let deltaTime = currentTime - lastTime;
 				lastTime = currentTime;
-				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) {
-					deltaTime = GAME_CONFIG.MAX_DELTA_TIME;
-				}
+				if (deltaTime > GAME_CONFIG.MAX_DELTA_TIME) deltaTime = GAME_CONFIG.MAX_DELTA_TIME;
 				accumulator += deltaTime;
 				try {
 					let steps = 0;
@@ -201,9 +185,7 @@ export class GameManager {
 						accumulator -= GAME_CONFIG.FRAME_TIME;
 						steps++;
 					}
-					if (steps === GAME_CONFIG.MAX_STEPS_PER_FRAME) {
-						accumulator = 0;
-					}
+					if (steps === GAME_CONFIG.MAX_STEPS_PER_FRAME) accumulator = 0;
 					const alpha = accumulator / GAME_CONFIG.FRAME_TIME;
 					instance.engine.draw(alpha);
 				} catch (error) {
@@ -243,9 +225,7 @@ export class GameManager {
 	 * @param instance The game instance to clean up.
 	 */
 	private cleanupGame(instance: GameInstance): void {
-		if (this.isCleaningUp) {
-			return;
-		}
+		if (this.isCleaningUp) return;
 		this.isCleaningUp = true;
 		if (GameManager.isBootstrapping) {
 			this.isCleaningUp = false;
@@ -333,9 +313,7 @@ export class GameManager {
 		}
 	): void {
 		this.startGame(this.mainGameInstance, mode, container);
-		if (mode === GameMode.BACKGROUND_DEMO) {
-			return;
-		}
+		if (mode === GameMode.BACKGROUND_DEMO) return;
 		MatchCache.setCurrentGameInfo({
 			gameMode: mode,
 			playerIds: playerInfo?.playerIds,
@@ -347,44 +325,31 @@ export class GameManager {
 			const playerNames = playerInfo.playerNames || [];
 			const currentUser = playerInfo.playerName || playerNames[0] || 'Player 1';
 			let opponent = 'AI';
-			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
-				opponent = playerNames[1] || 'Player 2';
-			}
+			if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) opponent = playerNames[1] || 'Player 2';
 			if (this.mainGameInstance.engine) {
 				this.mainGameInstance.engine.setPlayerNames(currentUser, opponent);
 				const playerColors = playerInfo.playerColors || [];
 				const p1Color = playerColors[0] || playerInfo.playerColor || '#ffffff';
 				let p2Color;
-				if (mode === GameMode.SINGLE) {
-					p2Color = '#ffffff';
-				} else if (playerColors.length > 1 && playerColors[1]) {
-					p2Color = playerColors[1];
-				} else {
-					p2Color = '#ffffff';
-				}
+				if (mode === GameMode.SINGLE) p2Color = '#ffffff';
+				else if (playerColors.length > 1 && playerColors[1]) p2Color = playerColors[1];
+				else p2Color = '#ffffff';
 				this.mainGameInstance.engine.updatePlayerColors(p1Color, p2Color);
 				if (playerInfo.playerIds && playerInfo.playerIds.length > 0) {
 					const playerIdsCopy = [...playerInfo.playerIds];
-					if (playerInfo.tournamentId) {
-						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy, playerInfo.tournamentId, playerInfo.isFinal || false);
-					} else {
-						this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
-					}
+					if (playerInfo.tournamentId) this.mainGameInstance.engine.setPlayerIds(playerIdsCopy, playerInfo.tournamentId, playerInfo.isFinal || false);
+					else this.mainGameInstance.engine.setPlayerIds(playerIdsCopy);
 				}
 			}
 		}
-		if (this.mainGameInstance.engine) {
-			this.mainGameInstance.engine.startMatchTimer();
-		}
+		if (this.mainGameInstance.engine) this.mainGameInstance.engine.startMatchTimer();
 	}
 
 	/**
 	 * Starts the background game.
 	 */
 	public startBackgroundGame(): void {
-		if (!GameManager.isInitialized) {
-			return;
-		}
+		if (!GameManager.isInitialized) return;
 		if (!this.backgroundGameInstance.isActive) {
 			this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
 			this.setBackgroundKeyboardActive(false);
@@ -473,11 +438,8 @@ export class GameManager {
 			}
 		});
 		document.dispatchEvent(errorEvent);
-		if (gameType === 'main') {
-			this.cleanupMainGame();
-		} else {
-			this.cleanupBackgroundGame();
-		}
+		if (gameType === 'main') this.cleanupMainGame();
+		else this.cleanupBackgroundGame();
 		if (gameType === 'main') {
 			const gameContainer = document.querySelector('.game-container');
 			if (gameContainer) {
@@ -503,21 +465,15 @@ export class GameManager {
 			if (!this.backgroundGameInstance.isActive || !this.backgroundGameInstance.engine) {
 				this.cleanupGame(this.backgroundGameInstance);
 				this.startGame(this.backgroundGameInstance, GameMode.BACKGROUND_DEMO, null);
-				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
-				}
+				if (this.backgroundGameInstance.engine) this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 			} else {
 				if (this.backgroundGameInstance.canvas) {
 					this.backgroundGameInstance.canvas.style.display = 'block';
 					this.backgroundGameInstance.canvas.style.opacity = '0.4';
 				}
-				if (this.backgroundGameInstance.engine.isGamePaused()) {
-					this.backgroundGameInstance.engine.togglePause();
-				}
+				if (this.backgroundGameInstance.engine.isGamePaused()) this.backgroundGameInstance.engine.togglePause();
 				this.startGameLoop(this.backgroundGameInstance);
-				if (this.backgroundGameInstance.engine) {
-					this.backgroundGameInstance.engine.setKeyboardEnabled(false);
-				}
+				if (this.backgroundGameInstance.engine) this.backgroundGameInstance.engine.setKeyboardEnabled(false);
 			}
 		} catch (error) {
 			NotificationManager.showError('Error showing background game');
@@ -555,9 +511,7 @@ export class GameManager {
 	 * @returns A function to remove the event listener.
 	 */
 	public addEventListener(event: GameEvent, callback: Function): () => void {
-		if (!this.eventListeners.has(event)) {
-			this.eventListeners.set(event, []);
-		}
+		if (!this.eventListeners.has(event)) this.eventListeners.set(event, []);
 		this.eventListeners.get(event)!.push(callback);
 		return () => {
 			if (this.eventListeners.has(event)) {
@@ -589,11 +543,8 @@ export class GameManager {
 	 * @param type The type of game instance to clean up.
 	 */
 	public cleanupInstance(type: GameInstanceType | string): void {
-		if (type === GameInstanceType.MAIN || type === 'main') {
-			this.cleanupGame(this.mainGameInstance);
-		} else if (type === GameInstanceType.BACKGROUND_DEMO || type === 'background_demo') {
-			this.hideBackgroundGame();
-		}
+		if (type === GameInstanceType.MAIN || type === 'main') this.cleanupGame(this.mainGameInstance);
+		else if (type === GameInstanceType.BACKGROUND_DEMO || type === 'background_demo') this.hideBackgroundGame();
 	}
 
 	/**
@@ -636,9 +587,7 @@ export class GameManager {
 	 * @param data Optional data to pass with the event.
 	 */
 	private dispatchEvent(event: GameEvent, data?: any): void {
-		if (this.eventListeners.has(event)) {
-			this.eventListeners.get(event)!.forEach(callback => callback(data));
-		}
+		if (this.eventListeners.has(event)) this.eventListeners.get(event)!.forEach(callback => callback(data));
 	}
 
 	/**
@@ -646,12 +595,8 @@ export class GameManager {
 	 * @param data The data to pass with the notification.
 	 */
 	private notifyGameEnded(data: any): void {
-		if (this.eventListeners.has(GameEvent.GAME_ENDED)) {
-			this.eventListeners.get(GameEvent.GAME_ENDED)!.forEach(callback => callback(data));
-		}
-		if (this.onGameOverCallback) {
-			this.onGameOverCallback(data);
-		}
+		if (this.eventListeners.has(GameEvent.GAME_ENDED)) this.eventListeners.get(GameEvent.GAME_ENDED)!.forEach(callback => callback(data));
+		if (this.onGameOverCallback) this.onGameOverCallback(data);
 	}
 
 	/**
@@ -677,9 +622,7 @@ export class GameManager {
 	 * @returns The GameManager instance.
 	 */
 	public static getInstance(): GameManager {
-		if (!GameManager.instance) {
-				GameManager.instance = new GameManager();
-		}
+		if (!GameManager.instance) GameManager.instance = new GameManager();
 		return GameManager.instance;
 	}
 
@@ -688,9 +631,7 @@ export class GameManager {
 	 * @param active Whether the keyboard should be active.
 	 */
 	private setBackgroundKeyboardActive(active: boolean): void {
-		if (this.backgroundGameInstance.engine) {
-			this.backgroundGameInstance.engine.setKeyboardEnabled(active);
-		}
+		if (this.backgroundGameInstance.engine) this.backgroundGameInstance.engine.setKeyboardEnabled(active);
 	}
 
 	/**
@@ -698,9 +639,7 @@ export class GameManager {
 	 * @returns The main game state, or null if it is not active.
 	 */
 	public getMainGameState(): any {
-		if (this.mainGameInstance.engine) {
-			return this.mainGameInstance.engine.GameState;
-		}
+		if (this.mainGameInstance.engine) return this.mainGameInstance.engine.GameState;
 		return null;
 	}
 
@@ -714,12 +653,8 @@ export class GameManager {
 				window.removeEventListener(listenerInfo.type, listenerInfo.listener);
 			});
 			instance.eventListeners = [];
-		} else {
-			instance.eventListeners = [];
-		}
-		if (instance.type === GameInstanceType.BACKGROUND_DEMO) {
-			return;
-		}
+		} else instance.eventListeners = [];
+		if (instance.type === GameInstanceType.BACKGROUND_DEMO) return;
 	}
 
 	/**

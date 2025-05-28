@@ -57,7 +57,7 @@ export class DbService {
 			const errorData = await response.json();
 			console.warn(errorData.message);
 			const { appState } = await import('../utils/app-state');
-			appState.logout();
+			if (!response.ok || response.status === 403) appState.logout();
 			throw new Error(errorData.message);
 		}
 		const contentType = response.headers.get("content-type");

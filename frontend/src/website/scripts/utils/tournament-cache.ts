@@ -1,6 +1,6 @@
-import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
-import { NotificationManager } from '@website/scripts/services';
 import { v4 as uuidv4 } from 'uuid';
+import { NotificationManager } from '@website/scripts/services';
+import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
 
 class TournamentCacheSingleton {
 	private static instance: TournamentCacheSingleton;

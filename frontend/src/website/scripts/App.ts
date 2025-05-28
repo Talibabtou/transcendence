@@ -1,6 +1,6 @@
 import { NavbarComponent } from '@website/scripts/utils';
-import { Router, NotificationManager, WebSocketClient } from '@website/scripts/services';
 import { GameManager } from '@website/scripts/components';
+import { Router, NotificationManager, WebSocketClient } from '@website/scripts/services';
 
 declare global {
 	interface Window {

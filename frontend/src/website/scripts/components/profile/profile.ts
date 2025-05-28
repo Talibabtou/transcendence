@@ -1,7 +1,7 @@
-import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
+import { ProfileState, User } from '@website/types';
 import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
-import { ProfileState, User } from '@website/types';
+import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
 
 export class ProfileComponent extends Component<ProfileState> {
 	private statsComponent?: ProfileStatsComponent;
@@ -47,18 +47,14 @@ export class ProfileComponent extends Component<ProfileState> {
 	async initialize(): Promise<void> {
 		const state = this.getInternalState();
 		if (state.initialized || state.isLoading || this.dataFetchInProgress) return;
-		
 		this.updateInternalState({ 
 			isLoading: true,
 			initialized: true
 		});
-		
 		try {
 			this.dataFetchInProgress = true;
 			await this.fetchProfileData();
 			this.dataFetchInProgress = false;
-			
-			// Only proceed with rendering if we successfully loaded data
 			if (state.profile) {
 				await this.renderView();
 				this.initialRenderComplete = true;
@@ -67,7 +63,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		} catch (error) {
 			NotificationManager.showError("Error initializing profile");
 			this.dataFetchInProgress = false;
-			
 			this.updateInternalState({ 
 				isLoading: false,
 				initialized: false
@@ -79,12 +74,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Renders the component based on current state
 	 */
 	render(): void {
-		// Only initialize if not already in progress
-		if (!this.getInternalState().initialized && !this.dataFetchInProgress) {
-			this.initialize();
-		} else {
-			this.renderView();
-		}
+		if (!this.getInternalState().initialized && !this.dataFetchInProgress) this.initialize();
+		else this.renderView();
 	}
 	
 	/**
@@ -102,9 +93,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	public loadProfile(profileId: string): void {
 		if (this.dataFetchInProgress) return;
-		
 		this.cleanupComponents();
-		
 		this.updateInternalState({
 			profile: null,
 			initialized: false,
@@ -112,8 +101,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			activeTab: 'stats',
 			currentProfileId: profileId
 		});
-		
-		// We don't need to call initialize here - it will be called by render()
 	}
 	
 	/**
@@ -128,9 +115,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	public refresh(): void {
 		if (this.dataFetchInProgress) return;
-		
 		this.cleanupComponents();
-		
 		this.updateInternalState({
 			profile: null,
 			initialized: false,
@@ -141,7 +126,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			pendingFriends: [],
 			matchesCache: new Map()
 		});
-		
 		this.initialize();
 	}
 	
@@ -149,19 +133,11 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Cleanup all child components
 	 */
 	private cleanupComponents(): void {
-		if (this.statsComponent) {
-			this.statsComponent = undefined;
-		}
-		if (this.historyComponent) {
-			this.historyComponent = undefined;
-		}
-		if (this.friendsComponent) {
-			this.friendsComponent = undefined;
-		}
+		if (this.statsComponent) this.statsComponent = undefined;
+		if (this.historyComponent) this.historyComponent = undefined;
+		if (this.friendsComponent) this.friendsComponent = undefined;
 		if (this.settingsComponent) {
-			if (typeof this.settingsComponent.destroy === 'function') {
-				this.settingsComponent.destroy();
-			}
+			if (typeof this.settingsComponent.destroy === 'function') this.settingsComponent.destroy();
 			this.settingsComponent = undefined;
 		}
 	}
@@ -176,12 +152,9 @@ export class ProfileComponent extends Component<ProfileState> {
 	private initializeTabContent(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
-		// Use requestAnimationFrame to ensure DOM is ready
 		requestAnimationFrame(() => {
 			const tabContainer = this.container.querySelector(`.tab-content`);
 			if (!tabContainer) return;
-			
 			this.createTabComponent(state.activeTab);
 		});
 	}
@@ -192,16 +165,13 @@ export class ProfileComponent extends Component<ProfileState> {
 	private createTabComponent(tabName: string): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		const tabContentDiv = this.container.querySelector(`.tab-content`);
 		if (!tabContentDiv) return;
-		
 		tabContentDiv.innerHTML = '';
 		const tabContainer = document.createElement('div');
 		tabContainer.className = 'tab-pane active';
 		tabContainer.id = `tab-content-${tabName}`;
 		tabContentDiv.appendChild(tabContainer);
-
 		switch (tabName) {
 			case 'stats':
 				this.initializeStatsTab(tabContentDiv, tabContainer);
@@ -224,7 +194,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private initializeStatsTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		if (this.statsComponent) {
 			const statsContainer = this.statsComponent.getDOMContainer();
 			if (statsContainer.parentElement !== tabContentDiv) {
@@ -246,7 +215,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private initializeHistoryTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		if (this.historyComponent) {
 			const historyContainer = this.historyComponent.getDOMContainer();
 			if (historyContainer.parentElement !== tabContentDiv) {
@@ -269,7 +237,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private initializeFriendsTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		if (this.friendsComponent) {
 			const friendsContainer = this.friendsComponent.getDOMContainer();
 			if (friendsContainer.parentElement !== tabContentDiv) {
@@ -292,14 +259,10 @@ export class ProfileComponent extends Component<ProfileState> {
 	private initializeSettingsTab(_tabContentDiv: Element, tabContainer: HTMLElement): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		if (this.settingsComponent) {
-			if (typeof this.settingsComponent.destroy === 'function') {
-				this.settingsComponent.destroy();
-			}
+			if (typeof this.settingsComponent.destroy === 'function') this.settingsComponent.destroy();
 			this.settingsComponent = undefined;
 		}
-		
 		this.settingsComponent = new ProfileSettingsComponent(tabContainer);
 		this.settingsComponent.setProfile(state.profile);
 		this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
@@ -313,7 +276,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			this.refreshActiveTab();
 			return;
 		}
-		
 		this.updateInternalState({ activeTab: tabId });
 		this.createTabComponent(tabId);
 	}
@@ -323,22 +285,15 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	private refreshActiveTab(): void {
 		const state = this.getInternalState();
-		
 		switch (state.activeTab) {
 			case 'stats':
-				if (this.statsComponent) {
-					this.statsComponent.refreshData();
-				}
+				if (this.statsComponent) this.statsComponent.refreshData();
 				break;
 			case 'history':
-				if (this.historyComponent) {
-					this.historyComponent.refreshData();
-				}
+				if (this.historyComponent) this.historyComponent.refreshData();
 				break;
 			case 'friends':
-				if (this.friendsComponent) {
-					this.friendsComponent.refreshData();
-				}
+				if (this.friendsComponent) this.friendsComponent.refreshData();
 				break;
 			case 'settings':
 				this.createTabComponent('settings');
@@ -356,7 +311,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	private async fetchProfileData(): Promise<void> {
 		const url = new URL(window.location.href);
 		let userId = url.searchParams.get('id');
-		
 		if (!userId) {
 			const currentUser = JSON.parse(localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user') || '{}');
 			userId = currentUser?.id;
@@ -366,19 +320,14 @@ export class ProfileComponent extends Component<ProfileState> {
 				return;
 			}
 		}
-		
 		this.updateInternalState({ currentProfileId: userId });
-		
 		try {
-			// Fetch basic profile data first
 			const userProfile = await DbService.getUserProfile(userId);
-			
 			if (!userProfile) {
 				NotificationManager.showError(`User profile not found`);
 				this.updateInternalState({ isLoading: false });
 				return;
 			}
-			
 			const profile = {
 				id: String(userProfile.id),
 				username: userProfile.username,
@@ -393,13 +342,9 @@ export class ProfileComponent extends Component<ProfileState> {
 				},
 				elo: userProfile.summary?.elo || 1000
 			};
-			
 			this.updateInternalState({ profile });
-			
 			const isOwnProfile = this.isCurrentUserProfile(userId);
-			
 			const additionalDataPromises = [];
-			
 			let pendingFriends: any[] = [];
 			if (isOwnProfile) {
 				additionalDataPromises.push(
@@ -431,7 +376,6 @@ export class ProfileComponent extends Component<ProfileState> {
 						})
 				);
 			}
-			
 			let friendshipStatus = null;
 			if (!isOwnProfile) {
 				additionalDataPromises.push(
@@ -442,11 +386,7 @@ export class ProfileComponent extends Component<ProfileState> {
 						.catch(() => {})
 				);
 			}
-			
-			if (additionalDataPromises.length > 0) {
-				await Promise.all(additionalDataPromises);
-			}
-			
+			if (additionalDataPromises.length > 0) await Promise.all(additionalDataPromises);
 			this.updateInternalState({
 				profile,
 				friendshipStatus,
@@ -482,18 +422,13 @@ export class ProfileComponent extends Component<ProfileState> {
 	private handleProfileSettingsUpdate = async (updatedFields: Partial<User>): Promise<void> => {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-
 		let profileWasActuallyUpdatedInParent = false;
 		const newProfileDataForParent = { ...state.profile };
-
 		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
 			newProfileDataForParent.username = updatedFields.username;
 			profileWasActuallyUpdatedInParent = true;
 		}
-
-		if (profileWasActuallyUpdatedInParent) {
-			this.updateInternalState({ profile: newProfileDataForParent });
-		}
+		if (profileWasActuallyUpdatedInParent) this.updateInternalState({ profile: newProfileDataForParent });
 	}
 	
 	/**
@@ -503,12 +438,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		const url = new URL(window.location.href);
 		const newProfileId = url.searchParams.get('id');
 		const state = this.getInternalState();
-		
 		if (newProfileId !== state.currentProfileId) {
 			if (this.dataFetchInProgress) return;
-			
 			this.cleanupComponents();
-			
 			this.updateInternalState({
 				profile: null,
 				initialized: false,
@@ -517,7 +449,6 @@ export class ProfileComponent extends Component<ProfileState> {
 				currentProfileId: newProfileId,
 				friendshipStatus: null,
 			});
-			
 			this.initialize();
 		}
 	}
@@ -528,26 +459,17 @@ export class ProfileComponent extends Component<ProfileState> {
 	private async handleFriendAction(): Promise<void> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		const friendButton = this.container.querySelector('.friend-button') as HTMLButtonElement;
 		if (!friendButton) return;
-		
-		if (friendButton.classList.contains('is-friend')) {
-			return;
-		}
-		
+		if (friendButton.classList.contains('is-friend')) return;
 		const isPending = friendButton.classList.contains('pending');
-		
 		friendButton.disabled = true;
 		friendButton.textContent = 'Processing...';
-		
 		try {
 			if (isPending) {
 				await DbService.removeFriend(state.profile.id);
 				const newStatus = await DbService.getFriendship(state.profile.id);
-				
 				NotificationManager.showSuccess('Friend request cancelled');
-				
 				if (newStatus === null) {
 					friendButton.textContent = 'Add Friend';
 					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
@@ -560,16 +482,13 @@ export class ProfileComponent extends Component<ProfileState> {
 					friendButton.classList.add('is-friend');
 					friendButton.classList.remove('pending', 'request-sent');
 				}
-				
 				this.updateInternalState({
 					friendshipStatus: newStatus
 				});
 			} else {
 				await DbService.addFriend(state.profile.id);
 				const newStatus = await DbService.getFriendship(state.profile.id);
-				
 				NotificationManager.showSuccess('Friend request sent');
-				
 				if (newStatus === null) {
 					friendButton.textContent = 'Add Friend';
 					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
@@ -582,14 +501,12 @@ export class ProfileComponent extends Component<ProfileState> {
 					friendButton.classList.add('is-friend');
 					friendButton.classList.remove('pending', 'request-sent');
 				}
-				
 				this.updateInternalState({
 					friendshipStatus: newStatus
 				});
 			}
 		} catch (error) {
 			NotificationManager.showError("Error managing friend relationship");
-			
 			if (isPending) {
 				friendButton.textContent = 'Pending';
 				friendButton.classList.add('pending', 'request-sent');
@@ -611,7 +528,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	private async renderView(): Promise<void> {
 		const state = this.getInternalState();
-		
 		const template = html`
 			<div class="component-container profile-container">
 				<div class="ascii-title-container">
@@ -626,15 +542,11 @@ export class ProfileComponent extends Component<ProfileState> {
 				}
 			</div>
 		`;
-		
 		render(template, this.container);
-		
 		if (!state.isLoading && state.profile) {
 			const profileContent = this.container.querySelector('.profile-content');
 			if (!profileContent) return;
-			
 			profileContent.innerHTML = '';
-			
 			const summaryElement = document.createElement('div');
 			summaryElement.className = 'profile-hero';
 			summaryElement.innerHTML = `
@@ -666,20 +578,14 @@ export class ProfileComponent extends Component<ProfileState> {
 				</div>
 			`;
 			profileContent.appendChild(summaryElement);
-			
 			const tabsOuterContainer = document.createElement('div');
 			tabsOuterContainer.className = 'profile-tabs-outer-container';
-			
 			const url = new URL(window.location.href);
 			const urlProfileId = url.searchParams.get('id');
-			
 			const isCurrentUserProfile = this.isCurrentUserProfile(urlProfileId || state.profile.id);
-			
 			const isAiBot = state.profile.username.toLowerCase() === 'ai';
-			
 			let friendButtonText = 'Add Friend';
 			let friendButtonClass = 'friend-button tab-button';
-			
 			if (state.friendshipStatus !== null) {
 				if (state.friendshipStatus.status === false) {
 					friendButtonText = 'Pending';
@@ -692,7 +598,6 @@ export class ProfileComponent extends Component<ProfileState> {
 				friendButtonText = 'Add Friend';
 				friendButtonClass = 'friend-button tab-button';
 			}
-			
 			const tabsHTML = `
 				<div class="profile-tabs">
 					<ul class="tabs-list">
@@ -726,10 +631,8 @@ export class ProfileComponent extends Component<ProfileState> {
 				</div>
 				<div class="tab-content"></div>
 			`;
-			
 			tabsOuterContainer.innerHTML = tabsHTML;
 			profileContent.appendChild(tabsOuterContainer);
-			
 			tabsOuterContainer.querySelectorAll('.tab-item').forEach(tabItem => {
 				const tabId = (tabItem as HTMLElement).dataset.tab;
 				if (tabId === 'add-friend') {
@@ -738,9 +641,7 @@ export class ProfileComponent extends Component<ProfileState> {
 					tabItem.addEventListener('click', () => this.handleTabChange(tabId));
 				}
 			});
-			
 			await this.waitForNextFrame();
-			
 			this.createTabComponent(state.activeTab);
 		}
 	}
@@ -765,10 +666,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	private isCurrentUserProfile(profileId: string): boolean {
 		if (!profileId) return false;
-		
 		const currentUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (!currentUserJson) return false;
-		
 		try {
 			const currentUser = JSON.parse(currentUserJson);
 			return currentUser && currentUser.id && currentUser.id === profileId;

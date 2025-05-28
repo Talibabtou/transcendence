@@ -1,7 +1,7 @@
-import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;

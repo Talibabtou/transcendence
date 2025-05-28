@@ -1,7 +1,7 @@
-import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
+import { appState } from '@website/scripts/utils';
 import { html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
-import { appState } from '@website/scripts/utils';
+import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
 	private currentUser: UserData | null = null;
