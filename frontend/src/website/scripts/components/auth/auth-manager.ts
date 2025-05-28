@@ -1,7 +1,7 @@
-import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
+import { appState } from '@website/scripts/utils';
 import { html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
-import { appState } from '@website/scripts/utils';
+import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
 	private currentUser: UserData | null = null;
@@ -22,7 +22,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			isLoading: false,
 			redirectTarget: redirectTarget || 'profile'
 		});
-		
 		this.updateInternalState({ redirectTarget: redirectTarget || 'profile' });
 		this.persistSession = persistSession;
 		this.checkExistingSession();
@@ -35,11 +34,9 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		const storedUser = this.persistSession 
 			? localStorage.getItem('auth_user') 
 			: sessionStorage.getItem('auth_user');
-		
 		if (storedUser) {
 			try {
 				this.currentUser = JSON.parse(storedUser);
-				
 				if (this.currentUser) {
 					this.handleSuccessfulAuth();
 					return;
@@ -61,14 +58,12 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	render(): void {
 		this.container.className = 'auth-container';
-		
 		const template = html`
 			<div class="auth-form-container">
 				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
 			</div>
 		`;
-
 		render(template, this.container);
 		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
@@ -79,23 +74,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	private renderAuthContent(): any {
 		const state = this.getInternalState();
-		
-		if (state.currentState === AuthState.SUCCESS) {
-			return this.renderSuccessMessage();
-		}
-		
-		if (state.isLoading) {
-			return html`<div class="auth-processing"></div>`;
-		}
-		
+		if (state.currentState === AuthState.SUCCESS) return this.renderSuccessMessage();
+		if (state.isLoading) return html`<div class="auth-processing"></div>`;
 		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
 			this.currentUser = user;
 			this.activeToken = token;
-			if (!user) {
-				this.activeToken = undefined;
-			}
+			if (!user) this.activeToken = undefined;
 		};
-
 		switch (state.currentState) {
 			case AuthState.LOGIN:
 				return new LoginHandler(
@@ -154,10 +139,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * @param newState - The auth state to switch to
 	 */
 	private switchState(newState: AuthState): void {
-		if (this.stateChangeTimeout !== null) {
-			clearTimeout(this.stateChangeTimeout);
-		}
-		
+		if (this.stateChangeTimeout !== null) clearTimeout(this.stateChangeTimeout);
 		this.stateChangeTimeout = window.setTimeout(() => {
 			this.updateInternalState({
 				currentState: newState
@@ -174,20 +156,14 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			return;
 		}
-		if (!this.activeToken) {
-			NotificationManager.showError("Authentication may be incomplete. Token is missing.");
-		}
-
+		if (!this.activeToken) NotificationManager.showError("Authentication may be incomplete. Token is missing.");
 		const userForAppState = {
 			id: this.currentUser.id,
 			username: this.currentUser.username,
 			email: this.currentUser.email
 		};
-
 		appState.login(userForAppState, this.activeToken, this.persistSession);
-		
 		this.destroy();
-		
 		const targetPath = this.getInternalState().redirectTarget === 'game' ? '/game' : '/profile';
 		navigate(targetPath);
 	}
@@ -197,12 +173,10 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	private cancelAuth(): void {
 		this.destroy();
-		
 		const cancelEvent = new CustomEvent('auth-cancelled', {
 			bubbles: true,
 			detail: { timestamp: Date.now() }
 		});
-		
 		setTimeout(() => {
 			document.dispatchEvent(cancelEvent);
 		}, 10);

@@ -1,7 +1,7 @@
 import { Component } from '@website/scripts/components';
-import { DbService, html, NotificationManager, render } from '@website/scripts/services';
-import { UserProfile, ProfileFriendsState } from '@website/types';
 import { IReplyGetFriend } from '@shared/types/friends.types';
+import { UserProfile, ProfileFriendsState } from '@website/types';
+import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 
 export interface Friend extends IReplyGetFriend {
 	requesting: string;
@@ -22,7 +22,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			dataLoadInProgress: false,
 			currentUserId: ''
 		});
-		
 		this.initCurrentUser();
 	}
 	
@@ -53,7 +52,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		const state = this.getInternalState();
 		if (state.profile?.id !== profile.id) {
 			const isCurrentUser = state.currentUserId === profile.id;
-			
 			this.updateInternalState({ 
 				profile,
 				isCurrentUser,
@@ -61,10 +59,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				acceptedFriends: [],
 				friends: []
 			});
-			
-			if (!state.dataLoadInProgress) {
-				this.loadFriendsData();
-			}
+			if (!state.dataLoadInProgress) this.loadFriendsData();
 		}
 	}
 	
@@ -94,23 +89,18 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	private async loadFriendsData(): Promise<void> {
 		const state = this.getInternalState();
 		if (!state.profile || state.dataLoadInProgress) return;
-		
 		this.updateInternalState({ dataLoadInProgress: true });
-		
 		try {
 			const friendsResponse = state.isCurrentUser
 				? await DbService.getMyFriends()
 				: await DbService.getFriendList(state.profile.id);
-			
 			if (Array.isArray(friendsResponse)) {
 				const pendingPromises: Promise<void>[] = [];
 				const pendingFriends: Friend[] = [];
 				const acceptedFriends: IReplyGetFriend[] = [];
-				
 				for (const friend of friendsResponse) {
-					if (friend.accepted) {
-						acceptedFriends.push(friend);
-					} else {
+					if (friend.accepted) acceptedFriends.push(friend);
+					else {
 						pendingPromises.push(DbService.getFriendship(friend.id)
 							.then(friendshipStatus => {
 								pendingFriends.push({
@@ -121,10 +111,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 					}
 				}
 				
-				if (pendingPromises.length > 0) {
-					await Promise.all(pendingPromises);
-				}
-				
+				if (pendingPromises.length > 0) await Promise.all(pendingPromises);
 				this.updateInternalState({
 					pendingFriends,
 					acceptedFriends,
@@ -199,7 +186,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
 		const template = html`
 			<div class="friends-container">
 				${state.isLoading ? 
@@ -255,7 +241,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				}
 			</div>
 		`;
-		
 		render(template, this.container);
 	}
 }

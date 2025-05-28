@@ -31,19 +31,19 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 			}
 		}
 	};
-	
-	// Layout configuration
 	const layout = {
 		xaxis: {
 			title: {
-				text: 'Duration (secondes)',
+				text: 'Duration (seconds)',
 				font: {
 					color: '#eee',
 					size: 14
 				}
 			},
 			showgrid: false,
-			color: '#eee'
+			color: '#eee',
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		yaxis: {
 			title: {
@@ -55,7 +55,9 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 			},
 			showgrid: true,
 			gridcolor: '#333',
-			color: '#eee'
+			color: '#eee',
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
@@ -71,22 +73,16 @@ export function renderMatchDurationChart(container: HTMLElement, matchDurations:
 		},
 		bargap: 0.05
 	};
-	
-	// Config options
 	const config = {
 		responsive: true,
 		displayModeBar: false
 	};
-	
-	// Create the plot
 	Plotly.newPlot(
 		container,
 		[trace as Plotly.Data],
 		layout,
 		config
 	);
-	
-	// Return a cleanup function
 	return () => {
 		Plotly.purge(container);
 	};

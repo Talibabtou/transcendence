@@ -11,10 +11,7 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 	const maxDuration = Math.max(...goalDurations);
 	const minDuration = Math.min(...goalDurations);
 	const range = maxDuration - minDuration;
-	
 	const binSize = range <= 5 ? 0.5 : Math.max(1, Math.ceil(range / 10));
-	
-	// Create the trace for the histogram
 	const trace = {
 		x: goalDurations,
 		type: 'histogram',
@@ -41,8 +38,6 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			}
 		}
 	};
-	
-	// Layout configuration
 	const layout = {
 		xaxis: {
 			title: {
@@ -54,7 +49,9 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			},
 			showgrid: false,
 			color: '#eee',
-			fixedrange: true
+			fixedrange: true,
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		yaxis: {
 			title: {
@@ -67,7 +64,9 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			showgrid: true,
 			gridcolor: '#333',
 			color: '#eee',
-			fixedrange: true
+			fixedrange: true,
+			rangemode: 'nonnegative',
+			tickformat: 'd'
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
@@ -83,23 +82,17 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 		},
 		bargap: 0.05
 	};
-	
-	// Config options
 	const config = {
 		responsive: true,
 		displayModeBar: false,
 		scrollZoom: false
 	};
-	
-	// Create the plot
 	Plotly.newPlot(
 		container,
 		[trace as Plotly.Data],
 		layout,
 		config
 	);
-	
-	// Return a cleanup function
 	return () => {
 		Plotly.purge(container);
 	};

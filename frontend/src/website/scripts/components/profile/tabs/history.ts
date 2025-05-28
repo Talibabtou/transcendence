@@ -1,7 +1,7 @@
 import { Component } from '@website/scripts/components';
-import { DbService, html, NotificationManager, render } from '@website/scripts/services';
-import { UserProfile, ProfileHistoryState } from '@website/types';
 import { MatchHistory } from '@shared/types/match.type';
+import { UserProfile, ProfileHistoryState } from '@website/types';
+import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 
 export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	// @ts-ignore - Used for DOM references
@@ -42,10 +42,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				matches: [],
 				historyPage: 0
 			});
-			
-			if (!state.dataLoadInProgress) {
-				this.fetchAndProcessMatchHistory(profile.id);
-			}
+			if (!state.dataLoadInProgress) this.fetchAndProcessMatchHistory(profile.id);
 		}
 	}
 	
@@ -68,12 +65,9 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	private async fetchAndProcessMatchHistory(userId: string): Promise<void> {
 		const state = this.getInternalState();
 		if (state.dataLoadInProgress) return;
-		
 		try {
 			this.updateInternalState({ dataLoadInProgress: true });
-
 			const rawHistory = await DbService.getUserHistory(userId);
-			
 			if (!rawHistory || !Array.isArray(rawHistory)) {
 				this.updateInternalState({ 
 					allMatches: [], 
@@ -83,13 +77,11 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				});
 				return;
 			}
-
 			const processedHistory = rawHistory
 				.map((entry: MatchHistory) => {
 					const playerScore = typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1;
 					const opponentScore = typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2;
 					const result = (playerScore > opponentScore ? 'win' : 'loss') as 'win' | 'loss';
-					
 					return {
 						id: entry.matchId,
 						date: new Date(entry.created_at),
@@ -102,17 +94,14 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 					};
 				})
 				.sort((a, b) => b.date.getTime() - a.date.getTime());
-
 			const { historyPageSize } = state;
 			const initialMatches = processedHistory.slice(0, historyPageSize);
-			
 			this.updateInternalState({
 				allMatches: processedHistory,
 				matches: initialMatches,
 				hasMoreMatches: processedHistory.length > historyPageSize,
 				dataLoadInProgress: false
 			});
-
 		} catch (error) {
 			NotificationManager.showError('Failed to load match history');
 			this.updateInternalState({ 
@@ -130,11 +119,9 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	private updateDisplayedMatches(): void {
 		const state = this.getInternalState();
 		const { allMatches, historyPage, historyPageSize } = state;
-		
 		const startIndex = 0;
 		const endIndex = (historyPage + 1) * historyPageSize;
 		const displayedMatches = allMatches.slice(startIndex, endIndex);
-		
 		this.updateInternalState({
 			matches: displayedMatches,
 			hasMoreMatches: endIndex < allMatches.length
@@ -159,10 +146,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 */
 	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
-		if (state.isLoading || !state.hasMoreMatches) {
-			return;
-		}
-		
+		if (state.isLoading || !state.hasMoreMatches) return;
 		this.updateInternalState({ historyPage: state.historyPage + 1 });
 		this.updateDisplayedMatches();
 		this.render();
@@ -178,7 +162,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	render(): void {
 		const state = this.getInternalState();
 		const displayedMatchesToRender = state.matches;
-
 		const template = html`
 			<div class="history-content" ref=${(el: HTMLElement) => this.contentElement = el}>
 				${state.isLoading && displayedMatchesToRender.length === 0 ? 
@@ -242,7 +225,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				}
 			</div>
 		`;
-		
 		render(template, this.container);
 	}
 }

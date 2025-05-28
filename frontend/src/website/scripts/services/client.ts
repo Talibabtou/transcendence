@@ -42,19 +42,11 @@ export class WebSocketClient {
 	 */
 	public connect(): void {
 		if (this.socket && (this.socket.readyState === WebSocket.OPEN
-			|| this.socket.readyState === WebSocket.CONNECTING)) {
-			return;
-		}
-
+			|| this.socket.readyState === WebSocket.CONNECTING)) return;
 		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
-		
-		if (!token) {
-			return;
-		}
-		
+		if (!token) return;
 		const tokenParam = `?token=${token}`;
 		const connectionUrl = this.url.split('?')[0] + tokenParam;
-		
 		this.socket = new WebSocket(connectionUrl);
 		this.setupSocketHandlers();
 	}
@@ -64,7 +56,6 @@ export class WebSocketClient {
 	 */
 	private setupSocketHandlers(): void {
 		if (!this.socket) return;
-		
 		this.socket.onopen = () => {};
 		
 		this.socket.onmessage = (event) => {
@@ -170,18 +161,14 @@ export class WebSocketClient {
 	 * @param message - The message to send (will be JSON stringified)
 	 */
 	public sendMessage(message: any): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-			this.socket.send(JSON.stringify(message));
-		}
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) this.socket.send(JSON.stringify(message));
 	}
 
 	/**
 	 * Closes the WebSocket connection
 	 */
 	public disconnect(): void {
-		if (this.socket) {
-			this.socket.close();
-		}
+		if (this.socket) this.socket.close();
 	}
 
 	/**
@@ -190,11 +177,9 @@ export class WebSocketClient {
 	 */
 	public updateToken(token: string | null): void {
 		this.disconnect();
-		
 		if (token) {
 			const tokenParam = token ? `?token=${token}` : '';
 			const newUrl = this.url.split('?')[0] + tokenParam;
-			
 			this.socket = new WebSocket(newUrl);
 			this.setupSocketHandlers();
 		}
@@ -228,11 +213,8 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 				const directToken = token;
 				const tokenParam = `?token=${directToken}`;
 				const connectionUrl = DEFAULT_WS_URL.split('?')[0] + tokenParam;
-				
 				wsClient.disconnect();
-				
 				const socket = new WebSocket(connectionUrl);
-				
 				socket.onopen = () => {};
 				
 				socket.onmessage = (event) => {
@@ -251,7 +233,6 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 				};
 				
 				socket.onclose = () => {};
-				
 				(wsClient as any).socket = socket;
 			} else {
 				const wsClient = WebSocketClient.getInstance(DEFAULT_WS_URL);

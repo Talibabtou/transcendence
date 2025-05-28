@@ -1,8 +1,8 @@
 import { Component } from '@website/scripts/components';
-import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { ErrorCodes } from '@shared/constants/error.const';
 import { IAuthComponent, GuestAuthState } from '@website/types';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
-import { ErrorCodes } from '@shared/constants/error.const';
+import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -13,7 +13,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			isRegisterMode: false,
 			needsVerification: false
 		});
-		
 		this.container.classList.add('auth-container', 'simplified-auth-container');
 	}
 	
@@ -30,7 +29,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				${this.renderContent()}
 			</div>
 		`;
-		
 		render(template, this.container);
 	}
 	
@@ -58,7 +56,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			detail: { timestamp: Date.now() }
 		});
 		this.container.dispatchEvent(cancelEvent);
-		
 		this.destroy();
 	}
 	
@@ -79,14 +76,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderContent(): any {
 		const state = this.getInternalState();
-
-		if (state.needsVerification) {
-			return this.render2FAForm();
-		} else if (state.isRegisterMode) {
-			return this.renderRegisterForm();
-		} else {
-			return this.renderLoginForm();
-		}
+		if (state.needsVerification) return this.render2FAForm();
+		else if (state.isRegisterMode) return this.renderRegisterForm();
+		else return this.renderLoginForm();
 	}
 	
 	// =========================================
@@ -167,9 +159,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				<a href="#" onclick=${this.switchToLogin}>Back to login</a>
 			</div>
 		`;
-
 		setTimeout(() => this.initializePasswordStrength(), 0);
-		
 		return form;
 	}
 	
@@ -222,9 +212,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
 		this.resetForm(form);
-		if (email && password) {
-			this.authenticateGuest(email.toLowerCase(), password);
-		}
+		if (email && password) this.authenticateGuest(email.toLowerCase(), password);
 	}
 	
 	/**
@@ -263,7 +251,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				email, 
 				password: hashedPassword 
 			});
-			
 			if (response.requires2FA) {
 				sessionStorage.setItem('guest_2fa_needed', 'true');
 				sessionStorage.setItem('guest_2fa_userid', response.user.id);
@@ -271,9 +258,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				sessionStorage.setItem('guest_username', response.user.username || '');
 				sessionStorage.setItem('guest_email', email);
 				sessionStorage.setItem('guest_password', hashedPassword);
-				
 				this.startTwoFATimeout();
-				
 				this.updateInternalState({ 
 					needsVerification: true
 				});
@@ -285,31 +270,21 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					avatar: response.user.pfp || `/images/default-avatar.svg`,
 					theme: response.user.theme || '#ffffff'
 				};
-				
 				const position = this.getPositionFromContainerId();
-				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
 					detail: { user: userData, position }
 				});
 				this.container.dispatchEvent(authEvent);
-				
 				this.clearFormFields();
-				
 				this.hide();
-			} else {
-				NotificationManager.handleErrorCode('login_failure', 'Invalid email or password');
-			}
+			} else NotificationManager.handleErrorCode('login_failure', 'Invalid email or password');
 		} catch (error) {
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
-				if (errorCode === ErrorCodes.LOGIN_FAILURE) {
-					NotificationManager.handleErrorCode('login_failure', 'Invalid email or password');
-				} else if (errorCode === ErrorCodes.TWOFA_BAD_CODE) {
-					NotificationManager.handleErrorCode(errorCode, 'Invalid two-factor authentication code');
-				} else {
-					NotificationManager.handleErrorCode(errorCode, 'Authentication failed');
-				}
+				if (errorCode === ErrorCodes.LOGIN_FAILURE) NotificationManager.handleErrorCode('login_failure', 'Invalid email or password');
+				else if (errorCode === ErrorCodes.TWOFA_BAD_CODE) NotificationManager.handleErrorCode(errorCode, 'Invalid two-factor authentication code');
+				else NotificationManager.handleErrorCode(errorCode, 'Authentication failed');
 			} else {
 				NotificationManager.showError('Authentication failed. Please try again.');
 				NotificationManager.handleError(error);
@@ -323,24 +298,20 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
 		try {
 			const hashedPassword = await hashPassword(password);
-			
 			const registerResponse = await DbService.register({
 				username,
 				email,
 				password: hashedPassword
 			});
-			
 			if (registerResponse.success && registerResponse.user) {
 				const loginResponse = await DbService.guestLogin({
 					email,
 					password: hashedPassword
 				});
-				
 				if (!loginResponse.success) {
 					NotificationManager.showError('Account created but login failed. Please try logging in manually.');
 					return;
 				}
-				
 				const userData = {
 					id: registerResponse.user.id,
 					username: registerResponse.user.username,
@@ -348,30 +319,21 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					profilePicture: registerResponse.user.pfp || `/images/default-avatar.svg`,
 					theme: registerResponse.user.theme || '#ffffff'
 				};
-				
 				const position = this.getPositionFromContainerId();
-				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
 					detail: { user: userData, position }
 				});
 				this.container.dispatchEvent(authEvent);
-				
 				this.clearFormFields();
-				
 				this.hide();
 			}
 		} catch (error) {
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
-				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) {
-					NotificationManager.handleErrorCode('unique_constraint_email', 'Email already in use');
-				} else {
-					NotificationManager.handleErrorCode(errorCode, 'Registration failed');
-				}
-			} else {
-				NotificationManager.handleError(error);
-			}
+				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) NotificationManager.handleErrorCode('unique_constraint_email', 'Email already in use');
+				else NotificationManager.handleErrorCode(errorCode, 'Registration failed');
+			} else NotificationManager.handleError(error);
 		}
 	}
 	
@@ -384,16 +346,13 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private handle2FAVerification = async (e: Event): Promise<void> => {
 		e.preventDefault();
-		
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const code = formData.get('twofa-code') as string;
-		
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
 			NotificationManager.handleErrorCode('invalid_fields', 'Please enter a valid 6-digit code');
 			return;
 		}
-		
 		try {
 			const userId = sessionStorage.getItem('guest_2fa_userid') || '';
 			const token = sessionStorage.getItem('guest_2fa_token') || '';
@@ -401,12 +360,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			const password = sessionStorage.getItem('guest_password') || '';
 			this.resetForm(form);
 			await DbService.verify2FALogin(userId, code, token);
-			
 			const loginResponse = await DbService.guestLogin({ email, password });
-			
 			if (loginResponse.success && loginResponse.user) {
 				this.clearTwoFATimeout();
-				
 				const userData = {
 					id: loginResponse.user.id,
 					username: loginResponse.user.username,
@@ -414,29 +370,19 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					avatar: loginResponse.user.pfp || `/images/default-avatar.svg`,
 					theme: loginResponse.user.theme || '#ffffff'
 				};
-				
 				this.clearTwoFactorSessionData();
-				
 				const position = this.getPositionFromContainerId();
-				
 				const authEvent = new CustomEvent('guest-authenticated', {
 					bubbles: true,
 					detail: { user: userData, position }
 				});
 				this.container.dispatchEvent(authEvent);
-				
 				this.clearFormFields();
-				
 				this.hide();
-			} else {
-				NotificationManager.handleErrorCode('login_failure', 'Authentication failed after 2FA verification');
-			}
+			} else NotificationManager.handleErrorCode('login_failure', 'Authentication failed after 2FA verification');
 		} catch (error) {
-			if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.TWOFA_BAD_CODE) {
-				NotificationManager.handleErrorCode(ErrorCodes.TWOFA_BAD_CODE, 'Invalid verification code');
-			} else {
-				NotificationManager.handleError(error);
-			}
+			if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.TWOFA_BAD_CODE) NotificationManager.handleErrorCode(ErrorCodes.TWOFA_BAD_CODE, 'Invalid verification code');
+			else NotificationManager.handleError(error);
 		}
 	}
 	
@@ -445,7 +391,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private startTwoFATimeout(): void {
 		this.clearTwoFATimeout();
-		
 		this.twoFATimeoutId = window.setTimeout(() => {
 			this.cancelTwoFactor();
 			NotificationManager.showWarning("2FA verification timed out");
@@ -461,7 +406,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			this.twoFATimeoutId = null;
 		}
 	}
-	
+
 	/**
 	 * Clears 2FA-related session storage data
 	 */
@@ -473,16 +418,14 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		sessionStorage.removeItem('guest_email');
 		sessionStorage.removeItem('guest_password');
 	}
-	
+
 	/**
 	 * Cancels 2FA and goes back to login
 	 */
 	private cancelTwoFactor = (e?: Event): void => {
 		if (e) e.preventDefault();
-		
 		this.clearTwoFATimeout();
 		this.clearTwoFactorSessionData();
-		
 		this.updateInternalState({
 			needsVerification: false
 		});
@@ -501,7 +444,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			isRegisterMode: true,
 			needsVerification: false
 		});
-		
 		this.passwordStrength = null;
 	}
 	
@@ -514,7 +456,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			isRegisterMode: false,
 			needsVerification: false
 		});
-		
 		this.passwordStrength = null;
 	}
 	
@@ -528,18 +469,12 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			inputs.forEach(input => {
 				input.value = '';
 			});
-			
 			form.reset();
 		}
-		
 		if (this.passwordStrength) {
 			this.passwordStrength.updatePassword('');
-			
 			const container = this.container.querySelector('#password-strength-container');
-			if (container) {
-				container.innerHTML = '';
-			}
-			
+			if (container) container.innerHTML = '';
 			this.passwordStrength = null;
 		}
 	}
@@ -554,9 +489,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private initializePasswordStrength(): void {
 		if (!this.passwordStrength) {
 			const container = this.container.querySelector('#password-strength-container');
-			if (container) {
-				this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, true);
-			}
+			if (container) this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, true);
 		}
 	}
 
@@ -566,10 +499,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private handlePasswordInput(e: Event): void {
 		const input = e.target as HTMLInputElement;
 		const password = input.value;
-		
-		if (this.passwordStrength) {
-			this.passwordStrength.updatePassword(password);
-		}
+		if (this.passwordStrength) this.passwordStrength.updatePassword(password);
 	}
 	
 	// =========================================

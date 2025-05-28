@@ -1,8 +1,8 @@
-import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
-import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
-import { GameMode, GameComponentState, GameState } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { NotificationManager } from '@website/scripts/services';
+import { GameMode, GameComponentState, GameState } from '@website/types';
+import { appState, MatchCache, TournamentCache } from '@website/scripts/utils';
+import { Component, GameMenuComponent, GameOverComponent, GameCanvasComponent, GameManager, PlayersRegisterComponent, TournamentComponent } from '@website/scripts/components';
 
 export class GameComponent extends Component<GameComponentState> {
 	private gameManager: GameManager;
@@ -27,16 +27,12 @@ export class GameComponent extends Component<GameComponentState> {
 			currentState: GameState.MENU,
 			currentMode: GameMode.SINGLE
 		});
-		
 		this.gameManager = GameManager.getInstance();
 		this.lastAuthState = appState.isAuthenticated();
-		
 		this.unsubscribe = appState.subscribe((newState) => {
 			this.handleStateChange(newState);
 		});
-		
 		this.gameManager.setOnGameOverCallback((result) => {
-			
 			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
 				this.TournamentComponent.processGameResult(
 					result.player1Score,
@@ -44,7 +40,6 @@ export class GameComponent extends Component<GameComponentState> {
 					result.matchId
 				);
 			}
-			
 			this.updateGameState(GameState.GAME_OVER);
 		});
 	}
@@ -65,9 +60,7 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameContainer.style.position = "relative";
 		this.container.appendChild(this.gameContainer);
 		this.initializeComponents();
-		if (this.menuComponent) {
-			this.menuComponent.show();
-		}
+		if (this.menuComponent) this.menuComponent.show();
 	}
 	
 	/**
@@ -76,12 +69,8 @@ export class GameComponent extends Component<GameComponentState> {
 	 * and calling the parent destroy method.
 	 */
 	destroy(): void {
-		if (this.unsubscribe) {
-			this.unsubscribe();
-		}
-		if (this.canvasComponent) {
-			this.canvasComponent.stopGame();
-		}
+		if (this.unsubscribe) this.unsubscribe();
+		if (this.canvasComponent) this.canvasComponent.stopGame();
 		this.gameManager.showBackgroundGame();
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
@@ -172,12 +161,8 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Shows the game menu and handles related state changes.
 	 */
 	private showMenu(): void {
-		if (this.canvasComponent) {
-			this.canvasComponent.stopGame();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		if (this.canvasComponent) this.canvasComponent.stopGame();
+		if (this.gameOverComponent) this.gameOverComponent.hide();
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
 			this.menuComponent = null;
@@ -190,9 +175,7 @@ export class GameComponent extends Component<GameComponentState> {
 				this.handleShowTournamentSchedule.bind(this)
 			);
 			this.menuComponent.show();
-		} else {
-			NotificationManager.showError('Game container not found, cannot create menu.');
-		}
+		} else NotificationManager.showError('Game container not found, cannot create menu.');
 		this.gameManager.showBackgroundGame();
 		this.stopGameStateMonitoring();
 	}
@@ -205,17 +188,10 @@ export class GameComponent extends Component<GameComponentState> {
 		const currentUser = appState.getCurrentUser();
 		const playerName = currentUser?.username || 'Player 1';
 		const playerColor = appState.getAccentColorHex() || '#ffffff';
-		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
-			if (currentUser && currentUser.id) {
-				state.playerIds = [currentUser.id];
-			}
-		}
-		if (this.menuComponent) {
-			this.menuComponent.hide();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0))
+			if (currentUser && currentUser.id) state.playerIds = [currentUser.id];
+		if (this.menuComponent) this.menuComponent.hide();
+		if (this.gameOverComponent) this.gameOverComponent.hide();
 		this.gameManager.hideBackgroundGame();
 		if (!this.canvasComponent) {
 			if (this.gameContainer) {
@@ -225,9 +201,7 @@ export class GameComponent extends Component<GameComponentState> {
 				NotificationManager.showError('Game container not available');
 				return;
 			}
-		} else {
-			this.canvasComponent.render();
-		}
+		} else this.canvasComponent.render();
 		if (this.canvasComponent) {
 			const playerNames = state.playerNames || [playerName];
 			const playerColors = state.playerColors || [playerColor];
@@ -237,7 +211,6 @@ export class GameComponent extends Component<GameComponentState> {
 				playerNames: playerNames,
 				playerColors: playerColors
 			};
-			
 			if (state.currentMode === GameMode.TOURNAMENT) {
 				const tournamentId = TournamentCache.getTournamentId();
 				if (tournamentId) {
@@ -245,7 +218,6 @@ export class GameComponent extends Component<GameComponentState> {
 					playerInfo.isFinal = state.isFinal;
 				}
 			}
-			
 			this.canvasComponent.startGame(state.currentMode, playerInfo);
 		}
 		this.startGameStateMonitoring();
@@ -263,9 +235,7 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 		if (this.canvasComponent) {
 			const gameEngine = this.canvasComponent.getEngine();
-			if (gameEngine && !gameEngine.isGamePaused()) {
-				gameEngine.togglePause();
-			}
+			if (gameEngine && !gameEngine.isGamePaused()) gameEngine.togglePause();
 		}
 		if (this.gameOverComponent) {
 			this.gameOverComponent.showGameResult({
@@ -295,24 +265,17 @@ export class GameComponent extends Component<GameComponentState> {
 			return;
 		}
 		this.updateInternalState({ currentMode: mode });
-		if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
-			this.updateGameState(GameState.PLAYER_REGISTRATION);
-		} else {
-			this.updateGameState(GameState.PLAYING);
-		}
+		if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) this.updateGameState(GameState.PLAYER_REGISTRATION);
+		else this.updateGameState(GameState.PLAYING);
 	}
 
 	/**
 	 * Handles play again button from game over screen.
 	 */
 	private handlePlayAgain(mode: GameMode): void {
-		if (this.isTransitioning === true) {
-			return;
-		}
+		if (this.isTransitioning === true) return;
 		this.stopGameStateMonitoring();
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		if (this.gameOverComponent) this.gameOverComponent.hide();
 		const gameInfo = MatchCache.getCurrentGameInfo();
 		this.updateInternalState({ 
 			currentMode: mode,
@@ -322,11 +285,8 @@ export class GameComponent extends Component<GameComponentState> {
 		});
 		const needsCleanup = this.canvasComponent && this.gameManager.isMainGameActive();
 		let startSequence: Promise<void>;
-		if (needsCleanup) {
-			startSequence = this.cleanupCurrentGame();
-		} else {
-			startSequence = Promise.resolve();
-		}
+		if (needsCleanup) startSequence = this.cleanupCurrentGame();
+		else startSequence = Promise.resolve();
 		startSequence
 			.then(() => {
 				const gameManager = GameManager.getInstance();
@@ -376,9 +336,7 @@ export class GameComponent extends Component<GameComponentState> {
 				this.updateInternalState({
 					currentState: GameState.MENU
 				});
-				if (this.menuComponent) {
-					this.menuComponent.show();
-				}
+				if (this.menuComponent) this.menuComponent.show();
 			})
 			.catch(error => {
 				NotificationManager.showError('Error returning to menu: ' + error);
@@ -395,12 +353,8 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private cleanupCurrentGame(): Promise<void> {
 		return new Promise<void>((resolve) => {
-			if (this.canvasComponent) {
-				this.canvasComponent.stopGame();
-			}
-			if (this.gameOverComponent) {
-				this.gameOverComponent.hide();
-			}
+			if (this.canvasComponent) this.canvasComponent.stopGame();
+			if (this.gameOverComponent) this.gameOverComponent.hide();
 			setTimeout(resolve, 100);
 		});
 	}
@@ -412,14 +366,9 @@ export class GameComponent extends Component<GameComponentState> {
 	private startNewGame(mode: GameMode): Promise<void> {
 		return new Promise<void>((resolve) => {
 			this.updateInternalState({ currentMode: mode });
-			if (!this.canvasComponent && this.gameContainer) {
-				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
-			}
-			if (this.canvasComponent) {
-				this.canvasComponent.render();
-			} else {
-				NotificationManager.showError('Failed to create canvas component');
-			}
+			if (!this.canvasComponent && this.gameContainer) this.canvasComponent = new GameCanvasComponent(this.gameContainer);
+			if (this.canvasComponent) this.canvasComponent.render();
+			else NotificationManager.showError('Failed to create canvas component');
 			this.updateGameState(GameState.PLAYING);
 			this.gameStartTime = Date.now();
 			setTimeout(resolve, 200);
@@ -434,9 +383,7 @@ export class GameComponent extends Component<GameComponentState> {
 			this.canvasComponent.destroy();
 			this.canvasComponent = null;
 		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		if (this.gameOverComponent) this.gameOverComponent.hide();
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
 			this.menuComponent = null;
@@ -453,9 +400,7 @@ export class GameComponent extends Component<GameComponentState> {
 		this.updateInternalState({
 			currentState: GameState.MENU
 		});
-		if (this.menuComponent) {
-			this.menuComponent.show();
-		}
+		if (this.menuComponent) this.menuComponent.show();
 	}
 
 	// =========================================
@@ -512,25 +457,18 @@ export class GameComponent extends Component<GameComponentState> {
 			this.lastAuthState = currentAuth;
 			this.renderComponent();
 		}
-		
-		// Don't destroy game during tournament when switching tabs
 		const state = this.getInternalState();
 		if ('isPlaying' in newState && !newState.isPlaying && 
 			state.currentMode === GameMode.TOURNAMENT && 
 			this.canvasComponent && this.canvasComponent.getEngine()) {
-			// Pause the game but don't destroy it
 			const engine = this.canvasComponent.getEngine();
-			if (engine && !engine.isGamePaused()) {
-				engine.requestPause();
-			}
+			if (engine && !engine.isGamePaused()) engine.requestPause();
 			return;
 		}
 		
 		if ('accentColor' in newState) {
 			const accentColorHex = appState.getAccentColorHex();
-			if (this.gameManager.isMainGameActive()) {
-				this.gameManager.updateMainGamePlayerColor(accentColorHex);
-			}
+			if (this.gameManager.isMainGameActive()) this.gameManager.updateMainGamePlayerColor(accentColorHex);
 		}
 	}
 
@@ -551,12 +489,8 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private showPlayerRegistration(): void {
 		const state = this.getInternalState();
-		if (this.menuComponent) {
-			this.menuComponent.hide();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-		}
+		if (this.menuComponent) this.menuComponent.hide();
+		if (this.gameOverComponent) this.gameOverComponent.destroy();
 		if (this.playerRegistrationComponent) {
 			this.playerRegistrationComponent.destroy();
 			this.playerRegistrationComponent = null;
@@ -580,9 +514,7 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param playerColors - The player colors
 	 */
 	private handlePlayersRegistered(playerIds: string[], playerNames: string[], playerColors: string[]): void {
-		if (this.isTransitioning) {
-			return;
-		}
+		if (this.isTransitioning) return;
 		this.isTransitioning = true;
 		this.updateInternalState({
 			playerIds: playerIds,
@@ -619,11 +551,8 @@ export class GameComponent extends Component<GameComponentState> {
 			}
 			const phase = TournamentCache.getTournamentPhase();
 			if (this.TournamentComponent) {
-				if (phase === 'complete') {
-					this.TournamentComponent.showTournamentWinner();
-				} else {
-					this.TournamentComponent.showTournamentSchedule();
-				}
+				if (phase === 'complete') this.TournamentComponent.showTournamentWinner();
+				else this.TournamentComponent.showTournamentSchedule();
 			}
 			this.isTransitioning = false;
 		}, 50);
@@ -651,16 +580,10 @@ export class GameComponent extends Component<GameComponentState> {
 			this.updateGameState(GameState.PLAYING);
 		} catch (error) {
 			if (error instanceof Error) {
-				if (error.message.includes(ErrorCodes.TOURNAMENT_NOT_FOUND)) {
-					NotificationManager.showError('Tournament not found');
-				} else if (error.message.includes(ErrorCodes.MATCH_NOT_FOUND)) {
-					NotificationManager.showError('Match not found');
-				} else {
-					NotificationManager.handleError(error);
-				}
-			} else {
-				NotificationManager.handleError(error);
-			}
+				if (error.message.includes(ErrorCodes.TOURNAMENT_NOT_FOUND)) NotificationManager.showError('Tournament not found');
+				else if (error.message.includes(ErrorCodes.MATCH_NOT_FOUND)) NotificationManager.showError('Match not found');
+				else NotificationManager.handleError(error);
+			} else NotificationManager.handleError(error);
 			this.handleBackToMenu();
 		}
 	}

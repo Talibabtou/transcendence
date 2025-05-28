@@ -1,7 +1,7 @@
-import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 import { AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -64,9 +64,7 @@ export class RegistrationHandler {
 			const form = passwordInput.closest('form');
 			if (form) {
 				const container = form.querySelector('#password-strength-container');
-				if (container) {
-					this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false); 
-				}
+				if (container) this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false); 
 			}
 		}
 	}
@@ -76,9 +74,7 @@ export class RegistrationHandler {
 	 */
 	handlePasswordInput(passwordInput: HTMLInputElement): void {
 		const password = passwordInput.value;
-		if (this.passwordStrength) {
-			this.passwordStrength.updatePassword(password);
-		}
+		if (this.passwordStrength) this.passwordStrength.updatePassword(password);
 	}
 
 	/**
@@ -90,10 +86,7 @@ export class RegistrationHandler {
 			input.value = '';
 		});
 		form.reset();
-		
-		if (this.passwordStrength) {
-			this.passwordStrength.updatePassword('');
-		}
+		if (this.passwordStrength) this.passwordStrength.updatePassword('');
 		this.passwordStrength = null; 
 	}
 
@@ -108,7 +101,6 @@ export class RegistrationHandler {
 		email = email.toLowerCase();
 		const password = formData.get('password') as string;
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
-		
 		if (!username || !email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
 			return;
@@ -122,33 +114,26 @@ export class RegistrationHandler {
 			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);
 			return;
 		}
-		
 		this.updateState({ isLoading: true });
-		
 		try {
 			const hashedPassword = await hashPassword(password);
-			
 			const registerResponse = await DbService.register({ 
 				username, 
 				email, 
 				password: hashedPassword 
 			});
-			
 			if (!registerResponse.success || !registerResponse.user) {
 				this.updateState({ isLoading: false });
 				NotificationManager.handleErrorCode('operation_failed', 'Registration failed. Please try again.');
 				return;
 			}
-			
 			const loginResponse = await DbService.login({
 				email,
 				password: hashedPassword
 			});
-			
 			if (loginResponse.success && loginResponse.user && loginResponse.token) {
 				const userFromDb = loginResponse.user;
 				const token = loginResponse.token;
-				
 				const userData: UserData = {
 					id: userFromDb.id,
 					username: userFromDb.username,
@@ -156,12 +141,9 @@ export class RegistrationHandler {
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: new Date()
 				};
-				
 				this.setCurrentUser(userData, token);
 				this.resetForm(form);
-				
 				connectAuthenticatedWebSocket(token);
-
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();
@@ -173,16 +155,10 @@ export class RegistrationHandler {
 			this.updateState({ isLoading: false });
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
-				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) {
-					NotificationManager.handleErrorCode('unique_constraint_email', 'This email is already registered');
-				} else if (errorCode === ErrorCodes.INVALID_FIELDS) {
-					NotificationManager.handleErrorCode('invalid_fields', 'Invalid registration information');
-				} else {
-					NotificationManager.handleErrorCode(errorCode, 'Registration failed');
-				}
-			} else {
-				NotificationManager.handleError(error);
-			}
+				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) NotificationManager.handleErrorCode('unique_constraint_email', 'This email is already registered');
+				else if (errorCode === ErrorCodes.INVALID_FIELDS) NotificationManager.handleErrorCode('invalid_fields', 'Invalid registration information');
+				else NotificationManager.handleErrorCode(errorCode, 'Registration failed');
+			} else NotificationManager.handleError(error);
 		}
 	}
 }

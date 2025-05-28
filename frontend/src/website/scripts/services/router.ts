@@ -1,7 +1,7 @@
 import Navigo from 'navigo';
-import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
-import { NotificationManager } from './notification-manager';
 import { Route } from '@website/types';
+import { NotificationManager } from './notification-manager';
+import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
 
 export class Router {
 	public static routerInstance = new Navigo('/');
@@ -10,7 +10,6 @@ export class Router {
 	private currentRoute: Route | null = null;
 	private currentParams: Record<string, string> = {};
 	public static activeInstance: Router | null = null;
-	
 	constructor(container: HTMLElement) {
 		this.container = container;
 		Router.routerInstance
@@ -20,7 +19,6 @@ export class Router {
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
 			.on('/auth', () => this.handleAuthRoute())
 			.notFound(() => this.handleRoute(Route.GAME));
-			
 		this.setupNavClickHandlers();
 		window.addEventListener('popstate', this.handlePopState.bind(this));
 		Router.routerInstance.resolve();
@@ -36,9 +34,7 @@ export class Router {
 	 */
 	public forceComponentRecreation(route: Route): void {
 		const component = this.components.get(route);
-		if (component && typeof component.destroy === 'function') {
-			component.destroy();
-		}
+		if (component && typeof component.destroy === 'function') component.destroy();
 		this.components.delete(route);
 	}
 
@@ -47,27 +43,17 @@ export class Router {
 	 */
 	public refreshCurrentComponent(): void {
 		if (!this.currentRoute) return;
-		
 		const navbar = document.querySelector('nav.navbar');
 		if (navbar) {
 			const navbarComponent = (navbar as any).__component;
-			if (navbarComponent?.renderNavbar) {
-				navbarComponent.renderNavbar();
-			}
+			if (navbarComponent?.renderNavbar) navbarComponent.renderNavbar();
 		}
-		
 		const component = this.components.get(this.currentRoute);
 		if (!component) return;
-		
-		if (typeof component.refresh === 'function') {
-			component.refresh();
-		} 
+		if (typeof component.refresh === 'function') component.refresh();
 		else if (typeof component.render === 'function') {
 			component.render();
-			
-			if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
-				setTimeout(() => component.setupEventListeners(), 0);
-			}
+			if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') setTimeout(() => component.setupEventListeners(), 0);
 		}
 	}
 
@@ -82,7 +68,6 @@ export class Router {
 	 */
 	private handleRoute(route: Route): void {
 		this.handleRouteTransition(this.currentRoute, route);
-		
 		let section = document.getElementById(route);
 		if (!section) {
 			section = document.createElement('section');
@@ -91,37 +76,27 @@ export class Router {
 			this.container.appendChild(section);
 		}
 		section.style.display = 'block';
-		
 		const url = new URL(window.location.href);
 		const urlParams: Record<string, string> = {};
 		url.searchParams.forEach((value, key) => {
 			urlParams[key] = value;
 		});
-		
 		const isProfileChange = route === Route.PROFILE && 
 			(urlParams.id !== this.currentParams.id || !this.components.has(route));
-			
 		if (isProfileChange || !this.components.has(route)) {
 			if (this.components.has(route)) {
 				const currentComponent = this.components.get(route);
-				if (typeof currentComponent.destroy === 'function') {
-					currentComponent.destroy();
-				}
+				if (typeof currentComponent.destroy === 'function') currentComponent.destroy();
 				this.components.delete(route);
 			}
-			
 			const ComponentClass = this.getComponentClass(route);
 			const component = new ComponentClass(section);
 			this.components.set(route, component);
 			component.render();
-			
 			setTimeout(() => {
-				if (component.setupEventListeners) {
-					component.setupEventListeners();
-				}
+				if (component.setupEventListeners) component.setupEventListeners();
 			}, 0);
 		}
-		
 		this.currentParams = { ...urlParams };
 		this.currentRoute = route;
 		this.updateActiveNavItem(route);
@@ -132,7 +107,6 @@ export class Router {
 	 */
 	private handleRouteTransition(fromRoute: Route | null, toRoute: Route): void {
 		const gameManager = GameManager.getInstance();
-		
 		if (fromRoute && fromRoute !== toRoute) {
 			if (fromRoute === Route.AUTH) {
 				Router.cleanupAuthComponent();
@@ -140,44 +114,27 @@ export class Router {
 			} 
 			else if (fromRoute === Route.LEADERBOARD || fromRoute === Route.PROFILE) {
 				const component = this.components.get(fromRoute);
-				if (component?.destroy) {
-					component.destroy();
-				}
+				if (component?.destroy) component.destroy();
 				this.components.delete(fromRoute);
 			}
 		}
-
 		if (toRoute === Route.GAME) {
-			if (!gameManager.isMainGameActive()) {
-				this.components.delete(Route.GAME);
-			}
-			
+			if (!gameManager.isMainGameActive()) this.components.delete(Route.GAME);
 			document.querySelectorAll('.section').forEach(element => {
-				if (element.id !== Route.GAME) {
-					(element as HTMLElement).style.display = 'none';
-				}
+				if (element.id !== Route.GAME) (element as HTMLElement).style.display = 'none';
 			});
-			
-			if (gameManager.isMainGameActive()) {
-				gameManager.hideBackgroundGame();
-			}
+			if (gameManager.isMainGameActive()) gameManager.hideBackgroundGame();
 		}
 		else {
 			gameManager.showBackgroundGame();
-			
 			document.querySelectorAll('.section').forEach(element => {
-				if (element.id !== toRoute) {
-					(element as HTMLElement).style.display = 'none';
-				}
+				if (element.id !== toRoute) (element as HTMLElement).style.display = 'none';
 			});
 		}
-		
 		if (fromRoute === Route.GAME && toRoute !== Route.GAME) {
 			if (gameManager.isMainGameActive()) {
 				const mainEngine = gameManager.getMainGameEngine();
-				if (mainEngine) {
-					mainEngine.requestPause();
-				}
+				if (mainEngine) mainEngine.requestPause();
 			}
 		}
 	}
@@ -187,32 +144,20 @@ export class Router {
 	 */
 	private cleanupCurrentRoute(): void {
 		if (!this.currentRoute) return;
-		
 		if (this.currentRoute) {
 			const section = document.getElementById(this.currentRoute);
-			if (section) {
-				section.style.display = 'none';
-			}
+			if (section) section.style.display = 'none';
 		}
-		
 		if (this.currentRoute === Route.AUTH) {
 			const authComponent = this.components.get(this.currentRoute);
-			if (authComponent?.destroy) {
-				authComponent.destroy();
-			}
+			if (authComponent?.destroy) authComponent.destroy();
 			this.components.delete(this.currentRoute);
 			Router.cleanupAuthComponent();
 			return;
 		}
-		
 		const currentComponent = this.components.get(this.currentRoute);
-		if (this.currentRoute !== Route.GAME && currentComponent?.destroy) {
-			this.components.delete(this.currentRoute);
-		}
-		
-		if (this.currentRoute === Route.PROFILE) {
-			this.components.delete(this.currentRoute);
-		}
+		if (this.currentRoute !== Route.GAME && currentComponent?.destroy) this.components.delete(this.currentRoute);
+		if (this.currentRoute === Route.PROFILE) this.components.delete(this.currentRoute);
 	}
 
 	/**
@@ -220,9 +165,7 @@ export class Router {
 	 */
 	private handleAuthRoute(): void {
 		this.cleanupCurrentRoute();
-		
 		const returnTo = history.state?.returnTo || '/';
-		
 		let section = document.getElementById(Route.AUTH);
 		if (!section) {
 			section = document.createElement('section');
@@ -231,14 +174,11 @@ export class Router {
 			this.container.appendChild(section);
 		}
 		section.style.display = 'block';
-		
 		const redirectTarget = returnTo === '/game' ? 'game' : 'profile';
 		const authManager = new AuthManager(section, redirectTarget, true);
 		this.components.set(Route.AUTH, authManager);
 		authManager.show();
-		
 		this.currentRoute = Route.AUTH;
-		
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this), { once: true });
 		document.addEventListener('user-authenticated', this.handleSuccessfulAuth.bind(this), { once: true });
 		this.setupNavClickHandlers();
@@ -249,18 +189,13 @@ export class Router {
 	 */
 	private handleAuthCancelled = (): void => {
 		Router.cleanupAuthComponent();
-		
 		const routeToNavigateTo = Route.GAME;
 		this.currentRoute = null;
 		this.components.delete(Route.GAME);
-		
 		Router.routerInstance.navigate(`/${routeToNavigateTo}`);
-		
 		setTimeout(() => {
 			const gameComponent = this.components.get(Route.GAME) as GameComponent;
-			if (gameComponent?.resetToMenu) {
-				gameComponent.resetToMenu();
-			}
+			if (gameComponent?.resetToMenu) gameComponent.resetToMenu();
 		}, 50);
 	};
 
@@ -269,14 +204,10 @@ export class Router {
 	 */
 	private handleSuccessfulAuth(): void {
 		Array.from(this.components.entries()).forEach(([_route, component]) => {
-			if (component.refresh) {
-				component.refresh();
-			} else if (component.render) {
+			if (component.refresh) component.refresh();
+			else if (component.render) {
 				component.render();
-				
-				if (component.setupEventListeners) {
-					setTimeout(() => component.setupEventListeners(), 0);
-				}
+				if (component.setupEventListeners) setTimeout(() => component.setupEventListeners(), 0);
 			}
 		});
 	}
@@ -288,7 +219,6 @@ export class Router {
 	private handlePopState(event: PopStateEvent): void {
 		const state = event.state || {};
 		const path = window.location.pathname;
-		
 		let route: Route;
 		switch (path) {
 			case '/':
@@ -309,18 +239,10 @@ export class Router {
 			default:
 				route = Route.GAME;
 		}
-		
-		if (state.id && route === Route.PROFILE) {
-			this.currentParams = { id: state.id };
-		}
-		
+		if (state.id && route === Route.PROFILE) this.currentParams = { id: state.id };
 		this.forceComponentRecreation(route);
-		
-		if (route === Route.AUTH) {
-			this.handleAuthRoute();
-		} else {
-			this.handleRoute(route);
-		}
+		if (route === Route.AUTH) this.handleAuthRoute();
+		else this.handleRoute(route);
 	}
 
 	// =========================================
@@ -363,36 +285,24 @@ export class Router {
 		e.preventDefault();
 		const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
 		if (!href) return;
-		
 		const currentPath = window.location.pathname;
-		
 		let targetRoute: Route;
-		if (href === '/') {
-			targetRoute = Route.GAME;
-		} else {
-			targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
-		}
-
+		if (href === '/') targetRoute = Route.GAME;
+		else targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
 		if (this.currentRoute === Route.AUTH && targetRoute !== Route.AUTH) {
 			document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
 			document.removeEventListener('user-authenticated', this.handleSuccessfulAuth);
 			Router.cleanupAuthComponent();
 			this.components.delete(targetRoute);
 		}
-		
-		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game')) {
-			this.components.delete(Route.GAME);
-		}
-		
+		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game')) this.components.delete(Route.GAME);
 		if (currentPath !== href) {
 			window.history.pushState({ path: href }, '', href);
 			Router.routerInstance.navigate(href, { 
 				historyAPIMethod: 'replaceState',
 				updateBrowserURL: false 
 			});
-		} else {
-			this.handleRoute(targetRoute);
-		}
+		} else this.handleRoute(targetRoute);
 	}
 
 	/**
@@ -413,9 +323,7 @@ export class Router {
 	 * Refreshes all components in the active router instance
 	 */
 	public static refreshAllComponents(): void {
-		if (Router.activeInstance) {
-			Router.activeInstance.refreshCurrentComponent();
-		}
+		if (Router.activeInstance) Router.activeInstance.refreshCurrentComponent();
 	}
 
 	/**
@@ -426,17 +334,13 @@ export class Router {
 			const router = Router.activeInstance;
 			if (router) {
 				const authComponent = router.components.get(Route.AUTH);
-				if (authComponent?.destroy) {
-					authComponent.destroy();
-				}
+				if (authComponent?.destroy) authComponent.destroy();
 				router.components.delete(Route.AUTH);
 			}
-			
 			document.querySelectorAll('.auth-container').forEach(container => {
 				const parentElement = container.parentElement;
 				if (parentElement) {
 					parentElement.removeChild(container);
-					
 					if (parentElement.classList.contains('content-container')) {
 						parentElement.style.display = 'block';
 						parentElement.style.height = '';
@@ -444,17 +348,11 @@ export class Router {
 					}
 				}
 			});
-			
 			const authSection = document.getElementById(Route.AUTH);
-			if (authSection?.parentElement) {
-				authSection.parentElement.removeChild(authSection);
-			}
-			
+			if (authSection?.parentElement) authSection.parentElement.removeChild(authSection);
 			// Remove auth wrappers
 			document.querySelectorAll('.auth-wrapper').forEach(wrapper => {
-				if (wrapper.parentElement) {
-					wrapper.parentElement.removeChild(wrapper);
-				}
+				if (wrapper.parentElement) wrapper.parentElement.removeChild(wrapper);
 			});
 		} catch (error) {
 			NotificationManager.handleError(error);
@@ -468,12 +366,21 @@ export class Router {
 	public static forceRecreateComponent(route: Route): void {
 		if (Router.activeInstance) {
 			const component = Router.activeInstance.components.get(route);
-			if (component?.destroy) {
-				component.destroy();
-			}
+			if (component?.destroy) component.destroy();
 			Router.activeInstance.components.delete(route);
 		}
 	}
+		/**
+	 * Resets the GameComponent to its menu state.
+	 */
+		public static resetGameComponentToMenu(): void {
+			if (Router.activeInstance) {
+				const gameComponent = Router.activeInstance.components.get(Route.GAME) as GameComponent;
+				if (gameComponent?.resetToMenu) {
+					gameComponent.resetToMenu();
+				}
+			}
+		}
 }
 
 // =========================================
@@ -491,29 +398,19 @@ export function navigate(
 ): void {
 	let preventReload = true;
 	let state: any = { path };
-	
-	if (typeof options === 'boolean') {
-		preventReload = options;
-	} else if (options) {
+	if (typeof options === 'boolean') preventReload = options;
+	else if (options) {
 		preventReload = options.preventReload !== false;
-		if (options.state) {
-			state = { ...state, ...options.state };
-		}
+		if (options.state) state = { ...state, ...options.state };
 	}
-	
 	if (preventReload) {
 		const currentPath = window.location.pathname;
-		
 		if (currentPath !== path) {
 			window.history.pushState(state, '', path);
 			Router.routerInstance.navigate(path, { 
 				historyAPIMethod: 'replaceState', 
 				updateBrowserURL: false 
 			});
-		} else {
-			Router.routerInstance.resolve(path);
-		}
-	} else {
-		window.location.href = path;
-	}
+		} else Router.routerInstance.resolve(path);
+	} else window.location.href = path;
 }
