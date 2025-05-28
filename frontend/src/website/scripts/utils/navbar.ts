@@ -57,9 +57,7 @@ export class NavbarComponent {
 			</div>
 			<div class="nav-right">
 				${isAuthenticated && currentUser ? 
-				${isAuthenticated && currentUser ? 
 					html`
-						<a href="/profile?id=${currentUser.id}" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
 						<a href="/profile?id=${currentUser.id}" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
 						<button class="nav-item logout-button" title="Log out" onClick=${() => this.handleLogout()}>⏻</button>
 					` : 
@@ -99,12 +97,10 @@ export class NavbarComponent {
 	 */
 	private handleAuthClick(e: Event): void {
 		e.preventDefault();
-		
 		this.authButtonActive = true;
 		this.renderNavbar();
 		navigate('/auth', { 
 			state: { returnTo: location.pathname },
-			preventReload: true 
 			preventReload: true 
 		});
 	}

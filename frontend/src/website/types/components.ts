@@ -1,6 +1,6 @@
 import { IReplyGetFriend } from '@shared/types/friends.types';
-import { Friend } from '@website/scripts/components/profile/tabs/friends';
 import { UserProfile, LeaderboardEntry, PlayerData, AccentColor, GameMode } from '@website/types';
+import { Friend } from '@website/scripts/components/profile/tabs/friends';
 
 /**
  * Profile component state interface
@@ -60,66 +60,6 @@ export interface ProcessedMatch {
 }
 
 /**
- * Profile history component state interface
- */
-export interface ProfileHistoryState {
-	profile: UserProfile | null;
-	historyPage: number;
-	historyPageSize: number;
-	allMatches: ProcessedMatch[];
-	matches: ProcessedMatch[];
-	isLoading: boolean;
-	hasMoreMatches: boolean;
-	dataLoadInProgress: boolean;
-	handlers: {
-		onPlayerClick: (username: string) => void;
-	};
-}
-
-/**
- * Processed match interface for match history
- */
-export interface ProcessedMatch {
-	id: string;
-	date: Date;
-	opponent: string;
-	opponentId: string;
-	playerScore: number;
-	opponentScore: number;
-	result: 'win' | 'loss';
-}
-
-/**
- * Profile history component state interface
- */
-export interface ProfileHistoryState {
-	profile: UserProfile | null;
-	historyPage: number;
-	historyPageSize: number;
-	allMatches: ProcessedMatch[];
-	matches: ProcessedMatch[];
-	isLoading: boolean;
-	hasMoreMatches: boolean;
-	dataLoadInProgress: boolean;
-	handlers: {
-		onPlayerClick: (username: string) => void;
-	};
-}
-
-/**
- * Processed match interface for match history
- */
-export interface ProcessedMatch {
-	id: string;
-	date: Date;
-	opponent: string;
-	opponentId: string;
-	playerScore: number;
-	opponentScore: number;
-	result: 'win' | 'loss';
-}
-
-/**
  * Leaderboard component state interface
  */
 export interface LeaderboardState {
@@ -167,4 +107,102 @@ export interface ProfileSettingsState {
 		form?: string;
 		twoFA?: string;
 	};
+}
+
+/**
+ * Profile stats component state interface
+ */
+export interface ProfileStatsState {
+	isLoading: boolean;
+	eloChartRendered: boolean;
+	matchDurationChartRendered: boolean;
+	dailyActivityChartRendered: boolean;
+	goalDurationChartRendered: boolean;
+	profile?: any;
+	playerStats?: any;
+	cleanup?: {
+		eloChart?: () => void;
+		matchDurationChart?: () => void;
+		dailyActivityChart?: () => void;
+		goalDurationChart?: () => void;
+	};
+	dataLoadInProgress: boolean;
+}
+
+export interface GameCanvasState {
+	visible: boolean;
+	isPlaying: boolean;
+	isPaused: boolean;
+}
+
+export enum GameState {
+	MENU = 'menu',
+	PLAYER_REGISTRATION = 'player_registration',
+	TOURNAMENT = 'tournament',
+	PLAYING = 'playing',
+	GAME_OVER = 'game_over'
+}
+
+export interface GameComponentState {
+	currentState: GameState;
+	currentMode: GameMode;
+	playerIds?: string[];
+	playerNames?: string[];
+	playerColors?: string[];
+	tournamentId?: string;
+	isFinal?: boolean;
+}
+
+export enum Route {
+	GAME = 'game',
+	LEADERBOARD = 'leaderboard',
+	PROFILE = 'profile',
+	AUTH = 'auth'
+}
+
+export interface TournamentTransitionsState {
+	visible: boolean;
+	phase: TournamentPhase;
+	currentScreen: 'schedule' | 'winner';
+}
+
+export interface TournamentPlayer {
+	id: string;
+	name: string;
+	color: string;
+	wins: number;
+	gamesWon: number;
+	gamesLost: number;
+}
+
+export interface TournamentMatch {
+	player1Index: number;
+	player2Index: number;
+	gamesPlayed: number;
+	games: {
+		winner: number;
+		player1Score: number;
+		player2Score: number;
+		matchId?: string;
+	}[];
+	winner?: number;
+	completed: boolean;
+	isCurrent?: boolean;
+	isFinals: boolean;
+}
+
+export type TournamentPhase = 'pool' | 'finals' | 'complete';
+
+export interface ProfileFriendsState {
+	profile: UserProfile | null;
+	friends: IReplyGetFriend[];
+	pendingFriends: Friend[];
+	acceptedFriends: IReplyGetFriend[];
+	isLoading: boolean;
+	isCurrentUser: boolean;
+	handlers: {
+		onPlayerClick: (username: string) => void;
+	};
+	dataLoadInProgress: boolean;
+	currentUserId: string;
 }

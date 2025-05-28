@@ -33,25 +33,13 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 * Sets the profile to display match history for
 	 * @param profile - The user profile to display
 	 */
-	// =========================================
-	// PUBLIC METHODS
-	// =========================================
-	
-	/**
-	 * Sets the profile to display match history for
-	 * @param profile - The user profile to display
-	 */
 	public setProfile(profile: UserProfile): void {
-		const state = this.getInternalState();
-		if (state.profile?.id !== profile.id) {
 		const state = this.getInternalState();
 		if (state.profile?.id !== profile.id) {
 			this.updateInternalState({ 
 				profile,
-				profile,
 				allMatches: [],
 				matches: [],
-				historyPage: 0
 				historyPage: 0
 			});
 			if (!state.dataLoadInProgress) this.fetchAndProcessMatchHistory(profile.id);
@@ -62,22 +50,10 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 * Sets handlers for component interactions
 	 * @param handlers - Object containing event handlers
 	 */
-	/**
-	 * Sets handlers for component interactions
-	 * @param handlers - Object containing event handlers
-	 */
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
 	}
 
-	// =========================================
-	// DATA MANAGEMENT
-	// =========================================
-
-	/**
-	 * Fetches and processes match history for a user
-	 * @param userId - The ID of the user to fetch history for
-	 */
 	// =========================================
 	// DATA MANAGEMENT
 	// =========================================
@@ -124,26 +100,19 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				allMatches: processedHistory,
 				matches: initialMatches,
 				hasMoreMatches: processedHistory.length > historyPageSize,
-				matches: initialMatches,
-				hasMoreMatches: processedHistory.length > historyPageSize,
 				dataLoadInProgress: false
 			});
 		} catch (error) {
 			NotificationManager.showError('Failed to load match history');
-			NotificationManager.showError('Failed to load match history');
 			this.updateInternalState({ 
 				allMatches: [], 
 				matches: [],
-				hasMoreMatches: false,
 				hasMoreMatches: false,
 				dataLoadInProgress: false 
 			});
 		}
 	}
 	
-	/**
-	 * Updates the displayed matches based on current page and page size
-	 */
 	/**
 	 * Updates the displayed matches based on current page and page size
 	 */
@@ -175,22 +144,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	/**
 	 * Handles loading more matches when the "Load More" button is clicked
 	 */
-		/**
-	 * Refreshes the history data
-	 */
-		public refreshData(): void {
-			const state = this.getInternalState();
-			if (state.dataLoadInProgress || !state.profile?.id) return;
-			this.fetchAndProcessMatchHistory(state.profile.id);
-		}
-
-	// =========================================
-	// EVENT HANDLERS
-	// =========================================
-
-	/**
-	 * Handles loading more matches when the "Load More" button is clicked
-	 */
 	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
 		if (state.isLoading || !state.hasMoreMatches) return;
@@ -199,13 +152,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		this.render();
 	}
 	
-	// =========================================
-	// RENDERING
-	// =========================================
-	
-	/**
-	 * Renders the match history component into its container
-	 */
 	// =========================================
 	// RENDERING
 	// =========================================
@@ -270,7 +216,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 									</li>
 								</ul>
 							</div>
-						` : state.allMatches.length > 0 ? html`
 						` : state.allMatches.length > 0 ? html`
 							<div class="history-end" style="margin: 2rem 0; text-align: center; color: #666;">
 								End of match history (${state.allMatches.length} total matches)

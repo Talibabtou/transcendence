@@ -8,13 +8,8 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private passwordStrength: PasswordStrengthComponent | null = null;
 	private twoFATimeoutId: number | null = null;
 	
-	private passwordStrength: PasswordStrengthComponent | null = null;
-	private twoFATimeoutId: number | null = null;
-	
 	constructor(container: HTMLElement) {
 		super(container, {
-			isRegisterMode: false,
-			needsVerification: false
 			isRegisterMode: false,
 			needsVerification: false
 		});
@@ -25,12 +20,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	// CORE METHODS
 	// =========================================
 	
-	// =========================================
-	// CORE METHODS
-	// =========================================
-	
 	/**
-	 * Renders the component
 	 * Renders the component
 	 */
 	render(): void {
@@ -97,7 +87,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	
 	/**
 	 * Renders the login form for guest authentication
-	 * Renders the login form for guest authentication
 	 */
 	private renderLoginForm(): any {
 		return html`
@@ -139,7 +128,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderRegisterForm(): any {
 		const form = html`
-		const form = html`
 			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
@@ -153,15 +141,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input 
-						type="password" 
-						id="password" 
-						name="password" 
-						required 
-						autocomplete="off" 
-						onInput=${(e: Event) => this.handlePasswordInput(e)}
-					/>
-					<div id="password-strength-container"></div>
 					<input 
 						type="password" 
 						id="password" 
@@ -225,46 +204,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	
 	/**
 	 * Handles login form submission
-	 * Renders the 2FA verification form
-	 */
-	private render2FAForm(): any {
-		return html`
-			<form class="auth-form guest-auth-form twofa-form" onsubmit=${this.handle2FAVerification}>
-				<div class="form-group">
-					<p>Please enter the 6-digit code from your authenticator app:</p>
-					<div class="twofa-input-container">
-						<input 
-							type="text" 
-							id="twofa-code" 
-							name="twofa-code" 
-							maxlength="6" 
-							pattern="[0-9]{6}" 
-							required 
-							placeholder="000000"
-							autocomplete="one-time-code"
-							autofocus
-							class="twofa-input"
-						/>
-					</div>
-				</div>
-				
-				<div class="twofa-button-container">
-					<button type="submit" class="menu-button twofa-verify-button">Verify</button>
-				</div>
-				
-				<div class="auth-links twofa-cancel-container">
-					<a href="#" onclick=${this.cancelTwoFactor}>Cancel</a>
-				</div>
-			</form>
-		`;
-	}
-	
-	// =========================================
-	// Form Submission Handlers
-	// =========================================
-	
-	/**
-	 * Handles login form submission
 	 */
 	private handleLoginSubmit = (e: Event): void => {
 		e.preventDefault();
@@ -277,7 +216,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	}
 	
 	/**
-	 * Handles register form submission
 	 * Handles register form submission
 	 */
 	private handleRegisterSubmit = (e: Event): void => {
@@ -304,7 +242,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	}
 	
 	/**
-	 * Authenticates a guest using email/password
 	 * Authenticates a guest using email/password
 	 */
 	private async authenticateGuest(email: string, password: string): Promise<void> {
@@ -351,14 +288,11 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			} else {
 				NotificationManager.showError('Authentication failed. Please try again.');
 				NotificationManager.handleError(error);
-				NotificationManager.showError('Authentication failed. Please try again.');
-				NotificationManager.handleError(error);
 			}
 		}
 	}
 	
 	/**
-	 * Registers a new guest user directly to the database
 	 * Registers a new guest user directly to the database
 	 */
 	private async registerGuest(username: string, email: string, password: string): Promise<void> {
@@ -379,11 +313,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 					return;
 				}
 				const userData = {
-					id: registerResponse.user.id,
-					username: registerResponse.user.username,
-					email: registerResponse.user.email,
-					profilePicture: registerResponse.user.pfp || `/images/default-avatar.svg`,
-					theme: registerResponse.user.theme || '#ffffff'
 					id: registerResponse.user.id,
 					username: registerResponse.user.username,
 					email: registerResponse.user.email,
@@ -459,7 +388,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	
 	/**
 	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
-	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
 	 */
 	private startTwoFATimeout(): void {
 		this.clearTwoFATimeout();
@@ -481,15 +409,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 
 	/**
 	 * Clears 2FA-related session storage data
-	 * Clears 2FA-related session storage data
 	 */
-	private clearTwoFactorSessionData(): void {
-		sessionStorage.removeItem('guest_2fa_needed');
-		sessionStorage.removeItem('guest_2fa_userid');
-		sessionStorage.removeItem('guest_2fa_token');
-		sessionStorage.removeItem('guest_username');
-		sessionStorage.removeItem('guest_email');
-		sessionStorage.removeItem('guest_password');
 	private clearTwoFactorSessionData(): void {
 		sessionStorage.removeItem('guest_2fa_needed');
 		sessionStorage.removeItem('guest_2fa_userid');
@@ -501,7 +421,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 
 	/**
 	 * Cancels 2FA and goes back to login
-	 * Cancels 2FA and goes back to login
 	 */
 	private cancelTwoFactor = (e?: Event): void => {
 		if (e) e.preventDefault();
@@ -511,10 +430,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			needsVerification: false
 		});
 	}
-	
-	// =========================================
-	// UI State Management
-	// =========================================
 	
 	// =========================================
 	// UI State Management
@@ -544,9 +459,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.passwordStrength = null;
 	}
 	
-	/**
-	 * Clears form fields
-	 */
 	/**
 	 * Clears form fields
 	 */

@@ -45,10 +45,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	// LIFECYCLE METHODS
 	// =========================================
 	
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
-	
 	/**
 	 * Initializes the component by fetching data
 	 */
@@ -81,7 +77,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			NotificationManager.showError("Error initializing profile");
 			this.dataFetchInProgress = false;
 			this.updateInternalState({ 
-				isLoading: false,
 				isLoading: false,
 				initialized: false
 			});
@@ -344,7 +339,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	
 	/**
 	 * Handle tab changes with callback
-	 * Handle tab changes with callback
 	 */
 	private handleTabChange = (tabId: string): void => {
 		if (this.getInternalState().activeTab === tabId) {
@@ -380,10 +374,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	// DATA FETCHING
 	// =========================================
 	
-	// =========================================
-	// DATA FETCHING
-	// =========================================
-	
 	/**
 	 * Fetches profile data from the database
 	 */
@@ -406,14 +396,10 @@ export class ProfileComponent extends Component<ProfileState> {
 				NotificationManager.showError(`User profile not found`);
 				this.updateInternalState({ isLoading: false });
 				return;
-				NotificationManager.showError(`User profile not found`);
-				this.updateInternalState({ isLoading: false });
-				return;
 			}
 			const profile = {
 				id: String(userProfile.id),
 				username: userProfile.username,
-				avatarUrl: userProfile.pics?.link,
 				avatarUrl: userProfile.pics?.link,
 				totalGames: userProfile.summary?.total_matches - userProfile.summary?.active_matches || 0,
 				wins: userProfile.summary?.victories || 0,
@@ -424,41 +410,12 @@ export class ProfileComponent extends Component<ProfileState> {
 					accentColor: AppStateManager.getUserAccentColor(userProfile.id)
 				},
 				elo: userProfile.summary?.elo || 1000
-				elo: userProfile.summary?.elo || 1000
 			};
 			this.updateInternalState({ profile });
 			const isOwnProfile = this.isCurrentUserProfile(userId);
 			const additionalDataPromises = [];
 			let pendingFriends: any[] = [];
 			if (isOwnProfile) {
-				additionalDataPromises.push(
-					DbService.getMyFriends()
-						.then(friendsResponse => {
-							if (Array.isArray(friendsResponse)) {
-								const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
-								return Promise.all(
-									pendingFriendships.map(friendship => 
-										DbService.getFriendship(friendship.id)
-											.then(friendshipStatus => ({ friendship, friendshipStatus }))
-											.catch(() => ({ friendship, friendshipStatus: null }))
-									)
-								);
-							}
-							return [];
-						})
-						.then(friendshipDetails => {
-							const incomingRequests = friendshipDetails
-								.filter(({ friendshipStatus }) => 
-									friendshipStatus && friendshipStatus.requesting !== userId
-								)
-								.map(({ friendship }) => friendship);
-							
-							pendingFriends = incomingRequests;
-						})
-						.catch(error => {
-							console.warn('Could not fetch pending friend requests:', error);
-						})
-				);
 				additionalDataPromises.push(
 					DbService.getMyFriends()
 						.then(friendsResponse => {
@@ -509,14 +466,8 @@ export class ProfileComponent extends Component<ProfileState> {
 		} catch (error) {
 			NotificationManager.showError("Error fetching profile data");
 			this.updateInternalState({ isLoading: false });
-			NotificationManager.showError("Error fetching profile data");
-			this.updateInternalState({ isLoading: false });
 		}
 	}
-	
-	//--------------------------------
-	// Event Handlers
-	//--------------------------------
 	
 	//--------------------------------
 	// Event Handlers
@@ -530,7 +481,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			const userId = await DbService.getIdByUsername(username);
 			navigate(`/profile?id=${userId}`);
 		} catch (error) {
-			NotificationManager.showError(`Could not find user: ${username}`);
 			NotificationManager.showError(`Could not find user: ${username}`);
 		}
 	}
@@ -658,9 +608,6 @@ export class ProfileComponent extends Component<ProfileState> {
 					html`
 						<div class="profile-content"></div>
 					`
-					html`
-						<div class="profile-content"></div>
-					`
 				}
 			</div>
 		`;
@@ -684,13 +631,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			summaryElement.innerHTML = `
 				${avatarHtml}
 				<div class="profile-info">
-					<h2 class="username">
-						${state.profile.username}
-						${state.profile.username.toLowerCase() === 'ai' ? 
-							'<span class="bot-badge">BOT</span>' : 
-							''
-						}
-					</h2>
 					<h2 class="username">
 						${state.profile.username}
 						${state.profile.username.toLowerCase() === 'ai' ? 
@@ -746,7 +686,6 @@ export class ProfileComponent extends Component<ProfileState> {
 						</li>
 						<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
 							${isAiBot ? '' : `
-							${isAiBot ? '' : `
 							<button class="tab-button">
 								Friends
 								${isCurrentUserProfile && state.pendingFriends.length > 0 ? 
@@ -755,19 +694,15 @@ export class ProfileComponent extends Component<ProfileState> {
 								}
 							</button>
 							`}
-							`}
 						</li>
-						${isCurrentUserProfile && !isAiBot ? `
 						${isCurrentUserProfile && !isAiBot ? `
 							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
 								<button class="tab-button">Settings</button>
 							</li>
 						` : !isAiBot ? `
-						` : !isAiBot ? `
 							<li class="tab-item" data-tab="add-friend">
 								<button class="${friendButtonClass}">${friendButtonText}</button>
 							</li>
-						` : ''}
 						` : ''}
 					</ul>
 				</div>
@@ -815,10 +750,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			return currentUser && currentUser.id && currentUser.id === profileId;
 		} catch (error) {
 			NotificationManager.showError("Error checking if current user profile");
-			NotificationManager.showError("Error checking if current user profile");
 			return false;
 		}
 	}
-}
-
 }

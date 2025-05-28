@@ -1,7 +1,5 @@
 import { Component } from '@website/scripts/components';
 import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
-import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
-import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
 
@@ -35,14 +33,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	/**
 	 * Renders the profile settings component
 	 */
-
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
-	
-	/**
-	 * Renders the profile settings component
-	 */
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
@@ -66,14 +56,12 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 										type="file" 
 										id="profile-picture-upload" 
 										accept=".jpg,.jpeg,.png,.gif"
-										accept=".jpg,.jpeg,.png,.gif"
 										onchange=${(e: Event) => this.handleFileChange(e)}
 									/>
 								</label>
 								<div class="upload-info">
 									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
 									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
-									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
 									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
 								</div>
 							</div>
@@ -105,23 +93,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 									`)}
 								</div>
 							</div>
-						</div>
-						
-						<div class="security-options">
-							<h4 class="section-title">2FA Authentication</h4>
-							<div class="toggle-container">
-								<label class="toggle-label">Two-Factor Authentication</label>
-								<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
-									<input 
-										type="checkbox" 
-										id="twofa-toggle" 
-										${state.profile.twoFactorEnabled ? 'checked' : ''}
-										onclick=${(e: Event) => this.handle2FAToggle(e)}
-									/>
-									<span class="toggle-slider"></span>
-								</div>
-							</div>
-							${state.formErrors.twoFA ? html`<div class="form-error">${state.formErrors.twoFA}</div>` : ''}
 						</div>
 						
 						<div class="security-options">
@@ -333,7 +304,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
 			if (!validTypes.includes(file.type)) {
 				NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
-				NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
 				this.updateInternalState({
 					uploadSuccess: false,
 					isUploading: false
@@ -355,15 +325,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			DbService.updateProfilePicture(file) 
 				.then((response) => {
 					NotificationManager.showSuccess('Profile picture updated successfully');
-				.then((response) => {
-					NotificationManager.showSuccess('Profile picture updated successfully');
 					this.updateInternalState({
 						isUploading: false,
 						uploadSuccess: true,
-						profile: {
-							...this.getInternalState().profile!,
-							avatarUrl: response?.avatarUrl || this.getInternalState().profile!.avatarUrl
-						}
 						profile: {
 							...this.getInternalState().profile!,
 							avatarUrl: response?.avatarUrl || this.getInternalState().profile!.avatarUrl
@@ -384,25 +348,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							uploadSuccess: false
 						});
 					}
-					if (error instanceof TypeError && error.message.includes('null')) {
-						NotificationManager.showSuccess('Profile picture updated successfully');
-						this.updateInternalState({
-							isUploading: false,
-							uploadSuccess: true
-						});
-					} else {
-						NotificationManager.showError('Upload failed. Please try again.');
-						this.updateInternalState({
-							isUploading: false,
-							uploadSuccess: false
-						});
-					}
 				});
 		}
 	}
 	
 	/**
-	 * Handles color selection for accent color
 	 * Handles color selection for accent color
 	 */
 	private handleColorSelect(colorHex: string): void {
@@ -413,12 +363,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		appState.setPlayerAccentColor(1, colorHex, state.profile.id);
 		
 		NotificationManager.showSuccess('Theme color updated');
-		
-		NotificationManager.showSuccess('Theme color updated');
 	}
 	
 	/**
-	 * Handles form input changes
 	 * Handles form input changes
 	 */
 	private handleInputChange(event: Event): void {
@@ -434,7 +381,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Handles form submission
 	 * Handles form submission
 	 */
 	private async handleSubmit(event: Event): Promise<void> {
@@ -470,12 +416,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			
 			const firstError = Object.values(errors)[0];
 			NotificationManager.showError(firstError);
-			
-			const firstError = Object.values(errors)[0];
-			NotificationManager.showError(firstError);
 			return;
 		}
-		
 		
 		this.updateInternalState({ formErrors: {}, noChangesMessage: null });
 		const updateData: Partial<User> = {};
@@ -491,7 +433,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 		
 		if (Object.keys(updateData).length === 0) {
-			NotificationManager.showInfo('No changes detected');
 			NotificationManager.showInfo('No changes detected');
 			this.updateInternalState({ 
 				formErrors: { form: undefined }
@@ -542,122 +483,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			this.initialDbUsername = this.initialDbUsername;
 			this.initialDbEmail = this.initialDbEmail;
 
-		try {
-			await DbService.updateUser(state.profile.id, updateData);
-			NotificationManager.showSuccess('Profile updated successfully');
-		} catch (error) {
-			this.initialDbUsername = this.initialDbUsername;
-			this.initialDbEmail = this.initialDbEmail;
-
-			const currentFormErrors = { ...state.formErrors };
-			
-			if (error instanceof Error) {
-				if (error.message.includes('constraint') || error.message.includes('already in use')) {
-					currentFormErrors.form = 'Username or email already in use';
-				} else if (error.message.includes('Invalid') || error.message.includes('fields')) {
-					currentFormErrors.form = 'Invalid user information provided';
-				} else if (error.message.includes('not found')) {
-					currentFormErrors.form = 'User not found';
-				} else {
-					currentFormErrors.form = `Failed to update profile: ${error.message}`;
-				}
-			} else {
-				currentFormErrors.form = 'Failed to update profile';
-			}
-			
-			this.updateInternalState({ 
-				formErrors: currentFormErrors, 
-				profile: {
-					...state.profile!,
-					username: this.initialDbUsername || '',
-				}
-			});
-		}
-	}
-	
-	// =========================================
-	// TWO-FACTOR AUTHENTICATION METHODS
-	// =========================================
-
-	/**
-	 * Handles toggling of two-factor authentication
-	 */
-	private async handle2FAToggle(event: Event): Promise<void> {
-		const toggle = event.target as HTMLInputElement;
-		const toggleContainer = toggle.closest('.toggle-switch');
-		const state = this.getInternalState();
-		
-		if (!state.profile) return;
-		
-		try {
-			if (toggle.checked) {
-				const qrCodeResponse = await DbService.generate2FA();
-				this.showQRCodePopup(qrCodeResponse.qrcode);
-			} else {
-				await DbService.disable2FA();
-				NotificationManager.showSuccess('Two-factor authentication disabled');
-				this.updateInternalState({
-					profile: { ...state.profile, twoFactorEnabled: false }
-				});
-				if (toggleContainer) {
-					toggleContainer.classList.remove('active');
-				}
-			}
-		} catch (error) {
-			NotificationManager.showError('2FA operation failed');
-			
-			toggle.checked = !toggle.checked;
-			if (toggleContainer) {
-				toggleContainer.classList.toggle('active', toggle.checked);
-			}
-			
-			this.updateInternalState({
-				formErrors: {
-					...state.formErrors,
-					twoFA: `Failed to ${toggle.checked ? 'enable' : 'disable'} 2FA. Please try again.`
-				}
-			});
-		}
-	}
-	
-	/**
-	 * Displays the QR code popup for 2FA setup
-	 */
-	private showQRCodePopup(qrCodeImage: string): void {
-		const popupOverlay = document.createElement('div');
-		popupOverlay.className = 'popup-overlay';
-		
-		const popupContent = document.createElement('div');
-		popupContent.className = 'popup-content qrcode-popup';
-		
-		popupContent.innerHTML = `
-			<button id="cancel-twofa-btn" class="cancel-button">✕</button>
-			<div class="qrcode-container">
-				<img src="${qrCodeImage}" alt="QR Code for 2FA" />
-			</div>
-			<p class="qrcode-instructions">
-				1. Scan this QR code with your authentication app<br>
-				2. Enter the 6-digit code from your app below
-			</p>
-			<div class="code-input-container">
-				<input type="text" id="twofa-code" maxlength="6" placeholder="000000" />
-				<button id="verify-twofa-btn" class="verify-twofa-button">Verify</button>
-			</div>
-		`;
-		
-		popupOverlay.appendChild(popupContent);
-		document.body.appendChild(popupOverlay);
-		
-		const verifyButton = document.getElementById('verify-twofa-btn');
-		const cancelButton = document.getElementById('cancel-twofa-btn');
-		const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
-		
-		verifyButton?.addEventListener('click', () => this.verify2FACode(codeInput.value));
-		cancelButton?.addEventListener('click', () => {
-			document.body.removeChild(popupOverlay);
-			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-			if (toggle) toggle.checked = false;
-		});
 			const currentFormErrors = { ...state.formErrors };
 			
 			if (error instanceof Error) {
@@ -770,77 +595,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	}
 	
 	/**
-	 * Verifies the 2FA code entered by the user
-	 */
-	private async verify2FACode(code: string): Promise<void> {
-		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
-			NotificationManager.showError('Please enter a valid 6-digit code');
-			
-			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
-			if (codeInput) {
-				codeInput.classList.add('error');
-				setTimeout(() => codeInput.classList.remove('error'), 2000);
-			}
-			
-			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-			const toggleContainer = toggle?.closest('.toggle-switch');
-			if (toggle && toggleContainer) {
-				toggle.checked = false;
-				toggleContainer.classList.remove('active');
-			}
-			return;
-		}
-		
-		try {
-			await DbService.validate2FA(code);
-			NotificationManager.showSuccess('Two-factor authentication enabled successfully');
-			this.updateInternalState({
-				profile: { 
-					...this.getInternalState().profile!, 
-					twoFactorEnabled: true 
-				}
-			});
-			
-			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-			const toggleContainer = toggle?.closest('.toggle-switch');
-			if (toggle && toggleContainer) {
-				toggle.checked = true;
-				toggleContainer.classList.add('active');
-			}
-			
-			const popupOverlay = document.querySelector('.popup-overlay');
-			if (popupOverlay && popupOverlay.parentNode) {
-				popupOverlay.parentNode.removeChild(popupOverlay);
-			}
-		} catch (error) {
-			NotificationManager.showError('Failed to verify 2FA code');
-			
-			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
-			const toggleContainer = toggle?.closest('.toggle-switch');
-			if (toggle && toggleContainer) {
-				toggle.checked = false;
-				toggleContainer.classList.remove('active');
-			}
-			
-			const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
-			if (codeInput) {
-				codeInput.value = '';
-				codeInput.placeholder = 'Invalid code';
-				codeInput.classList.add('error');
-				setTimeout(() => {
-					codeInput.placeholder = '000000';
-					codeInput.classList.remove('error');
-				}, 2000);
-			}
-		}
-	}
-
-	// =========================================
-	// HELPER METHODS
-	// =========================================
-	
-	/**
-	 * Updates the auth user in local or session storage
 	 * Verifies the 2FA code entered by the user
 	 */
 	private async verify2FACode(code: string): Promise<void> {
@@ -916,20 +670,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private updateAuthUserInStorage(updatedUser: any): void {
 		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 		if (authUserJson) {
-			const authUser = JSON.parse(authUserJson);
-			const updatedAuthUser = {
-				...authUser,
-				pseudo: updatedUser.username,
-				username: updatedUser.username,
-				email: updatedUser.email || authUser.email
-			};
-			
-			if (localStorage.getItem('auth_user')) {
-				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			} else if (sessionStorage.getItem('auth_user')) {
-				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			}
-		}
 			const authUser = JSON.parse(authUserJson);
 			const updatedAuthUser = {
 				...authUser,

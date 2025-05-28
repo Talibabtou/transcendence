@@ -1,4 +1,3 @@
-import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
 import { v4 as uuidv4 } from 'uuid';
 import { NotificationManager } from '@website/scripts/services';
 import { TournamentPhase, TournamentPlayer, TournamentMatch } from '@website/types/components';
@@ -24,16 +23,8 @@ class TournamentCacheSingleton {
 	// TOURNAMENT INITIALIZATION
 	// =========================================
 	
-	// =========================================
-	// TOURNAMENT INITIALIZATION
-	// =========================================
-	
 	/**
 	 * Store registered players and initialize tournament
-	 * @param playerIds Array of player IDs
-	 * @param playerNames Array of player names
-	 * @param playerColors Array of player colors
-	 * @returns Unique tournament ID
 	 * @param playerIds Array of player IDs
 	 * @param playerNames Array of player names
 	 * @param playerColors Array of player colors
@@ -146,7 +137,6 @@ class TournamentCacheSingleton {
 	/**
 	 * Get the current match information
 	 * @returns Current match or null if tournament is complete
-	 * @returns Current match or null if tournament is complete
 	 */
 	public getCurrentMatch(): TournamentMatch | null {
 		if (this.tournamentPhase === 'complete') return null;
@@ -188,14 +178,10 @@ class TournamentCacheSingleton {
 	 * @param player1Score Score of player 1
 	 * @param player2Score Score of player 2
 	 * @param matchId Optional match ID
-	 * @param player1Score Score of player 1
-	 * @param player2Score Score of player 2
-	 * @param matchId Optional match ID
 	 */
 	public recordGameResult(player1Score: number, player2Score: number, matchId?: string): void {
 		const currentMatch = this.getCurrentMatch();
 		if (!currentMatch) {
-			NotificationManager.showError("Cannot record game result: No current match found");
 			NotificationManager.showError("Cannot record game result: No current match found");
 			return;
 		}
@@ -261,7 +247,6 @@ class TournamentCacheSingleton {
 	/**
 	 * Get the next game information
 	 * @returns Information about the next game or null if tournament is complete
-	 * @returns Information about the next game or null if tournament is complete
 	 */
 	public getNextGameInfo(): {
 		isNewMatch: boolean;
@@ -298,7 +283,6 @@ class TournamentCacheSingleton {
 	/**
 	 * Get tournament standings for all players
 	 * @returns Array of player standings with position information
-	 * @returns Array of player standings with position information
 	 */
 	public getTournamentStandings(): Array<{
 		name: string;
@@ -320,7 +304,6 @@ class TournamentCacheSingleton {
 	
 	/**
 	 * Get all tournament matches for display
-	 * @returns Array of match information for UI display
 	 * @returns Array of match information for UI display
 	 */
 	public getTournamentSchedule(): Array<{
@@ -370,7 +353,6 @@ class TournamentCacheSingleton {
 	/**
 	 * Get current tournament phase
 	 * @returns Current tournament phase
-	 * @returns Current tournament phase
 	 */
 	public getTournamentPhase(): TournamentPhase {
 		return this.tournamentPhase;
@@ -379,15 +361,12 @@ class TournamentCacheSingleton {
 	/**
 	 * Get the tournament ID
 	 * @returns Tournament ID or null if no tournament exists
-	 * @returns Tournament ID or null if no tournament exists
 	 */
 	public getTournamentId(): string | null {
 		return this.tournamentId;
 	}
 	
 	/**
-	 * Get the tournament winner
-	 * @returns Winner information or null if tournament is not complete
 	 * Get the tournament winner
 	 * @returns Winner information or null if tournament is not complete
 	 */
@@ -410,7 +389,6 @@ class TournamentCacheSingleton {
 	/**
 	 * Get all tournament players
 	 * @returns Array of tournament players
-	 * @returns Array of tournament players
 	 */
 	public getTournamentPlayers(): TournamentPlayer[] {
 		return [...this.tournamentPlayers];
@@ -426,7 +404,6 @@ class TournamentCacheSingleton {
 	
 	/**
 	 * Get the current match index
-	 * @returns Current match index
 	 * @returns Current match index
 	 */
 	public getCurrentMatchIndex(): number {
@@ -559,102 +536,8 @@ class TournamentCacheSingleton {
 		}
 	}
 	
-	// =========================================
-	// TOURNAMENT PHASE MANAGEMENT
-	// =========================================
-	
-	/**
-	 * Set the tournament phase
-	 * @param phase New tournament phase
-	 */
-	public setTournamentPhase(phase: TournamentPhase): void {
-		this.tournamentPhase = phase;
-		
-		if (phase === 'pool' && this.tournamentMatches.length > 0) {
-			this.setCurrentMatchIndex(0);
-		}
-		
-		if (phase === 'finals' && this.tournamentMatches.length > 0) {
-			this.setCurrentMatchIndex(this.tournamentMatches.length - 1);
-		}
-		
-		this.saveToLocalStorage();
-	}
-	
-	// =========================================
-	// PERSISTENCE
-	// =========================================
-	
-	/**
-	 * Reset the tournament cache
-	 */
-	public clearTournament(): void {
-		this.tournamentId = null;
-		this.tournamentPlayers = [];
-		this.tournamentMatches = [];
-		this.currentMatchIndex = 0;
-		this.currentGameInMatch = 0;
-		this.tournamentPhase = 'pool';
-		localStorage.removeItem('tournament_state');
-		localStorage.removeItem('tournament_timestamp');
-	}
-	
-	/**
-	 * Restore tournament state from localStorage
-	 * @returns True if restoration was successful, false otherwise
-	 */
-	public restoreFromLocalStorage(): boolean {
-		try {
-			const savedState = localStorage.getItem('tournament_state');
-			if (!savedState) return false;
-			
-			const timestamp = localStorage.getItem('tournament_timestamp');
-			const maxAge = 60 * 60 * 1000;
-			
-			if (timestamp && Date.now() - parseInt(timestamp) > maxAge) {
-				localStorage.removeItem('tournament_state');
-				localStorage.removeItem('tournament_timestamp');
-				return false;
-			}
-			
-			const state = JSON.parse(savedState);
-			this.tournamentId = state.tournamentId;
-			this.tournamentPlayers = state.players;
-			this.tournamentMatches = state.matches;
-			this.currentMatchIndex = state.currentMatchIndex;
-			this.currentGameInMatch = state.currentGameInMatch;
-			this.tournamentPhase = state.phase;
-			
-			return true;
-		} catch (error) {
-			NotificationManager.showError("Failed to restore tournament");
-			return false;
-		}
-	}
-	
-	/**
-	 * Save tournament state to localStorage
-	 */
-	public saveToLocalStorage(): void {
-		try {
-			const state = {
-				tournamentId: this.tournamentId,
-				players: this.tournamentPlayers,
-				matches: this.tournamentMatches,
-				currentMatchIndex: this.currentMatchIndex,
-				currentGameInMatch: this.currentGameInMatch,
-				phase: this.tournamentPhase
-			};
-			localStorage.setItem('tournament_state', JSON.stringify(state));
-			localStorage.setItem('tournament_timestamp', Date.now().toString());
-		} catch (error) {
-			NotificationManager.showError("Failed to save tournament state");
-		}
-	}
-	
 	/**
 	 * Get the tournament expiration time in milliseconds
-	 * @returns Expiration time or -1 if no tournament is saved
 	 * @returns Expiration time or -1 if no tournament is saved
 	 */
 	public getExpirationTime(): number {
@@ -728,8 +611,6 @@ export const TournamentCache = TournamentCacheSingleton.getInstance();
 
 /**
  * Checks if a user ID is part of the current tournament players
- * @param userId User ID to check
- * @returns True if user is in the tournament, false otherwise
  * @param userId User ID to check
  * @returns True if user is in the tournament, false otherwise
  */

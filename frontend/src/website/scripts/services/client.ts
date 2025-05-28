@@ -12,28 +12,7 @@ export class WebSocketClient {
 	private constructor(url: string) {
 		this.url = url;
 	}
-	private constructor(url: string) {
-		this.url = url;
-	}
 
-	// =========================================
-	// SINGLETON MANAGEMENT
-	// =========================================
-
-	/**
-	 * Gets the singleton instance of WebSocketClient
-	 * @param url - The WebSocket server URL (required on first call)
-	 * @returns The WebSocketClient singleton instance
-	 */
-	public static getInstance(url?: string): WebSocketClient {
-		if (!WebSocketClient.instance) {
-			if (!url) {
-				throw new Error("WebSocket URL must be provided on first instantiation.");
-			}
-			WebSocketClient.instance = new WebSocketClient(url);
-		}
-		return WebSocketClient.instance;
-	}
 	// =========================================
 	// SINGLETON MANAGEMENT
 	// =========================================
@@ -215,7 +194,7 @@ export class WebSocketClient {
 	}
 }
 
-const DEFAULT_WS_URL = 'ws://localhost:8085/ws/status';
+const DEFAULT_WS_URL = 'wss://localhost:8043/ws/status';
 
 // =========================================
 // UTILITY FUNCTIONS

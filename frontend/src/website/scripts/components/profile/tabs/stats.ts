@@ -21,23 +21,15 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	// PUBLIC METHODS
 	// =========================================
 	
-	// =========================================
-	// PUBLIC METHODS
-	// =========================================
-	
 	/**
 	 * Sets the profile data for the stats component
-	 * @param profile - The user profile to display stats for
 	 * @param profile - The user profile to display stats for
 	 */
 	public async setProfile(profile: UserProfile): Promise<void> {
 		const state = this.getInternalState();
 		if (state.profile?.id !== profile?.id) {
-		const state = this.getInternalState();
-		if (state.profile?.id !== profile?.id) {
 			this.updateInternalState({ 
 				profile,
-				isLoading: true,
 				isLoading: true,
 				eloChartRendered: false,
 				matchDurationChartRendered: false,
@@ -49,19 +41,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	}
 	
 	/**
-	 * Refreshes the stats data
-	 */
-	public refreshData(): void {
-		if (this.getInternalState().dataLoadInProgress) return;
-		this.loadData();
-	}
-	
-	// =========================================
-	// DATA MANAGEMENT
-	// =========================================
-	
-	/**
-	 * Loads the statistics data from the database
 	 * Refreshes the stats data
 	 */
 	public refreshData(): void {
@@ -99,18 +78,12 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			}, 0);
 		} catch (error) {
 			NotificationManager.showError("Error loading stats data");
-			NotificationManager.showError("Error loading stats data");
 			this.updateInternalState({ 
 				dataLoadInProgress: false,
-				isLoading: false
 				isLoading: false
 			});
 		}
 	}
-	
-	// =========================================
-	// RENDERING
-	// =========================================
 	
 	// =========================================
 	// RENDERING
@@ -164,7 +137,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	
 	/**
 	 * Renders the stats component into its container
-	 * Renders the stats component into its container
 	 */
 	render(): void {
 		const state = this.getInternalState();
@@ -172,29 +144,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			<div class="stats-content">
 				${state.isLoading ? 
 					html`<p class="loading-text">Loading statistics...</p>` :
-					html`
-						<div class="chart-container">
-							<div class="chart-section">
-								<h3 class="chart-title first-chart-title">ELO Rating History</h3>
-								<div id="elo-chart" class="chart"></div>
-							</div>
-							
-							<div class="chart-section">
-								<h3 class="chart-title">Match Duration Distribution</h3>
-								<div id="match-duration-chart" class="chart"></div>
-							</div>
-							
-							<div class="chart-section">
-								<h3 class="chart-title activity-title">Daily Activity</h3>
-								<div id="daily-activity-chart" class="chart"></div>
-							</div>
-							
-							<div class="chart-section">
-								<h3 class="chart-title">Goal Time Distribution</h3>
-								<div id="goal-duration-chart" class="chart"></div>
-							</div>
-						</div>
-					`
 					html`
 						<div class="chart-container">
 							<div class="chart-section">
@@ -228,10 +177,6 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			});
 		}
 	}
-	
-	// =========================================
-	// LIFECYCLE METHODS
-	// =========================================
 	
 	// =========================================
 	// LIFECYCLE METHODS

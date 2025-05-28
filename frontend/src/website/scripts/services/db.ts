@@ -375,7 +375,7 @@ export class DbService {
 		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
 		if (userProfile?.pics?.link) {
 			if (userProfile.pics.link === 'default') userProfile.pics.link = '/images/default-avatar.svg';
-			else userProfile.pics.link = `https://localhost:8085${userProfile.pics.link}`;
+			else userProfile.pics.link = `https://localhost:8043${userProfile.pics.link}`;
 		}
 		return userProfile;
 	}
@@ -402,7 +402,7 @@ export class DbService {
 			const pathParts = response.link.split('/');
 			const fileName = pathParts[pathParts.length - 1];
 			if (fileName === 'default') response.link = '/images/default-avatar.svg';
-			else response.link = `https://localhost:8085/uploads/${fileName}`;
+			else response.link = `https://localhost:8043/uploads/${fileName}`;
 		}
 		return response;
 	}

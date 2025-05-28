@@ -12,7 +12,6 @@ export class GameComponent extends Component<GameComponentState> {
 	private gameOverComponent: GameOverComponent | null = null;
 	private canvasComponent: GameCanvasComponent | null = null;
 
-
 	private gameContainer: HTMLElement | null = null;
 	private isTransitioning = false;
 	private lastGameOverCheck = 0;
@@ -49,10 +48,6 @@ export class GameComponent extends Component<GameComponentState> {
 	// LIFECYCLE METHODS
 	// =========================================
 	
-	/**
-	 * Renders the game component by clearing the container, creating a game container,
-	 * initializing sub-components, and showing the initial menu.
-	 */
 	/**
 	 * Renders the game component by clearing the container, creating a game container,
 	 * initializing sub-components, and showing the initial menu.
@@ -99,7 +94,6 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	/**
 	 * Initializes all sub-components by destroying existing components and creating new ones.
-	 * Initializes all sub-components by destroying existing components and creating new ones.
 	 */
 	private initializeComponents(): void {
 		if (!this.gameContainer) return;
@@ -136,7 +130,6 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	/**
 	 * Updates the game state and handles state transitions.
-	 * Updates the game state and handles state transitions.
 	 * @param newState - The new game state to transition to
 	 */
 	private updateGameState(newState: GameState): void {
@@ -166,14 +159,12 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	/**
 	 * Shows the game menu and handles related state changes.
-	 * Shows the game menu and handles related state changes.
 	 */
 	private showMenu(): void {
 		if (this.canvasComponent) this.canvasComponent.stopGame();
 		if (this.gameOverComponent) this.gameOverComponent.hide();
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
-			this.menuComponent = null;
 			this.menuComponent = null;
 		}
 		if (this.gameContainer) {
@@ -191,7 +182,6 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	/**
 	 * Starts the game with the selected mode.
-	 * Starts the game with the selected mode.
 	 */
 	private startPlaying(): void {
 		const state = this.getInternalState();
@@ -208,7 +198,6 @@ export class GameComponent extends Component<GameComponentState> {
 				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
 				this.canvasComponent.render();
 			} else {
-				NotificationManager.showError('Game container not available');
 				NotificationManager.showError('Game container not available');
 				return;
 			}
@@ -236,13 +225,11 @@ export class GameComponent extends Component<GameComponentState> {
 	
 	/**
 	 * Shows the game over screen while keeping the game visible.
-	 * Shows the game over screen while keeping the game visible.
 	 */
 	private showGameOver(): void {
 		const cachedResult = MatchCache.getLastMatchResult();
 		const gameInfo = MatchCache.getCurrentGameInfo();
 		if (!cachedResult) {
-			NotificationManager.showError('No game result found in cache');
 			NotificationManager.showError('No game result found in cache');
 			return;
 		}
@@ -269,12 +256,10 @@ export class GameComponent extends Component<GameComponentState> {
 
 	/**
 	 * Handles mode selection from the menu.
-	 * Handles mode selection from the menu.
 	 * @param mode - The selected game mode
 	 */
 	private handleModeSelected(mode: GameMode): void {
 		if (!appState.isAuthenticated()) {
-			NotificationManager.showError('User not authenticated');
 			NotificationManager.showError('User not authenticated');
 			this.updateGameState(GameState.MENU);
 			return;
@@ -285,7 +270,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Handles play again button from game over screen.
 	 * Handles play again button from game over screen.
 	 */
 	private handlePlayAgain(mode: GameMode): void {
@@ -311,7 +295,6 @@ export class GameComponent extends Component<GameComponentState> {
 			})
 			.catch(error => {
 				NotificationManager.showError('Error restarting game: ' + error);
-				NotificationManager.showError('Error restarting game: ' + error);
 				this.updateGameState(GameState.MENU);
 			})
 			.finally(() => {
@@ -322,7 +305,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Handles back to menu button from game over screen.
 	 * Handles back to menu button from game over screen.
 	 */
 	private handleBackToMenu(): void {
@@ -358,7 +340,6 @@ export class GameComponent extends Component<GameComponentState> {
 			})
 			.catch(error => {
 				NotificationManager.showError('Error returning to menu: ' + error);
-				NotificationManager.showError('Error returning to menu: ' + error);
 				this.forceMenuState();
 			})
 			.finally(() => {
@@ -367,7 +348,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Cleans up the current game state.
 	 * Cleans up the current game state.
 	 * @returns Promise that resolves when cleanup is complete
 	 */
@@ -380,7 +360,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Starts a new game with the specified mode.
 	 * Starts a new game with the specified mode.
 	 * @param mode - Game mode to start
 	 */
@@ -397,7 +376,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Emergency recovery method to force menu state when other transitions fail.
 	 * Emergency recovery method to force menu state when other transitions fail.
 	 */
 	private forceMenuState(): void {
@@ -431,7 +409,6 @@ export class GameComponent extends Component<GameComponentState> {
 
 	/**
 	 * Starts monitoring game state to detect game over with safeguards against premature detection.
-	 * Starts monitoring game state to detect game over with safeguards against premature detection.
 	 */
 	private startGameStateMonitoring(): void {
 		this.stopGameStateMonitoring();
@@ -451,14 +428,12 @@ export class GameComponent extends Component<GameComponentState> {
 				}
 			} catch (error) {
 				NotificationManager.showError('Error checking game state: ' + error);
-				NotificationManager.showError('Error checking game state: ' + error);
 				this.stopGameStateMonitoring();
 			}
 		}, 500);
 	}
 
 	/**
-	 * Stops monitoring game state.
 	 * Stops monitoring game state.
 	 */
 	private stopGameStateMonitoring(): void {
@@ -473,7 +448,6 @@ export class GameComponent extends Component<GameComponentState> {
 	// =========================================
 
 	/**
-	 * Handles app state changes.
 	 * Handles app state changes.
 	 * @param newState - The updated state properties
 	 */
@@ -501,8 +475,6 @@ export class GameComponent extends Component<GameComponentState> {
 	/**
 	 * Public method to reset the game component to menu state.
 	 * Called by the router when returning from auth cancellation.
-	 * Public method to reset the game component to menu state.
-	 * Called by the router when returning from auth cancellation.
 	 */
 	public resetToMenu(): void {
 		this.updateGameState(GameState.MENU);
@@ -513,7 +485,6 @@ export class GameComponent extends Component<GameComponentState> {
 	// =========================================
 
 	/**
-	 * Shows the player registration screen.
 	 * Shows the player registration screen.
 	 */
 	private showPlayerRegistration(): void {
@@ -538,7 +509,6 @@ export class GameComponent extends Component<GameComponentState> {
 
 	/**
 	 * Handles when players are registered.
-	 * Handles when players are registered.
 	 * @param playerIds - The registered player IDs
 	 * @param playerNames - The player names
 	 * @param playerColors - The player colors
@@ -547,7 +517,6 @@ export class GameComponent extends Component<GameComponentState> {
 		if (this.isTransitioning) return;
 		this.isTransitioning = true;
 		this.updateInternalState({
-			playerIds: playerIds,
 			playerIds: playerIds,
 			playerNames: playerNames,
 			playerColors: playerColors
@@ -571,9 +540,6 @@ export class GameComponent extends Component<GameComponentState> {
 	/**
 	 * Handles the tournament transition screen.
 	 */
-	/**
-	 * Handles the tournament transition screen.
-	 */
 	private showTournamentTransition(): void {
 		setTimeout(() => {
 			if (!this.TournamentComponent && this.gameContainer) {
@@ -593,7 +559,6 @@ export class GameComponent extends Component<GameComponentState> {
 	}
 
 	/**
-	 * Handles continue button from tournament screens.
 	 * Handles continue button from tournament screens.
 	 */
 	private handleTournamentContinue(): void {
@@ -626,16 +591,10 @@ export class GameComponent extends Component<GameComponentState> {
 	/**
 	 * Handles showing the tournament schedule.
 	 */
-	/**
-	 * Handles showing the tournament schedule.
-	 */
 	private handleShowTournamentSchedule = (): void => {
 		this.updateGameState(GameState.TOURNAMENT);
 	};
 
-	/**
-	 * Handles tournament restoration.
-	 */
 	/**
 	 * Handles tournament restoration.
 	 */

@@ -10,7 +10,6 @@ export class GameOverComponent extends Component<GameOverState> {
 	private inTransition: boolean = false;
 	private boundGameOverHandler: EventListener;
 	private boundResizeHandler: EventListener;
-	private boundResizeHandler: EventListener;
 	
 	constructor(
 		container: HTMLElement,
@@ -35,17 +34,12 @@ export class GameOverComponent extends Component<GameOverState> {
 		this.boundResizeHandler = this.handleResize.bind(this) as EventListener;
 		window.addEventListener('gameOver', this.boundGameOverHandler);
 		window.addEventListener('resize', this.boundResizeHandler);
-		window.addEventListener('resize', this.boundResizeHandler);
 	}
 	
 	// =========================================
 	// LIFECYCLE METHODS
 	// =========================================
 	
-	/**
-	 * Renders the game over screen with player names, scores, and buttons.
-	 * If the component is not visible, it clears the container.
-	 */
 	/**
 	 * Renders the game over screen with player names, scores, and buttons.
 	 * If the component is not visible, it clears the container.
@@ -117,9 +111,6 @@ export class GameOverComponent extends Component<GameOverState> {
 						<div class="go-ascii-container">
 							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
 						</div>
-						<div class="go-ascii-container">
-							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
-						</div>
 						<div class="go-winner">${state.winner} Wins!</div>
 						<div class="go-buttons">
 							${state.gameMode === GameMode.TOURNAMENT 
@@ -151,9 +142,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		render(content, this.container);
 	}
 	
-	/**
-	 * Cleans up event listeners and button event handlers when the component is destroyed.
-	 */
 	/**
 	 * Cleans up event listeners and button event handlers when the component is destroyed.
 	 */
@@ -205,16 +193,11 @@ export class GameOverComponent extends Component<GameOverState> {
 	
 	/**
 	 * Hides the game over screen.
-	 * Hides the game over screen.
 	 */
 	hide(): void {
 		this.updateInternalState({ visible: false });
 	}
 	
-	/**
-	 * Handles the game over event, showing the game over screen with cached match data.
-	 * @param event - The game over event.
-	 */
 	/**
 	 * Handles the game over event, showing the game over screen with cached match data.
 	 * @param event - The game over event.
@@ -245,9 +228,6 @@ export class GameOverComponent extends Component<GameOverState> {
 	/**
 	 * Handles the show tournament schedule button click, transitioning to the tournament schedule.
 	 */
-	/**
-	 * Handles the show tournament schedule button click, transitioning to the tournament schedule.
-	 */
 	private handleShowTournamentSchedule(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
@@ -263,9 +243,6 @@ export class GameOverComponent extends Component<GameOverState> {
 	/**
 	 * Handles the back to menu button click, transitioning back to the main menu.
 	 */
-	/**
-	 * Handles the back to menu button click, transitioning back to the main menu.
-	 */
 	private handleBackToMenu(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
@@ -276,9 +253,6 @@ export class GameOverComponent extends Component<GameOverState> {
 		}
 	}
 	
-	/**
-	 * Handles the play again button click, restarting the game in the current game mode.
-	 */
 	/**
 	 * Handles the play again button click, restarting the game in the current game mode.
 	 */

@@ -20,14 +20,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @param onBack - Callback when back button is clicked
 	 * @param onShowTournamentSchedule - Callback to show tournament schedule
 	 */
-	/**
-	 * Creates a new players registration component
-	 * @param container - The HTML element to render the component into
-	 * @param gameMode - The game mode (MULTI or TOURNAMENT)
-	 * @param onAllPlayersRegistered - Callback when all players are registered
-	 * @param onBack - Callback when back button is clicked
-	 * @param onShowTournamentSchedule - Callback to show tournament schedule
-	 */
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
@@ -39,7 +31,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			gameMode,
 			host: null,
 			guests: [],
-			isReadyToPlay: false
 			isReadyToPlay: false
 		});
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
@@ -68,7 +59,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				isConnected: true,
 				theme: hostTheme,
 				elo: 0
-				elo: 0
 			};
 			DbService.getUser(hostId)
 				.then(userFromDb => {
@@ -90,7 +80,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				})
 				.catch(error => {
 					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 					} else {
 						NotificationManager.handleError(error);
 						this.handleBack();
@@ -103,9 +92,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		} else NotificationManager.showError('Host authentication required');
 	}
 	
-	/**
-	 * Renders the component into its container
-	 */
 	/**
 	 * Renders the component into its container
 	 */
@@ -229,8 +215,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders the host player with color selection
 	 * @param host - The host player data
 	 * @returns HTML template for the host player
-	 * @param host - The host player data
-	 * @returns HTML template for the host player
 	 */
 	private renderHostPlayer(host: PlayerData | null): any {
 		if (!host || !host.id) return '';
@@ -274,8 +258,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	
 	/**
 	 * Renders a connected guest with color selection
-	 * @param guest - The guest player data
-	 * @returns HTML template for the guest player
 	 * @param guest - The guest player data
 	 * @returns HTML template for the guest player
 	 */
@@ -323,9 +305,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Renders the play button based on player readiness
 	 * @param state - The current component state
 	 * @returns HTML template for the play button
-	 * Renders the play button based on player readiness
-	 * @param state - The current component state
-	 * @returns HTML template for the play button
 	 */
 	private renderPlayButton(state: PlayersRegisterState): any {
 		const requiredPlayers = this.maxPlayers;
@@ -348,7 +327,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	// =========================================
 	
 	/**
-	 * Sets up the authentication component based on game mode
 	 * Sets up the authentication component based on game mode
 	 */
 	private setupAuthComponent(): void {
@@ -415,12 +393,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	
 	// =========================================
 	// EVENT HANDLERS
-	// EVENT HANDLERS
 	// =========================================
 	
 	/**
-	 * Handles the guest-authenticated event
-	 * @param event - The authentication event
 	 * Handles the guest-authenticated event
 	 * @param event - The authentication event
 	 */
@@ -444,8 +419,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	};
 	
 	/**
-	 * Handles user theme updates from other components
-	 * @param event - The theme update event
 	 * Handles user theme updates from other components
 	 * @param event - The theme update event
 	 */
@@ -475,12 +448,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	/**
 	 * Processes guest authentication with received data
 	 * @param guestDataFromEvent - The guest player data from auth event
-	 * Processes guest authentication with received data
-	 * @param guestDataFromEvent - The guest player data from auth event
 	 */
 	private handleGuestAuthenticated(guestDataFromEvent: PlayerData): void {
 		if (!guestDataFromEvent || !guestDataFromEvent.id) {
-			NotificationManager.showError('No guest data or guest ID received from auth event');
 			NotificationManager.showError('No guest data or guest ID received from auth event');
 			return;
 		}
@@ -512,9 +482,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			})
 			.catch(error => {
 				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 				} else {
-					NotificationManager.handleError(error);
 					NotificationManager.handleError(error);
 				}
 			})
@@ -527,9 +495,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	}
 	
 	/**
-	 * Continues guest authentication process after fetching details
-	 * 
-	 * @param guestData - The processed guest player data
 	 * Continues guest authentication process after fetching details
 	 * 
 	 * @param guestData - The processed guest player data
@@ -559,13 +524,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		let isReadyToPlay = state.isReadyToPlay;
 		if (state.gameMode === GameMode.MULTI) {
 			updatedGuests = [guestData];
-			updatedGuests = [guestData];
 			appState.setPlayerAccentColor(2, guestData.theme as string, guestData.id);
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const nextIndex = updatedGuests.filter(g => g && g.isConnected).length;
-			if (nextIndex >= 3) {
-				NotificationManager.showError('All player slots are filled');
-				return;
 			if (nextIndex >= 3) {
 				NotificationManager.showError('All player slots are filled');
 				return;
@@ -574,7 +535,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				updatedGuests.push({} as PlayerData); 
 			updatedGuests[nextIndex] = guestData;
 			const playerPosition = nextIndex + 2;
-			const playerPosition = nextIndex + 2;
 			appState.setPlayerAccentColor(playerPosition, guestData.theme as string, guestData.id);
 		}
 		const connectedCount = (state.host ? 1 : 0) + 
@@ -582,7 +542,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		isReadyToPlay = connectedCount >= this.maxPlayers;
 		this.updateInternalState({
 			guests: updatedGuests,
-			isReadyToPlay: isReadyToPlay
 			isReadyToPlay: isReadyToPlay
 		});
 		this.renderComponent();
@@ -610,13 +569,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const state = this.getInternalState();
 		if (!state.host) {
 			NotificationManager.showError('Cannot start game: Missing host');
-			NotificationManager.showError('Cannot start game: Missing host');
 			return;
 		}
 		if (state.gameMode === GameMode.MULTI) {
 			document.getElementById('game-menu')?.remove();
 			if (!state.guests[0]) {
-				NotificationManager.showError('Cannot start game: Missing guest');
 				NotificationManager.showError('Cannot start game: Missing guest');
 				return;
 			}
@@ -636,7 +593,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const connectedGuests = state.guests.filter(g => g && g.isConnected);
 			if (connectedGuests.length < 3) {
-				NotificationManager.showError('Cannot start tournament: Not enough players');
 				NotificationManager.showError('Cannot start tournament: Not enough players');
 				return;
 			}

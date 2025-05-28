@@ -137,10 +137,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	 * Renders the tournament winner screen
 	 * @returns HTML template for the tournament winner screen
 	 */
-	/**
-	 * Renders the tournament winner screen
-	 * @returns HTML template for the tournament winner screen
-	 */
 	private renderTournamentWinner(): any {
 		const winner = TournamentCache.getTournamentWinner();
 		if (!winner) return this.renderTournamentSchedule();
@@ -179,13 +175,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	/**
 	 * Handles returning to the main menu
 	 */
-	// =========================================
-	// EVENT HANDLERS
-	// =========================================
-	
-	/**
-	 * Handles returning to the main menu
-	 */
 	private handleBackToMenu(): void {
 		if (!this.inTransition) {
 			this.inTransition = true;
@@ -194,9 +183,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 	}
 	
-	/**
-	 * Handles the continue button press
-	 */
 	/**
 	 * Handles the continue button press
 	 */
@@ -309,9 +295,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	/**
 	 * Hides the tournament component
 	 */
-	/**
-	 * Hides the tournament component
-	 */
 	public hide(): void {
 		this.updateInternalState({ visible: false });
 	}
@@ -328,7 +311,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		const currentMatch = TournamentCache.getCurrentMatch();
 		if (phase === 'pool' && (!currentMatch || currentMatch.gamesPlayed === 0) && currentIndex === 0) {
-			this.onContinue();
 			this.onContinue();
 			return;
 		}
