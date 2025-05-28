@@ -1,6 +1,6 @@
 import { ASCII_ART, appState } from '@website/scripts/utils';
-import { GameManager } from '../components/game/game-manager';
 import { html, render, navigate, DbService } from '@website/scripts/services';
+import { GameManager } from '../components/game/game-manager';
 
 declare global {
 	interface DocumentEventMap {

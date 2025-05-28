@@ -1,6 +1,6 @@
+import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
 import { UserProfile, ProfileStatsState } from '@website/types';
 import { DbService, html, NotificationManager, render } from '@website/scripts/services';
-import { Component, renderDailyActivityChart, renderEloChart, renderGoalDurationChart, renderMatchDurationChart } from '@website/scripts/components';
 
 export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	constructor(container: HTMLElement) {
@@ -36,7 +36,10 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				dailyActivityChartRendered: false,
 				goalDurationChartRendered: false
 			});
-			if (!state.dataLoadInProgress) await this.loadData();
+			
+			if (!state.dataLoadInProgress) {
+				await this.loadData();
+			}
 		}
 	}
 	
@@ -58,12 +61,15 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	private async loadData(): Promise<void> {
 		const state = this.getInternalState();
 		if (state.dataLoadInProgress || !state.profile?.id) return;
+		
 		this.updateInternalState({ 
 			dataLoadInProgress: true,
 			isLoading: true
 		});
+		
 		try {
 			const playerStats = await DbService.getUserStats(state.profile.id);
+			
 			this.updateInternalState({ 
 				dataLoadInProgress: false,
 				isLoading: false,
@@ -73,6 +79,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				dailyActivityChartRendered: false,
 				goalDurationChartRendered: false
 			});
+			
 			setTimeout(() => {
 				this.renderCharts();
 			}, 0);
@@ -95,6 +102,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	private renderCharts(): void {
 		const state = this.getInternalState();
 		if (!state.playerStats) return;
+		
 		const charts = [
 			{
 				id: 'elo-chart',
@@ -121,7 +129,9 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				flag: 'goalDurationChartRendered'
 			}
 		];
+		
 		const updates: any = { cleanup: { ...state.cleanup } };
+		
 		for (const chart of charts) {
 			if (!chart.rendered) {
 				const element = this.container.querySelector(`#${chart.id}`);
@@ -132,7 +142,10 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				}
 			}
 		}
-		if (Object.keys(updates).length > 1) this.updateInternalState(updates);
+		
+		if (Object.keys(updates).length > 1) {
+			this.updateInternalState(updates);
+		}
 	}
 	
 	/**
@@ -140,6 +153,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 */
 	render(): void {
 		const state = this.getInternalState();
+		
 		const template = html`
 			<div class="stats-content">
 				${state.isLoading ? 
@@ -170,7 +184,9 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				}
 			</div>
 		`;
+		
 		render(template, this.container);
+		
 		if (!state.isLoading) {
 			requestAnimationFrame(() => {
 				this.renderCharts();
@@ -187,10 +203,19 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 */
 	destroy(): void {
 		super.destroy();
+		
 		const state = this.getInternalState();
-		if (state.cleanup?.eloChart) state.cleanup.eloChart();
-		if (state.cleanup?.matchDurationChart) state.cleanup.matchDurationChart();
-		if (state.cleanup?.dailyActivityChart) state.cleanup.dailyActivityChart();
-		if (state.cleanup?.goalDurationChart) state.cleanup.goalDurationChart();
+		if (state.cleanup?.eloChart) {
+			state.cleanup.eloChart();
+		}
+		if (state.cleanup?.matchDurationChart) {
+			state.cleanup.matchDurationChart();
+		}
+		if (state.cleanup?.dailyActivityChart) {
+			state.cleanup.dailyActivityChart();
+		}
+		if (state.cleanup?.goalDurationChart) {
+			state.cleanup.goalDurationChart();
+		}
 	}
 }

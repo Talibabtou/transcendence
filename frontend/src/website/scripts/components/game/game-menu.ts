@@ -1,7 +1,7 @@
 import { Component } from '@website/scripts/components';
-import { GameMode, GameMenuState } from '@website/types';
-import { html, render, navigate } from '@website/scripts/services';
 import { ASCII_ART, TournamentCache, isUserInCurrentTournament } from '@website/scripts/utils';
+import { html, render, navigate } from '@website/scripts/services';
+import { GameMode, GameMenuState } from '@website/types';
 
 export class GameMenuComponent extends Component<GameMenuState> {
 	private onModeSelected: (mode: GameMode) => void;
@@ -133,6 +133,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 */
 	private showAuthComponent(): void {
 		this.hide();
+		
 		navigate('/auth', { 
 			state: { 
 				returnTo: '/game' 
@@ -176,10 +177,12 @@ export class GameMenuComponent extends Component<GameMenuState> {
 				const sessionUser = sessionStorage.getItem('auth_user');
 				const storedUser = localUser || sessionUser;
 				let currentUserId: string | null = null;
+				
 				if (storedUser) {
 					const user = JSON.parse(storedUser);
 					currentUserId = user.id;
 				}
+				
 				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
 					this.onShowTournamentSchedule();
 					this.onTournamentRestored();

@@ -12,7 +12,6 @@ export enum ErrorCodes {
 	SQLITE_CONSTRAINT = 'SQLITE_CONSTRAINT',
 	BAD_REQUEST = 'BAD REQUEST',
 	PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
-	RATE_LIMIT = 'RATE_LIMIT',
 
 	// Match related errors
 	MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
@@ -62,7 +61,6 @@ export const ErrorTypes = new Map<number, string>([
 	[403, 'Forbidden'],
 	[404, 'Not Found'],
 	[409, 'Conflict'],
-	[429, 'Rate limit'],
 	[500, 'Internal Server Error'],
 	[503, 'Service Unavailable'],
 ]);
@@ -75,7 +73,6 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
 	[ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
 	[ErrorCodes.BAD_REQUEST, 'Bad request'],
 	[ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
-	[ErrorCodes.RATE_LIMIT, 'Rate limit reached'],
 
 	// Match related errors
 	[ErrorCodes.MATCH_NOT_FOUND, 'Match not found'],
@@ -168,12 +165,6 @@ export const ErrorExamples = {
 		code: ErrorCodes.PLAYER_NOT_FOUND,
 		error: ErrorTypes.get(404),
 		message: ErrorMessages.get(ErrorCodes.PLAYER_NOT_FOUND),
-	},
-	rateLimit: {
-		statusCode: 429,
-		code: ErrorCodes.RATE_LIMIT,
-		error: ErrorTypes.get(429),
-		message: ErrorMessages.get(ErrorCodes.RATE_LIMIT),
 	},
 
 	// Match related errors

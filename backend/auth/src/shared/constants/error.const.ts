@@ -12,6 +12,7 @@ export enum ErrorCodes {
   SQLITE_CONSTRAINT = 'SQLITE_CONSTRAINT',
   BAD_REQUEST = 'BAD REQUEST',
   PLAYER_NOT_FOUND = 'PLAYER_NOT_FOUND',
+  RATE_LIMIT = 'RATE_LIMIT',
 
   // Match related errors
   MATCH_NOT_FOUND = 'MATCH_NOT_FOUND',
@@ -63,6 +64,7 @@ export const ErrorTypes = new Map<number, string>([
   [403, 'Forbidden'],
   [404, 'Not Found'],
   [409, 'Conflict'],
+  [429, 'Too Many Requests'],
   [500, 'Internal Server Error'],
   [503, 'Service Unavailable'],
 ]);
@@ -75,6 +77,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   [ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
   [ErrorCodes.BAD_REQUEST, 'Bad request'],
   [ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
+  [ErrorCodes.RATE_LIMIT, 'Too many requests'],
   [ErrorCodes.UNAUTHORIZED, 'Unauthorized'],
 
   // Match related errors
@@ -150,6 +153,12 @@ export const ErrorExamples = {
     code: ErrorCodes.UNAUTHORIZED,
     error: ErrorTypes.get(401),
     message: ErrorMessages.get(ErrorCodes.UNAUTHORIZED),
+  },
+  rateLimit: {
+    statusCode: 429,
+    code: ErrorCodes.RATE_LIMIT,
+    error: ErrorTypes.get(429),
+    message: ErrorMessages.get(ErrorCodes.RATE_LIMIT),
   },
 
   // database
@@ -292,9 +301,9 @@ export const ErrorExamples = {
 
   // Jwt
   jwtBadHeader: {
-    statusCode: 403,
+    statusCode: 401,
     code: ErrorCodes.JWT_BAD_HEADER,
-    error: ErrorTypes.get(403),
+    error: ErrorTypes.get(401),
     message: ErrorMessages.get(ErrorCodes.JWT_BAD_HEADER),
   },
   jwtInsufficientPerm: {

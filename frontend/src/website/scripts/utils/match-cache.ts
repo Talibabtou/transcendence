@@ -30,6 +30,7 @@ class MatchCacheSingleton {
 	private lastPlayerIds: string[] = [];
 	private lastPlayerNames: string[] = [];
 	private lastPlayerColors: string[] = [];
+	
 	// Store the last match result
 	private lastMatchResult: MatchResult | null = null;
 	
@@ -39,7 +40,9 @@ class MatchCacheSingleton {
 	}
 	
 	public static getInstance(): MatchCacheSingleton {
-		if (!MatchCacheSingleton.instance) MatchCacheSingleton.instance = new MatchCacheSingleton();
+		if (!MatchCacheSingleton.instance) {
+			MatchCacheSingleton.instance = new MatchCacheSingleton();
+		}
 		return MatchCacheSingleton.instance;
 	}
 	
@@ -131,10 +134,13 @@ class MatchCacheSingleton {
 	public clearCache(): void {
 		// Clear match data cache
 		this.cache.clear();
+		
 		// Clear completed matches set
 		this.completedMatches.clear();
+		
 		// Reset game mode to default
 		this.lastGameMode = GameMode.SINGLE;
+		
 		// Clear player information
 		this.lastPlayerIds = [];
 		this.lastPlayerNames = [];

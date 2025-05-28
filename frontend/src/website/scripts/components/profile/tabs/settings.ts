@@ -36,10 +36,13 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	render(): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
+		
 		const availableColors = Object.entries(appState.getAvailableColors());
 		const firstRowColors = availableColors.slice(0, 6);
 		const secondRowColors = availableColors.slice(6);
+		
 		const currentColor = AppStateManager.getUserAccentColor(state.profile.id);
+		
 		const template = html`
 			<div class="settings-content">
 				<div class="settings-grid">
@@ -185,7 +188,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		render(template, this.container);
 	}
-
+	
 	/**
 	 * Cleans up event listeners and component resources
 	 */
@@ -193,7 +196,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		window.removeEventListener('user:theme-updated', this.handleExternalThemeUpdate.bind(this));
 		super.destroy();
 	}
-
+	
 	/**
 	 * Returns the DOM container for this component
 	 */
@@ -204,16 +207,18 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	// =========================================
 	// PUBLIC API METHODS
 	// =========================================
-
+	
 	/**
 	 * Sets the user profile for the settings component
 	 */
 	public setProfile(profile: UserProfile): void {
 		const currentComponentState = this.getInternalState();
 		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
+		
 		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
 			this.initialDbUsername = profile.username || '';
 			this.initialDbEmail = null;
+			
 			this.updateInternalState({
 				profile: {
 					...profile,
@@ -223,6 +228,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 					}
 				}
 			});
+			
 			if (profile.id) {
 				Promise.all([
 					DbService.getUser(profile.id),
@@ -249,6 +255,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							confirmPassword: '',
 						}
 					});
+					
 					setTimeout(() => {
 						const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
 						if (toggle) toggle.checked = twoFactorEnabled;
@@ -275,7 +282,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Sets handlers for component events
 	 */
 	public setHandlers(handlers: { onProfileUpdate?: (updatedFields: Partial<User>) => void }): void {
-		if (handlers.onProfileUpdate) this.onProfileUpdate = handlers.onProfileUpdate;
+		if (handlers.onProfileUpdate) {
+			this.onProfileUpdate = handlers.onProfileUpdate;
+		}
 	}
 
 	// =========================================
@@ -287,8 +296,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 */
 	private handleExternalThemeUpdate(event: Event): void {
 		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
-		if (customEvent.detail && this.getInternalState().profile)
-			if (customEvent.detail.userId === this.getInternalState().profile!.id) this.render();
+		if (customEvent.detail && this.getInternalState().profile) {
+			if (customEvent.detail.userId === this.getInternalState().profile!.id) {
+				this.render();
+			}
+		}
 	}
 	
 	/**
@@ -301,6 +313,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (file) {
 			const state = this.getInternalState();
 			if (!state.profile) return;
+			
 			const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
 			if (!validTypes.includes(file.type)) {
 				NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
@@ -310,6 +323,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				});
 				return;
 			}
+			
 			if (file.size > 1 * 1024 * 1024) {
 				NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
 				this.updateInternalState({
@@ -318,10 +332,12 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				});
 				return;
 			}
+			
 			this.updateInternalState({
 				isUploading: true,
 				uploadSuccess: false
 			});
+			
 			DbService.updateProfilePicture(file) 
 				.then((response) => {
 					NotificationManager.showSuccess('Profile picture updated successfully');

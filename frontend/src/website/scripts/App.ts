@@ -1,6 +1,6 @@
 import { NavbarComponent } from '@website/scripts/utils';
-import { GameManager } from '@website/scripts/components';
 import { Router, NotificationManager, WebSocketClient } from '@website/scripts/services';
+import { GameManager } from '@website/scripts/components';
 
 declare global {
 	interface Window {
@@ -62,10 +62,14 @@ export class App {
 
 	private initializeRouter(): void {
 		const contentContainer = document.querySelector('.content-container') as HTMLElement;
-		if (contentContainer) new Router(contentContainer);
-		else NotificationManager.showError('Could not find content container element');
+		if (contentContainer) {
+			new Router(contentContainer);
+		} else {
+			NotificationManager.showError('Could not find content container element');
+		}
 	}
 }
+
 document.addEventListener('DOMContentLoaded', () => {
 	new App();
 });

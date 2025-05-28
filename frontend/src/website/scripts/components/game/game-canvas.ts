@@ -1,7 +1,7 @@
+import { Component, GameManager } from '@website/scripts/components';
 import { GameEngine } from '@pong/game/engine';
 import { GameMode, GameCanvasState } from '@website/types';
 import { NotificationManager } from '@website/scripts/services';
-import { Component, GameManager } from '@website/scripts/components';
 
 export class GameCanvasComponent extends Component<GameCanvasState> {
 	private canvas: HTMLCanvasElement | null = null;
@@ -18,6 +18,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			isPlaying: false,
 			isPaused: false
 		});
+
 		this.gameManager = GameManager.getInstance();
 	}
 
@@ -64,21 +65,28 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 			visible: true,
 			isPlaying: true
 		});
+
 		this.gameManager.startMainGame(mode, this.container, playerInfo);
+
 		if (this.gameEngine) {
 			if (playerInfo?.playerNames && playerInfo.playerNames.length > 0) {
 				const player1Name = playerInfo.playerNames[0] || 'Player 1';
 				const player2Name = playerInfo.playerNames.length > 1 ? playerInfo.playerNames[1] : 'Player 2';
 				this.gameEngine.setPlayerNames(player1Name, player2Name);
 			}
+			
 			if (playerInfo?.playerColors && playerInfo.playerColors.length > 0) {
 				const player1Color = playerInfo.playerColors[0] || '#ffffff';
 				const player2Color = playerInfo.playerColors.length > 1 ? playerInfo.playerColors[1] : '#ffffff';
 				this.gameEngine.updatePlayerColors(player1Color, player2Color);
 			}
+			
 			if (playerInfo?.playerIds && playerInfo.playerIds.length > 0) {
-				if (playerInfo.tournamentId) this.gameEngine.setPlayerIds(playerInfo.playerIds, playerInfo.tournamentId, playerInfo.isFinal || false);
-				else this.gameEngine.setPlayerIds(playerInfo.playerIds);
+				if (playerInfo.tournamentId) {
+					this.gameEngine.setPlayerIds(playerInfo.playerIds, playerInfo.tournamentId, playerInfo.isFinal || false);
+				} else {
+					this.gameEngine.setPlayerIds(playerInfo.playerIds);
+				}
 			}
 		}
 	}
@@ -93,6 +101,7 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 				isPlaying: false,
 				isPaused: false
 			});
+			
 			this.gameManager.cleanupMainGame();
 		} catch (error) {
 			this.gameManager.cleanupMainGame();
@@ -104,10 +113,16 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * @returns True if the game is over, false otherwise
 	 */
 	isGameOver(): boolean {
-		if (!this.getInternalState().isPlaying) return false;
+		if (!this.getInternalState().isPlaying) {
+			return false;
+		}
+		
 		try {
 			const gameState = this.gameManager.getMainGameState();
-			if (!gameState) return false;
+			if (!gameState) {
+				return false;
+			}
+			
 			return Boolean(gameState.isGameOver);
 		} catch (error) {
 			NotificationManager.showError('Error checking game over state');
@@ -131,14 +146,18 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * Shows the game canvas
 	 */
 	public show(): void {
-		if (this.canvas) this.canvas.style.display = 'block';
+		if (this.canvas) {
+			this.canvas.style.display = 'block';
+		}
 	}
 	
 	/**
 	 * Hides the game canvas
 	 */
 	public hide(): void {
-		if (this.canvas) this.canvas.style.display = 'none';
+		if (this.canvas) {
+			this.canvas.style.display = 'none';
+		}
 	}
 
 	// =========================================

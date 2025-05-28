@@ -1,7 +1,7 @@
-import { LeaderboardState } from '@website/types';
 import { Component } from '@website/scripts/components';
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
+import { LeaderboardState } from '@website/types';
 
 export class LeaderboardComponent extends Component<LeaderboardState> {
 	constructor(container: HTMLElement) {
@@ -24,6 +24,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 		this.updateInternalState({ 
 			isLoading: true
 		});
+		
 		try {
 			await this.fetchLeaderboardData();
 		} catch (error) {
@@ -34,14 +35,14 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			});
 		}
 	}
-
+	
 	/**
 	 * Renders the component based on current state
 	 */
 	render(): void {
 		this.renderView();
 	}
-
+	
 	/**
 	 * Cleans up the component when it's destroyed
 	 */
@@ -59,6 +60,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	private async fetchLeaderboardData(): Promise<void> {
 		const apiResponse = await DbService.getLeaderboard();
 		const sortedData = [...apiResponse].sort((a, b) => b.elo - a.elo);
+		
 		const formattedLeaderboard = sortedData.map((entry, index) => ({
 			rank: index + 1,
 			player: entry.player,
@@ -67,6 +69,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 			victories: entry.victories,
 			defeats: entry.defeats
 		}));
+		
 		this.updateInternalState({ leaderboardData: formattedLeaderboard });
 	}
 
@@ -79,7 +82,9 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * @param playerId - The ID of the clicked player
 	 */
 	private handlePlayerClick(playerId: string): void {
-		if (appState.isAuthenticated()) navigate(`/profile?id=${playerId}`);
+		if (appState.isAuthenticated()) {
+			navigate(`/profile?id=${playerId}`);
+		}
 	}
 
 	// =========================================
@@ -91,6 +96,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 */
 	private renderView(): void {
 		const state = this.getInternalState();
+		
 		const template = html`
 			<div class="component-container leaderboard-container">
 				<div class="ascii-title-container">

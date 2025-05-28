@@ -1,7 +1,7 @@
-import { GameMode, GameOverState } from '@website/types';
-import { html, render } from '@website/scripts/services';
 import { Component, GameManager } from '@website/scripts/components';
 import { ASCII_ART, calculateUIPositions, MatchCache } from '@website/scripts/utils';
+import { html, render } from '@website/scripts/services';
+import { GameMode, GameOverState } from '@website/types';
 
 export class GameOverComponent extends Component<GameOverState> {
 	private onPlayAgain: (mode: GameMode) => void;
@@ -27,11 +27,16 @@ export class GameOverComponent extends Component<GameOverState> {
 			player1Score: 0,
 			player2Score: 0
 		});
+		
 		this.onPlayAgain = onPlayAgain;
 		this.onBackToMenu = onBackToMenu;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
+		
+		// Store the bound handler reference for proper cleanup
 		this.boundGameOverHandler = this.handleGameOver.bind(this) as EventListener;
 		this.boundResizeHandler = this.handleResize.bind(this) as EventListener;
+		
+		// Listen for game end events
 		window.addEventListener('gameOver', this.boundGameOverHandler);
 		window.addEventListener('resize', this.boundResizeHandler);
 	}
@@ -46,13 +51,17 @@ export class GameOverComponent extends Component<GameOverState> {
 	 */
 	render(): void {
 		const state = this.getInternalState();
+		
 		if (!state.visible) {
 			this.container.innerHTML = '';
 			return;
 		}
+		
 		let canvasWidth: number;
 		let canvasHeight: number;
+
 		const backgroundGameCanvas = document.getElementById('background-game-canvas') as HTMLCanvasElement | null;
+
 		if (backgroundGameCanvas && backgroundGameCanvas.width > 0 && backgroundGameCanvas.height > 0) {
 			canvasWidth = backgroundGameCanvas.width;
 			canvasHeight = backgroundGameCanvas.height;
@@ -71,7 +80,9 @@ export class GameOverComponent extends Component<GameOverState> {
 				}
 			}
 		}
+		
 		const ui = calculateUIPositions(canvasWidth, canvasHeight);
+		
 		const content = html`
 			<div class="game-container">
 				<div class="game-over-screen">
@@ -139,6 +150,7 @@ export class GameOverComponent extends Component<GameOverState> {
 				</div>
 			</div>
 		`;
+		
 		render(content, this.container);
 	}
 	
@@ -148,10 +160,17 @@ export class GameOverComponent extends Component<GameOverState> {
 	destroy(): void {
 		window.removeEventListener('gameOver', this.boundGameOverHandler);
 		window.removeEventListener('resize', this.boundResizeHandler);
+		
 		const playAgainButton = this.container.querySelector('.play-again-button');
-		if (playAgainButton) playAgainButton.replaceWith(playAgainButton.cloneNode(true));
+		if (playAgainButton) {
+			playAgainButton.replaceWith(playAgainButton.cloneNode(true));
+		}
+		
 		const backMenuButton = this.container.querySelector('.back-menu-button');
-		if (backMenuButton) backMenuButton.replaceWith(backMenuButton.cloneNode(true));
+		if (backMenuButton) {
+			backMenuButton.replaceWith(backMenuButton.cloneNode(true));
+		}
+		
 		super.destroy();
 	}
 	
@@ -163,7 +182,9 @@ export class GameOverComponent extends Component<GameOverState> {
 	 * Handles window resize events to re-render the component if visible.
 	 */
 	private handleResize(): void {
-		if (this.getInternalState().visible && !this.inTransition) this.renderComponent();
+		if (this.getInternalState().visible && !this.inTransition) {
+			this.renderComponent();
+		}
 	}
 	
 	/**
@@ -180,14 +201,18 @@ export class GameOverComponent extends Component<GameOverState> {
 		matchId?: string;
 	}): void {
 		if (this.inTransition) return;
+		
 		this.inTransition = true;
+		
 		this.updateInternalState({
 			...result,
 			visible: true
 		});
+		
 		this.renderComponent();
 		const gameManager = GameManager.getInstance();
 		gameManager.showBackgroundGame();
+		
 		this.inTransition = false;
 	}
 	
@@ -205,13 +230,17 @@ export class GameOverComponent extends Component<GameOverState> {
 	private handleGameOver(event: Event): void {
 		const customEvent = event as CustomEvent;
 		if (!customEvent.detail) return;
+		
 		if ((customEvent.detail.matchId === null || customEvent.detail.isBackgroundGame === true) && 
 			this.getInternalState().visible) {
 			return;
 		}
+		
 		if (this.inTransition) return;
+
 		const cachedResult = MatchCache.getLastMatchResult();
 		const gameInfo = MatchCache.getCurrentGameInfo();
+
 		if (cachedResult && !cachedResult.isBackgroundGame) {
 			this.showGameResult({
 				winner: cachedResult.winner,
@@ -232,9 +261,13 @@ export class GameOverComponent extends Component<GameOverState> {
 		if (!this.inTransition) {
 			this.inTransition = true;
 			this.hide();
+			
 			this.onBackToMenu();
+			
 			setTimeout(() => {
-				if (this.onShowTournamentSchedule) this.onShowTournamentSchedule();
+				if (this.onShowTournamentSchedule) {
+					this.onShowTournamentSchedule();
+				}
 				this.inTransition = false;
 			}, 50);
 		}
