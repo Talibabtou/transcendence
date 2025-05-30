@@ -61,7 +61,8 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 			gridcolor: '#333',
 			color: '#eee',
 			rangemode: 'nonnegative',
-			tickformat: 'd'
+			tickformat: 'd',
+			dtick: 1
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',

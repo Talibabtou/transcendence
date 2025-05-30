@@ -71,7 +71,8 @@ export function renderGoalDurationChart(container: HTMLElement, goalDurations: n
 			color: '#eee',
 			fixedrange: true,
 			rangemode: 'nonnegative',
-			tickformat: 'd'
+			tickformat: 'd',
+			dtick: 1
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
