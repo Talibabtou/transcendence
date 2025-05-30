@@ -202,6 +202,7 @@ export interface ProfileFriendsState {
 	isCurrentUser: boolean;
 	handlers: {
 		onPlayerClick: (username: string) => void;
+		onFriendRequestAccepted?: () => void;
 	};
 	dataLoadInProgress: boolean;
 	currentUserId: string;

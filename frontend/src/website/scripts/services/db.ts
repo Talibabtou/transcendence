@@ -65,10 +65,6 @@ export class DbService {
 	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
-		if (response.status === 404 && response.url.includes('/friends/check/')) {
-			return null as unknown as T;
-		}
-
 		if (response.status >= 400) {
 			console.log('response', response.url);
 			const errorData = await response.json();
@@ -90,7 +86,6 @@ export class DbService {
 				gameManager.cleanupMainGame();
 				gameManager.showBackgroundGame();
 				navigate('/');
-
 				setTimeout(() => {
 					Router.resetGameComponentToMenu();
 				}, 50);
@@ -474,7 +469,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `https://localhost:8085/uploads/${fileName}`;
+				response.link = `https://localhost:8043/uploads/${fileName}`;
 			}
 		}
 		

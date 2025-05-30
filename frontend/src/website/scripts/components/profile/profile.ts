@@ -394,27 +394,33 @@ export class ProfileComponent extends Component<ProfileState> {
 		} else {
 			this.friendsComponent = new ProfileFriendsComponent(tabContainer);
 			this.friendsComponent.setProfile(state.profile);
-			this.friendsComponent.setHandlers({ onPlayerClick: this.handlePlayerClick });
+			this.friendsComponent.setHandlers({
+				onPlayerClick: this.handlePlayerClick,
+				onFriendRequestAccepted: this.handleFriendRequestAccepted
+			});
 		}
 	}
 	
 	/**
 	 * Initialize the settings tab component
 	 */
-	private initializeSettingsTab(_tabContentDiv: Element, tabContainer: HTMLElement): void {
+	private initializeSettingsTab(tabContentDiv: Element, tabContainer: HTMLElement): void {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
 		if (this.settingsComponent) {
-			if (typeof this.settingsComponent.destroy === 'function') {
-				this.settingsComponent.destroy();
+			const settingsContainer = this.settingsComponent.getDOMContainer();
+			if (settingsContainer.parentElement !== tabContentDiv) {
+				tabContentDiv.innerHTML = '';
+				tabContentDiv.appendChild(settingsContainer);
 			}
-			this.settingsComponent = undefined;
+			this.settingsComponent.setProfile(state.profile);
+			settingsContainer.classList.add('active');
+		} else {
+			this.settingsComponent = new ProfileSettingsComponent(tabContainer);
+			this.settingsComponent.setProfile(state.profile);
+			this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
 		}
-		
-		this.settingsComponent = new ProfileSettingsComponent(tabContainer);
-		this.settingsComponent.setProfile(state.profile);
-		this.settingsComponent.setHandlers({ onProfileUpdate: this.handleProfileSettingsUpdate });
 	}
 	
 	/**
@@ -438,22 +444,16 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		switch (state.activeTab) {
 			case 'stats':
-				if (this.statsComponent) {
-					this.statsComponent.refreshData();
-				}
+				if (this.statsComponent) this.statsComponent.refreshData();
 				break;
 			case 'history':
-				if (this.historyComponent) {
-					this.historyComponent.refreshData();
-				}
+				if (this.historyComponent) this.historyComponent.refreshData();
 				break;
 			case 'friends':
-				if (this.friendsComponent) {
-					this.friendsComponent.refreshData();
-				}
+				if (this.friendsComponent) this.friendsComponent.refreshData();
 				break;
 			case 'settings':
-				this.createTabComponent('settings');
+				if (this.settingsComponent) this.settingsComponent.refreshData();
 				break;
 		}
 	}
@@ -606,9 +606,15 @@ export class ProfileComponent extends Component<ProfileState> {
 			newProfileDataForParent.username = updatedFields.username;
 			profileWasActuallyUpdatedInParent = true;
 		}
+		
+		if (updatedFields.pfp && updatedFields.pfp !== newProfileDataForParent.avatarUrl) {
+			newProfileDataForParent.avatarUrl = updatedFields.pfp;
+			profileWasActuallyUpdatedInParent = true;
+		}
 
 		if (profileWasActuallyUpdatedInParent) {
 			this.updateInternalState({ profile: newProfileDataForParent });
+			this.renderView();
 		}
 	}
 	
@@ -728,6 +734,14 @@ export class ProfileComponent extends Component<ProfileState> {
 		} finally {
 			friendButton.disabled = false;
 		}
+	}
+
+	/**
+	 * Handles friend request acceptance
+	 */
+	private handleFriendRequestAccepted = (): void => {
+		this.checkPendingFriendRequests();
+		this.renderView();
 	}
 	
 	// =========================================
@@ -911,6 +925,63 @@ export class ProfileComponent extends Component<ProfileState> {
 		} catch (error) {
 			NotificationManager.showError("Error checking if current user profile");
 			return false;
+		}
+	}
+
+	/**
+ * Checks pending friend requests
+ */
+	private async checkPendingFriendRequests(): Promise<void> {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		const isOwnProfile = this.isCurrentUserProfile(state.profile.id);
+		if (!isOwnProfile) return;
+		
+		try {
+			const friendsResponse = await DbService.getMyFriends();
+			if (Array.isArray(friendsResponse)) {
+				const pendingFriendships = friendsResponse.filter(friendship => !friendship.accepted);
+				const incomingRequests = await Promise.all(
+					pendingFriendships.map(friendship => 
+						DbService.getFriendship(friendship.id)
+							.then(friendshipStatus => ({ 
+								friendship, 
+								isIncoming: friendshipStatus && friendshipStatus.requesting !== state.profile!.id 
+							}))
+							.catch(() => ({ friendship, isIncoming: false }))
+					)
+				);
+				
+				const pendingFriends = incomingRequests
+					.filter(({ isIncoming }) => isIncoming)
+					.map(({ friendship }) => friendship);
+				
+				this.updateInternalState({ pendingFriends });
+				this.updateNotificationDot(pendingFriends.length > 0);
+			}
+		} catch (error) {
+			console.warn('Could not fetch pending friend requests:', error);
+		}
+	}
+	
+	/**
+	 * Updates notification dot in the UI
+	 */
+	private updateNotificationDot(show: boolean): void {
+		const friendsTab = this.container.querySelector('.tab-item[data-tab="friends"] .tab-button');
+		if (!friendsTab) return;
+		
+		const existingDot = friendsTab.querySelector('.notification-dot');
+		
+		if (show) {
+			if (!existingDot) {
+				const notificationDot = document.createElement('span');
+				notificationDot.className = 'notification-dot';
+				friendsTab.appendChild(notificationDot);
+			}
+		} else if (existingDot) {
+			existingDot.remove();
 		}
 	}
 }

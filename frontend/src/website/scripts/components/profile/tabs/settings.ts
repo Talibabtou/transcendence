@@ -7,6 +7,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
 	private initialDbUsername: string | null = null;
 	private initialDbEmail: string | null = null;
+	private dataLoadInProgress = false;
 
 	constructor(container: HTMLElement) {
 		super(container, {
@@ -306,7 +307,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	/**
 	 * Handles file upload for profile picture
 	 */
-	private handleFileChange(event: Event): void {
+	private async handleFileChange(event: Event): Promise<void> {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
 		
@@ -338,33 +339,69 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				uploadSuccess: false
 			});
 			
-			DbService.updateProfilePicture(file) 
-				.then((response) => {
-					NotificationManager.showSuccess('Profile picture updated successfully');
+			try {
+				await DbService.updateProfilePicture(file);
+				NotificationManager.showSuccess('Profile picture updated successfully');
+				const picResponse = await DbService.getPic(state.profile!.id);
+				if (picResponse && picResponse.link) {
 					this.updateInternalState({
 						isUploading: false,
 						uploadSuccess: true,
 						profile: {
 							...this.getInternalState().profile!,
-							avatarUrl: response?.avatarUrl || this.getInternalState().profile!.avatarUrl
+							avatarUrl: picResponse.link
 						}
 					});
-				})
-				.catch(error => {
-					if (error instanceof TypeError && error.message.includes('null')) {
-						NotificationManager.showSuccess('Profile picture updated successfully');
+					if (this.onProfileUpdate) {
+						this.onProfileUpdate({
+							pfp: picResponse.link
+						});
+					}
+				} else {
+					this.updateInternalState({
+						isUploading: false,
+						uploadSuccess: true
+					});
+				}
+			} catch (error) {
+				if (error instanceof TypeError && error.message.includes('null')) {
+					NotificationManager.showSuccess('Profile picture updated successfully');
+					try {
+						const picResponse = await DbService.getPic(state.profile!.id);
+						if (picResponse && picResponse.link) {
+							this.updateInternalState({
+								isUploading: false,
+								uploadSuccess: true,
+								profile: {
+									...this.getInternalState().profile!,
+									avatarUrl: picResponse.link
+								}
+							});
+							if (this.onProfileUpdate) {
+								this.onProfileUpdate({
+									pfp: picResponse.link
+								});
+							}
+						} else {
+							this.updateInternalState({
+								isUploading: false,
+								uploadSuccess: true
+							});
+						}
+					} catch {
 						this.updateInternalState({
 							isUploading: false,
 							uploadSuccess: true
 						});
-					} else {
-						NotificationManager.showError('Upload failed. Please try again.');
-						this.updateInternalState({
-							isUploading: false,
-							uploadSuccess: false
-						});
 					}
-				});
+				} else {
+					NotificationManager.showError('Upload failed. Please try again.');
+					this.updateInternalState({
+						isUploading: false,
+						uploadSuccess: false
+					});
+				}
+			}
 		}
 	}
 	
@@ -387,6 +424,23 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private handleInputChange(event: Event): void {
 		const input = event.target as HTMLInputElement;
 		const { name, value } = input;
+		
+		if (name === 'username') {
+			const sanitizedValue = value.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+		
+			
+			if (sanitizedValue !== value) {
+				input.value = sanitizedValue;
+			}
+			
+			this.updateInternalState({
+				formData: {
+					...this.getInternalState().formData,
+					[name]: sanitizedValue
+				}
+			});
+			return;
+		}
 		
 		this.updateInternalState({
 			formData: {
@@ -411,6 +465,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			errors.username = 'Username is required';
 		} else if (state.formData.username.length < 3) {
 			errors.username = 'Username must be at least 3 characters';
+		} else if (state.formData.username.length > 20) {
+			errors.username = 'Username cannot exceed 20 characters';
+		} else if (!/^[a-zA-Z0-9]+$/.test(state.formData.username)) {
+			errors.username = 'Username can only contain letters and numbers';
 		}
 		
 		if (state.formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.formData.email)) {
@@ -456,71 +514,73 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			return;
 		}
 
-		const newUsername = updateData.username || state.profile.username;
-		const newEmail = updateData.email !== undefined ? updateData.email : this.initialDbEmail;
-
-		this.initialDbUsername = newUsername;
-		this.initialDbEmail = newEmail;
-		
-		this.updateInternalState({
-			profile: {
-				...state.profile,
-				username: newUsername,
-			},
-			formData: {
-				username: newUsername,
-				email: newEmail || '',
-				password: '',
-				confirmPassword: ''
-			},
-			noChangesMessage: null,
-			formErrors: { form: undefined }
-		});
-		
-		const actualChangesForParent: Partial<User> = {};
-		if (updateData.username) actualChangesForParent.username = newUsername;
-		if (updateData.email !== undefined) actualChangesForParent.email = newEmail || undefined;
-		
-		if (Object.keys(actualChangesForParent).length > 0) {
-			appState.updateUserData(actualChangesForParent);
-			if (actualChangesForParent.username) {
-				appState.setPlayerName(state.profile.id, actualChangesForParent.username);
-			}
-			this.updateAuthUserInStorage(actualChangesForParent);
-			if (this.onProfileUpdate) {
-				this.onProfileUpdate(actualChangesForParent);
-			}
-		}
-
 		try {
 			await DbService.updateUser(state.profile.id, updateData);
 			NotificationManager.showSuccess('Profile updated successfully');
-		} catch (error) {
-			this.initialDbUsername = this.initialDbUsername;
-			this.initialDbEmail = this.initialDbEmail;
+			
+			const newUsername = updateData.username || state.profile.username;
+			const newEmail = updateData.email !== undefined ? updateData.email : this.initialDbEmail;
 
+			this.initialDbUsername = newUsername;
+			this.initialDbEmail = newEmail;
+			
+			this.updateInternalState({
+				profile: {
+					...state.profile,
+					username: newUsername,
+				},
+				formData: {
+					username: newUsername,
+					email: newEmail || '',
+					password: '',
+					confirmPassword: ''
+				},
+				noChangesMessage: null,
+				formErrors: { form: undefined }
+			});
+			
+			const actualChangesForParent: Partial<User> = {};
+			if (updateData.username) actualChangesForParent.username = newUsername;
+			if (updateData.email !== undefined) actualChangesForParent.email = newEmail || undefined;
+			
+			if (Object.keys(actualChangesForParent).length > 0) {
+				appState.updateUserData(actualChangesForParent);
+				if (actualChangesForParent.username) {
+					appState.setPlayerName(state.profile.id, actualChangesForParent.username);
+				}
+				this.updateAuthUserInStorage(actualChangesForParent);
+				if (this.onProfileUpdate) {
+					this.onProfileUpdate(actualChangesForParent);
+				}
+			}
+		} catch (error) {
 			const currentFormErrors = { ...state.formErrors };
 			
 			if (error instanceof Error) {
-				if (error.message.includes('constraint') || error.message.includes('already in use')) {
+				if (error.message.includes('409') || error.message.includes('Conflict') || 
+					error.message.includes('already in use') || error.message.includes('duplicate')) {
+					currentFormErrors.form = 'Username already in use';
+					NotificationManager.showError('Username already in use');
+				} else if (error.message.includes('constraint') || error.message.includes('already in use')) {
 					currentFormErrors.form = 'Username or email already in use';
+					NotificationManager.showError('Username or email already in use');
 				} else if (error.message.includes('Invalid') || error.message.includes('fields')) {
 					currentFormErrors.form = 'Invalid user information provided';
+					NotificationManager.showError('Invalid user information provided');
 				} else if (error.message.includes('not found')) {
 					currentFormErrors.form = 'User not found';
+					NotificationManager.showError('User not found');
 				} else {
 					currentFormErrors.form = `Failed to update profile: ${error.message}`;
+					NotificationManager.showError(`Failed to update profile: ${error.message}`);
 				}
 			} else {
 				currentFormErrors.form = 'Failed to update profile';
+				NotificationManager.showError('Failed to update profile');
 			}
 			
 			this.updateInternalState({ 
-				formErrors: currentFormErrors, 
-				profile: {
-					...state.profile!,
-					username: this.initialDbUsername || '',
-				}
+				formErrors: currentFormErrors
 			});
 		}
 	}
@@ -700,5 +760,45 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 			}
 		}
+	}
+
+	/**
+	 * Refreshes the settings data (user info and 2FA status)
+	 */
+	public async refreshData(): Promise<void> {
+		const state = this.getInternalState();
+		if (this.dataLoadInProgress || !state.profile?.id) return;
+		this.dataLoadInProgress = true;
+
+		try {
+			const [userFromDb, twoFactorEnabled] = await Promise.all([
+				DbService.getUser(state.profile.id),
+				DbService.check2FAStatus()
+			]);
+			this.initialDbUsername = userFromDb.username;
+			this.initialDbEmail = userFromDb.email || null;
+
+			this.updateInternalState({
+				profile: {
+					...state.profile,
+					username: userFromDb.username,
+					twoFactorEnabled,
+					avatarUrl: state.profile.avatarUrl,
+					preferences: {
+						...(state.profile.preferences || {}),
+						accentColor: AppStateManager.getUserAccentColor(state.profile.id)
+					}
+				},
+				formData: {
+					username: userFromDb.username,
+					email: userFromDb.email || '',
+					password: '',
+					confirmPassword: '',
+				}
+			});
+		} catch (err) {
+			console.warn('Error refreshing settings data:', err);
+		}
+		this.dataLoadInProgress = false;
 	}
 }

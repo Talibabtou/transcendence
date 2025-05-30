@@ -17,7 +17,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			isLoading: false,
 			isCurrentUser: false,
 			handlers: {
-				onPlayerClick: () => {}
+				onPlayerClick: () => {},
+				onFriendRequestAccepted: () => {}
 			},
 			dataLoadInProgress: false,
 			currentUserId: ''
@@ -72,8 +73,17 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	 * Sets handlers for component interactions
 	 * @param handlers - Object containing event handlers
 	 */
-	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
-		this.updateInternalState({ handlers });
+	public setHandlers(handlers: { 
+		onPlayerClick: (username: string) => void; 
+		onFriendRequestAccepted?: () => void;
+	}): void {
+		const currentHandlers = this.getInternalState().handlers;
+		this.updateInternalState({ 
+			handlers: {
+				...currentHandlers,
+				...handlers
+			}
+		});
 	}
 	
 	/**
@@ -184,6 +194,12 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		try {
 			await DbService.acceptFriendRequest(friendId);
 			await this.loadFriendsData();
+			
+			// Notify parent that a friend request was accepted
+			const state = this.getInternalState();
+			if (state.handlers.onFriendRequestAccepted) {
+				state.handlers.onFriendRequestAccepted();
+			}
 		} catch (error) {
 			NotificationManager.showError('Failed to accept friend request');
 		}
