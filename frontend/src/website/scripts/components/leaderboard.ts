@@ -4,6 +4,8 @@ import { DbService, html, render, navigate, NotificationManager } from '@website
 import { LeaderboardState } from '@website/types';
 
 export class LeaderboardComponent extends Component<LeaderboardState> {
+	private abortController?: AbortController;
+	
 	constructor(container: HTMLElement) {
 		super(container, {
 			leaderboardData: [],
@@ -21,18 +23,34 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Handles loading states and error conditions
 	 */
 	private async initialize(): Promise<void> {
+		// Cancel any existing requests
+		if (this.abortController) {
+			this.abortController.abort();
+		}
+		this.abortController = new AbortController();
+		
 		this.updateInternalState({ 
 			isLoading: true
 		});
 		
 		try {
 			await this.fetchLeaderboardData();
+			
+			// Check if component was destroyed while fetching
+			if (this.abortController.signal.aborted) {
+				return;
+			}
 		} catch (error) {
-			NotificationManager.showError('Error fetching leaderboard data');
+			// Only show error if not aborted
+			if (!this.abortController.signal.aborted) {
+				NotificationManager.showError('Error fetching leaderboard data');
+			}
 		} finally {
-			this.updateInternalState({ 
-				isLoading: false 
-			});
+			if (!this.abortController.signal.aborted) {
+				this.updateInternalState({ 
+					isLoading: false 
+				});
+			}
 		}
 	}
 	
@@ -47,6 +65,11 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Cleans up the component when it's destroyed
 	 */
 	destroy(): void {
+		// Cancel any in-flight requests
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
 		super.destroy();
 	}
 

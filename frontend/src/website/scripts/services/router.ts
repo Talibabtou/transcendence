@@ -20,9 +20,6 @@ export class Router {
 			.on('/profile', () => this.handleRoute(Route.PROFILE))
 			.on('/auth', () => this.handleAuthRoute())
 			.notFound(() => this.handleRoute(Route.GAME));
-			
-		this.setupNavClickHandlers();
-		window.addEventListener('popstate', this.handlePopState.bind(this));
 		Router.routerInstance.resolve();
 		Router.activeInstance = this;
 	}
@@ -59,14 +56,14 @@ export class Router {
 		const component = this.components.get(this.currentRoute);
 		if (!component) return;
 		
-		if (typeof component.refresh === 'function') {
-			component.refresh();
-		} 
-		else if (typeof component.render === 'function') {
-			component.render();
-			
-			if (this.currentRoute === Route.PROFILE && typeof component.setupEventListeners === 'function') {
-				setTimeout(() => component.setupEventListeners(), 0);
+		// Only refresh if the component explicitly needs it
+		// This prevents duplicate API calls when navigating
+		if (this.currentRoute === Route.AUTH || this.currentRoute === Route.GAME) {
+			if (typeof component.refresh === 'function') {
+				component.refresh();
+			} 
+			else if (typeof component.render === 'function') {
+				component.render();
 			}
 		}
 	}
@@ -100,8 +97,24 @@ export class Router {
 		
 		const isProfileChange = route === Route.PROFILE && 
 			(urlParams.id !== this.currentParams.id || !this.components.has(route));
-			
-		if (isProfileChange || !this.components.has(route)) {
+		
+		const gameManager = GameManager.getInstance();
+
+		// Special handling for game route
+		if (route === Route.GAME && this.components.has(Route.GAME) && gameManager.isMainGameActive()) {
+			const gameSection = document.getElementById(Route.GAME);
+			if (gameSection) gameSection.style.display = 'block'; 
+
+			const component = this.components.get(Route.GAME);
+			if (component && typeof component.ensureCorrectStateAndVisibility === 'function') {
+				// Ideal: GameComponent has a method to handle this specific scenario
+				// component.ensureCorrectStateAndVisibility(); 
+			} else if (component && typeof component.refresh === 'function') {
+				// component.refresh(); // Avoid if refresh === full restart
+			} 
+
+		} else if (isProfileChange || !this.components.has(route)) {
+			// For profile changes or new components, destroy existing and create new
 			if (this.components.has(route)) {
 				const currentComponent = this.components.get(route);
 				if (typeof currentComponent.destroy === 'function') {
@@ -120,6 +133,17 @@ export class Router {
 					component.setupEventListeners();
 				}
 			}, 0);
+		} else if (route !== Route.GAME) {
+			// For non-game routes that already exist, don't refresh automatically
+			// This prevents duplicate API calls when navigating back
+			const component = this.components.get(route);
+			if (component) {
+				// Just ensure visibility, don't trigger new data fetches
+				const routeSection = document.getElementById(route);
+				if (routeSection) {
+					routeSection.style.display = 'block';
+				}
+			}
 		}
 		
 		this.currentParams = { ...urlParams };
@@ -134,21 +158,35 @@ export class Router {
 		const gameManager = GameManager.getInstance();
 		
 		if (fromRoute && fromRoute !== toRoute) {
-			if (fromRoute === Route.AUTH) {
-				Router.cleanupAuthComponent();
-				document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
-			} 
-			else if (fromRoute === Route.LEADERBOARD || fromRoute === Route.PROFILE) {
+			// Always clean up the previous route's component (except game in certain cases)
+			if (fromRoute !== Route.GAME || !gameManager.isMainGameActive()) {
 				const component = this.components.get(fromRoute);
 				if (component?.destroy) {
 					component.destroy();
 				}
 				this.components.delete(fromRoute);
 			}
+			
+			if (fromRoute === Route.AUTH) {
+				Router.cleanupAuthComponent();
+				document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
+			} 
+			else if (fromRoute === Route.GAME) {
+				if (gameManager.isMainGameActive()) {
+					const mainEngine = gameManager.getMainGameEngine();
+					if (mainEngine) {
+						mainEngine.requestPause(); // Pause the game
+					}
+					// IMPORTANT: Do NOT delete the GameComponent here if a main game is active.
+					// It needs to persist in a paused state.
+				}
+			}
 		}
 
 		if (toRoute === Route.GAME) {
 			if (!gameManager.isMainGameActive()) {
+				// If navigating to /game and no game is currently active (e.g., fresh load or after game over),
+				// ensure any old game component instance is cleared so a new one can be made by handleRoute.
 				this.components.delete(Route.GAME);
 			}
 			
@@ -158,27 +196,30 @@ export class Router {
 				}
 			});
 			
+			// If a main game is active (even if paused), ensure it's visible
+			// and the background/placeholder game is hidden.
 			if (gameManager.isMainGameActive()) {
 				gameManager.hideBackgroundGame();
+				const gameSection = document.getElementById(Route.GAME);
+				if (gameSection) gameSection.style.display = 'block';
 			}
 		}
-		else {
-			gameManager.showBackgroundGame();
+		else { // Navigating to a route OTHER THAN GAME
+			// If a main game is active and paused, we want to hide its section
+			// and potentially show a background or placeholder game.
+			if (gameManager.isMainGameActive()) {
+				const gameSection = document.getElementById(Route.GAME);
+				if (gameSection) {
+					// gameSection.style.display = 'none'; // Hide the main game section
+				}
+			}
+			gameManager.showBackgroundGame(); // Show placeholder/background
 			
 			document.querySelectorAll('.section').forEach(element => {
 				if (element.id !== toRoute) {
 					(element as HTMLElement).style.display = 'none';
 				}
 			});
-		}
-		
-		if (fromRoute === Route.GAME && toRoute !== Route.GAME) {
-			if (gameManager.isMainGameActive()) {
-				const mainEngine = gameManager.getMainGameEngine();
-				if (mainEngine) {
-					mainEngine.requestPause();
-				}
-			}
 		}
 	}
 
@@ -241,7 +282,6 @@ export class Router {
 		
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this), { once: true });
 		document.addEventListener('user-authenticated', this.handleSuccessfulAuth.bind(this), { once: true });
-		this.setupNavClickHandlers();
 	}
 	
 	/**
@@ -281,87 +321,6 @@ export class Router {
 		});
 	}
 
-	/**
-	 * Handles browser back/forward navigation
-	 * @param event - The PopStateEvent
-	 */
-	private handlePopState(event: PopStateEvent): void {
-		const state = event.state || {};
-		const path = window.location.pathname;
-		
-		let route: Route;
-		switch (path) {
-			case '/':
-				route = Route.GAME;
-				break;
-			case '/game':
-				route = Route.GAME;
-				break;
-			case '/leaderboard':
-				route = Route.LEADERBOARD;
-				break;
-			case '/profile':
-				route = Route.PROFILE;
-				break;
-			case '/auth':
-				route = Route.AUTH;
-				break;
-			default:
-				route = Route.GAME;
-		}
-		
-		if (state.id && route === Route.PROFILE) {
-			this.currentParams = { id: state.id };
-		}
-		const gameManager = GameManager.getInstance();
-		const isNavigatingToGame = route === Route.GAME;
-		const isGameActive = gameManager.isMainGameActive();
-		
-		if (isNavigatingToGame && isGameActive) {
-			// Don't recreate the game component, just show it and resume
-			this.preserveGameOnNavigation();
-			return;
-		}
-		this.forceComponentRecreation(route);
-		
-		if (route === Route.AUTH) {
-			this.handleAuthRoute();
-		} else {
-			this.handleRoute(route);
-		}
-	}
-
-	/**
-	 * Preserves the game state when navigating using browser history
-	 */
-	private preserveGameOnNavigation(): void {
-		// Update route state
-		this.currentRoute = Route.GAME;
-		
-		// Show game section and hide others
-		document.querySelectorAll('.section').forEach(element => {
-			if (element.id !== Route.GAME) {
-				(element as HTMLElement).style.display = 'none';
-			} else {
-				(element as HTMLElement).style.display = 'block';
-			}
-		});
-		
-		// Get the game component and update its state if needed
-		const gameComponent = this.components.get(Route.GAME) as GameComponent;
-		if (gameComponent) {
-			// Resume the game if it's paused
-			const gameManager = GameManager.getInstance();
-			if (gameManager.isMainGameActive() && gameManager.isMainGamePaused()) {
-				// Keep it paused, let the user decide to resume
-				gameManager.hideBackgroundGame();
-			}
-			
-			// Update nav items to reflect current route
-			this.updateActiveNavItem(Route.GAME);
-		}
-	}
-
 	// =========================================
 	// COMPONENT MANAGEMENT
 	// =========================================
@@ -386,60 +345,24 @@ export class Router {
 	// =========================================
 
 	/**
-	 * Sets up click handlers for navigation elements
-	 */
-	private setupNavClickHandlers(): void {
-		document.querySelectorAll('.nav-item, .nav-logo').forEach(link => {
-			link.removeEventListener('click', this.navClickHandler);
-			link.addEventListener('click', this.navClickHandler);
-		});
-	}
-
-	/**
-	 * Event handler for navigation clicks
-	 */
-	private navClickHandler = (e: Event) => {
-		e.preventDefault();
-		const href = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-		if (!href) return;
-		
-		const currentPath = window.location.pathname;
-		
-		let targetRoute: Route;
-		if (href === '/') {
-			targetRoute = Route.GAME;
-		} else {
-			targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
-		}
-
-		// Special handling for game routes
-		const gameManager = GameManager.getInstance();
-		const isGameActive = gameManager.isMainGameActive();
-		
-		// Only delete game component if no active game AND navigating to game route
-		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game') && !isGameActive) {
-			this.components.delete(Route.GAME);
-		}
-		
-		if (currentPath !== href) {
-			window.history.pushState({ path: href }, '', href);
-			Router.routerInstance.navigate(href, { 
-				historyAPIMethod: 'replaceState',
-				updateBrowserURL: false 
-			});
-		} else {
-			this.handleRoute(targetRoute);
-		}
-	}
-
-	/**
 	 * Updates the active state of navigation items based on current route.
 	 * @param route - The current active route
 	 */
 	private updateActiveNavItem(route: Route): void {
 		document.querySelectorAll('.nav-item').forEach(item => {
-			item.classList.toggle('active', item.getAttribute('href') === `/${route}`);
+			// Ensure getAttribute('href') is not null before comparing
+			const itemHref = item.getAttribute('href');
+			if (itemHref) {
+				// Match against the base route, ignoring potential query params in itemHref for active state
+				const [baseItemHref] = itemHref.split('?');
+				item.classList.toggle('active', baseItemHref === `/${route}`);
+			}
 		});
+		// Handle logo active state if necessary, e.g., if '/' or '/game' make logo active
+		const navLogo = document.querySelector('.nav-logo');
+		if (navLogo) {
+			navLogo.classList.toggle('active', route === Route.GAME && (currentUrl() === '/' || currentUrl() === '/game'));
+		}
 	}
 
 	// =========================================
@@ -555,6 +478,14 @@ export class Router {
 // =========================================
 
 /**
+ * Returns the current URL including pathname and search parameters.
+ * @returns The current URL string
+ */
+function currentUrl(): string {
+  return window.location.pathname + window.location.search;
+}
+
+/**
  * Navigate to a new route without page reload
  * @param path - The path to navigate to
  * @param options - Navigation options or boolean for preventReload
@@ -576,9 +507,9 @@ export function navigate(
 	}
 	
 	if (preventReload) {
-		const currentPath = window.location.pathname;
-		
-		if (currentPath !== path) {
+		const currentFullPath = window.location.pathname + window.location.search;
+
+		if (currentFullPath !== path) {
 			window.history.pushState(state, '', path);
 			Router.routerInstance.navigate(path, { 
 				historyAPIMethod: 'replaceState', 

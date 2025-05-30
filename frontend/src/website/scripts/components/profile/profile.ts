@@ -12,6 +12,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	private dataFetchInProgress = false;
 	private wsClient: WebSocketClient;
 	private statusChangeUnsubscribe?: () => void;
+	private abortController?: AbortController;
+	private boundHandleUrlChange: () => void;
 	
 	constructor(container: HTMLElement) {
 		super(container, {
@@ -37,7 +39,9 @@ export class ProfileComponent extends Component<ProfileState> {
 			isUserOnline: false
 		});
 		
-		window.addEventListener('popstate', () => this.handleUrlChange());
+		// Bind the method so we can remove it later
+		this.boundHandleUrlChange = this.handleUrlChange.bind(this);
+		window.addEventListener('popstate', this.boundHandleUrlChange);
 		this.wsClient = WebSocketClient.getInstance();
 	}
 	
@@ -54,6 +58,12 @@ export class ProfileComponent extends Component<ProfileState> {
 			return;
 		}
 		
+		// Cancel any existing requests
+		if (this.abortController) {
+			this.abortController.abort();
+		}
+		this.abortController = new AbortController();
+		
 		this.updateInternalState({ 
 			isLoading: true,
 			initialized: true
@@ -62,6 +72,12 @@ export class ProfileComponent extends Component<ProfileState> {
 		try {
 			this.dataFetchInProgress = true;
 			await this.fetchProfileData();
+			
+			// Check if component was destroyed while fetching
+			if (this.abortController.signal.aborted) {
+				return;
+			}
+			
 			this.dataFetchInProgress = false;
 			
 			const updatedState = this.getInternalState();
@@ -78,7 +94,10 @@ export class ProfileComponent extends Component<ProfileState> {
 				this.initializeTabContent();
 			}
 		} catch (error) {
-			NotificationManager.showError("Error initializing profile");
+			// Only show error if not aborted
+			if (!this.abortController.signal.aborted) {
+				NotificationManager.showError("Error initializing profile");
+			}
 			this.dataFetchInProgress = false;
 			
 			this.updateInternalState({ 
@@ -148,6 +167,12 @@ export class ProfileComponent extends Component<ProfileState> {
 	public loadProfile(profileId: string): void {
 		if (this.dataFetchInProgress) return;
 		
+		// Cancel any existing requests
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
+		
 		this.cleanupComponents();
 		if (this.statusChangeUnsubscribe) {
 			this.statusChangeUnsubscribe();
@@ -176,6 +201,12 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	public refresh(): void {
 		if (this.dataFetchInProgress) return;
+		
+		// Cancel any existing requests
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
 		
 		this.cleanupComponents();
 		
@@ -224,9 +255,27 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Cleanup resources when component is destroyed
 	 */
 	public destroy(): void {
+		// Cancel any in-flight requests
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
+		
+		// Reset fetch state
+		this.dataFetchInProgress = false;
+		
+		// Clean up WebSocket listener
 		if (this.statusChangeUnsubscribe) {
 			this.statusChangeUnsubscribe();
+			this.statusChangeUnsubscribe = undefined;
 		}
+		
+		// Clean up all child components
+		this.cleanupComponents();
+		
+		// Remove event listeners
+		window.removeEventListener('popstate', this.boundHandleUrlChange);
+		
 		super.destroy();
 	}
 	
@@ -571,22 +620,34 @@ export class ProfileComponent extends Component<ProfileState> {
 		const newProfileId = url.searchParams.get('id');
 		const state = this.getInternalState();
 		
-		if (newProfileId !== state.currentProfileId) {
-			if (this.dataFetchInProgress) return;
-			
-			this.cleanupComponents();
-			
-			this.updateInternalState({
-				profile: null,
-				initialized: false,
-				isLoading: false,
-				activeTab: 'stats',
-				currentProfileId: newProfileId,
-				friendshipStatus: null,
-			});
-			
-			this.initialize();
+		// Prevent handling if we're already loading or if it's the same profile
+		if (this.dataFetchInProgress || newProfileId === state.currentProfileId) {
+			return;
 		}
+		
+		// Cancel any existing requests
+		if (this.abortController) {
+			this.abortController.abort();
+			this.abortController = undefined;
+		}
+		
+		this.cleanupComponents();
+		
+		if (this.statusChangeUnsubscribe) {
+			this.statusChangeUnsubscribe();
+			this.statusChangeUnsubscribe = undefined;
+		}
+		
+		this.updateInternalState({
+			profile: null,
+			initialized: false,
+			isLoading: false,
+			activeTab: 'stats',
+			currentProfileId: newProfileId,
+			friendshipStatus: null,
+		});
+		
+		this.initialize();
 	}
 	
 	/**

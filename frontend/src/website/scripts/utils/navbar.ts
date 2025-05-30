@@ -47,18 +47,24 @@ export class NavbarComponent {
 	renderNavbar(): void {
 		const isAuthenticated = appState.isAuthenticated();
 		const currentUser = appState.isAuthenticated() ? appState.getCurrentUser() : null;
+		
+		const handleLinkClick = (e: Event, path: string) => {
+			e.preventDefault();
+			navigate(path, { preventReload: true });
+		};
+		
 		const navbarTemplate = html`
-			<a href="/" class="nav-logo">
+			<a href="/" class="nav-logo" onClick=${(e: Event) => handleLinkClick(e, "/")}>
 				<pre>${ASCII_ART.TRANSCENDENCE}</pre>
 			</a>
 			<div class="nav-center">
-				<a href="/game" class="nav-item${location.pathname === '/' || location.pathname === '/game' ? ' active' : ''}">Game</a>
-				<a href="/leaderboard" class="nav-item${location.pathname === '/leaderboard' ? ' active' : ''}">Leaderboard</a>
+				<a href="/game" class="nav-item${location.pathname === '/' || location.pathname === '/game' ? ' active' : ''}" onClick=${(e: Event) => handleLinkClick(e, "/game")}>Game</a>
+				<a href="/leaderboard" class="nav-item${location.pathname === '/leaderboard' ? ' active' : ''}" onClick=${(e: Event) => handleLinkClick(e, "/leaderboard")}>Leaderboard</a>
 			</div>
 			<div class="nav-right">
 				${isAuthenticated && currentUser ? 
 					html`
-						<a href="/profile?id=${currentUser.id}" class="nav-item${location.pathname === '/profile' ? ' active' : ''}">Profile</a>
+						<a href="/profile?id=${currentUser.id}" class="nav-item${location.pathname === '/profile' ? ' active' : ''}" onClick=${(e: Event) => handleLinkClick(e, `/profile?id=${currentUser.id}`)}>Profile</a>
 						<button class="nav-item logout-button" title="Log out" onClick=${() => this.handleLogout()}>⏻</button>
 					` : 
 					html`
@@ -67,29 +73,8 @@ export class NavbarComponent {
 				}
 			</div>
 		`;
+		
 		render(navbarTemplate, this.container);
-		this.setupNavLinks();
-	}
-	
-	/**
-	 * Sets up event listeners for navigation links
-	 */
-	private setupNavLinks(): void {
-		const navLinks = this.container.querySelectorAll('a.nav-item, a.nav-logo');
-		navLinks.forEach(link => {
-			link.removeEventListener('click', this.handleNavLinkClick);
-			link.addEventListener('click', this.handleNavLinkClick);
-		});
-	}
-	
-	/**
-	 * Handle click on navigation links
-	 */
-	private handleNavLinkClick = (e: Event): void => {
-		e.preventDefault();
-		const link = e.currentTarget as HTMLAnchorElement;
-		const href = link.getAttribute('href');
-		if (href) navigate(href);
 	}
 	
 	/**
