@@ -202,13 +202,7 @@
 	justify-content: center;
 	color: var(--error-color);
 	text-decoration: none;
-	padding: 0.8rem 1rem;
 	transition: all var(--transition-normal);
-	font-family: var(--font-family);
-	border: 1px solid var(--border-color);
-	background-color: var(--menu-bg);
-	position: relative;
-	overflow: hidden;
 	cursor: pointer;
 	font-size: var(--font-size-small);
 }
