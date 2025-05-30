@@ -47,7 +47,7 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 			color: '#eee',
 			range: [0, null],
 			tickformat: 'd',
-			dtick: 10
+			dtick: 1
 		},
 		yaxis: {
 			title: {
@@ -62,7 +62,7 @@ export function renderEloChart(container: HTMLElement, eloHistory: number[]): ()
 			color: '#eee',
 			rangemode: 'nonnegative',
 			tickformat: 'd',
-			dtick: 1
+			dtick: 10
 		},
 		paper_bgcolor: 'rgba(0,0,0,0)',
 		plot_bgcolor: 'rgba(0,0,0,0)',
