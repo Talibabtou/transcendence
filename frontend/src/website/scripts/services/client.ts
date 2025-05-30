@@ -1,3 +1,4 @@
+import { appState } from "../utils/app-state";
 import { NotificationManager } from "./notification-manager";
 
 type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
@@ -76,8 +77,9 @@ export class WebSocketClient {
 			}
 		};
 		
-		this.socket.onerror = (error) => {
-			NotificationManager.showError('WebSocket error: ' + error);
+		this.socket.onerror = () => {
+			appState.logout();
+			NotificationManager.showError('WebSocket error: Disconnecting...');
 		};
 		
 		this.socket.onclose = () => {};
@@ -246,8 +248,9 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 					}
 				};
 				
-				socket.onerror = (error) => {
-					NotificationManager.showError('WebSocket error: ' + error);
+				socket.onerror = () => {
+					appState.logout();
+					NotificationManager.showError('WebSocket error: disconnecting...');
 				};
 				
 				socket.onclose = () => {};
