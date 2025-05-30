@@ -65,6 +65,10 @@ export class DbService {
 	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (response.status === 404 && response.url.includes('/friends/check/')) {
+			return null as unknown as T;
+		}
+
 		if (response.status >= 400) {
 			console.log('response', response.url);
 			const errorData = await response.json();
