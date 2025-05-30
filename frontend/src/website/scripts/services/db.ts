@@ -6,7 +6,8 @@ import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.ty
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
-
+import { GameManager } from '../components/game/game-manager';
+import { navigate, Router } from '../services/router';
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -64,9 +65,9 @@ export class DbService {
 	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
-		if (response.status === 404 && response.url.includes('friends/check')) {
-			return Promise.resolve(null as unknown as T);
-		}
+		// if (response.status === 404 && response.url.includes('friends/check')) {
+		// 	return Promise.resolve(null as unknown as T);
+		// }
 
 		if (response.status >= 400) {
 			const errorData = await response.json();
@@ -83,7 +84,17 @@ export class DbService {
 				error: 'Unknown Error',
 				message: 'An unknown error occurred processing the response'
 			}));
-			throw new Error(errorData.message);
+			const gameManager = GameManager.getInstance();
+			if (gameManager.isMainGameActive()) {
+				gameManager.cleanupMainGame();
+				gameManager.showBackgroundGame();
+				navigate('/');
+
+				setTimeout(() => {
+					Router.resetGameComponentToMenu();
+				}, 50);
+			}
+			throw errorData;
 		}
 		
 		const contentType = response.headers.get("content-type");
@@ -197,10 +208,10 @@ export class DbService {
 	 */
 	static async login(credentials: ILogin): Promise<AuthResponse> {
 		this.logRequest('POST', `${AUTH.LOGIN}`, {
-			email: credentials.email.toLowerCase(),
+			email: credentials.email,
 			password: '********'
 		});
-		credentials.email = credentials.email.toLowerCase()
+		
 		const loginResponse = await this.fetchApi<IReplyLogin>(`${AUTH.LOGIN}`, {
 			method: 'POST',
 			body: JSON.stringify(credentials)
@@ -430,7 +441,7 @@ export class DbService {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				userProfile.pics.link = `https://localhost:8043${userProfile.pics.link}`;
+				userProfile.pics.link = `https://localhost:8085${userProfile.pics.link}`;
 			}
 		}
 		return userProfile;
@@ -462,7 +473,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `https://localhost:8043/uploads/${fileName}`;
+				response.link = `https://localhost:8085/uploads/${fileName}`;
 			}
 		}
 		
@@ -548,7 +559,6 @@ export class DbService {
 	 * @param player1Id - The ID of the first player
 	 * @param player2Id - The ID of the second player
 	 * @param tournamentId - Optional ID of the tournament this match belongs to
-	 * @param isFinal - Optional flag indicating if this is a tournament final match
 	 * @returns Promise resolving to the created Match object
 	 */
 	static async createMatch(player1Id: string, player2Id: string, tournamentId?: string, isFinal: boolean = false): Promise<Match> {
@@ -595,16 +605,6 @@ export class DbService {
 	}
 
 	/**
-	 * Retrieves the current ELO rating for a specific player
-	 * @param playerId - The ID of the player whose ELO rating to retrieve
-	 * @returns Promise resolving to the player's ELO rating information
-	 */
-		static async getPlayerElo(playerId: string): Promise<any> {
-			this.logRequest('GET', `${GAME.ELO.BY_ID(playerId)}`);
-			return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
-		}
-
-	/**
 	 * Retrieves the global leaderboard data
 	 * @returns Promise resolving to an array of LeaderboardEntry objects, limited to top 100 players
 	 */
@@ -624,13 +624,13 @@ export class DbService {
 	}
 
 	/**
-	 * Retrieves the finalists for a tournament based on server-side logic
-	 * @param tournamentId - The ID of the tournament to retrieve finalists for
-	 * @returns Promise resolving to FinalResultObject containing finalist player IDs
+	 * Retrieves the current ELO rating for a specific player
+	 * @param playerId - The ID of the player whose ELO rating to retrieve
+	 * @returns Promise resolving to the player's ELO rating information
 	 */
-	static async getTournamentFinalists(tournamentId: string): Promise<any> {
-		this.logRequest('GET', `${GAME.TOURNAMENT.FINALE(tournamentId)}`);
-		return this.fetchApi<any>(`${GAME.TOURNAMENT.FINALE(tournamentId)}`);
+	static async getPlayerElo(playerId: string): Promise<any> {
+		this.logRequest('GET', `${GAME.ELO.BY_ID(playerId)}`);
+		return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
 	}
 
 	// =========================================

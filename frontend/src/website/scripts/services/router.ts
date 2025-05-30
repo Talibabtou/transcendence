@@ -1,4 +1,4 @@
-import Navigo from 'navigo';
+import Navigo from 'navigo'; // @ts-ignore
 import { GameComponent, GameManager, LeaderboardComponent, ProfileComponent, AuthManager } from '@website/scripts/components';
 import { NotificationManager } from './notification-manager';
 import { Route } from '@website/types';
@@ -313,8 +313,6 @@ export class Router {
 		if (state.id && route === Route.PROFILE) {
 			this.currentParams = { id: state.id };
 		}
-		
-		// Check if navigating back to the game route when a game is active
 		const gameManager = GameManager.getInstance();
 		const isNavigatingToGame = route === Route.GAME;
 		const isGameActive = gameManager.isMainGameActive();
@@ -324,8 +322,6 @@ export class Router {
 			this.preserveGameOnNavigation();
 			return;
 		}
-		
-		// For non-game routes, handle normally
 		this.forceComponentRecreation(route);
 		
 		if (route === Route.AUTH) {
@@ -416,14 +412,6 @@ export class Router {
 			targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
 		}
 
-		// Special handling for auth routes
-		if (this.currentRoute === Route.AUTH && targetRoute !== Route.AUTH) {
-			document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
-			document.removeEventListener('user-authenticated', this.handleSuccessfulAuth);
-			Router.cleanupAuthComponent();
-			this.components.delete(targetRoute);
-		}
-		
 		// Special handling for game routes
 		const gameManager = GameManager.getInstance();
 		const isGameActive = gameManager.isMainGameActive();
@@ -433,7 +421,6 @@ export class Router {
 			this.components.delete(Route.GAME);
 		}
 		
-		// Navigate to new route
 		if (currentPath !== href) {
 			window.history.pushState({ path: href }, '', href);
 			Router.routerInstance.navigate(href, { 
@@ -547,6 +534,18 @@ export class Router {
 				component.destroy();
 			}
 			Router.activeInstance.components.delete(route);
+		}
+	}
+
+	/**
+	 * Resets the GameComponent to its menu state.
+	 */
+	public static resetGameComponentToMenu(): void {
+		if (Router.activeInstance) {
+			const gameComponent = Router.activeInstance.components.get(Route.GAME) as GameComponent;
+			if (gameComponent?.resetToMenu) {
+				gameComponent.resetToMenu();
+			}
 		}
 	}
 }

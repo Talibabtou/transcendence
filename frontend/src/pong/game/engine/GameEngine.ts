@@ -239,7 +239,7 @@ export class GameEngine {
 	 * @param tournamentId Optional tournament ID if the match is part of a tournament.
 	 */
 	private async createMatch(tournamentId?: string, isFinal: boolean = false): Promise<void> {
-		if (this.matchCreated || this.scene.isBackgroundDemo()) {
+		if (this.matchCreated || !this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 
@@ -267,6 +267,7 @@ export class GameEngine {
 				player2Id = this.playerIds[1];
 			}
 
+			// Only proceed if we're still in a valid state
 			if (!this.matchCreated) return;
 			
 			const match = await DbService.createMatch(player1Id, player2Id, tournamentId, isFinal);
@@ -288,13 +289,16 @@ export class GameEngine {
 	 * This should be called AFTER the initial countdown
 	 */
 	public startMatchTimer(): void {
-		if (this.scene.isBackgroundDemo()) {
+		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		this.matchStartTime = Date.now();
 		this.goalStartTime = Date.now();
 		this.totalPausedTime = 0;
 		this.isPaused = false;
+		if (!this.matchCreated) {
+			this.createMatch();
+		}
 		this.setupMatchTimeout();
 	}
 
@@ -304,7 +308,7 @@ export class GameEngine {
 	 */
 	private setupMatchTimeout(): void {
 		setTimeout(() => {
-			if (!this.matchCompleted && this.matchId && !this.scene.isBackgroundDemo()) {
+			if (!this.matchCompleted && this.matchId && (!this.scene || !this.scene.isBackgroundDemo())) {
 				const winnerIndex = this.scene?.Player1?.Score > this.scene?.Player2?.Score ? 0 : 1;
 				this.completeMatch(winnerIndex);
 			}
@@ -316,7 +320,7 @@ export class GameEngine {
 	 * @param winnerIndex The index of the winning player (0 or 1), or -1 for a draw.
 	 */
 	public completeMatch(_winnerIndex: number): void {
-		if (this.scene.isBackgroundDemo() || this.matchCompleted) {
+		if (!this.scene || this.scene.isBackgroundDemo() || this.matchCompleted) {
 			return;
 		}
 		this.matchCompleted = true;
@@ -345,7 +349,7 @@ export class GameEngine {
 	 * Pauses the match timer.
 	 */
 	public pauseMatchTimer(): void {
-		if (this.scene.isBackgroundDemo()) {
+		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		if (!this.isPaused) {
@@ -358,7 +362,7 @@ export class GameEngine {
 	 * Resumes the match timer.
 	 */
 	public resumeMatchTimer(): void {
-		if (this.scene.isBackgroundDemo()) {
+		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		if (this.isPaused) {
@@ -372,8 +376,8 @@ export class GameEngine {
 	 * @param scoringPlayerIndex The index of the player who scored (0 or 1).
 	 */
 	public async recordGoal(scoringPlayerIndex: number): Promise<void> {
-		// Skip recording for background demo
-		if (this.scene.isBackgroundDemo()) {
+		// Skip recording for background demo or if scene is not available
+		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		
@@ -441,7 +445,7 @@ export class GameEngine {
 	 * Dispatches a game over event.
 	 */
 	private dispatchGameOver(): void {
-		if (this.scene.isBackgroundDemo()) return;
+		if (!this.scene || this.scene.isBackgroundDemo()) return;
 		const player1 = this.scene.Player1;
 		const player2 = this.scene.Player2;
 		const winner = this.scene.Winner;
@@ -485,7 +489,7 @@ export class GameEngine {
 	 * Checks if the win condition for the match has been met.
 	 */
 	public checkWinCondition(): void {
-		if (this.matchCompleted || this.scene.isBackgroundDemo()) {
+		if (this.matchCompleted || !this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		if (this.scene.isGameOver()) {
@@ -501,7 +505,7 @@ export class GameEngine {
 	////////////////////////////////////////////////////////////
 
 	public resetGoalTimer(): void {
-		if (this.scene.isBackgroundDemo()) {
+		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
 		this.goalStartTime = Date.now() - this.totalPausedTime;
@@ -555,7 +559,6 @@ export class GameEngine {
 	}
 	public setPlayerIds(ids: string[], tournamentId?: string, isFinal: boolean = false): void {
 		this.playerIds = ids;
-		console.log('setPlayerIds', ids, tournamentId, isFinal);
 		if (!this.matchCreated) {
 			this.createMatch(tournamentId, isFinal);
 		}
