@@ -59,7 +59,6 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	render(): void {
 		this.container.innerHTML = '';
-		this.container.style.height = "100%";
 		this.gameContainer = document.createElement('div');
 		this.gameContainer.className = 'game-container';
 		this.gameContainer.style.position = "relative";
@@ -539,6 +538,19 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Called by the router when returning from auth cancellation.
 	 */
 	public resetToMenu(): void {
+		// Reset container styles to avoid layout issues
+		if (this.container) {
+			this.container.style.height = "";
+		}
+		
+		if (this.gameContainer) {
+			// Reset game container styles
+			this.gameContainer.style.position = "relative";
+			this.gameContainer.style.height = "";
+		}
+		
+		// Force a full recreation of components
+		this.initializeComponents();
 		this.updateGameState(GameState.MENU);
 	}
 
@@ -678,5 +690,29 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleTournamentRestored(): void {
 		this.updateInternalState({ currentMode: GameMode.TOURNAMENT });
 		this.updateGameState(GameState.TOURNAMENT);
+	}
+
+	/**
+	 * Public method to resume the game state when navigating back to it.
+	 * Called by the router when returning to a game in progress.
+	 */
+	public resumeGameIfPaused(): void {
+		if (!this.canvasComponent) return;
+		
+		const engine = this.canvasComponent.getEngine();
+		if (engine && engine.isGamePaused()) {
+			// Let the user decide to unpause
+			NotificationManager.showInfo("Game is paused. Press 'P' to resume.");
+		}
+		
+		// Make sure the game container is visible
+		if (this.gameContainer) {
+			this.gameContainer.style.display = 'block';
+		}
+		
+		// Ensure canvas is properly sized
+		if (this.canvasComponent) {
+			this.canvasComponent.render();
+		}
 	}
 }

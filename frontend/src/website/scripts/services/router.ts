@@ -314,12 +314,55 @@ export class Router {
 			this.currentParams = { id: state.id };
 		}
 		
+		// Check if navigating back to the game route when a game is active
+		const gameManager = GameManager.getInstance();
+		const isNavigatingToGame = route === Route.GAME;
+		const isGameActive = gameManager.isMainGameActive();
+		
+		if (isNavigatingToGame && isGameActive) {
+			// Don't recreate the game component, just show it and resume
+			this.preserveGameOnNavigation();
+			return;
+		}
+		
+		// For non-game routes, handle normally
 		this.forceComponentRecreation(route);
 		
 		if (route === Route.AUTH) {
 			this.handleAuthRoute();
 		} else {
 			this.handleRoute(route);
+		}
+	}
+
+	/**
+	 * Preserves the game state when navigating using browser history
+	 */
+	private preserveGameOnNavigation(): void {
+		// Update route state
+		this.currentRoute = Route.GAME;
+		
+		// Show game section and hide others
+		document.querySelectorAll('.section').forEach(element => {
+			if (element.id !== Route.GAME) {
+				(element as HTMLElement).style.display = 'none';
+			} else {
+				(element as HTMLElement).style.display = 'block';
+			}
+		});
+		
+		// Get the game component and update its state if needed
+		const gameComponent = this.components.get(Route.GAME) as GameComponent;
+		if (gameComponent) {
+			// Resume the game if it's paused
+			const gameManager = GameManager.getInstance();
+			if (gameManager.isMainGameActive() && gameManager.isMainGamePaused()) {
+				// Keep it paused, let the user decide to resume
+				gameManager.hideBackgroundGame();
+			}
+			
+			// Update nav items to reflect current route
+			this.updateActiveNavItem(Route.GAME);
 		}
 	}
 
@@ -373,6 +416,7 @@ export class Router {
 			targetRoute = href.startsWith('/') ? href.substring(1) as Route : href as Route;
 		}
 
+		// Special handling for auth routes
 		if (this.currentRoute === Route.AUTH && targetRoute !== Route.AUTH) {
 			document.removeEventListener('auth-cancelled', this.handleAuthCancelled);
 			document.removeEventListener('user-authenticated', this.handleSuccessfulAuth);
@@ -380,10 +424,16 @@ export class Router {
 			this.components.delete(targetRoute);
 		}
 		
-		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game')) {
+		// Special handling for game routes
+		const gameManager = GameManager.getInstance();
+		const isGameActive = gameManager.isMainGameActive();
+		
+		// Only delete game component if no active game AND navigating to game route
+		if ((href === '/' || href === '/game') && (currentPath === '/' || currentPath === '/game') && !isGameActive) {
 			this.components.delete(Route.GAME);
 		}
 		
+		// Navigate to new route
 		if (currentPath !== href) {
 			window.history.pushState({ path: href }, '', href);
 			Router.routerInstance.navigate(href, { 
@@ -432,6 +482,16 @@ export class Router {
 				router.components.delete(Route.AUTH);
 			}
 			
+			// Clear 2FA session data if it exists
+			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
+				sessionStorage.removeItem('auth_2fa_needed');
+				sessionStorage.removeItem('auth_2fa_userid');
+				sessionStorage.removeItem('auth_2fa_token');
+				sessionStorage.removeItem('auth_username');
+				sessionStorage.removeItem('auth_email');
+				sessionStorage.removeItem('auth_password');
+			}
+			
 			document.querySelectorAll('.auth-container').forEach(container => {
 				const parentElement = container.parentElement;
 				if (parentElement) {
@@ -446,8 +506,11 @@ export class Router {
 			});
 			
 			const authSection = document.getElementById(Route.AUTH);
-			if (authSection?.parentElement) {
-				authSection.parentElement.removeChild(authSection);
+			if (authSection) {
+				authSection.style.height = '';
+				if (authSection.parentElement) {
+					authSection.parentElement.removeChild(authSection);
+				}
 			}
 			
 			// Remove auth wrappers
@@ -456,6 +519,18 @@ export class Router {
 					wrapper.parentElement.removeChild(wrapper);
 				}
 			});
+			
+			// Fix any game sections that might have incorrect styles
+			const gameSection = document.getElementById(Route.GAME);
+			if (gameSection) {
+				gameSection.style.height = '';
+				
+				// Reset game container styles
+				const gameContainers = gameSection.querySelectorAll('.game-container');
+				gameContainers.forEach(container => {
+					(container as HTMLElement).style.height = '';
+				});
+			}
 		} catch (error) {
 			NotificationManager.handleError(error);
 		}

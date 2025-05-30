@@ -502,7 +502,11 @@ export class ProfileComponent extends Component<ProfileState> {
 						.then(status => {
 							friendshipStatus = status;
 						})
-						.catch(() => {})
+						.catch(error => {
+							if (error?.response?.status !== 404) {
+								console.warn('Unexpected error fetching friendship status:', error);
+							}
+						})
 				);
 			}
 			

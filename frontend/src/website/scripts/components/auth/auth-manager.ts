@@ -196,6 +196,15 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Cancels the authentication process and dispatches an event
 	 */
 	private cancelAuth(): void {
+		if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
+			const loginHandler = new LoginHandler(
+				() => {},
+				() => {},
+				() => {}
+			);
+			loginHandler.cancelTwoFactor();
+		}
+		
 		this.destroy();
 		
 		const cancelEvent = new CustomEvent('auth-cancelled', {

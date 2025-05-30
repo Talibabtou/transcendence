@@ -64,12 +64,16 @@ export class DbService {
 	 * @returns Promise resolving to the parsed response data of type T
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
+		if (response.status === 404 && response.url.includes('/friends/check/')) {
+			return Promise.resolve(null as unknown as T);
+		}
+
 		if (response.status >= 400) {
 			const errorData = await response.json();
-			console.warn('Session expired or unauthorized, deconnection...');
-			const { appState } = await import('../utils/app-state');
-			if (response.status === 403)
+			if (response.status === 403) {
+				const { appState } = await import('../utils/app-state');
 				appState.logout();
+			}
 			throw new Error(errorData.message);
 		}
 		if (!response.ok) {

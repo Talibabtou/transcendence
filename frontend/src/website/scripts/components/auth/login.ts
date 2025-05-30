@@ -330,7 +330,7 @@ export class LoginHandler {
 	/**
 	 * Cancel 2FA and go back to login
 	 */
-	private cancelTwoFactor(): void {
+	public cancelTwoFactor(): void {
 		this.clearTwoFactorSessionData();
 		this.updateState({});
 	}
