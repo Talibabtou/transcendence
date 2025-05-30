@@ -191,6 +191,8 @@ services:
       - 9464
     networks:
       - transcendance-net
+    volumes:
+      - game:/app/db
     restart: unless-stopped
     labels:
       - "container_name=game"
