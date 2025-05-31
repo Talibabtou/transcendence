@@ -1,4 +1,4 @@
-/* ===== LAYOUT CONTAINERS ===== */
+/* ===== LAYOUT ===== */
 .auth-container {
 	position: relative;
 	width: 100%;
@@ -19,7 +19,6 @@
 	z-index: var(--z-ui);
 }
 
-/* ===== FORM CONTAINERS ===== */
 .auth-form-container {
 	background-color: var(--menu-bg);
 	border: 1px solid var(--border-color);
@@ -62,14 +61,6 @@
 	text-shadow: 0 0 5px var(--text-color);
 }
 
-/* ===== FORM ELEMENTS ===== */
-.auth-form {
-	display: flex;
-	flex-direction: column;
-	gap: var(--spacing-sm);
-	margin-bottom: var(--spacing-md);
-}
-
 .form-container {
 	background-color: var(--menu-bg);
 	border: 1px solid var(--border-color);
@@ -79,6 +70,14 @@
 	box-shadow: var(--shadow-normal);
 	animation: fadeIn 0.3s ease;
 	margin: 0 auto;
+}
+
+/* ===== FORM STYLES ===== */
+.auth-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--spacing-sm);
+	margin-bottom: var(--spacing-md);
 }
 
 .form-group {
@@ -108,7 +107,7 @@
 	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
-/* ===== CHECKBOX STYLING ===== */
+/* ===== CHECKBOX STYLES ===== */
 .checkbox-group {
 	display: flex;
 	align-items: center;
@@ -156,7 +155,7 @@
 	vertical-align: middle;
 }
 
-/* ===== LINKS ===== */
+/* ===== LINK STYLES ===== */
 .auth-links {
 	margin-top: var(--spacing-md);
 	text-align: center;
@@ -173,7 +172,7 @@
 	text-shadow: 0 0 5px var(--accent1-color);
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTON STYLES ===== */
 .auth-close-button {
 	position: absolute;
 	top: 0.625rem;
@@ -214,7 +213,7 @@
 	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
 }
 
-/* ===== SOCIAL AUTH ===== */
+/* ===== SOCIAL OPTIONS STYLES ===== */
 .auth-social-options {
 	display: flex;
 	justify-content: center;
@@ -236,7 +235,7 @@
 	display: inline-block;
 }
 
-/* ===== RESPONSIVE ADJUSTMENTS ===== */
+/* ===== MEDIA QUERIES ===== */
 @media (max-height: 31.25rem), (max-width: 25rem) {
 	.auth-form-container {
 		padding: var(--spacing-sm);
@@ -251,7 +250,7 @@
 	}
 }
 
-/* Password strength indicator styling */
+/* ===== PASSWORD STRENGTH STYLES ===== */
 .password-strength {
 	margin-top: 0.5rem;
 }
@@ -301,7 +300,6 @@
 	opacity: 0.7;
 }
 
-/* Two-column layout for password requirements in main auth form */
 .auth-form:not(.guest-auth-form) .password-requirements {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
@@ -313,7 +311,7 @@
 	font-size: 0.75rem;
 }
 
-/* 2FA Form Styling */
+/* ===== TWO-FACTOR AUTHENTICATION STYLES ===== */
 .twofa-form p {
 	text-align: center;
 	margin: 1.5rem;

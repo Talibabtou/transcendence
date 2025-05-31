@@ -1,5 +1,4 @@
-/* ==================== GLOBAL/BASE STYLES ==================== */
-/* Base container (inherits global styles) */
+/* ===== GENERAL LAYOUT & CONTAINERS ===== */
 .profile-container {
 	width: 80%;
 }
@@ -11,7 +10,7 @@
 	z-index: auto;
 }
 
-/* Loading State */
+/* ===== LOADING & ERROR STATES ===== */
 .loading-text {
 	text-align: center;
 	padding: 2rem;
@@ -30,17 +29,6 @@
 	background: rgba(255, 255, 255, 0.1);
 }
 
-/* Empty states */
-.no-data {
-	text-align: center;
-	padding: 1.5rem;
-	color: var(--text-color);
-	font-style: italic;
-	background: rgba(0, 0, 0, 0.2);
-	border-radius: 4px;
-}
-
-/* No Data Message */
 .no-data {
 	text-align: center;
 	padding: 2rem;
@@ -54,14 +42,14 @@
 	font-style: italic;
 }
 
+/* ===== ANIMATIONS ===== */
 @keyframes fadeOut {
 	0% { opacity: 1; }
 	70% { opacity: 1; }
 	100% { opacity: 0; }
 }
 
-/* ==================== TAB NAVIGATION ==================== */
-/* Tab Navigation */
+/* ===== PROFILE TABS ===== */
 .profile-tabs {
 	margin: 2rem 0;
 }
@@ -109,7 +97,6 @@
 	margin-right: 0.5rem;
 }
 
-/* Tab Content Area */
 .tab-content {
 	min-height: 400px;
 	padding: 1.5rem;
@@ -125,7 +112,6 @@
 	display: block;
 }
 
-/* Notification dot for pending requests */
 .notification-dot {
 	position: absolute;
 	top: 0.3rem;
@@ -137,13 +123,7 @@
 	display: block;
 }
 
-/* Ensure tab button position is relative so the dot is positioned correctly */
-.tab-button {
-	position: relative;
-}
-
-/* ==================== PROFILE SECTION ==================== */
-/* Profile Hero/Summary Section */
+/* ===== PROFILE HERO SECTION ===== */
 .profile-hero {
 	flex-direction: column;
 	padding: 1.5rem;
@@ -170,7 +150,6 @@
 	object-fit: cover;
 }
 
-/* Online Status Indicator */
 .online-status-indicator {
 	position: absolute;
 	bottom: 10px;
@@ -235,7 +214,7 @@
 .wins-value { color: var(--win-color); }
 .losses-value { color: var(--loss-color); }
 
-/* Friend Button */
+/* ===== FRIEND BUTTON ===== */
 .friend-button-container {
 	margin-top: 1.5rem;
 	display: flex;
@@ -268,14 +247,13 @@
 }
 
 .friend-button.is-friend {
-	color: #888; /* Gray for already friends */
+	color: #888;
 	border-color: #888;
 	background-color: rgba(136, 136, 136, 0.1);
 	cursor: default;
 }
 
-/* ==================== STATS SECTION ==================== */
-/* Stats Content */
+/* ===== STATS CONTENT ===== */
 .stats-content {
 	width: 100%;
 	display: flex;
@@ -302,8 +280,7 @@
 	width: 95% !important;
 }
 
-/* ==================== GAME HISTORY SECTION ==================== */
-/* Game History Table - Updated to match leaderboard style */
+/* ===== GAME HISTORY ===== */
 .history-content {
 	width: 70%;
 	margin: 0 auto;
@@ -338,7 +315,6 @@
 	text-align: center;
 }
 
-/* Keep alternate row styling but use with win/loss color */
 .game-win {
 	background-color: rgba(152, 251, 152, 0.1);
 }
@@ -357,7 +333,6 @@
 	font-weight: bold;
 }
 
-/* Match player cell to leaderboard style */
 .player-cell {
 	position: relative;
 	transition: transform 0.2s ease, color 0.2s ease;
@@ -371,7 +346,6 @@
 	font-weight: bold;
 }
 
-/* Player Cell Hover Effects - Match leaderboard */
 .player-cell:hover {
 	transform: scale(1.05);
 	color: var(--text-color);
@@ -394,7 +368,7 @@
 	margin-left: 5px;
 }
 
-/* Pagination Controls */
+/* ===== PAGINATION ===== */
 .pagination-controls {
 	display: flex;
 	justify-content: center;
@@ -424,7 +398,7 @@
 	color: var(--text-color);
 }
 
-/* ==================== FRIENDS SECTION ==================== */
+/* ===== FRIENDS CONTAINER ===== */
 .friends-container {
 	display: flex;
 	flex-direction: column;
@@ -432,7 +406,6 @@
 	margin: 0 auto;
 }
 
-/* Friends List */
 .friends-list {
 	display: flex;
 	flex-direction: row;
@@ -498,7 +471,6 @@
 	opacity: 0.7;
 }
 
-/* Common style for all friend buttons */
 .friend-action-button, .remove-friend-button, .cancel-friend-button, .accept-friend-button {
 	color: var(--loss-color);
 	background-color: var(--menu-bg);
@@ -512,19 +484,16 @@
 	width: 40%;
 }
 
-/* Accept button specific color */
 .accept-friend-button {
 	color: var(--win-color);
 	border-color: var(--win-color);
 }
 
-/* Cancel button specific color */
 .cancel-friend-button {
 	color: rgb(255, 205, 112);
 	border-color: rgb(255, 205, 112);
 }
 
-/* Hover effects */
 .remove-friend-button:hover, .friend-action-button:hover {
 	text-shadow: 0 0 10px var(--loss-color);
 	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
@@ -540,7 +509,6 @@
 	box-shadow: 0 0 20px rgba(255, 205, 112, 0.2);
 }
 
-/* Friend Sections */
 .friends-section {
 	margin-bottom: 2rem;
 }
@@ -553,11 +521,10 @@
 }
 
 .pending-friends-section h3 {
-	color: rgb(255, 205, 112); /* Orange-yellow for pending */
+	color: rgb(255, 205, 112);
 }
 
-/* ==================== SETTINGS SECTION ==================== */
-/* Settings Panel */
+/* ===== SETTINGS CONTENT ===== */
 .settings-content {
 	width: 70%;
 	margin: 0 auto;
@@ -582,7 +549,6 @@
 	border-bottom: 1px solid var(--border-color);
 }
 
-/* Form Styling */
 .form-group {
 	margin-bottom: 1.5rem;
 }
@@ -648,7 +614,7 @@
 	background-color: var(--menu-bg);
 }
 
-/* Profile Picture Upload */
+/* ===== PROFILE PICTURE CONTAINER ===== */
 .profile-picture-container {
 	display: flex;
 	align-items: center;
@@ -721,7 +687,7 @@
 	font-style: italic;
 }
 
-/* Color Selection */
+/* ===== COLOR OPTIONS ===== */
 .color-option {
 	width: 30px;
 	height: 30px;
@@ -750,7 +716,6 @@
 	flex: 1;
 }
 
-/* Two-column layout for settings */
 .settings-columns {
 	display: flex;
 	flex-wrap: wrap;
@@ -773,7 +738,6 @@
 	margin-bottom: 1rem;
 }
 
-/* Success icon */
 .save-success-icon {
 	color: var(--win-color);
 	font-size: 1.5rem;
@@ -789,7 +753,6 @@
 	margin-left: 1rem;
 }
 
-/* Grid layout for settings */
 .settings-grid {
 	display: grid;
 	grid-template-columns: repeat(2, 1fr);
@@ -797,7 +760,6 @@
 	gap: 1.5rem;
 }
 
-/* Make all sections have minimum consistent height */
 .settings-section {
 	min-height: 15rem;
 }
@@ -809,7 +771,7 @@
 	align-items: center;
 }
 
-/* Toggle switch for 2FA */
+/* ===== TOGGLE SWITCH ===== */
 .toggle-container {
 	display: flex;
 	align-items: center;
@@ -875,7 +837,7 @@ input:checked + .toggle-slider:before {
 	margin-top: 0.5rem;
 }
 
-/* QR Code popup */
+/* ===== POPUP OVERLAY ===== */
 .popup-overlay {
 	position: fixed;
 	top: 0;
@@ -904,7 +866,6 @@ input:checked + .toggle-slider:before {
 	font-size: 1.5rem;
 }
 
-/* Close button in upper right */
 .cancel-button {
 	width: auto;
 	padding: 0.4rem 0.8rem;
@@ -916,7 +877,7 @@ input:checked + .toggle-slider:before {
 	margin-top: 1rem;
 }
 
-/* Enlarged QR code */
+/* ===== QRCODE CONTAINER ===== */
 .qrcode-container {
 	display: flex;
 	justify-content: center;
@@ -975,6 +936,7 @@ input:checked + .toggle-slider:before {
 	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
+/* ===== BOT BADGE ===== */
 .bot-badge {
 	color: var(--text-color);
 	padding: 0.3rem 1rem;

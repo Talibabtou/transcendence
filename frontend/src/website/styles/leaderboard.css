@@ -1,3 +1,4 @@
+/* ===== LAYOUT ===== */
 .leaderboard-container {
 	width: 55%;
 }
@@ -7,8 +8,7 @@
 	z-index: auto;
 }
 
-/* Table Layout
-	========================================================================== */
+/* ===== TABLE STYLES ===== */
 .leaderboard-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -18,8 +18,6 @@
 	padding: 0 1.5rem;
 }
 
-/* Table Headers
-	========================================================================== */
 .leaderboard-table th {
 	text-align: center;
 	padding: var(--spacing-sm) 0;
@@ -34,15 +32,12 @@
 	white-space: nowrap;
 }
 
-/* Table Cells
-	========================================================================== */
 .leaderboard-table td {
 	padding: 0.75rem 0;
 	border-bottom: 1px solid #333;
 }
 
-/* Row Styling
-	========================================================================== */
+/* ===== ROW BACKGROUNDS ===== */
 .leaderboard-table tr:nth-child(odd) {
 	background-color: rgba(51, 51, 51, 0.4);
 }
@@ -51,22 +46,19 @@
 	background-color: rgba(34, 34, 34, 0.4);
 }
 
-/* Top Players Highlighting
-	========================================================================== */
 .leaderboard-table tr.top-1 {
-	background-color: rgba(218, 165, 32, 0.3); /* Gold */
+	background-color: rgba(218, 165, 32, 0.3);
 }
 
 .leaderboard-table tr.top-2 {
-	background-color: rgba(192, 192, 192, 0.3); /* Silver */
+	background-color: rgba(192, 192, 192, 0.3);
 }
 
 .leaderboard-table tr.top-3 {
-	background-color: rgba(176, 141, 87, 0.3); /* Bronze */
+	background-color: rgba(176, 141, 87, 0.3);
 }
 
-/* Column-specific Styles
-	========================================================================== */
+/* ===== CELL STYLES ===== */
 .rank-cell {
 	width: 1rem;
 	text-align: center;
@@ -100,14 +92,11 @@
 	font-weight: bold;
 }
 
-/* Stats Colors */
 .elo-cell { color: var(--text-color); }
 .wins-cell { color: var(--win-color); }
 .losses-cell { color: var(--loss-color); }
 
-/* Interactive Elements
-	========================================================================== */
-/* Player Cell Hover Effects */
+/* ===== HOVER EFFECTS ===== */
 .player-cell:hover {
 	transform: scale(1.05);
 	color: var(--text-color);
@@ -129,8 +118,7 @@
 	margin-left: 5px;
 }
 
-/* State Indicators
-	========================================================================== */
+/* ===== STATUS MESSAGES ===== */
 .loading-text {
 	text-align: center;
 	padding: 2rem;
@@ -152,8 +140,7 @@
 	font-style: italic;
 }
 
-/* Buttons
-	========================================================================== */
+/* ===== BUTTON STYLES ===== */
 .retry-button {
 	display: block;
 	margin: 0 auto;
@@ -171,23 +158,21 @@
 	color: var(--text-color);
 }
 
-/* Responsive Design
-	========================================================================== */
+/* ===== MEDIA QUERIES ===== */
 @media screen and (max-width: 1200px) {
 	.ascii-title {
-			font-size: 7px;
+		font-size: 7px;
 	}
 }
 
 @media screen and (max-width: 768px) {
 	.leaderboard-table th,
 	.leaderboard-table td {
-			padding: 0.75rem 0.5rem;
-			font-size: 0.9rem;
+		padding: 0.75rem 0.5rem;
+		font-size: 0.9rem;
 	}
 	
 	.ascii-title {
-			font-size: 5px;
+		font-size: 5px;
 	}
 }
-

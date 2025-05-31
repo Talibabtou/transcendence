@@ -1,3 +1,4 @@
+/* ===== TITLE STYLES ===== */
 .pong-title {
 	font-size: 2vh;
 	line-height: 1.2;
@@ -16,7 +17,7 @@
 	z-index: var(--z-content);
 }
 
-/* Game Menu */
+/* ===== GAME MENU STYLES ===== */
 .game-menu {
 	position: fixed;
 	top: var(--navbar-height);
@@ -84,7 +85,7 @@
 	opacity: 1;
 }
 
-/* Game canvas styles */
+/* ===== GAME CANVAS STYLES ===== */
 #game-canvas {
 	position: fixed;
 	top: var(--navbar-height);
@@ -107,6 +108,7 @@
 	z-index: var(--z-background);
 }
 
+/* ===== GAME RESULT STYLES ===== */
 .game-result {
 	padding: 2rem;
 	text-align: center;
@@ -117,6 +119,7 @@
 	color: var(--text-color);
 }
 
+/* ===== GAME OVER SCREEN STYLES ===== */
 .game-over-screen {
 	position: absolute;
 	top: 0;

@@ -1,4 +1,4 @@
-/* ===== PLAYER REGISTRATION LAYOUTS ===== */
+/* ===== LAYOUT ===== */
 .players-register-container {
 	position: relative;
 	width: 100%;
@@ -9,7 +9,6 @@
 	z-index: var(--z-content);
 }
 
-/* Back button */
 .players-register-container .back-button {
 	position: absolute;
 	top: 1%;
@@ -19,7 +18,7 @@
 	z-index: var(--z-ui);
 }
 
-/* ===== PLAYERS GRID ===== */
+/* ===== GRID LAYOUT ===== */
 .players-grid,
 .tournament-players-grid {
 	display: flex;
@@ -38,19 +37,11 @@
 	box-shadow: 0 0 5px var(--border-color);
 }
 
-.tournament-players-grid .vertical-separator:nth-child(2) {
-	left: 25%;
-}
+.tournament-players-grid .vertical-separator:nth-child(2) { left: 25%; }
+.tournament-players-grid .vertical-separator:nth-child(4) { left: 50%; }
+.tournament-players-grid .vertical-separator:nth-child(6) { left: 75%; }
 
-.tournament-players-grid .vertical-separator:nth-child(4) {
-	left: 50%;
-}
-
-.tournament-players-grid .vertical-separator:nth-child(6) {
-	left: 75%;
-}
-
-/* ===== PLAYER SIDES ===== */
+/* ===== PLAYER SIDE ===== */
 .player-side {
 	flex: 1;
 	display: flex;
@@ -68,7 +59,7 @@
 	margin-bottom: 2.5rem;
 }
 
-/* ===== PLAYER AVATAR ===== */
+/* ===== PLAYER INFO ===== */
 .player-avatar {
 	width: 8.75rem;
 	height: 8.75rem;
@@ -83,7 +74,6 @@
 	object-fit: cover;
 }
 
-/* ===== PLAYER INFO ===== */
 .player-name {
 	font-size: 2rem;
 	font-weight: bold;
@@ -98,7 +88,7 @@
 	color: var(--text-color);
 }
 
-/* ===== PLAYER COLOR SELECTION ===== */
+/* ===== COLOR PICKER ===== */
 .player-color-selection {
 	position: relative;
 	z-index: var(--z-ui);
@@ -135,28 +125,24 @@
 	box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
-/* ===== PLAYER ACCENT COLORS - Fix with stronger selectors ===== */
-/* Host (Player 1) - Always colored with accent1 */
+/* ===== PLAYER AVATAR BORDERS ===== */
 .players-register-container .host-side .player-avatar,
 .tournament-players-grid .host-side .player-avatar {
 	border: 0.125rem solid var(--accent1-color) !important;
 	box-shadow: 0 0 2rem var(--accent1-color) !important;
 }
 
-/* Guest (Player 2) - Always colored with accent2 */
 .players-register-container .guest-side .player-avatar,
 .tournament-players-grid .player-side:nth-child(3) .player-avatar {
 	border: 0.125rem solid var(--accent2-color) !important;
 	box-shadow: 0 0 2rem var(--accent2-color) !important;
 }
 
-/* Tournament Guest (Player 3) - Always colored with accent3 */
 .tournament-players-grid .player-side:nth-child(5) .player-avatar {
 	border: 0.125rem solid var(--accent3-color) !important;
 	box-shadow: 0 0 2rem var(--accent3-color) !important;
 }
 
-/* Tournament Guest (Player 4) - Always colored with accent4 */
 .tournament-players-grid .player-side:nth-child(7) .player-avatar {
 	border: 0.125rem solid var(--accent4-color) !important;
 	box-shadow: 0 0 2rem var(--accent4-color) !important;
@@ -176,7 +162,7 @@
 	min-width: 12.5rem;
 }
 
-/* ===== RESPONSIVE ADJUSTMENTS ===== */
+/* ===== MEDIA QUERIES ===== */
 @media (max-width: 48rem) {
 	.players-grid,
 	.tournament-players-grid {

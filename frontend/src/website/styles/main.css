@@ -1,4 +1,4 @@
-/* Reset and base styles */
+/* ===== RESET & BASE STYLES ===== */
 * {
 	margin: 0;
 	padding: 0;
@@ -9,56 +9,37 @@
 .hidden { display: none; }
 
 :root {
-	/* Colors */
 	--bg-color: #121212;
 	--text-color: #ffffff;
 	--glow-color: rgba(255, 255, 255, 0.8);
 	--menu-bg: rgba(0, 0, 0, 0.6);
 	--border-color: rgba(150, 150, 150, 0.5);
 	--error-color: #ff6666;
-
-	/* Fonts */
 	--font-family: monospace;
 	--font-size-small: 0.9rem;
 	--font-size-medium: 1.1rem;
 	--font-size-large: 1.3rem;
 	--font-size-xlarge: 1.5rem;
-	
-	/* Status Colors */
 	--win-color: #98FB98;
 	--loss-color: #ff7a7a;
-
-	/* Notification Colors */
 	--warning-color: #ffe57b;
 	--info-color: #7bc3ff;
-	
-	/* Layout */
 	--navbar-height: 5rem;
 	--footer-height: 3rem;
 	--container-width: 100%;
 	--main-canvas-height: calc(100vh - var(--navbar-height) - var(--footer-height));
-
-	/* Spacing */
 	--spacing-xs: 0.5rem;
 	--spacing-sm: 1rem;
 	--spacing-md: 1.5rem;
 	--spacing-lg: 2rem;
-	
-	/* Transitions */
 	--transition-fast: 0.2s ease;
 	--transition-normal: 0.3s ease;
-	
-	/* Shadows */
 	--shadow-normal: 0 4px 20px rgba(0, 0, 0, 0.3);
 	--shadow-hover: 0 6px 25px rgba(0, 0, 0, 0.4);
-
-	/* Player accent colors */
 	--accent1-color: #ffffff;
 	--accent2-color: #ffffff;
 	--accent3-color: #ffffff;
 	--accent4-color: #ffffff;
-
-	/* Z-index layers - higher values are "closer" to the user */
 	--z-background: 1;
 	--z-content: 10;
 	--z-ui: 100;
@@ -68,7 +49,14 @@
 	--z-notification: 1000;
 }
 
-/* Body layout */
+html, body {
+	height: 100%;
+	width: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+	pointer-events: auto;
+}
+
 body {
 	margin: 0;
 	padding: 0;
@@ -101,6 +89,7 @@ body::before {
 	z-index: var(--z-scanline);
 }
 
+/* ===== LAYOUT CONTAINERS ===== */
 .component-container {
 	width: 80%;
 	margin: 0 auto;
@@ -114,56 +103,55 @@ body::before {
 	pointer-events: auto;
 }
 
-/* ASCII */
-.ascii-title-container {
-	width: 100%;
-	overflow-x: auto;
-	margin-bottom: 1.5rem;
-	padding: 0.1rem;
-	overflow: visible;
-	text-align: center;
-}
-
-.ascii-title {
-	font-size: 0.6vw;
-	line-height: 1.2;
-	text-align: center;
-	white-space: pre;
-	overflow: visible;
-	font-family: var(--font-family);
-	color: var(--text-color);
-	text-shadow: 0 0 5px var(--text-color), 
-							 0 0 10px var(--text-color), 
-							 0 0 15px var(--text-color), 
-							 0 0 20px rgba(255, 255, 255, 0.5);
-	width: 100%;
-	display: block;
-	margin: 0 auto;
-	font-weight: bold;
+.content-container {
+	flex: 1;
 	position: relative;
-	z-index: 1;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 2rem;
+	z-index: var(--z-content);
+	min-height: 0;
+	height: auto;
 }
 
-.ascii-header {
-	text-align: center;
-	margin-bottom: 2rem;
-	white-space: pre;
+.content-container.game-active {
+	padding: 0;
+	overflow: hidden;
 }
 
-.ascii-container {
-	width: 80%;
+.content-wrapper {
+	min-height: 100%;
+	width: 100%;
+	pointer-events: auto;
+	position: relative;
+	z-index: 0;
+}
+
+.section {
+	width: 100%;
+	max-width: 100%;
 	margin: 0 auto;
+}
+
+.container {
+	max-width: var(--container-width);
+	margin: 2rem auto;
 	padding: var(--spacing-md);
+}
+
+.card {
 	background-color: var(--menu-bg);
 	border: 1px solid var(--border-color);
-	box-shadow: var(--shadow-normal);
-	height: auto;
-	min-height: 60vh;
-	display: flex;
-	flex-direction: column;
+	padding: var(--spacing-md);
 }
 
-/* Navbar */
+.scrollable {
+	overflow-y: auto;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+/* ===== NAVBAR & FOOTER ===== */
 .navbar {
 	height: var(--navbar-height);
 	display: flex;
@@ -237,32 +225,6 @@ body::before {
 	box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
 }
 
-/* Content layout */
-.content-container {
-	flex: 1;
-	position: relative;
-	overflow-y: auto;
-	overflow-x: hidden;
-	padding: 2rem;
-	z-index: var(--z-content);
-	min-height: 0;
-	height: auto;
-}
-
-.content-container.game-active {
-	padding: 0;
-	overflow: hidden;
-}
-
-.content-wrapper {
-	min-height: 100%;
-	width: 100%;
-	pointer-events: auto;
-	position: relative;
-	z-index: 0;
-}
-
-/* Footer */
 .footer {
 	height: var(--footer-height);
 	display: flex;
@@ -275,7 +237,56 @@ body::before {
 	text-align: center;
 }
 
-/* Background game canvas */
+/* ===== ASCII & TITLE STYLES ===== */
+.ascii-title-container {
+	width: 100%;
+	overflow-x: auto;
+	margin-bottom: 1.5rem;
+	padding: 0.1rem;
+	overflow: visible;
+	text-align: center;
+}
+
+.ascii-title {
+	font-size: 0.6vw;
+	line-height: 1.2;
+	text-align: center;
+	white-space: pre;
+	overflow: visible;
+	font-family: var(--font-family);
+	color: var(--text-color);
+	text-shadow: 0 0 5px var(--text-color), 
+							 0 0 10px var(--text-color), 
+							 0 0 15px var(--text-color), 
+							 0 0 20px rgba(255, 255, 255, 0.5);
+	width: 100%;
+	display: block;
+	margin: 0 auto;
+	font-weight: bold;
+	position: relative;
+	z-index: 1;
+}
+
+.ascii-header {
+	text-align: center;
+	margin-bottom: 2rem;
+	white-space: pre;
+}
+
+.ascii-container {
+	width: 80%;
+	margin: 0 auto;
+	padding: var(--spacing-md);
+	background-color: var(--menu-bg);
+	border: 1px solid var(--border-color);
+	box-shadow: var(--shadow-normal);
+	height: auto;
+	min-height: 60vh;
+	display: flex;
+	flex-direction: column;
+}
+
+/* ===== GAME CANVAS ===== */
 #background-game-canvas {
 	position: fixed;
 	top: var(--navbar-height);
@@ -291,32 +302,11 @@ body::before {
 	image-rendering: -webkit-optimize-contrast;
 }
 
-/* Section styling */
-.section {
-	width: 100%;
-	max-width: 100%;
-	margin: 0 auto;
+.game-active #game-canvas {
+	pointer-events: auto;
 }
 
-/* Common utility classes */
-.container {
-	max-width: var(--container-width);
-	margin: 2rem auto;
-	padding: var(--spacing-md);
-}
-
-.card {
-	background-color: var(--menu-bg);
-	border: 1px solid var(--border-color);
-	padding: var(--spacing-md);
-}
-
-.scrollable {
-	overflow-y: auto;
-	scrollbar-width: thin;
-	scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
-}
-
+/* ===== FORM ELEMENTS ===== */
 .form-group {
 	display: flex;
 	flex-direction: column;
@@ -344,7 +334,6 @@ body::before {
 	box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
-/* Button Styles */
 .primary-button {
 	display: flex;
 	align-items: center;
@@ -367,7 +356,7 @@ body::before {
 	box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
 }
 
-/* Tables - Common Design */
+/* ===== TABLE STYLES ===== */
 .data-table {
 	width: 100%;
 	border-collapse: collapse;
@@ -398,7 +387,7 @@ body::before {
 	background-color: rgba(34, 34, 34, 0.4);
 }
 
-/* Avatar Styles */
+/* ===== AVATAR STYLES ===== */
 .avatar {
 	border-radius: 50%;
 	overflow: hidden;
@@ -426,7 +415,7 @@ body::before {
 	object-fit: cover;
 }
 
-/* Tabs System */
+/* ===== TABS STYLES ===== */
 .tabs-container {
 	display: flex;
 	gap: 1px;
@@ -464,7 +453,7 @@ body::before {
 	display: block;
 }
 
-/* Color Picker Component */
+/* ===== COLOR PICKER STYLES ===== */
 .color-picker {
 	display: flex;
 	flex-wrap: wrap;
@@ -496,12 +485,7 @@ body::before {
 	box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
-/* Game canvas pointer events */
-.game-active #game-canvas {
-	pointer-events: auto;
-}
-
-/* Responsive layouts */
+/* ===== MEDIA QUERIES ===== */
 @media (max-width: 768px) {
 	.ascii-container {
 		width: 95%;
@@ -513,13 +497,4 @@ body::before {
 		padding: 0.5rem 0.25rem;
 		font-size: 0.9rem;
 	}
-}
-
-/* Ensure the entire HTML and BODY are scrollable */
-html, body {
-	height: 100%;
-	width: 100%;
-	overflow-y: auto;
-	overflow-x: hidden;
-	pointer-events: auto;
 }
