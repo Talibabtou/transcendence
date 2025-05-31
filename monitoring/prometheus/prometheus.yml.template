@@ -1,0 +1,37 @@
+global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['prometheus:${PROMETHEUS_PORT}']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    
+  - job_name: 'game-service'
+    static_configs:
+      - targets: ['game:${OTEL_EXPORTER_PORT}']
+    metrics_path: '/metrics'
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth:${OTEL_EXPORTER_PORT}']
+    metrics_path: '/metrics'
+
+  - job_name: 'friends-service'
+    static_configs:
+      - targets: ['friends:${OTEL_EXPORTER_PORT}']
+    metrics_path: '/metrics'
+
+  - job_name: 'profile-service'
+    static_configs:
+      - targets: ['profile:${OTEL_EXPORTER_PORT}']
+    metrics_path: '/metrics'
+
+  - job_name: 'gateway-service'
+    static_configs:
+      - targets: ['gateway:${OTEL_EXPORTER_PORT}']
+    metrics_path: '/metrics'

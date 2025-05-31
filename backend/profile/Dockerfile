@@ -13,14 +13,19 @@ RUN npm run build
 # Stage 2: Production
 FROM node:23.6-alpine AS production
 
+ARG PROFILE_PORT
+ARG OTEL_EXPORTER_PORT
+ARG UPLOADS_DIR
+
 WORKDIR /app
+RUN mkdir -p /app/${UPLOADS_DIR}/
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://profile:8081/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "fetch('http://profile:${PROFILE_PORT}/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
 
-EXPOSE 8081
-EXPOSE 9464
+EXPOSE ${PROFILE_PORT}
+EXPOSE ${OTEL_EXPORTER_PORT}
 CMD ["node", "dist/server.js"]

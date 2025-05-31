@@ -21,7 +21,7 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
   try {
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
-    const uploadDir = path.join(path.resolve(), process.env.UPLOADS_DIR || './uploads');
+    const uploadDir = path.join(path.resolve(), './', process.env.UPLOADS_DIR || './uploads');
     const existingFile: string | undefined = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
     const link: IReplyPic = {
       link: 'default',
@@ -129,7 +129,7 @@ export async function postPic(
     const id = request.params.id;
     const file = await request.file();
     if (!file) return sendError(reply, 404, ErrorCodes.NO_FILE_PROVIDED);
-    const uploadDir: string = process.env.UPLOADS_DIR || './uploads';
+    const uploadDir: string = path.join(path.resolve(), './', process.env.UPLOADS_DIR || './uploads');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
     const existingFiles: string[] = fs.readdirSync(uploadDir).filter((f) => f.startsWith(id));
     if (existingFiles.length > 0) {
@@ -165,7 +165,7 @@ export async function deletePic(
 ): Promise<void> {
   try {
     const id = request.params.id;
-    const uploadDir: string = process.env.UPLOADS_DIR || './uploads';
+    const uploadDir: string = path.join(path.resolve(), './', process.env.UPLOADS_DIR || './uploads');
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
     const existingFiles: string[] = fs.readdirSync(uploadDir).filter((file) => file.startsWith(id));
     if (existingFiles.length > 0) {

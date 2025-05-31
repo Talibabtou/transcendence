@@ -13,6 +13,9 @@ RUN npm run build
 # Stage 2: Production
 FROM node:23.6-alpine AS production
 
+ARG GAME_PORT
+ARG OTEL_EXPORTER_PORT
+
 WORKDIR /app
 RUN mkdir /app/db/
 COPY ./init/ /app/init/
@@ -21,8 +24,8 @@ COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://game:8083/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "fetch('http://game:${GAME_PORT}/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
 
-EXPOSE 8083
-EXPOSE 9464
+EXPOSE ${GAME_PORT}
+EXPOSE ${OTEL_EXPORTER_PORT}
 CMD ["node", "dist/server.js"]

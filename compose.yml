@@ -13,16 +13,23 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        - HTTPS_PORT=${HTTPS_PORT:-8043}
+        - HTTP_PORT=${HTTP_PORT:-8080}
       dockerfile: Dockerfile
     container_name: frontend
+    env_file:
+      - .env
+    environment:
+      - HTTPS_PORT=${HTTPS_PORT:-8043}
+      - HTTP_PORT=${HTTP_PORT:-8080}
     ports:
-      - "8043:443"
-      - "8080:80"
+      - "${HTTPS_PORT:-8043}:443"
+      - "${HTTP_PORT:-8080}:80"
     networks:
       - frontend-net
     volumes:
       - certs_data:/etc/certs:ro
-      - profile_pictures:/usr/share/nginx/html/uploads/profile_pictures
     depends_on:
       gateway:
         condition: service_healthy
@@ -31,14 +38,20 @@ services:
       - "container_name=frontend"
 
   prometheus:
-    image: prom/prometheus:v3.2.0
+    build:
+      context: ./monitoring/prometheus
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: prometheus
-    ports:
-      - "9090:9090"
     expose:
-      - 9090
+      - "${PROMETHEUS_PORT:-9090}"
+    env_file:
+      - .env
+    environment:
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
     volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -46,12 +59,13 @@ services:
       - '--storage.tsdb.retention.time=15d'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:${PROMETHEUS_PORT:-9090}'
     depends_on:
       cadvisor:
         condition: service_started
     restart: unless-stopped
     networks:
-      - transcendance-net
+      - backend-net
     labels:
       - "container_name=prometheus"
   
@@ -60,6 +74,7 @@ services:
     container_name: cadvisor
     expose:
       - 8080
+    command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080}"]
     volumes:
       # - /run/user/102787/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
@@ -69,7 +84,7 @@ services:
       - /dev/disk/:/dev/disk:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - transcendance-net
+      - backend-net
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
@@ -80,29 +95,34 @@ services:
       - "container_name=cadvisor"
 
   grafana:
-    image: grafana/grafana:10.3.1
+    build:
+      context: ./monitoring/grafana
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "${GRAFANA_PORT:-8086}:3000"
+    env_file:
+      - .env
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
-      - ./monitoring/dashboards:/var/lib/grafana/dashboards
-      - ./monitoring/datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./monitoring/grafana/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
       - certs_data:/etc/certs:ro
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_PROTOCOL=https
-      - GF_SERVER_CERT_FILE=/etc/certs/nginx.crt
-      - GF_SERVER_CERT_KEY=/etc/certs/nginx.key
+      - GF_SERVER_CERT_FILE=${SSL_CERT_PATH:-/etc/certs/nginx.crt}
+      - GF_SERVER_CERT_KEY=${SSL_KEY_PATH:-/etc/certs/nginx.key}
       - GF_SERVER_HTTP_PORT=3000
     depends_on:
       prometheus:
         condition: service_started
     restart: unless-stopped
     networks:
-      - transcendance-net
+      - backend-net
     labels:
       - "container_name=grafana"
 
@@ -111,6 +131,7 @@ services:
       context: ./backend/gateway
       args:
         - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: gateway
     env_file:
       - .env
@@ -118,15 +139,15 @@ services:
       - SSL_KEY_PATH=/etc/certs/nginx.key
       - SSL_CERT_PATH=/etc/certs/nginx.crt
       - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     ports:
       - "${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}"
     expose:
-      - 9464
+      - ${OTEL_EXPORTER_PORT:-9464}
     networks:
       - frontend-net
-      - transcendance-net
+      - backend-net
     volumes:
-      - profile_pictures:/app/uploads
       - certs_data:/etc/certs:ro
     depends_on:
       auth:
@@ -148,31 +169,49 @@ services:
     restart: unless-stopped
     labels:
       - "container_name=gateway"
+      
   profile:
-    build: ./backend/profile
+    build:
+      context: ./backend/profile
+      args:
+        - UPLOADS_DIR=${UPLOADS_DIR:-uploads}
+        - PROFILE_PORT=${PROFILE_PORT:-8081}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: profile
     env_file:
       - .env
+    environment:
+      - PROFILE_PORT=${PROFILE_PORT:-8081}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+      - UPLOADS_DIR=${UPLOADS_DIR:-/app/uploads}
     expose:
-      - 8081
-      - 9464
+      - ${PROFILE_PORT:-8081}
+      - ${OTEL_EXPORTER_PORT:-9464}
     networks:
-      - transcendance-net
+      - backend-net
     volumes:
-      - profile_pictures:/app/uploads
+      - profile_pictures:/app/${UPLOADS_DIR:-/app/uploads}
     restart: unless-stopped
     labels:
       - "container_name=profile"
+
   auth:
-    build: ./backend/auth
+    build:
+      context: ./backend/auth
+      args:
+        - AUTH_PORT=${AUTH_PORT:-8082}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: auth
     env_file:
       - .env
+    environment:
+      - AUTH_PORT=${AUTH_PORT:-8082}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     expose:
-      - 8082
-      - 9464
+      - ${AUTH_PORT:-8082}
+      - ${OTEL_EXPORTER_PORT:-9464}
     networks:
-      - transcendance-net
+      - backend-net
     volumes:
       - auth:/app/db
     restart: unless-stopped
@@ -181,31 +220,47 @@ services:
         condition: service_healthy
     labels:
       - "container_name=auth"
+
   game:
-    build: ./backend/game
+    build:
+      context: ./backend/game
+      args:
+        - GAME_PORT=${GAME_PORT:-8083}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: game
     env_file:
       - .env
+    environment:
+      - GAME_PORT=${GAME_PORT:-8083}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     expose:
-      - 8083
-      - 9464
+      - ${GAME_PORT:-8083}
+      - ${OTEL_EXPORTER_PORT:-9464}
     networks:
-      - transcendance-net
+      - backend-net
     volumes:
       - game:/app/db
     restart: unless-stopped
     labels:
       - "container_name=game"
+
   friends:
-    build: ./backend/friends
+    build:
+      context: ./backend/friends
+      args:
+        - FRIENDS_PORT=${FRIENDS_PORT:-8084}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: friends
     env_file:
       - .env
+    environment:
+      - FRIENDS_PORT=${FRIENDS_PORT:-8084}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     expose:
-      - 8084
-      - 9464
+      - ${FRIENDS_PORT:-8084}
+      - ${OTEL_EXPORTER_PORT:-9464}
     networks:
-      - transcendance-net
+      - backend-net
     volumes:
       - friends:/app/db
     restart: unless-stopped
@@ -214,15 +269,15 @@ services:
 
 volumes:
   certs_data:
-  profile_pictures:
   auth:
+  profile_pictures:
   friends:
   game:
   prometheus_data:
   grafana_data:
 
 networks:
-  transcendance-net:
+  backend-net:
     driver: bridge
   frontend-net:
     driver: bridge

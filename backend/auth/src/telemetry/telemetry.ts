@@ -5,20 +5,21 @@ import { Resource } from '@opentelemetry/resources';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { ATTR_SERVICE_NAME, ATTR_SERVICE_VERSION } from '@opentelemetry/semantic-conventions';
-// Import the Fastify instrumentation using default import for CommonJS compatibility
+
+
 const { FastifyOtelInstrumentation } = fastifyOtel;
 
 // Configure the Prometheus Exporter
 // Default port is 9464
 const prometheusExporter = new PrometheusExporter({
   // You might want to make the port configurable via environment variables
-  // port: parseInt(process.env.OTEL_EXPORTER_PROMETHEUS_PORT || '9464', 10)
+  port: parseInt(process.env.OTEL_EXPORTER_PORT || '9464', 10)
 });
 
 // Define the resource for the service
 const resource = new Resource({
-  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'auth-service',
-  [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
+  [ATTR_SERVICE_NAME]: 'auth-service',
+  [ATTR_SERVICE_VERSION]: '1.0.0',
 });
 
 // Configure the NodeSDK

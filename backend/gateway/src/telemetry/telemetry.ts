@@ -12,13 +12,13 @@ const { FastifyOtelInstrumentation } = fastifyOtel;
 // Default port is 9464
 const prometheusExporter = new PrometheusExporter({
   // You might want to make the port configurable via environment variables
-  // port: parseInt(process.env.OTEL_EXPORTER_PROMETHEUS_PORT || '9464', 10)
+  port: parseInt(process.env.OTEL_EXPORTER_PORT || '9464', 10)
 });
 
 // Define the resource for the service
 const resource = new Resource({
-  [ATTR_SERVICE_NAME]: process.env.OTEL_SERVICE_NAME || 'gateway-service', // Corrected service name
-  [ATTR_SERVICE_VERSION]: process.env.SERVICE_VERSION || '1.0.0',
+  [ATTR_SERVICE_NAME]: 'gateway-service',
+  [ATTR_SERVICE_VERSION]: '1.0.0',
 });
 
 // Configure the NodeSDK

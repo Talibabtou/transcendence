@@ -16,7 +16,7 @@ class Server {
 
   public static async start(): Promise<void> {
     const server = Server.getInstance();
-		const metricsPort = process.env.OTEL_EXPORTER_PROMETHEUS_PORT || 9464;
+		const metricsPort = process.env.OTEL_EXPORTER_PORT || 9464;
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
