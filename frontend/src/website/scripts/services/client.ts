@@ -1,5 +1,5 @@
-import { appState } from "../utils/app-state";
-import { NotificationManager } from "./notification-manager";
+import { appState } from "@website/scripts/utils";
+import { NotificationManager } from "@website/scripts/services";
 
 type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
 

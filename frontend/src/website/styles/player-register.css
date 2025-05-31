@@ -2,6 +2,7 @@
 .players-register-container {
 	position: relative;
 	width: 100%;
+	min-height: calc(100vh - var(--navbar-height) - var(--footer-height) - var(--footer-height));
 	height: 100%;
 	display: flex;
 	flex-direction: column;
