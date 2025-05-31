@@ -96,6 +96,7 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
   try {
 	  const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
+		request.server.log.info(`serviceUrl: ${serviceUrl}`);
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {

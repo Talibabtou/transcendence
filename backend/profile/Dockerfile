@@ -15,10 +15,9 @@ FROM node:23.6-alpine AS production
 
 ARG PROFILE_PORT
 ARG OTEL_EXPORTER_PORT
-ARG UPLOADS_DIR
 
 WORKDIR /app
-RUN mkdir -p /app/${UPLOADS_DIR}/
+RUN mkdir -p /app/uploads/
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./

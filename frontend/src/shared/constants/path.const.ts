@@ -6,7 +6,6 @@
  */
 
 // Define version more explicitly
-// export const API_BASE_URL = 'http://localhost:8085';
 export const API_VERSION = 'v1';
 export const API_PREFIX = `/api/${API_VERSION}`;
 export const HEALTH_CHECK_PATH = '/health';

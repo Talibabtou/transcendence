@@ -211,7 +211,7 @@ export class WebSocketClient {
 	}
 }
 
-const DEFAULT_WS_URL = 'wss://localhost:8043/ws/status';
+const DEFAULT_WS_URL = 'wss://localhost:$HTTPS_PORT/ws/status';
 
 // =========================================
 // UTILITY FUNCTIONS

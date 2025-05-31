@@ -51,7 +51,7 @@ export class App {
 	private initializeWebSocketClient(): void {
 		try {
 			const token = localStorage.getItem('jwt_token') || '';
-			const websocketUrl = `wss://localhost:8043/ws/status?token=${token}`; 
+			const websocketUrl = `wss://localhost:$HTTPS_PORT/ws/status?token=${token}`; 
 			this.webSocketClient = WebSocketClient.getInstance(websocketUrl);
 			this.webSocketClient.connect();
 			window.webSocketClient = this.webSocketClient;

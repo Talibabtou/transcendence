@@ -61,14 +61,16 @@ export class Server {
       await server.register(websocketRoutes);
 
       server.addHook('onRequest', async (request, reply) => {
-        server.log.info(
-          `Incoming Request: ${request.method} ${request.url} from ${request.ip}`
-        );
+        if (request.url !== '/api/v1/health') {
+          server.log.info(
+            `Incoming Request: ${request.method} ${request.url} from ${request.ip}`
+          );
+        }
       });
 
       await server.listen({
         port: Number(process.env.GATEWAY_PORT) || 8085,
-        host: process.env.GATEWAY_ADDR || '0.0.0.0',
+        host: '0.0.0.0',
       });
       server.log.info(
         `Server listening at https://${process.env.GATEWAY_ADDR || '0.0.0.0'}:${process.env.GATEWAY_PORT || 8085}`

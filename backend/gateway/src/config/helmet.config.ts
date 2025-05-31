@@ -1,16 +1,16 @@
 export const helmetConfig = {
   global: false,
-  contentSecurityPolicy: {
+	contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      defaultSrc: ["'self'", 'https://localhost:8085'],
+      scriptSrc: ["'self'", 'https://localhost:8085'],
+      styleSrc: ["'self'", 'https://localhost:8085', 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://localhost:8085', 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:', 'https://localhost:8085'],
+      connectSrc: ["'self'", 'https://localhost:8085'],
       objectSrc: ["'none'"],
-      frameAncestors: ["'none'"],
-      upgradeInsecureRequests: [],
+      frameAncestors: ["'none'"], // anti clickjacking
+      upgradeInsecureRequests: [], // force https
     },
   },
   strictTransportSecurity: {

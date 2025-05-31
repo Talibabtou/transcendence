@@ -171,6 +171,8 @@ export class DbService {
 	 * @returns Promise resolving to authentication response with user data and token
 	 */
 	static async register(userData: IAddUser): Promise<AuthResponse> {
+		console.log('userData', userData);
+		console.log('AUTH ENDPOINT', AUTH.REGISTER);
 		this.logRequest('POST', `${AUTH.REGISTER}`, {
 			username: userData.username,
 			email: userData.email,
@@ -437,7 +439,7 @@ export class DbService {
 			if (userProfile.pics.link === 'default') {
 				userProfile.pics.link = '/images/default-avatar.svg';
 			} else {
-				userProfile.pics.link = `https://localhost:8043${userProfile.pics.link}`;
+				userProfile.pics.link = `https://localhost:$HTTPS_PORT${userProfile.pics.link}`;
 			}
 		}
 		return userProfile;
@@ -469,7 +471,7 @@ export class DbService {
 			if (fileName === 'default') {
 				response.link = '/images/default-avatar.svg';
 			} else {
-				response.link = `https://localhost:8043/uploads/${fileName}`;
+				response.link = `https://localhost:$HTTPS_PORT/uploads/${fileName}`;
 			}
 		}
 		

@@ -19,6 +19,7 @@ ARG OTEL_EXPORTER_PORT
 RUN apk add --no-cache curl
 
 WORKDIR /app
+RUN mkdir -p uploads
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY package*.json ./

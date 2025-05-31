@@ -5,7 +5,7 @@ export const swaggerConfig = {
       description: 'API documentation for the Game microservice',
       version: '1.0.0',
     },
-    host: `localhost:${process.env.API_PORT || 8085}`,
+    host: `localhost:${process.env.GATEWAY_PORT || 8085}`,
     schemes: ['http'],
     securityDefinitions: {
       bearerAuth: {
