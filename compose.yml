@@ -16,6 +16,7 @@ services:
       args:
         - HTTPS_PORT=${HTTPS_PORT:-8043}
         - HTTP_PORT=${HTTP_PORT:-8080}
+        - GATEWAY_PORT=${GATEWAY_PORT:-8085}
       dockerfile: Dockerfile
     container_name: frontend
     env_file:
@@ -23,6 +24,7 @@ services:
     environment:
       - HTTPS_PORT=${HTTPS_PORT:-8043}
       - HTTP_PORT=${HTTP_PORT:-8080}
+      - GATEWAY_PORT=${GATEWAY_PORT:-8085}
     ports:
       - "${HTTPS_PORT:-8043}:443"
       - "${HTTP_PORT:-8080}:80"
@@ -141,13 +143,14 @@ services:
       - GATEWAY_PORT=${GATEWAY_PORT:-8085}
       - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     ports:
-      - "${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}"
+      - 8085:8085
     expose:
       - ${OTEL_EXPORTER_PORT:-9464}
     networks:
       - frontend-net
       - backend-net
     volumes:
+      - profile_pictures:/app/uploads
       - certs_data:/etc/certs:ro
     depends_on:
       auth:
@@ -174,7 +177,6 @@ services:
     build:
       context: ./backend/profile
       args:
-        - UPLOADS_DIR=${UPLOADS_DIR:-uploads}
         - PROFILE_PORT=${PROFILE_PORT:-8081}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     container_name: profile
@@ -183,14 +185,13 @@ services:
     environment:
       - PROFILE_PORT=${PROFILE_PORT:-8081}
       - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
-      - UPLOADS_DIR=${UPLOADS_DIR:-/app/uploads}
     expose:
       - ${PROFILE_PORT:-8081}
       - ${OTEL_EXPORTER_PORT:-9464}
     networks:
       - backend-net
     volumes:
-      - profile_pictures:/app/${UPLOADS_DIR:-/app/uploads}
+      - profile_pictures:/app/uploads
     restart: unless-stopped
     labels:
       - "container_name=profile"
