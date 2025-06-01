@@ -66,20 +66,10 @@ export class DbService {
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
 		if (response.status >= 400) {
-			const errorData = await response.json();
 			if (response.status === 403) {
 				const { appState } = await import('../utils/app-state');
 				appState.logout();
 			}
-			throw new Error(errorData.message);
-		}
-		if (!response.ok) {
-			const errorData: ErrorResponse = await response.json().catch(() => ({
-				statusCode: response.status,
-				code: 'UNKNOWN_ERROR',
-				error: 'Unknown Error',
-				message: 'An unknown error occurred processing the response'
-			}));
 			const gameManager = GameManager.getInstance();
 			if (gameManager.isMainGameActive()) {
 				gameManager.cleanupMainGame();
@@ -89,6 +79,15 @@ export class DbService {
 					Router.resetGameComponentToMenu();
 				}, 50);
 			}
+			throw new Error(response.statusText);
+		}
+		if (!response.ok) {
+			const errorData: ErrorResponse = await response.json().catch(() => ({
+				statusCode: response.status,
+				code: 'UNKNOWN_ERROR',
+				error: 'Unknown Error',
+				message: 'An unknown error occurred processing the response'
+			}));
 			throw errorData;
 		}
 		
