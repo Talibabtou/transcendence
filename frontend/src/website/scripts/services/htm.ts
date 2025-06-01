@@ -1,4 +1,5 @@
 import htm from 'htm';
+import { NotificationManager } from './notification-manager';
 
 // =========================================
 // CORE ELEMENT CREATION
@@ -16,23 +17,18 @@ function createElement(
 	props: Record<string, any> | null,
 	...children: (Node | string | (Node | string)[])[]
 ): HTMLElement | Text | DocumentFragment {
-	// Handle DocumentFragment creation
-	if (type === 'fragment') {
-		return createFragment(children);
+	try {
+		if (type === 'fragment') return createFragment(children);
+		
+		const element = document.createElement(type);
+		if (props) applyProps(element, props);
+		appendChildren(element, children);
+		
+		return element;
+	} catch (error) {
+		NotificationManager.handleError(error);
+		return document.createDocumentFragment();
 	}
-
-	// Create the main element
-	const element = document.createElement(type);
-
-	// Apply properties and event handlers
-	if (props) {
-		applyProps(element, props);
-	}
-
-	// Append children
-	appendChildren(element, children);
-
-	return element;
 }
 
 // =========================================
@@ -56,28 +52,20 @@ function createFragment(children: (Node | string | (Node | string)[])[]) {
  */
 function applyProps(element: HTMLElement, props: Record<string, any>): void {
 	Object.entries(props).forEach(([name, value]) => {
-		// Handle event listeners (onClick, onInput, etc.)
-		if (name.startsWith('on') && name.toLowerCase() in window) {
-			element.addEventListener(
-				name.toLowerCase().substring(2),
-				value as EventListener
-			);
-		}
-		// Handle className property
-		else if (name === 'className') {
-			element.setAttribute('class', value as string);
-		}
-		// Handle style object
-		else if (name === 'style' && typeof value === 'object') {
-			Object.assign(element.style, value);
-		}
-		// Handle dangerous HTML insertion
-		else if (name === 'dangerouslySetInnerHTML' && value?.__html) {
-			element.innerHTML = value.__html;
-		}
-		// Handle regular attributes
-		else {
-			element.setAttribute(name, value as string);
+		try {
+			if (name.startsWith('on') && name.toLowerCase() in window) {
+				element.addEventListener(name.toLowerCase().substring(2), value as EventListener);
+			} else if (name === 'className') {
+				element.setAttribute('class', value as string);
+			} else if (name === 'style' && typeof value === 'object') {
+				Object.assign(element.style, value);
+			} else if (name === 'dangerouslySetInnerHTML' && value?.__html) {
+				element.innerHTML = value.__html;
+			} else {
+				element.setAttribute(name, value as string);
+			}
+		} catch (error) {
+			NotificationManager.handleError(error);
 		}
 	});
 }
@@ -92,16 +80,18 @@ function appendChildren(
 	children: (Node | string | number | boolean | (Node | string | number | boolean)[])[]
 ): void {
 	children.forEach(child => {
-		if (child === null || child === undefined) {
-			return;
-		}
-
-		if (Array.isArray(child)) {
-			appendChildren(parent, child);
-		} else if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
-			parent.appendChild(document.createTextNode(String(child)));
-		} else if (child instanceof Node) {
-			parent.appendChild(child);
+		try {
+			if (child === null || child === undefined) return;
+			
+			if (Array.isArray(child)) {
+				appendChildren(parent, child);
+			} else if (typeof child === 'string' || typeof child === 'number' || typeof child === 'boolean') {
+				parent.appendChild(document.createTextNode(String(child)));
+			} else if (child instanceof Node) {
+				parent.appendChild(child);
+			}
+		} catch (error) {
+			NotificationManager.handleError(error);
 		}
 	});
 }
@@ -131,18 +121,18 @@ export function render(
 	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
 	container: HTMLElement
 ): void {
-	// Clear existing content
-	container.textContent = '';
-
-	// Handle array of nodes or single node
-	if (Array.isArray(vdom)) {
-		vdom.forEach(node => {
-			if (node instanceof Node) {
-				container.appendChild(node);
-			}
-		});
-	} else if (vdom instanceof Node) {
-		container.appendChild(vdom);
+	try {
+		container.textContent = '';
+		
+		if (Array.isArray(vdom)) {
+			vdom.forEach(node => {
+				if (node instanceof Node) container.appendChild(node);
+			});
+		} else if (vdom instanceof Node) {
+			container.appendChild(vdom);
+		}
+	} catch (error) {
+		NotificationManager.handleError(error);
 	}
 }
 
@@ -155,30 +145,24 @@ export function update(
 	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
 	container: HTMLElement
 ): void {
-	// Store the parent and next sibling for reinsertion
-	const parent = container.parentNode;
-	const nextSibling = container.nextSibling;
-
-	// Remove the old content
-	container.textContent = '';
-
-	// Insert new content
-	if (Array.isArray(vdom)) {
-		vdom.forEach(node => {
-			if (node instanceof Node) {
-				container.appendChild(node);
-			}
-		});
-	} else if (vdom instanceof Node) {
-		container.appendChild(vdom);
-	}
-
-	// If the container was removed from DOM, reinsert it
-	if (parent && !container.parentNode) {
-		if (nextSibling) {
-			parent.insertBefore(container, nextSibling);
-		} else {
-			parent.appendChild(container);
+	try {
+		const parent = container.parentNode;
+		const nextSibling = container.nextSibling;
+		
+		container.textContent = '';
+		
+		if (Array.isArray(vdom)) {
+			vdom.forEach(node => {
+				if (node instanceof Node) container.appendChild(node);
+			});
+		} else if (vdom instanceof Node) {
+			container.appendChild(vdom);
 		}
+		
+		if (parent && !container.parentNode) {
+			parent.insertBefore(container, nextSibling || null);
+		}
+	} catch (error) {
+		NotificationManager.handleError(error);
 	}
 }

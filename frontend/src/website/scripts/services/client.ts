@@ -5,6 +5,7 @@ type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
 
 const PING_INTERVAL = 30 * 1000; // 30 seconds
 const MAX_SERVER_INACTIVITY_DURATION = 75 * 1000; // 75 seconds
+const DEFAULT_WS_URL = 'wss://localhost:$HTTPS_PORT/ws/status';
 
 export class WebSocketClient {
 	private socket: WebSocket | null = null;
@@ -30,9 +31,7 @@ export class WebSocketClient {
 	 */
 	public static getInstance(url?: string): WebSocketClient {
 		if (!WebSocketClient.instance) {
-			if (!url) {
-				throw new Error("WebSocket URL must be provided on first instantiation.");
-			}
+			if (!url) throw new Error("WebSocket URL must be provided on first instantiation.");
 			WebSocketClient.instance = new WebSocketClient(url);
 		}
 		return WebSocketClient.instance;
@@ -47,20 +46,13 @@ export class WebSocketClient {
 	 * Uses authentication token from storage if available
 	 */
 	public connect(): void {
-		if (this.socket && (this.socket.readyState === WebSocket.OPEN
-			|| this.socket.readyState === WebSocket.CONNECTING)) {
-			return;
-		}
+		if (this.socket && (this.socket.readyState === WebSocket.OPEN || 
+			this.socket.readyState === WebSocket.CONNECTING)) return;
 
 		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
+		if (!token) return;
 		
-		if (!token) {
-			return;
-		}
-		
-		const tokenParam = `?token=${token}`;
-		const connectionUrl = this.url.split('?')[0] + tokenParam;
-		
+		const connectionUrl = `${this.url.split('?')[0]}?token=${token}`;
 		this.socket = new WebSocket(connectionUrl);
 		this.setupSocketHandlers();
 	}
@@ -79,10 +71,9 @@ export class WebSocketClient {
 		this.socket.onmessage = (event) => {
 			this.resetServerInactivityTimer();
 			try {
-				const data = JSON.parse(event.data as string);
-				this.handleWebSocketMessage(data);
+				this.handleWebSocketMessage(JSON.parse(event.data as string));
 			} catch (error) {
-				NotificationManager.showError('Error parsing WebSocket message: ' + error);
+				NotificationManager.handleError(error);
 			}
 		};
 		
@@ -105,45 +96,21 @@ export class WebSocketClient {
 	private handleWebSocketMessage(data: any): void {
 		switch (data.type) {
 			case 'online_users_list':
-				this.handleOnlineUsersList(data.users);
+				this.onlineUsers.clear();
+				data.users.forEach((userId: string) => this.onlineUsers.add(userId));
 				break;
 			case 'user_online':
-				this.handleUserOnline(data.userId);
+				if (!this.onlineUsers.has(data.userId)) {
+					this.onlineUsers.add(data.userId);
+					this.notifyStatusChangeListeners(data.userId, true);
+				}
 				break;
 			case 'user_offline':
-				this.handleUserOffline(data.userId);
+				if (this.onlineUsers.has(data.userId)) {
+					this.onlineUsers.delete(data.userId);
+					this.notifyStatusChangeListeners(data.userId, false);
+				}
 				break;
-			case 'pong':
-				this.handlePong();
-				break;
-		}
-	}
-
-	/**
-	 * Handle initial list of online users
-	 */
-	private handleOnlineUsersList(users: string[]): void {
-		this.onlineUsers.clear();
-		users.forEach(userId => this.onlineUsers.add(userId));
-	}
-
-	/**
-	 * Handle user coming online
-	 */
-	private handleUserOnline(userId: string): void {
-		if (!this.onlineUsers.has(userId)) {
-			this.onlineUsers.add(userId);
-			this.notifyStatusChangeListeners(userId, true);
-		}
-	}
-
-	/**
-	 * Handle user going offline
-	 */
-	private handleUserOffline(userId: string): void {
-		if (this.onlineUsers.has(userId)) {
-			this.onlineUsers.delete(userId);
-			this.notifyStatusChangeListeners(userId, false);
 		}
 	}
 
@@ -155,7 +122,7 @@ export class WebSocketClient {
 			try {
 				listener(userId, isOnline);
 			} catch (error) {
-				NotificationManager.showError('Error in status change listener: ' + error);
+				NotificationManager.handleError(error);
 			}
 		});
 	}
@@ -189,7 +156,7 @@ export class WebSocketClient {
 	 * @param message - The message to send (will be JSON stringified)
 	 */
 	public sendMessage(message: any): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+		if (this.socket?.readyState === WebSocket.OPEN) {
 			this.socket.send(JSON.stringify(message));
 		} else {
 			NotificationManager.showWarning('WebSocket not open. Message not sent.');
@@ -202,9 +169,7 @@ export class WebSocketClient {
 	public disconnect(): void {
 		this.stopKeepAlive();
 		this.clearServerInactivityTimer();
-		if (this.socket) {
-			this.socket.close();
-		}
+		if (this.socket) this.socket.close();
 	}
 
 	/**
@@ -215,9 +180,7 @@ export class WebSocketClient {
 		this.disconnect();
 		
 		if (token) {
-			const tokenParam = token ? `?token=${token}` : '';
-			const newUrl = this.url.split('?')[0] + tokenParam;
-			
+			const newUrl = `${this.url.split('?')[0]}?token=${token}`;
 			this.socket = new WebSocket(newUrl);
 			this.setupSocketHandlers();
 		}
@@ -236,8 +199,12 @@ export class WebSocketClient {
 	// =========================================
 
 	private startKeepAlive(): void {
-		this.stopKeepAlive(); // Clear any existing interval
-		this.pingIntervalId = setInterval(() => this.sendPing(), PING_INTERVAL);
+		this.stopKeepAlive();
+		this.pingIntervalId = setInterval(() => {
+			if (this.socket?.readyState === WebSocket.OPEN) {
+				this.sendMessage({ type: 'ping' });
+			}
+		}, PING_INTERVAL);
 	}
 
 	private stopKeepAlive(): void {
@@ -245,17 +212,6 @@ export class WebSocketClient {
 			clearInterval(this.pingIntervalId);
 			this.pingIntervalId = null;
 		}
-	}
-
-	private sendPing(): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
-			this.sendMessage({ type: 'ping' });
-		}
-	}
-
-	private handlePong(): void {
-		// Pong received, connection is healthy from server's perspective
-		// console.debug('Pong received from server');
 	}
 
 	private resetServerInactivityTimer(): void {
@@ -274,18 +230,16 @@ export class WebSocketClient {
 	}
 
 	private handleServerInactivity(): void {
-		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+		if (this.socket?.readyState === WebSocket.OPEN) {
 			NotificationManager.showWarning(
 				'No response from server. Connection may be stale. Attempting to reconnect.'
 			);
-			this.disconnect(); // This will also clear timers
-			// Add a small delay before reconnecting to avoid rapid hammering
-			setTimeout(() => this.connect(), 1000); 
+			this.disconnect();
+			setTimeout(() => this.connect(), 1000);
 		}
 	}
 }
 
-const DEFAULT_WS_URL = 'wss://localhost:$HTTPS_PORT/ws/status';
 
 // =========================================
 // UTILITY FUNCTIONS
@@ -301,24 +255,16 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 		try {
 			if (token) {
 				const wsClient = WebSocketClient.getInstance(DEFAULT_WS_URL);
-				const directToken = token;
-				const tokenParam = `?token=${directToken}`;
-				const connectionUrl = DEFAULT_WS_URL.split('?')[0] + tokenParam;
-				
 				wsClient.disconnect();
 				
-				const socket = new WebSocket(connectionUrl);
-				
-				socket.onopen = () => {};
+				const socket = new WebSocket(`${DEFAULT_WS_URL.split('?')[0]}?token=${token}`);
 				
 				socket.onmessage = (event) => {
 					try {
 						const data = JSON.parse(event.data as string);
-						if (wsClient) {
-							(wsClient as any).handleWebSocketMessage(data);
-						}
+						if (wsClient) (wsClient as any).handleWebSocketMessage(data);
 					} catch (error) {
-						NotificationManager.showError('Error parsing WebSocket message: ' + error);
+						NotificationManager.handleError(error);
 					}
 				};
 				
@@ -327,15 +273,12 @@ export function connectAuthenticatedWebSocket(token?: string): void {
 					NotificationManager.showError('WebSocket error: disconnecting...');
 				};
 				
-				socket.onclose = () => {};
-				
 				(wsClient as any).socket = socket;
 			} else {
-				const wsClient = WebSocketClient.getInstance(DEFAULT_WS_URL);
-				wsClient.connect();
+				WebSocketClient.getInstance(DEFAULT_WS_URL).connect();
 			}
 		} catch (err) {
-			NotificationManager.showError('Error connecting to WebSocket after authentication: ' + err);
+			NotificationManager.handleError(err);
 		}
 	}, 100);
 }
@@ -346,9 +289,8 @@ export function connectAuthenticatedWebSocket(token?: string): void {
  */
 export function disconnectWebSocket(): void {
 	try {
-		const wsClient = WebSocketClient.getInstance();
-		wsClient.disconnect();
+		WebSocketClient.getInstance().disconnect();
 	} catch (err) {
-		NotificationManager.showError('Error disconnecting WebSocket: ' + err);
+		NotificationManager.handleError(err);
 	}
 }
