@@ -123,7 +123,7 @@ export async function getFriendsMe(
         friends[i].username = 'undefined';
       }
       try {
-        const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/pics/${friends[i].id}`;
+        const serviceUrl = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8082}/pics/${friends[i].id}`;
         const response = await fetch(serviceUrl, { method: 'GET' });
         const pic = (await response.json()) as IReplyPic | ErrorResponse;
         if ('link' in pic) friends[i].pic = pic.link;
