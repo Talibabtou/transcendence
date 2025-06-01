@@ -21,13 +21,10 @@ export const GAME = {
 	},
 	LEADERBOARD: '/game/leaderboard',
 	ELO: {
-		BASE: '/game/elos',
 		BY_ID: (id: string) => `/game/elo/${id}`,
 	},
 	GOALS: {
 		BASE: '/game/goal',
-		SUMMARY: `/game/goals`,
-		BY_ID: (id: string) => `/game/goal/${id}`,
 	},
 	TOURNAMENT: {
 		BASE: '/game/tournament',
@@ -38,7 +35,6 @@ export const GAME = {
 
 // User service paths
 export const USER = {
-	BASE: '/auth/users',
 	BY_ID: (id: string) => `/auth/user/${id}`,
 	BY_USERNAME: (username: string) => `/auth/id/${username}`,
 	ME: '/auth/user/me',
@@ -77,7 +73,6 @@ export const SOCIAL = {
 		CREATE: '/friends/create',
 		ACCEPT: '/friends/accept',
 		DELETE: {
-			ALL: '/friends/delete/all',
 			BY_ID: (id: string) => `/friends/delete/${id}`,
 		},
 	},

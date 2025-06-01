@@ -530,27 +530,6 @@ export class DbService {
 	// =========================================
 	// MATCH & GAME OPERATIONS
 	// =========================================
-	
-	/**
-	 * Retrieves all matches for a specific user with optional pagination
-	 * @param userId - The ID of the user whose matches to retrieve
-	 * @param page - Optional page number for pagination (0-based)
-	 * @param pageSize - Optional number of items per page
-	 * @returns Promise resolving to an array of Match objects
-	 */
-	static async getUserMatches(userId: string, page?: number, pageSize?: number): Promise<Match[]> {
-		const queryParams = new URLSearchParams();
-		queryParams.append('player_id', userId);
-		queryParams.append('active', 'false');
-		
-		if (page !== undefined && pageSize !== undefined) {
-			queryParams.append('offset', String(page * pageSize));
-			queryParams.append('limit', String(pageSize));
-		}
-		
-		this.logRequest('GET', `${GAME.BASE}?${queryParams.toString()}`);
-		return this.fetchApi<Match[]>(`${GAME.BASE}?${queryParams.toString()}`);
-	}
 
 	/**
 	 * Creates a new match between two players, optionally within a tournament
@@ -741,18 +720,6 @@ export class DbService {
 		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.BY_ID(friendId)}`, {
 			method: 'DELETE',
 			body: JSON.stringify({})
-		});
-	}
-
-	/**
-	 * Removes all friends from the current user's friend list
-	 * @returns Promise resolving to the API response
-	 */
-	static async removeAllFriends(): Promise<any> {
-		this.logRequest('DELETE', `${SOCIAL.FRIENDS.DELETE.ALL}`);
-		
-		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.ALL}`, {
-			method: 'DELETE'
 		});
 	}
 }
