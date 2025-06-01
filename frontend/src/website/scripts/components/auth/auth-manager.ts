@@ -9,20 +9,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	private stateChangeTimeout: number | null = null;
 	private persistSession: boolean = true;
 	private closeButton: HTMLButtonElement | null = null;
-	
-	/**
-	 * Creates a new authentication manager component
-	 * @param container - The HTML element to render the component into
-	 * @param redirectTarget - Where to redirect after successful authentication
-	 * @param persistSession - Whether to persist the session across browser restarts
-	 */
+
 	constructor(container: HTMLElement, redirectTarget?: 'game' | 'profile', persistSession: boolean = false) {
 		super(container, {
 			currentState: AuthState.LOGIN,
 			isLoading: false,
 			redirectTarget: redirectTarget || 'profile'
 		});
-		
 		this.updateInternalState({ redirectTarget: redirectTarget || 'profile' });
 		this.persistSession = persistSession;
 		this.checkExistingSession();
@@ -32,23 +25,16 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Checks localStorage for existing session
 	 */
 	private checkExistingSession(): void {
-		const storedUser = this.persistSession 
-			? localStorage.getItem('auth_user') 
-			: sessionStorage.getItem('auth_user');
+		const storedUser = this.persistSession ? localStorage.getItem('auth_user') : sessionStorage.getItem('auth_user');
+		if (!storedUser) return;
 		
-		if (storedUser) {
-			try {
-				this.currentUser = JSON.parse(storedUser);
-				
-				if (this.currentUser) {
-					this.handleSuccessfulAuth();
-					return;
-				}
-			} catch (error) {
-				NotificationManager.showError('Failed to parse stored user data: ' + error);
-				localStorage.removeItem('auth_user');
-				sessionStorage.removeItem('auth_user');
-			}
+		try {
+			this.currentUser = JSON.parse(storedUser);
+			if (this.currentUser) this.handleSuccessfulAuth();
+		} catch (error) {
+			NotificationManager.showError('Failed to parse stored user data: ' + error);
+			localStorage.removeItem('auth_user');
+			sessionStorage.removeItem('auth_user');
 		}
 	}
 	
@@ -61,14 +47,12 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	render(): void {
 		this.container.className = 'auth-container';
-		
 		const template = html`
 			<div class="auth-form-container">
 				<button class="auth-close-button" onClick=${() => this.cancelAuth()}>✕</button>
 				${this.renderAuthContent()}
 			</div>
 		`;
-
 		render(template, this.container);
 		this.closeButton = this.container.querySelector('.auth-close-button');
 	}
@@ -80,20 +64,13 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	private renderAuthContent(): any {
 		const state = this.getInternalState();
 		
-		if (state.currentState === AuthState.SUCCESS) {
-			return this.renderSuccessMessage();
-		}
-		
-		if (state.isLoading) {
-			return html`<div class="auth-processing"></div>`;
-		}
+		if (state.currentState === AuthState.SUCCESS) return this.renderSuccessMessage();
+		if (state.isLoading) return html`<div class="auth-processing"></div>`;
 		
 		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
 			this.currentUser = user;
 			this.activeToken = token;
-			if (!user) {
-				this.activeToken = undefined;
-			}
+			if (!user) this.activeToken = undefined;
 		};
 
 		switch (state.currentState) {
@@ -154,14 +131,10 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * @param newState - The auth state to switch to
 	 */
 	private switchState(newState: AuthState): void {
-		if (this.stateChangeTimeout !== null) {
-			clearTimeout(this.stateChangeTimeout);
-		}
+		if (this.stateChangeTimeout !== null) clearTimeout(this.stateChangeTimeout);
 		
 		this.stateChangeTimeout = window.setTimeout(() => {
-			this.updateInternalState({
-				currentState: newState
-			});
+			this.updateInternalState({ currentState: newState });
 			this.stateChangeTimeout = null;
 		}, 100);
 	}
@@ -174,9 +147,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			return;
 		}
-		if (!this.activeToken) {
-			NotificationManager.showError("Authentication may be incomplete. Token is missing.");
-		}
+		if (!this.activeToken) NotificationManager.showError("Authentication may be incomplete. Token is missing.");
 
 		const userForAppState = {
 			id: this.currentUser.id,
@@ -185,7 +156,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		};
 
 		appState.login(userForAppState, this.activeToken, this.persistSession);
-		
 		this.destroy();
 		
 		const targetPath = this.getInternalState().redirectTarget === 'game' ? '/game' : '/profile';
@@ -197,12 +167,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 */
 	private cancelAuth(): void {
 		if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
-			const loginHandler = new LoginHandler(
-				() => {},
-				() => {},
-				() => {}
-			);
-			loginHandler.cancelTwoFactor();
+			new LoginHandler(() => {}, () => {}, () => {}).cancelTwoFactor();
 		}
 		
 		this.destroy();
@@ -212,9 +177,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			detail: { timestamp: Date.now() }
 		});
 		
-		setTimeout(() => {
-			document.dispatchEvent(cancelEvent);
-		}, 10);
+		setTimeout(() => document.dispatchEvent(cancelEvent), 10);
 	}
 	
 	// =========================================

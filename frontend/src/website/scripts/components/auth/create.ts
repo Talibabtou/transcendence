@@ -60,14 +60,14 @@ export class RegistrationHandler {
 	 * Initialize password strength component
 	 */
 	private initializePasswordStrength(passwordInput: HTMLInputElement): void {
-		if (!this.passwordStrength) {
-			const form = passwordInput.closest('form');
-			if (form) {
-				const container = form.querySelector('#password-strength-container');
-				if (container) {
-					this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false); 
-				}
-			}
+		if (this.passwordStrength) return;
+		
+		const form = passwordInput.closest('form');
+		if (!form) return;
+		
+		const container = form.querySelector('#password-strength-container');
+		if (container) {
+			this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, false);
 		}
 	}
 
@@ -75,9 +75,8 @@ export class RegistrationHandler {
 	 * Handle password input to update strength indicator
 	 */
 	handlePasswordInput(passwordInput: HTMLInputElement): void {
-		const password = passwordInput.value;
 		if (this.passwordStrength) {
-			this.passwordStrength.updatePassword(password);
+			this.passwordStrength.updatePassword(passwordInput.value);
 		}
 	}
 
@@ -85,10 +84,7 @@ export class RegistrationHandler {
 	 * Reset form and password strength component
 	 */
 	private resetForm(form: HTMLFormElement): void {
-		const inputs = form.querySelectorAll('input');
-		inputs.forEach(input => {
-			input.value = '';
-		});
+		form.querySelectorAll('input').forEach(input => input.value = '');
 		form.reset();
 		
 		if (this.passwordStrength) {
@@ -102,24 +98,24 @@ export class RegistrationHandler {
 	 */
 	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
-		let username = formData.get('username') as string;
-		username = username.toLowerCase();
-		let email = formData.get('email') as string;
-		email = email.toLowerCase();
+		let username = (formData.get('username') as string).toLowerCase();
+		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
 		
 		if (!username || !email || !password) {
-			NotificationManager.handleErrorCode('required_field', 'Please fill in all fields');
+			NotificationManager.showError('Please fill in all fields');
 			return;
 		}
+		
 		if (!emailRegex.test(email)) {
-				NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
-				return;
+			NotificationManager.showError('Please enter a valid email address');
+			return;
 		}
+		
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
-			NotificationManager.handleErrorCode('password_too_short', passwordValidation.message);
+			NotificationManager.showError(passwordValidation.message);
 			return;
 		}
 		
@@ -127,41 +123,28 @@ export class RegistrationHandler {
 		
 		try {
 			const hashedPassword = await hashPassword(password);
-			
-			const registerResponse = await DbService.register({ 
-				username, 
-				email, 
-				password: hashedPassword 
-			});
+			const registerResponse = await DbService.register({ username, email, password: hashedPassword });
 			
 			if (!registerResponse.success || !registerResponse.user) {
 				this.updateState({ isLoading: false });
-				NotificationManager.handleErrorCode('operation_failed', 'Registration failed. Please try again.');
+				NotificationManager.showError('Registration failed. Please try again.');
 				return;
 			}
 			
-			const loginResponse = await DbService.login({
-				email,
-				password: hashedPassword
-			});
+			const loginResponse = await DbService.login({ email, password: hashedPassword });
 			
 			if (loginResponse.success && loginResponse.user && loginResponse.token) {
-				const userFromDb = loginResponse.user;
-				const token = loginResponse.token;
-				
 				const userData: UserData = {
-					id: userFromDb.id,
-					username: userFromDb.username,
-					email: userFromDb.email || email,
+					id: loginResponse.user.id,
+					username: loginResponse.user.username,
+					email: loginResponse.user.email || email,
 					authMethod: AuthMethod.EMAIL,
 					lastLogin: new Date()
 				};
 				
-				this.setCurrentUser(userData, token);
+				this.setCurrentUser(userData, loginResponse.token);
 				this.resetForm(form);
-				
-				connectAuthenticatedWebSocket(token);
-
+				connectAuthenticatedWebSocket(loginResponse.token);
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();
@@ -171,14 +154,15 @@ export class RegistrationHandler {
 			}
 		} catch (error) {
 			this.updateState({ isLoading: false });
+			
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
 				if (errorCode === ErrorCodes.SQLITE_CONSTRAINT) {
-					NotificationManager.handleErrorCode('unique_constraint_email', 'This email is already registered');
+					NotificationManager.showError('This email is already registered');
 				} else if (errorCode === ErrorCodes.INVALID_FIELDS) {
-					NotificationManager.handleErrorCode('invalid_fields', 'Invalid registration information');
+					NotificationManager.showError('Invalid registration information');
 				} else {
-					NotificationManager.handleErrorCode(errorCode, 'Registration failed');
+					NotificationManager.handleError(error);
 				}
 			} else {
 				NotificationManager.handleError(error);

@@ -124,10 +124,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * @param form - The form element to reset
 	 */
 	private resetForm(form: HTMLFormElement): void {
-		const inputs = form.querySelectorAll('input');
-		inputs.forEach(input => {
-			input.value = '';
-		});
+		form.querySelectorAll('input').forEach(input => input.value = '');
 		form.reset();
 	}
 	
@@ -524,22 +521,14 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	private clearFormFields(): void {
 		const form = this.container.querySelector('form') as HTMLFormElement;
 		if (form) {
-			const inputs = form.querySelectorAll('input');
-			inputs.forEach(input => {
-				input.value = '';
-			});
-			
+			form.querySelectorAll('input').forEach(input => input.value = '');
 			form.reset();
 		}
 		
 		if (this.passwordStrength) {
 			this.passwordStrength.updatePassword('');
-			
 			const container = this.container.querySelector('#password-strength-container');
-			if (container) {
-				container.innerHTML = '';
-			}
-			
+			if (container) container.innerHTML = '';
 			this.passwordStrength = null;
 		}
 	}
@@ -552,11 +541,11 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 * Initializes password strength component
 	 */
 	private initializePasswordStrength(): void {
-		if (!this.passwordStrength) {
-			const container = this.container.querySelector('#password-strength-container');
-			if (container) {
-				this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, true);
-			}
+		if (this.passwordStrength) return;
+		
+		const container = this.container.querySelector('#password-strength-container');
+		if (container) {
+			this.passwordStrength = new PasswordStrengthComponent(container as HTMLElement, true);
 		}
 	}
 
@@ -565,10 +554,8 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private handlePasswordInput(e: Event): void {
 		const input = e.target as HTMLInputElement;
-		const password = input.value;
-		
 		if (this.passwordStrength) {
-			this.passwordStrength.updatePassword(password);
+			this.passwordStrength.updatePassword(input.value);
 		}
 	}
 	
@@ -581,12 +568,11 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private getPositionFromContainerId(): number | undefined {
 		const containerId = this.container.id;
-		if (containerId && containerId.includes('-')) {
-			const parts = containerId.split('-');
-			const positionStr = parts[parts.length - 1];
-			const position = parseInt(positionStr, 10);
-			return isNaN(position) ? undefined : position + 1;
-		}
-		return undefined;
+		if (!containerId || !containerId.includes('-')) return undefined;
+		
+		const parts = containerId.split('-');
+		const positionStr = parts[parts.length - 1];
+		const position = parseInt(positionStr, 10);
+		return isNaN(position) ? undefined : position + 1;
 	}
 }

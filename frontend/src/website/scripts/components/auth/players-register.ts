@@ -12,14 +12,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private maxPlayers: number = 2;
 	private onShowTournamentSchedule?: () => void;
 	
-	/**
-	 * Creates a new players registration component
-	 * @param container - The HTML element to render the component into
-	 * @param gameMode - The game mode (MULTI or TOURNAMENT)
-	 * @param onAllPlayersRegistered - Callback when all players are registered
-	 * @param onBack - Callback when back button is clicked
-	 * @param onShowTournamentSchedule - Callback to show tournament schedule
-	 */
 	constructor(
 		container: HTMLElement, 
 		gameMode: GameMode, 
@@ -37,18 +29,13 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		this.onAllPlayersRegistered = onAllPlayersRegistered;
 		this.onBack = onBack;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
-		
-		if (gameMode === GameMode.TOURNAMENT) {
-			this.maxPlayers = 4;
-		}
+		this.maxPlayers = gameMode === GameMode.TOURNAMENT ? 4 : 2;
 		
 		this.initializeHost();
-		
 		this.handleGuestAuthenticatedEvent = this.handleGuestAuthenticatedEvent.bind(this);
 		
 		document.addEventListener('guest-authenticated', this.handleGuestAuthenticatedEvent);
 		document.addEventListener('auth-cancelled', this.handleAuthCancelled.bind(this));
-		
 		window.addEventListener('user:theme-updated', this.handleUserThemeUpdated.bind(this));
 	}
 	
@@ -57,52 +44,51 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private initializeHost(): void {
 		const currentUser = appState.getCurrentUser();
-		
-		if (currentUser && currentUser.id) {
-			const hostId = currentUser.id;
-			const hostTheme = AppStateManager.getUserAccentColor(hostId);
-			
-			const hostData: PlayerData = {
-				id: hostId,
-				username: currentUser.username || 'Player 1',
-				pfp: currentUser.profilePicture || '/images/default-avatar.svg',
-				isConnected: true,
-				theme: hostTheme,
-				elo: 0
-			};
-
-			DbService.getUser(hostId)
-				.then(userFromDb => {
-					hostData.username = userFromDb.username || hostData.username;
-					hostData.pfp = userFromDb.pfp || hostData.pfp;
-					hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
-					return DbService.getPlayerElo(hostId);
-				})
-				.then(eloResponse => {
-					if (eloResponse && eloResponse.elo !== undefined) {
-						hostData.elo = eloResponse.elo;
-					}
-					return DbService.getPic(hostId);
-				})
-				.then(picResponse => {
-					if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
-						hostData.pfp = picResponse.link;
-					}
-				})
-				.catch(error => {
-					if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-					} else {
-						NotificationManager.handleError(error);
-						this.handleBack();
-					}
-				})
-				.finally(() => {
-					appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
-					this.updateInternalState({ host: { ...hostData } });
-				});
-		} else {
+		if (!currentUser || !currentUser.id) {
 			NotificationManager.showError('Host authentication required');
+			return;
 		}
+		
+		const hostId = currentUser.id;
+		const hostTheme = AppStateManager.getUserAccentColor(hostId);
+		const hostData: PlayerData = {
+			id: hostId,
+			username: currentUser.username || 'Player 1',
+			pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+			isConnected: true,
+			theme: hostTheme,
+			elo: 0
+		};
+
+		DbService.getUser(hostId)
+			.then(userFromDb => {
+				hostData.username = userFromDb.username || hostData.username;
+				hostData.pfp = userFromDb.pfp || hostData.pfp;
+				hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
+				return DbService.getPlayerElo(hostId);
+			})
+			.then(eloResponse => {
+				if (eloResponse?.elo !== undefined) hostData.elo = eloResponse.elo;
+				return DbService.getPic(hostId);
+			})
+			.then(picResponse => {
+				if (picResponse?.link && picResponse.link !== 'undefined') {
+					hostData.pfp = picResponse.link;
+				}
+			})
+			.catch(error => {
+				if (error && typeof error === 'object' && 'code' in error && 
+					error.code === ErrorCodes.PICTURE_NOT_FOUND) {
+					// Ignore picture not found error
+				} else {
+					NotificationManager.handleError(error);
+					this.handleBack();
+				}
+			})
+			.finally(() => {
+				appState.setPlayerAccentColor(1, hostData.theme, hostData.id);
+				this.updateInternalState({ host: { ...hostData } });
+			});
 	}
 	
 	/**
@@ -110,31 +96,22 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	render(): void {
 		const state = this.getInternalState();
-		
 		this.container.className = 'players-register-container';
 		
 		let template;
 		
 		if (state.gameMode === GameMode.MULTI) {
 			template = html`
-				<button class="back-button nav-item" onclick="${() => this.handleBack()}">
-					← Back
-				</button>
-				
+				<button class="back-button nav-item" onclick="${() => this.handleBack()}">← Back</button>
 				<div class="ascii-title-container">
 					<div class="ascii-title">${ASCII_ART.MULTI}</div>
 				</div>
-				
 				<div class="players-grid">
 					<div class="vertical-separator"></div>
-					
-					<!-- Host Side -->
 					<div class="player-side host-side">
 						<div class="player-label">PLAYER 1</div>
 						${this.renderHostPlayer(state.host)}
 					</div>
-					
-					<!-- Guest Side -->
 					<div class="player-side guest-side">
 						<div class="player-label">PLAYER 2</div>
 						${state.guests[0] && state.guests[0].isConnected 
@@ -143,31 +120,22 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 						}
 					</div>
 				</div>
-				
 				${this.renderPlayButton(state)}
 			`;
 		} else {
 			const nextAuthIndex = state.guests.filter(g => g && g.isConnected).length;
 			
 			template = html`
-				<button class="back-button nav-item" onclick="${() => this.handleBack()}">
-					← Back
-				</button>
-
+				<button class="back-button nav-item" onclick="${() => this.handleBack()}">← Back</button>
 				<div class="ascii-title-container">
 					<div class="ascii-title">${ASCII_ART.TOURNAMENT}</div>
 				</div>
-				
 				<div class="tournament-players-grid">
-					<!-- Host -->
 					<div class="player-side host-side">
 						<div class="player-label">PLAYER 1</div>
 						${this.renderHostPlayer(state.host)}
 					</div>
-					
 					<div class="vertical-separator"></div>
-					
-					<!-- Player 2 -->
 					<div class="player-side guest-side">
 						<div class="player-label">PLAYER 2</div>
 						${nextAuthIndex === 0 
@@ -177,10 +145,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 								: html`<div class="waiting-indicator">WAITING</div>`)
 						}
 					</div>
-					
 					<div class="vertical-separator"></div>
-					
-					<!-- Player 3 -->
 					<div class="player-side guest-side">
 						<div class="player-label">PLAYER 3</div>
 						${nextAuthIndex === 1
@@ -190,10 +155,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 								: html`<div class="waiting-indicator">WAITING</div>`)
 						}
 					</div>
-					
 					<div class="vertical-separator"></div>
-					
-					<!-- Player 4 -->
 					<div class="player-side guest-side">
 						<div class="player-label">PLAYER 4</div>
 						${nextAuthIndex === 2
@@ -204,13 +166,11 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 						}
 					</div>
 				</div>
-				
 				${this.renderPlayButton(state)}
 			`;
 		}
 		
 		render(template, this.container);
-		
 		this.setupAuthComponent();
 	}
 	
@@ -252,7 +212,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			</div>
 			<div class="player-name">${host.username}</div>
 			<div class="player-elo">${host.elo !== undefined ? host.elo : '0'}</div>
-			
 			<div class="player-color-selection">
 				<div class="color-picker">
 					<div class="color-row">
@@ -299,7 +258,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			</div>
 			<div class="player-name">${guest.username}</div>
 			<div class="player-elo">${guest.elo !== undefined ? guest.elo : '0'}</div>
-			
 			<div class="player-color-selection">
 				<div class="color-picker">
 					<div class="color-row">
@@ -333,10 +291,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @returns HTML template for the play button
 	 */
 	private renderPlayButton(state: PlayersRegisterState): any {
-		const requiredPlayers = this.maxPlayers;
 		const connectedCount = (state.host ? 1 : 0) + 
 			state.guests.filter(g => g && g.isConnected).length;
-		const isReady = connectedCount >= requiredPlayers;
+		const isReady = connectedCount >= this.maxPlayers;
 		
 		return html`
 			<div class="play-button-container">
@@ -362,39 +319,38 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		if (state.gameMode === GameMode.MULTI) {
 			if (!state.guests.length || !state.guests[0] || !state.guests[0].isConnected) {
 				const guestSide = this.container.querySelector('.guest-side');
-				if (guestSide) {
-					this.authContainer = this.container.querySelector('#guest-auth-container') as HTMLElement;
+				if (!guestSide) return;
+				
+				this.authContainer = this.container.querySelector('#guest-auth-container') as HTMLElement;
+				
+				if (!this.authContainer) {
+					this.authContainer = document.createElement('div');
+					this.authContainer.id = 'guest-auth-container';
+					this.authContainer.className = 'player-auth-wrapper simplified-auth-container';
 					
-					if (!this.authContainer) {
-						this.authContainer = document.createElement('div');
-						this.authContainer.id = 'guest-auth-container';
-						this.authContainer.className = 'player-auth-wrapper simplified-auth-container';
-						
-						const playerLabel = guestSide.querySelector('.player-label');
-						
-						guestSide.innerHTML = '';
-						
-						if (playerLabel) {
-							guestSide.appendChild(playerLabel);
-						} else {
-							const newLabel = document.createElement('div');
-							newLabel.className = 'player-label';
-							newLabel.textContent = 'PLAYER 2';
-							guestSide.appendChild(newLabel);
-						}
-						
-						guestSide.appendChild(this.authContainer);
+					const playerLabel = guestSide.querySelector('.player-label');
+					guestSide.innerHTML = '';
+					
+					if (playerLabel) {
+						guestSide.appendChild(playerLabel);
+					} else {
+						const newLabel = document.createElement('div');
+						newLabel.className = 'player-label';
+						newLabel.textContent = 'PLAYER 2';
+						guestSide.appendChild(newLabel);
 					}
 					
-					if (this.authManagers.has('guest')) {
-						this.authManagers.get('guest')?.destroy();
-						this.authManagers.delete('guest');
-					}
-					
-					const authManager = new GuestAuthComponent(this.authContainer);
-					this.authManagers.set('guest', authManager);
-					authManager.show();
+					guestSide.appendChild(this.authContainer);
 				}
+				
+				if (this.authManagers.has('guest')) {
+					this.authManagers.get('guest')?.destroy();
+					this.authManagers.delete('guest');
+				}
+				
+				const authManager = new GuestAuthComponent(this.authContainer);
+				this.authManagers.set('guest', authManager);
+				authManager.show();
 			}
 		} else if (state.gameMode === GameMode.TOURNAMENT) {
 			const nextAuthIndex = state.guests.filter(g => g && g.isConnected).length;
@@ -403,33 +359,33 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				const guestSides = this.container.querySelectorAll('.guest-side');
 				const targetGuestSide = guestSides[nextAuthIndex];
 				
-				if (targetGuestSide) {
-					const playerLabel = targetGuestSide.querySelector('.player-label');
-					const labelContent = playerLabel ? playerLabel.innerHTML : `PLAYER ${nextAuthIndex + 2}`;
-					
-					const authContainerId = `guest-auth-container-${nextAuthIndex}`;
-					targetGuestSide.innerHTML = '';
-					
-					const newLabel = document.createElement('div');
-					newLabel.className = 'player-label';
-					newLabel.innerHTML = labelContent;
-					targetGuestSide.appendChild(newLabel);
-					
-					const authContainer = document.createElement('div');
-					authContainer.id = authContainerId;
-					authContainer.className = 'player-auth-wrapper simplified-auth-container';
-					targetGuestSide.appendChild(authContainer);
-					
-					const managerId = `guest-${nextAuthIndex}`;
-					if (this.authManagers.has(managerId)) {
-						this.authManagers.get(managerId)?.destroy();
-						this.authManagers.delete(managerId);
-					}
-					
-					const authManager = new GuestAuthComponent(authContainer);
-					this.authManagers.set(managerId, authManager);
-					authManager.show();
+				if (!targetGuestSide) return;
+				
+				const playerLabel = targetGuestSide.querySelector('.player-label');
+				const labelContent = playerLabel ? playerLabel.innerHTML : `PLAYER ${nextAuthIndex + 2}`;
+				
+				const authContainerId = `guest-auth-container-${nextAuthIndex}`;
+				targetGuestSide.innerHTML = '';
+				
+				const newLabel = document.createElement('div');
+				newLabel.className = 'player-label';
+				newLabel.innerHTML = labelContent;
+				targetGuestSide.appendChild(newLabel);
+				
+				const authContainer = document.createElement('div');
+				authContainer.id = authContainerId;
+				authContainer.className = 'player-auth-wrapper simplified-auth-container';
+				targetGuestSide.appendChild(authContainer);
+				
+				const managerId = `guest-${nextAuthIndex}`;
+				if (this.authManagers.has(managerId)) {
+					this.authManagers.get(managerId)?.destroy();
+					this.authManagers.delete(managerId);
 				}
+				
+				const authManager = new GuestAuthComponent(authContainer);
+				this.authManagers.set(managerId, authManager);
+				authManager.show();
 			}
 		}
 	}
@@ -444,23 +400,22 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleGuestAuthenticatedEvent = (event: Event): void => {
 		const customEvent = event as CustomEvent<{ user: any, position?: number }>;
-		if (customEvent.detail && customEvent.detail.user) {
-			const userData = customEvent.detail.user;
-			const position = customEvent.detail.position;
-			
-			const guestId = userData.id;
-			
-			const guestData: PlayerData = {
-				id: guestId,
-				username: userData.username,
-				pfp: userData.profilePicture,
-				isConnected: true,
-				theme: userData.theme,
-				elo: userData.elo,
-				position: position
-			};
-			this.handleGuestAuthenticated(guestData);
-		}
+		if (!customEvent.detail?.user) return;
+		
+		const userData = customEvent.detail.user;
+		const position = customEvent.detail.position;
+		const guestId = userData.id;
+		
+		const guestData: PlayerData = {
+			id: guestId,
+			username: userData.username,
+			pfp: userData.profilePicture,
+			isConnected: true,
+			theme: userData.theme,
+			elo: userData.elo,
+			position: position
+		};
+		this.handleGuestAuthenticated(guestData);
 	};
 	
 	/**
@@ -477,21 +432,19 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			
 		if (state.host && state.host.id === userId) {
 			if (state.host.theme !== theme) {
-				this.updateInternalState({ host: { ...state.host, theme: theme } });
+				this.updateInternalState({ host: { ...state.host, theme } });
 				needsRender = true;
 			}
 		} else {
 			const guestIndex = state.guests.findIndex(g => g && g.id === userId);
 			if (guestIndex >= 0 && state.guests[guestIndex].theme !== theme) {
 				const updatedGuests = [...state.guests];
-				updatedGuests[guestIndex] = { ...updatedGuests[guestIndex], theme: theme };
+				updatedGuests[guestIndex] = { ...updatedGuests[guestIndex], theme };
 				this.updateInternalState({ guests: updatedGuests });
 				needsRender = true;
 			}
 		}
-		if (needsRender) {
-			this.render();
-		}
+		if (needsRender) this.render();
 	}
 	
 	/**
@@ -505,7 +458,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		}
 		
 		const guestSelectedTheme = AppStateManager.getUserAccentColor(guestDataFromEvent.id);
-
 		const guestData: PlayerData = {
 			...guestDataFromEvent,
 			theme: guestSelectedTheme, 
@@ -522,18 +474,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				return DbService.getPlayerElo(guestData.id);
 			})
 			.then(eloResponse => {
-				if (eloResponse && eloResponse.elo !== undefined) {
-					guestData.elo = eloResponse.elo;
-				}
+				if (eloResponse?.elo !== undefined) guestData.elo = eloResponse.elo;
 				return DbService.getPic(guestData.id);
 			})
 			.then(picResponse => {
-				if (picResponse && picResponse.link && picResponse.link !== 'undefined') {
+				if (picResponse?.link && picResponse.link !== 'undefined') {
 					guestData.pfp = picResponse.link;
 				}
 			})
 			.catch(error => {
-				if (error && typeof error === 'object' && 'code' in error && error.code === ErrorCodes.PICTURE_NOT_FOUND) {
+				if (error && typeof error === 'object' && 'code' in error && 
+					error.code === ErrorCodes.PICTURE_NOT_FOUND) {
 				} else {
 					NotificationManager.handleError(error);
 					this.handleBack();
@@ -584,7 +535,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		guestData.username = guestData.username || 'Player';
 		guestData.theme = guestData.theme || AppStateManager.getUserAccentColor(guestData.id);
 
-
 		let updatedGuests: PlayerData[] = [...state.guests];
 		let isReadyToPlay = state.isReadyToPlay;
 
@@ -597,6 +547,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 				NotificationManager.showError('All player slots are filled');
 				return;
 			}
+			
 			while (updatedGuests.length <= nextIndex) {
 				updatedGuests.push({} as PlayerData); 
 			}
@@ -611,7 +562,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 
 		this.updateInternalState({
 			guests: updatedGuests,
-			isReadyToPlay: isReadyToPlay
+			isReadyToPlay
 		});
 
 		this.renderComponent();
@@ -624,7 +575,6 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		if (this.authManagers.has('guest')) {
 			this.authManagers.get('guest')?.destroy();
 			this.authManagers.delete('guest');
-			
 			this.setupAuthComponent();
 		}
 	}
@@ -706,10 +656,9 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleHostColorSelect(colorHex: string): void {
 		const state = this.getInternalState();
-		if (!state.host || !state.host.id) return;
+		if (!state.host?.id) return;
 		
 		AppStateManager.setUserAccentColor(state.host.id, colorHex);
-		
 		appState.setPlayerAccentColor(1, colorHex, state.host.id);
 	}
 	
@@ -718,8 +667,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 */
 	private handleGuestColorSelect(colorHex: string, guestId: string): void {
 		if (!guestId) return;
+		
 		const state = this.getInternalState();
-
 		AppStateManager.setUserAccentColor(guestId, colorHex);
 		
 		const guestIndex = state.guests.findIndex(g => g && g.id === guestId);
@@ -733,11 +682,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * Handle back button click
 	 */
 	private handleBack(): void {
-		this.authManagers.forEach(manager => {
-			manager.destroy();
-		});
+		this.authManagers.forEach(manager => manager.destroy());
 		this.authManagers.clear();
-		
 		this.onBack();
 	}
 }

@@ -30,10 +30,7 @@ export class LoginHandler {
 	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): any {
 		this.persistSession = persistSession;
 		
-		const needsVerification = sessionStorage.getItem('auth_2fa_needed') === 'true';
-		
-		if (needsVerification)
-			return this.render2FAForm();
+		if (sessionStorage.getItem('auth_2fa_needed') === 'true') return this.render2FAForm();
 		
 		return html`
 			<div class="ascii-title-container">
@@ -135,25 +132,24 @@ export class LoginHandler {
 	 * 
 	 * @param e - Form submission event
 	 */
-		handleLogin = async (e: Event): Promise<void> => {
+	handleLogin = async (e: Event): Promise<void> => {
 		e.preventDefault();
 		
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
-		let email = formData.get('email') as string;
-		email = email.toLowerCase();
+		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		
 		if (!emailRegex.test(email)) {
-				NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
-				return;
+			NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
+			return;
 		}
 		if (!email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
 			return;
 		}
 
-		
 		this.loginAttempts++;
 		this.lastLoginAttempt = new Date();
 		
@@ -162,20 +158,14 @@ export class LoginHandler {
 			if (this.lastLoginAttempt && this.lastLoginAttempt > fiveMinutesAgo) {
 				NotificationManager.handleErrorCode('account_locked', 'Too many login attempts. Please try again later.');
 				return;
-			} else {
-				this.loginAttempts = 1;
 			}
+			this.loginAttempts = 1;
 		}
 
 		try {
 			this.updateState({ isLoading: true });
-			
 			const hashedPassword = await hashPassword(password);
-			
-			const response = await DbService.login({ 
-				email, 
-				password: hashedPassword 
-			});
+			const response = await DbService.login({ email, password: hashedPassword });
 			
 			if (response.requires2FA) {
 				sessionStorage.setItem('auth_2fa_needed', 'true');
@@ -220,10 +210,7 @@ export class LoginHandler {
 	 * @param form - The form element to reset
 	 */
 	private resetForm(form: HTMLFormElement): void {
-		const inputs = form.querySelectorAll('input');
-		inputs.forEach(input => {
-			input.value = '';
-		});
+		form.querySelectorAll('input').forEach(input => input.value = '');
 		form.reset();
 	}
 
@@ -235,7 +222,6 @@ export class LoginHandler {
 	 * Starts a timeout that will cancel 2FA verification if not completed within 1 minute
 	 */
 	private startTwoFATimeout(): void {
-		console.log('Starting 2FA timeout');
 		this.twoFATimeoutId = window.setTimeout(() => {
 			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
 				this.cancelTwoFactor();
@@ -248,7 +234,6 @@ export class LoginHandler {
 	 * Clears the 2FA timeout if it exists
 	 */
 	private clearTwoFATimeout(): void {
-		console.log('Clearing 2FA timeout');
 		if (this.twoFATimeoutId !== null) {
 			window.clearTimeout(this.twoFATimeoutId);
 			this.twoFATimeoutId = null;
@@ -264,22 +249,24 @@ export class LoginHandler {
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
 		const code = formData.get('twofa-code') as string;
+		
 		if (!code || code.length !== 6 || !/^\d+$/.test(code)) {
 			NotificationManager.handleErrorCode('invalid_fields', 'Please enter a valid 6-digit code');
-			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
-				this.startTwoFATimeout();
-			}
+			if (sessionStorage.getItem('auth_2fa_needed') === 'true') this.startTwoFATimeout();
 			return;
 		}
+		
 		try {
 			this.updateState({ isLoading: true });
 			const userId = sessionStorage.getItem('auth_2fa_userid') || '';
 			const token = sessionStorage.getItem('auth_2fa_token') || '';
 			const email = sessionStorage.getItem('auth_email') || '';
 			const password = sessionStorage.getItem('auth_password') || '';
+			
 			this.resetForm(form);
 			await DbService.verify2FALogin(userId, code, token);
 			const loginResponse = await DbService.login({ email, password });
+			
 			if (loginResponse.success && loginResponse.user && loginResponse.token) {
 				this.clearTwoFactorSessionData();
 				const userData: UserData = {
@@ -298,6 +285,7 @@ export class LoginHandler {
 		} catch (error) {
 			this.resetForm(form);
 			this.updateState({ isLoading: false });
+			
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
 				if (errorCode === ErrorCodes.TWOFA_BAD_CODE) {
@@ -308,9 +296,8 @@ export class LoginHandler {
 			} else {
 				NotificationManager.handleError(error);
 			}
-			if (sessionStorage.getItem('auth_2fa_needed') === 'true') {
-				this.startTwoFATimeout();
-			}
+			
+			if (sessionStorage.getItem('auth_2fa_needed') === 'true') this.startTwoFATimeout();
 		}
 	}
 	

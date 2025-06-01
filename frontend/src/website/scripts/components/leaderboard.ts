@@ -23,33 +23,21 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Handles loading states and error conditions
 	 */
 	private async initialize(): Promise<void> {
-		// Cancel any existing requests
-		if (this.abortController) {
-			this.abortController.abort();
-		}
+		if (this.abortController) this.abortController.abort();
 		this.abortController = new AbortController();
 		
-		this.updateInternalState({ 
-			isLoading: true
-		});
+		this.updateInternalState({ isLoading: true });
 		
 		try {
 			await this.fetchLeaderboardData();
-			
-			// Check if component was destroyed while fetching
-			if (this.abortController.signal.aborted) {
-				return;
-			}
+			if (this.abortController.signal.aborted) return;
 		} catch (error) {
-			// Only show error if not aborted
 			if (!this.abortController.signal.aborted) {
 				NotificationManager.showError('Error fetching leaderboard data');
 			}
 		} finally {
 			if (!this.abortController.signal.aborted) {
-				this.updateInternalState({ 
-					isLoading: false 
-				});
+				this.updateInternalState({ isLoading: false });
 			}
 		}
 	}
@@ -65,7 +53,6 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 	 * Cleans up the component when it's destroyed
 	 */
 	destroy(): void {
-		// Cancel any in-flight requests
 		if (this.abortController) {
 			this.abortController.abort();
 			this.abortController = undefined;
