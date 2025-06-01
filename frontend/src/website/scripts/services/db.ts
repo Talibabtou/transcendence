@@ -622,6 +622,16 @@ export class DbService {
 	}
 
 	/**
+	 * Retrieves the finalists for a tournament based on server-side logic
+	 * @param tournamentId - The ID of the tournament to retrieve finalists for
+	 * @returns Promise resolving to FinalResultObject containing finalist player IDs
+	 */
+	static async getTournamentFinalists(tournamentId: string): Promise<any> {
+		this.logRequest('GET', `${GAME.TOURNAMENT.FINALE(tournamentId)}`);
+		return this.fetchApi<any>(`${GAME.TOURNAMENT.FINALE(tournamentId)}`);
+	}
+
+	/**
 	 * Retrieves the current ELO rating for a specific player
 	 * @param playerId - The ID of the player whose ELO rating to retrieve
 	 * @returns Promise resolving to the player's ELO rating information

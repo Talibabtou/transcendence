@@ -7,14 +7,11 @@ export class AppStateManager {
 	private static instance: AppStateManager;
 	private static ACCENT_COLOR_STORAGE_KEY = 'playerAccentColors';
 	private static DEFAULT_ACCENT_COLOR = '#ffffff';
+	private static DEFAULT_ACCENT_NAME: AccentColor = 'white';
 	
 	private state: AppState = {
-		auth: {
-			isAuthenticated: false,
-			user: null,
-			jwtToken: null
-		},
-		accentColor: 'white',
+		auth: { isAuthenticated: false, user: null, jwtToken: null },
+		accentColor: AppStateManager.DEFAULT_ACCENT_NAME,
 		accentColors: {
 			accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
 			accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
@@ -61,12 +58,12 @@ export class AppStateManager {
 
 		const reinitializeAndNotify = () => {
 			this.initializeFromStorage();
-			const changedParts: Partial<AppState> = {
+			this.notifyListeners({
 				auth: this.state.auth,
 				accentColor: this.state.accentColor,
 				accentColors: this.state.accentColors,
-			};
-			this.notifyListeners(changedParts, oldStateSnapshot);
+			}, oldStateSnapshot);
+			
 			if (oldStateSnapshot.auth.isAuthenticated !== this.state.auth.isAuthenticated ||
 				(oldStateSnapshot.auth.user?.id !== this.state.auth.user?.id)) {
 				Router.refreshAllComponents();
@@ -91,23 +88,14 @@ export class AppStateManager {
 					const newStoredTheme = AppStateManager.getUserAccentColor(userId);
 	
 					if (this.state.auth.user.theme !== newStoredTheme) {
-						const newAccentColorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
-							key => ACCENT_COLORS[key].toLowerCase() === newStoredTheme.toLowerCase()
-						) || 'white';
-						
+						const newAccentColorName = this.findAccentColorNameByHex(newStoredTheme);
 						this.setState({
 							auth: {
 								...this.state.auth,
-								user: {
-									...this.state.auth.user,
-									theme: newStoredTheme,
-								},
+								user: { ...this.state.auth.user, theme: newStoredTheme }
 							},
 							accentColor: newAccentColorName,
-							accentColors: {
-								...this.state.accentColors,
-								accent1: newStoredTheme,
-							},
+							accentColors: { ...this.state.accentColors, accent1: newStoredTheme }
 						});
 					} else {
 						this.applyAccentColorToCSS();
@@ -116,8 +104,6 @@ export class AppStateManager {
 					this.applyAccentColorToCSS();
 				}
 				break;
-			default:
-				break; 
 		}
 	};
 	
@@ -130,16 +116,12 @@ export class AppStateManager {
 		if (!customEvent.detail) return;
 
 		const { userId, theme } = customEvent.detail;
-
 		if (this.state.auth.user && this.state.auth.user.id === userId) {
-			const newAccentColorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(key => ACCENT_COLORS[key].toLowerCase() === theme.toLowerCase()) || 'white';
+			const newAccentColorName = this.findAccentColorNameByHex(theme);
 			this.setState({
 				auth: {
 					...this.state.auth,
-					user: {
-						...this.state.auth.user,
-						theme: theme
-					}
+					user: { ...this.state.auth.user, theme }
 				},
 				accentColor: newAccentColorName,
 				accentColors: { ...this.state.accentColors, accent1: theme }
@@ -152,7 +134,6 @@ export class AppStateManager {
 	 */
 	private handlePageUnload = (): void => {
 		const isPersistent = localStorage.getItem('auth_persistent') === 'true';
-		
 		if (!isPersistent && this.state.auth.isAuthenticated) {
 			sessionStorage.removeItem('auth_user');
 			sessionStorage.removeItem('jwt_token');
@@ -160,65 +141,60 @@ export class AppStateManager {
 	}
 	
 	// =========================================
-	// INITIALIZATION
-	// =========================================
-	
+  // INITIALIZATION
+  // =========================================
+
 	/**
-	 * Initialize state from database and localStorage/sessionStorage
+	 * Initialize state from localStorage/sessionStorage
 	 */
 	private initializeFromStorage(): void {
-		const sessionUser = sessionStorage.getItem('auth_user');
-		const sessionToken = sessionStorage.getItem('jwt_token');
-		const localUser = localStorage.getItem('auth_user');
-		const localToken = localStorage.getItem('jwt_token');
-		
-		const storedUser = sessionUser || localUser;
-		const token = sessionToken || localToken;
+		const storedUser = sessionStorage.getItem('auth_user') || localStorage.getItem('auth_user');
+		const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
 		
 		if (storedUser && token) {
 			try {
 				const user = JSON.parse(storedUser);
 				const userTheme = AppStateManager.initializeUserAccentColor(user.id);
-
 				this.state.auth.isAuthenticated = true;
 				this.state.auth.user = { ...user, theme: userTheme };
 				this.state.auth.jwtToken = token;
-				
-				const colorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
-					key => ACCENT_COLORS[key].toLowerCase() === userTheme.toLowerCase()
-				) || 'white';
-				this.state.accentColor = colorName;
+				this.state.accentColor = this.findAccentColorNameByHex(userTheme);
 				this.state.accentColors.accent1 = userTheme;
 			} catch (error) {
-				NotificationManager.showError('Failed to parse stored user data: ' + error);
-				localStorage.removeItem('auth_user');
-				sessionStorage.removeItem('auth_user');
-				localStorage.removeItem('jwt_token');
-				sessionStorage.removeItem('jwt_token');
-				this.state.auth.isAuthenticated = false;
-				this.state.auth.user = null;
-				this.state.auth.jwtToken = null;
-				this.state.accentColor = 'white';
-				this.state.accentColors = {
-					accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
-					accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
-					accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
-					accent4: AppStateManager.DEFAULT_ACCENT_COLOR
-				};
+				NotificationManager.handleError(error);
+				this.resetState();
+				this.clearStorageItems();
 			}
 		} else {
-			this.state.auth.isAuthenticated = false;
-			this.state.auth.user = null;
-			this.state.auth.jwtToken = null;
-			this.state.accentColor = 'white';
-			this.state.accentColors = {
-				accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
-				accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
-				accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
-				accent4: AppStateManager.DEFAULT_ACCENT_COLOR
-			};
+			this.resetState();
 		}
 		this.applyAccentColorToCSS();
+	}
+	
+	/**
+	 * Reset state to defaults
+	 */
+	private resetState(): void {
+		this.state.auth.isAuthenticated = false;
+		this.state.auth.user = null;
+		this.state.auth.jwtToken = null;
+		this.state.accentColor = AppStateManager.DEFAULT_ACCENT_NAME;
+		this.state.accentColors = {
+			accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
+			accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
+			accent3: AppStateManager.DEFAULT_ACCENT_COLOR,
+			accent4: AppStateManager.DEFAULT_ACCENT_COLOR
+		};
+	}
+	
+	/**
+	 * Clear all auth-related storage items
+	 */
+	private clearStorageItems(): void {
+		localStorage.removeItem('auth_user');
+		sessionStorage.removeItem('auth_user');
+		localStorage.removeItem('jwt_token');
+		sessionStorage.removeItem('jwt_token');
 	}
 	
 	// =========================================
@@ -232,7 +208,6 @@ export class AppStateManager {
 	 */
 	public subscribe(listener: StateChangeListener): () => void {
 		this.listeners.push(listener);
-		
 		return () => {
 			this.listeners = this.listeners.filter(l => l !== listener);
 		};
@@ -248,7 +223,7 @@ export class AppStateManager {
 			try {
 				listener(newState, oldState);
 			} catch (error) {
-				NotificationManager.showError("Error in state change listener");
+				NotificationManager.handleError(error);
 			}
 		});
 	}
@@ -259,8 +234,7 @@ export class AppStateManager {
 	 */
 	public setState = (newState: Partial<AppState>): void => {
 		const oldState = { ...this.state };
-		
-		const nextState = {
+		this.state = {
 			...this.state,
 			...newState,
 			auth: newState.auth ? { ...this.state.auth, ...newState.auth } : this.state.auth,
@@ -268,7 +242,6 @@ export class AppStateManager {
 			players: newState.players ? { ...this.state.players, ...newState.players } : this.state.players,
 		};
 		
-		this.state = nextState;
 		this.notifyListeners(newState, oldState);
 		this.persistState();
 	};
@@ -277,32 +250,22 @@ export class AppStateManager {
 	 * Persist the current state to storage
 	 */
 	private persistState = (): void => {
-		if (this.state.auth.isAuthenticated && this.state.auth.user && this.state.auth.user.id) {
+		if (this.state.auth.isAuthenticated && this.state.auth.user?.id) {
 			const userTheme = AppStateManager.getUserAccentColor(this.state.auth.user.id);
 			const userToStore = { ...this.state.auth.user, theme: userTheme };
-			
 			const isPersistent = localStorage.getItem('auth_persistent') === 'true';
+			const storage = isPersistent ? localStorage : sessionStorage;
+			const otherStorage = isPersistent ? sessionStorage : localStorage;
 
-			if (isPersistent) {
-				localStorage.setItem('auth_user', JSON.stringify(userToStore));
-				sessionStorage.removeItem('auth_user');
-				if (this.state.auth.jwtToken) {
-					localStorage.setItem('jwt_token', this.state.auth.jwtToken);
-				}
-				sessionStorage.removeItem('jwt_token');
-			} else {
-				sessionStorage.setItem('auth_user', JSON.stringify(userToStore));
-				localStorage.removeItem('auth_user');
-				if (this.state.auth.jwtToken) {
-					sessionStorage.setItem('jwt_token', this.state.auth.jwtToken);
-				}
-				localStorage.removeItem('jwt_token');
+			storage.setItem('auth_user', JSON.stringify(userToStore));
+			otherStorage.removeItem('auth_user');
+			
+			if (this.state.auth.jwtToken) {
+				storage.setItem('jwt_token', this.state.auth.jwtToken);
 			}
+			otherStorage.removeItem('jwt_token');
 		} else {
-			localStorage.removeItem('auth_user');
-			sessionStorage.removeItem('auth_user');
-			localStorage.removeItem('jwt_token');
-			sessionStorage.removeItem('jwt_token');
+			this.clearStorageItems();
 		}
 		this.applyAccentColorToCSS();
 	};
@@ -319,11 +282,9 @@ export class AppStateManager {
 	 */
 	public login(user: any, token?: string, persistent: boolean = false): void {
 		localStorage.setItem('auth_persistent', persistent.toString());
-		
 		const userTheme = AppStateManager.initializeUserAccentColor(user.id);
 		const userWithTheme = { ...user, theme: userTheme };
-
-		const colorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(key => ACCENT_COLORS[key].toLowerCase() === userTheme.toLowerCase()) || 'white';
+		const colorName = this.findAccentColorNameByHex(userTheme);
 		
 		this.setState({
 			auth: {
@@ -335,38 +296,28 @@ export class AppStateManager {
 			accentColors: { ...this.state.accentColors, accent1: userTheme }
 		});
 		
-		const authEvent = new CustomEvent('user-authenticated', {
-			detail: { 
-				user: userWithTheme,
-				persistent
-			}
-		});
-		document.dispatchEvent(authEvent);
+		document.dispatchEvent(new CustomEvent('user-authenticated', {
+			detail: { user: userWithTheme, persistent }
+		}));
 		
-		setTimeout(() => {
-			Router.refreshAllComponents();
-		}, 100);
+		setTimeout(() => Router.refreshAllComponents(), 100);
 	}
 	
 	/**
 	 * Logout user
 	 */
 	public logout(): void {
-		const oldAuth = { ...this.state.auth };
+		const wasAuthenticated = this.state.auth.isAuthenticated;
 		
 		try {
 			disconnectWebSocket();
 		} catch (error) {
-			NotificationManager.showError("Failed to disconnect WebSocket");
+			NotificationManager.handleError(error);
 		}
 		
 		this.setState({
-			auth: {
-				isAuthenticated: false,
-				user: null,
-				jwtToken: null
-			},
-			accentColor: 'white',
+			auth: { isAuthenticated: false, user: null, jwtToken: null },
+			accentColor: AppStateManager.DEFAULT_ACCENT_NAME,
 			accentColors: {
 				accent1: AppStateManager.DEFAULT_ACCENT_COLOR,
 				accent2: AppStateManager.DEFAULT_ACCENT_COLOR,
@@ -376,13 +327,10 @@ export class AppStateManager {
 			players: {}
 		});
 		
-		localStorage.removeItem('auth_user');
-		sessionStorage.removeItem('auth_user');
-		localStorage.removeItem('jwt_token');
-		sessionStorage.removeItem('jwt_token');
+		this.clearStorageItems();
 		localStorage.removeItem('auth_persistent');
 		
-		if (oldAuth.isAuthenticated) {
+		if (wasAuthenticated) {
 			Router.refreshAllComponents();
 			if (window.location.pathname.includes('/profile')) {
 				window.location.href = '/';
@@ -416,10 +364,7 @@ export class AppStateManager {
 			this.setState({
 				auth: {
 					...this.state.auth,
-					user: {
-						...currentUser,
-						...userData
-					}
+					user: { ...currentUser, ...userData }
 				}
 			});
 		}
@@ -433,10 +378,11 @@ export class AppStateManager {
 	 * Apply the current accent color to CSS variables
 	 */
 	private applyAccentColorToCSS(): void {
-		document.documentElement.style.setProperty('--accent1-color', this.state.accentColors.accent1);
-		document.documentElement.style.setProperty('--accent2-color', this.state.accentColors.accent2);
-		document.documentElement.style.setProperty('--accent3-color', this.state.accentColors.accent3);
-		document.documentElement.style.setProperty('--accent4-color', this.state.accentColors.accent4);
+		const { accent1, accent2, accent3, accent4 } = this.state.accentColors;
+		document.documentElement.style.setProperty('--accent1-color', accent1);
+		document.documentElement.style.setProperty('--accent2-color', accent2);
+		document.documentElement.style.setProperty('--accent3-color', accent3);
+		document.documentElement.style.setProperty('--accent4-color', accent4);
 	}
 	
 	/**
@@ -444,29 +390,23 @@ export class AppStateManager {
 	 * @param colorName The accent color name
 	 */
 	public setAccentColor(colorName: AccentColor): void {
-		if (ACCENT_COLORS[colorName]) {
-			const colorHex = ACCENT_COLORS[colorName];
-			
-			if (this.state.auth.isAuthenticated && this.state.auth.user) {
-				const userId = this.state.auth.user.id;
-				AppStateManager.setUserAccentColor(userId, colorHex);
-				
-				this.setState({
-					accentColor: colorName,
-					accentColors: { ...this.state.accentColors, accent1: colorHex },
-					auth: {
-						...this.state.auth,
-						user: { ...this.state.auth.user, theme: colorHex }
-					}
-				});
-
-			} else {
-				this.setState({
-					accentColor: colorName,
-					accentColors: { ...this.state.accentColors, accent1: colorHex }
-				});
-			}
+		const colorHex = ACCENT_COLORS[colorName];
+		if (!colorHex) return;
+		
+		const newState: Partial<AppState> = {
+			accentColor: colorName,
+			accentColors: { ...this.state.accentColors, accent1: colorHex }
+		};
+		
+		if (this.state.auth.isAuthenticated && this.state.auth.user) {
+			AppStateManager.setUserAccentColor(this.state.auth.user.id, colorHex);
+			newState.auth = {
+				...this.state.auth,
+				user: { ...this.state.auth.user, theme: colorHex }
+			};
 		}
+		
+		this.setState(newState);
 	}
 	
 	/**
@@ -476,18 +416,12 @@ export class AppStateManager {
 	 * @param userId Optional user ID
 	 */
 	public setPlayerAccentColor(playerIndex: number, colorHex: string | undefined, userId?: string): void {
-		if (playerIndex < 1 || playerIndex > 4) {
-			return;
-		}
+		if (playerIndex < 1 || playerIndex > 4) return;
 		
 		const colorToSet = colorHex || AppStateManager.DEFAULT_ACCENT_COLOR;
 		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
-		
 		const newState: Partial<AppState> = {
-			accentColors: {
-				...this.state.accentColors,
-				[accentKey]: colorToSet
-			}
+			accentColors: { ...this.state.accentColors, [accentKey]: colorToSet }
 		};
 
 		if (userId) {
@@ -495,24 +429,29 @@ export class AppStateManager {
 		}
 		
 		if (playerIndex === 1) {
-			const colorName = (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
-				key => ACCENT_COLORS[key].toLowerCase() === colorToSet.toLowerCase()
-			) || 'white';
-			newState.accentColor = colorName;
-
+			newState.accentColor = this.findAccentColorNameByHex(colorToSet);
 			if (this.state.auth.isAuthenticated && this.state.auth.user && (!userId || userId === this.state.auth.user.id)) {
 				newState.auth = {
 					...this.state.auth,
-					user: {
-						...this.state.auth.user,
-						theme: colorToSet
-					}
+					user: { ...this.state.auth.user, theme: colorToSet }
 				};
 			}
 		}
+		
 		this.setState(newState);
 	}
 	
+	/**
+	 * Find accent color name by hex value
+	 * @param hexColor The hex color value
+	 * @returns The accent color name
+	 */
+	private findAccentColorNameByHex(hexColor: string): AccentColor {
+		return (Object.keys(ACCENT_COLORS) as AccentColor[]).find(
+			key => ACCENT_COLORS[key].toLowerCase() === hexColor.toLowerCase()
+		) || AppStateManager.DEFAULT_ACCENT_NAME;
+	}
+
 	/**
 	 * Get current accent color
 	 * @returns The current accent color
@@ -528,17 +467,12 @@ export class AppStateManager {
 	public getAccentColorHex(): string {
 		return ACCENT_COLORS[this.state.accentColor];
 	}
-	
+
 	/**
 	 * Get player accent color for the game session
-	 * @param playerIndex The player index (1-4)
-	 * @returns The player accent color
 	 */
 	public getPlayerAccentColor(playerIndex: number): string {
-		if (playerIndex < 1 || playerIndex > 4) {
-			return AppStateManager.DEFAULT_ACCENT_COLOR;
-		}
-		
+		if (playerIndex < 1 || playerIndex > 4) return AppStateManager.DEFAULT_ACCENT_COLOR;
 		const accentKey = `accent${playerIndex}` as keyof typeof this.state.accentColors;
 		return this.state.accentColors[accentKey] || AppStateManager.DEFAULT_ACCENT_COLOR;
 	}
@@ -573,10 +507,7 @@ export class AppStateManager {
 		this.setState({
 			players: {
 				...this.state.players,
-				[playerId]: {
-					...this.state.players[playerId],
-					username
-				}
+				[playerId]: { ...this.state.players[playerId], username }
 			}
 		});
 	}
@@ -590,10 +521,7 @@ export class AppStateManager {
 		this.setState({
 			players: {
 				...this.state.players,
-				[playerId]: {
-					...this.state.players[playerId],
-					pfp: pfp
-				}
+				[playerId]: { ...this.state.players[playerId], pfp }
 			}
 		});
 	}
@@ -611,7 +539,7 @@ export class AppStateManager {
 		try {
 			return storedColors ? JSON.parse(storedColors) : {};
 		} catch (error) {
-			NotificationManager.showError("Error parsing accent colors from storage");
+			NotificationManager.handleError(error);
 			return {};
 		}
 	}
@@ -634,15 +562,15 @@ export class AppStateManager {
 	 */
 	public static setUserAccentColor(userId: string, colorHex: string): void {
 		if (!userId) return;
+		
 		const colors = AppStateManager.getAllAccentColorsFromStorage();
 		const normalizedColorHex = colorHex.toLowerCase();
 		colors[userId] = normalizedColorHex;
 		localStorage.setItem(AppStateManager.ACCENT_COLOR_STORAGE_KEY, JSON.stringify(colors));
 
-		const event = new CustomEvent('user:theme-updated', {
+		window.dispatchEvent(new CustomEvent('user:theme-updated', {
 			detail: { userId, theme: normalizedColorHex }
-		});
-		window.dispatchEvent(event);
+		}));
 	}
 
 	/**
@@ -652,15 +580,15 @@ export class AppStateManager {
 	 */
 	public static initializeUserAccentColor(userId: string): string {
 		if (!userId) return AppStateManager.DEFAULT_ACCENT_COLOR;
+		
 		const colors = AppStateManager.getAllAccentColorsFromStorage();
 		if (!colors[userId]) {
 			colors[userId] = AppStateManager.DEFAULT_ACCENT_COLOR;
 			localStorage.setItem(AppStateManager.ACCENT_COLOR_STORAGE_KEY, JSON.stringify(colors));
 			
-			const event = new CustomEvent('user:theme-updated', {
+			window.dispatchEvent(new CustomEvent('user:theme-updated', {
 				detail: { userId, theme: AppStateManager.DEFAULT_ACCENT_COLOR }
-			});
-			window.dispatchEvent(event);
+			}));
 			return AppStateManager.DEFAULT_ACCENT_COLOR;
 		}
 		return colors[userId];
