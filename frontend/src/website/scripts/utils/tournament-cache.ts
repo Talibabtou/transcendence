@@ -3,16 +3,6 @@ import { NotificationManager } from '@website/scripts/services';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Interface for game result
- */
-interface GameResult {
-	winner: number;
-	player1Score: number;
-	player2Score: number;
-	matchId?: string;
-}
-
-/**
  * Interface for player match info
  */
 interface PlayerMatchInfo {
