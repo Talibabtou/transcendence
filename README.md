@@ -1,9 +1,9 @@
+<h1 align="center">Transcendence</h1>
+
 <div align="center" id="top"> 
-  <img src="./.github/app.gif" alt="Transcendence" />
+  <img src="./pong.gif" alt="Transcendence" />
   &#xa0;
 </div>
-
-<h1 align="center">Transcendence</h1>
 
 <p align="center">
   <a href="#about">About</a> &#xa0; | &#xa0; 
