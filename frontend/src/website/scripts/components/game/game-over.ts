@@ -32,11 +32,9 @@ export class GameOverComponent extends Component<GameOverState> {
 		this.onBackToMenu = onBackToMenu;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
 		
-		// Store the bound handler reference for proper cleanup
 		this.boundGameOverHandler = this.handleGameOver.bind(this) as EventListener;
 		this.boundResizeHandler = this.handleResize.bind(this) as EventListener;
 		
-		// Listen for game end events
 		window.addEventListener('gameOver', this.boundGameOverHandler);
 		window.addEventListener('resize', this.boundResizeHandler);
 	}
@@ -57,30 +55,7 @@ export class GameOverComponent extends Component<GameOverState> {
 			return;
 		}
 		
-		let canvasWidth: number;
-		let canvasHeight: number;
-
-		const backgroundGameCanvas = document.getElementById('background-game-canvas') as HTMLCanvasElement | null;
-
-		if (backgroundGameCanvas && backgroundGameCanvas.width > 0 && backgroundGameCanvas.height > 0) {
-			canvasWidth = backgroundGameCanvas.width;
-			canvasHeight = backgroundGameCanvas.height;
-		} else {
-			canvasWidth = this.container.clientWidth;
-			canvasHeight = this.container.clientHeight;
-
-			if (canvasWidth === 0 || canvasHeight === 0) {
-				const genericCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
-				if (genericCanvas && genericCanvas.width > 0 && genericCanvas.height > 0) {
-					canvasWidth = genericCanvas.width;
-					canvasHeight = genericCanvas.height;
-				} else if (canvasWidth === 0 || canvasHeight === 0) {
-					canvasWidth = window.innerWidth;
-					canvasHeight = window.innerHeight;
-				}
-			}
-		}
-		
+		const { canvasWidth, canvasHeight } = this.getCanvasDimensions();
 		const ui = calculateUIPositions(canvasWidth, canvasHeight);
 		
 		const content = html`
@@ -124,27 +99,7 @@ export class GameOverComponent extends Component<GameOverState> {
 						</div>
 						<div class="go-winner">${state.winner} Wins!</div>
 						<div class="go-buttons">
-							${state.gameMode === GameMode.TOURNAMENT 
-								? html`
-									<button class="menu-button show-pool-button" 
-											onclick="${() => this.handleShowTournamentSchedule()}">
-										Show Pool
-									</button>
-									<button class="menu-button back-menu-button" 
-											onclick="${() => this.handleBackToMenu()}">
-										Back to Menu
-									</button>
-								`
-								: html`
-									<button class="menu-button play-again-button" 
-											onclick="${() => this.handlePlayAgain()}">
-										Play Again
-									</button>
-									<button class="menu-button back-menu-button" 
-											onclick="${() => this.handleBackToMenu()}">
-										Back to Menu
-									</button>
-								`}
+							${this.renderButtons(state.gameMode)}
 						</div>
 					</div>
 				</div>
@@ -155,21 +110,74 @@ export class GameOverComponent extends Component<GameOverState> {
 	}
 	
 	/**
+	 * Renders the appropriate buttons based on game mode
+	 */
+	private renderButtons(gameMode: GameMode) {
+		return gameMode === GameMode.TOURNAMENT 
+			? html`
+				<button class="menu-button show-pool-button" 
+						onclick="${() => this.handleShowTournamentSchedule()}">
+					Show Pool
+				</button>
+				<button class="menu-button back-menu-button" 
+						onclick="${() => this.handleBackToMenu()}">
+					Back to Menu
+				</button>
+			`
+			: html`
+				<button class="menu-button play-again-button" 
+						onclick="${() => this.handlePlayAgain()}">
+					Play Again
+				</button>
+				<button class="menu-button back-menu-button" 
+						onclick="${() => this.handleBackToMenu()}">
+					Back to Menu
+				</button>
+			`;
+	}
+	
+	/**
+	 * Gets the appropriate canvas dimensions for UI positioning
+	 */
+	private getCanvasDimensions() {
+		const backgroundCanvas = document.getElementById('background-game-canvas') as HTMLCanvasElement | null;
+		
+		if (backgroundCanvas && backgroundCanvas.width > 0 && backgroundCanvas.height > 0) {
+			return { 
+				canvasWidth: backgroundCanvas.width, 
+				canvasHeight: backgroundCanvas.height 
+			};
+		}
+		
+		let canvasWidth = this.container.clientWidth;
+		let canvasHeight = this.container.clientHeight;
+		
+		if (canvasWidth === 0 || canvasHeight === 0) {
+			const genericCanvas = document.querySelector('canvas') as HTMLCanvasElement | null;
+			
+			if (genericCanvas?.width && genericCanvas?.height && genericCanvas.width > 0 && genericCanvas.height > 0) {
+				canvasWidth = genericCanvas.width;
+				canvasHeight = genericCanvas.height;
+			} else {
+				canvasWidth = window.innerWidth;
+				canvasHeight = window.innerHeight;
+			}
+		}
+		
+		return { canvasWidth, canvasHeight };
+	}
+	
+	/**
 	 * Cleans up event listeners and button event handlers when the component is destroyed.
 	 */
 	destroy(): void {
 		window.removeEventListener('gameOver', this.boundGameOverHandler);
 		window.removeEventListener('resize', this.boundResizeHandler);
 		
-		const playAgainButton = this.container.querySelector('.play-again-button');
-		if (playAgainButton) {
-			playAgainButton.replaceWith(playAgainButton.cloneNode(true));
-		}
-		
-		const backMenuButton = this.container.querySelector('.back-menu-button');
-		if (backMenuButton) {
-			backMenuButton.replaceWith(backMenuButton.cloneNode(true));
-		}
+		['play-again-button', 'back-menu-button', 'show-pool-button'].forEach(selector => {
+			const button = this.container.querySelector(`.${selector}`);
+			if (button) button.replaceWith(button.cloneNode(true));
+		});
 		
 		super.destroy();
 	}
@@ -203,16 +211,10 @@ export class GameOverComponent extends Component<GameOverState> {
 		if (this.inTransition) return;
 		
 		this.inTransition = true;
-		
-		this.updateInternalState({
-			...result,
-			visible: true
-		});
-		
+		this.updateInternalState({ ...result, visible: true });
 		this.renderComponent();
-		const gameManager = GameManager.getInstance();
-		gameManager.showBackgroundGame();
 		
+		GameManager.getInstance().showBackgroundGame();
 		this.inTransition = false;
 	}
 	
@@ -231,11 +233,11 @@ export class GameOverComponent extends Component<GameOverState> {
 		const customEvent = event as CustomEvent;
 		if (!customEvent.detail) return;
 		
-		if ((customEvent.detail.matchId === null || customEvent.detail.isBackgroundGame === true) && 
-			this.getInternalState().visible) {
-			return;
-		}
+		const isBackgroundGame = customEvent.detail.isBackgroundGame === true;
+		const isCurrentlyVisible = this.getInternalState().visible;
+		const noMatchId = customEvent.detail.matchId === null;
 		
+		if ((noMatchId || isBackgroundGame) && isCurrentlyVisible) return;
 		if (this.inTransition) return;
 
 		const cachedResult = MatchCache.getLastMatchResult();
@@ -258,45 +260,37 @@ export class GameOverComponent extends Component<GameOverState> {
 	 * Handles the show tournament schedule button click, transitioning to the tournament schedule.
 	 */
 	private handleShowTournamentSchedule(): void {
-		if (!this.inTransition) {
-			this.inTransition = true;
-			this.hide();
-			
-			this.onBackToMenu();
-			
-			setTimeout(() => {
-				if (this.onShowTournamentSchedule) {
-					this.onShowTournamentSchedule();
-				}
-				this.inTransition = false;
-			}, 50);
-		}
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		this.hide();
+		this.onBackToMenu();
+		
+		setTimeout(() => {
+			this.onShowTournamentSchedule?.();
+			this.inTransition = false;
+		}, 50);
 	}
 	
 	/**
 	 * Handles the back to menu button click, transitioning back to the main menu.
 	 */
 	private handleBackToMenu(): void {
-		if (!this.inTransition) {
-			this.inTransition = true;
-			this.onBackToMenu();
-			setTimeout(() => {
-				this.inTransition = false;
-			}, 100);
-		}
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		this.onBackToMenu();
+		setTimeout(() => this.inTransition = false, 100);
 	}
 	
 	/**
 	 * Handles the play again button click, restarting the game in the current game mode.
 	 */
 	private handlePlayAgain(): void {
-		if (!this.inTransition) {
-			this.inTransition = true;
-			const gameInfo = MatchCache.getCurrentGameInfo();
-			this.onPlayAgain(gameInfo.gameMode);
-			setTimeout(() => {
-				this.inTransition = false;
-			}, 100);
-		}
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		this.onPlayAgain(MatchCache.getCurrentGameInfo().gameMode);
+		setTimeout(() => this.inTransition = false, 100);
 	}
 }

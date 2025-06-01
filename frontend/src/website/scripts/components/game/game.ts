@@ -11,6 +11,8 @@ export class GameComponent extends Component<GameComponentState> {
 	private menuComponent: GameMenuComponent | null = null;
 	private gameOverComponent: GameOverComponent | null = null;
 	private canvasComponent: GameCanvasComponent | null = null;
+	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
+	private TournamentComponent: TournamentComponent | null = null;
 
 	private gameContainer: HTMLElement | null = null;
 	private isTransitioning = false;
@@ -18,8 +20,6 @@ export class GameComponent extends Component<GameComponentState> {
 	private readonly MIN_GAME_DURATION_MS = 2000;
 	private gameStartTime = 0;
 	private unsubscribe: (() => void) | null = null;
-	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
-	private TournamentComponent: TournamentComponent | null = null;
 	private lastAuthState: boolean | null = null;
 	
 	constructor(container: HTMLElement) {
@@ -31,12 +31,9 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameManager = GameManager.getInstance();
 		this.lastAuthState = appState.isAuthenticated();
 		
-		this.unsubscribe = appState.subscribe((newState) => {
-			this.handleStateChange(newState);
-		});
+		this.unsubscribe = appState.subscribe(this.handleStateChange.bind(this));
 		
 		this.gameManager.setOnGameOverCallback((result) => {
-			
 			if (this.getInternalState().currentMode === GameMode.TOURNAMENT && this.TournamentComponent) {
 				this.TournamentComponent.processGameResult(
 					result.player1Score,
@@ -44,7 +41,6 @@ export class GameComponent extends Component<GameComponentState> {
 					result.matchId
 				);
 			}
-			
 			this.updateGameState(GameState.GAME_OVER);
 		});
 	}
@@ -64,9 +60,7 @@ export class GameComponent extends Component<GameComponentState> {
 		this.gameContainer.style.position = "relative";
 		this.container.appendChild(this.gameContainer);
 		this.initializeComponents();
-		if (this.menuComponent) {
-			this.menuComponent.show();
-		}
+		this.menuComponent?.show();
 	}
 	
 	/**
@@ -75,25 +69,23 @@ export class GameComponent extends Component<GameComponentState> {
 	 * and calling the parent destroy method.
 	 */
 	destroy(): void {
-		if (this.unsubscribe) {
-			this.unsubscribe();
-		}
-		if (this.canvasComponent) {
-			this.canvasComponent.stopGame();
-		}
+		this.unsubscribe?.();
+		this.canvasComponent?.stopGame();
 		this.gameManager.showBackgroundGame();
-		if (this.menuComponent) {
-			this.menuComponent.destroy();
-			this.menuComponent = null;
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-			this.gameOverComponent = null;
-		}
-		if (this.canvasComponent) {
-			this.canvasComponent.destroy();
-			this.canvasComponent = null;
-		}
+		
+		[this.menuComponent, this.gameOverComponent, this.canvasComponent, 
+		 this.playerRegistrationComponent, this.TournamentComponent].forEach(component => {
+			if (component) {
+				component.destroy();
+			}
+		});
+		
+		this.menuComponent = null;
+		this.gameOverComponent = null;
+		this.canvasComponent = null;
+		this.playerRegistrationComponent = null;
+		this.TournamentComponent = null;
+		
 		this.stopGameStateMonitoring();
 		super.destroy();
 	}
@@ -107,30 +99,31 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private initializeComponents(): void {
 		if (!this.gameContainer) return;
-		if (this.menuComponent) {
-			this.menuComponent.destroy();
-			this.menuComponent = null;
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-			this.gameOverComponent = null;
-		}
-		if (this.canvasComponent) {
-			this.canvasComponent.destroy();
-			this.canvasComponent = null;
-		}
+		
+		[this.menuComponent, this.gameOverComponent, this.canvasComponent].forEach(component => {
+			if (component) {
+				component.destroy();
+			}
+		});
+		
+		this.menuComponent = null;
+		this.gameOverComponent = null;
+		this.canvasComponent = null;
+		
 		this.menuComponent = new GameMenuComponent(
 			this.gameContainer,
 			this.handleModeSelected.bind(this),
 			this.handleTournamentRestored.bind(this),
 			this.handleShowTournamentSchedule.bind(this)
 		);
+		
 		this.gameOverComponent = new GameOverComponent(
 			this.gameContainer,
 			this.handlePlayAgain.bind(this),
 			this.handleBackToMenu.bind(this),
 			this.handleShowTournamentSchedule.bind(this)
 		);
+		
 		this.canvasComponent = new GameCanvasComponent(this.gameContainer);
 	}
 	
@@ -145,42 +138,32 @@ export class GameComponent extends Component<GameComponentState> {
 	private updateGameState(newState: GameState): void {
 		const state = this.getInternalState();
 		if (state.currentState === newState) return;
-		this.updateInternalState({
-			currentState: newState
-		});
-		switch (newState) {
-			case GameState.MENU:
-				this.showMenu();
-				break;
-			case GameState.PLAYER_REGISTRATION:
-				this.showPlayerRegistration();
-				break;
-			case GameState.TOURNAMENT:
-				this.showTournamentTransition();
-				break;
-			case GameState.PLAYING:
-				this.startPlaying();
-				break;
-			case GameState.GAME_OVER:
-				this.showGameOver();
-				break;
-		}
+		
+		this.updateInternalState({ currentState: newState });
+		
+		const stateHandlers = {
+			[GameState.MENU]: this.showMenu,
+			[GameState.PLAYER_REGISTRATION]: this.showPlayerRegistration,
+			[GameState.TOURNAMENT]: this.showTournamentTransition,
+			[GameState.PLAYING]: this.startPlaying,
+			[GameState.GAME_OVER]: this.showGameOver
+		};
+		
+		stateHandlers[newState].call(this);
 	}
 	
 	/**
 	 * Shows the game menu and handles related state changes.
 	 */
 	private showMenu(): void {
-		if (this.canvasComponent) {
-			this.canvasComponent.stopGame();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		this.canvasComponent?.stopGame();
+		this.gameOverComponent?.hide();
+		
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
 			this.menuComponent = null;
 		}
+		
 		if (this.gameContainer) {
 			this.menuComponent = new GameMenuComponent(
 				this.gameContainer,
@@ -192,6 +175,7 @@ export class GameComponent extends Component<GameComponentState> {
 		} else {
 			NotificationManager.showError('Game container not found, cannot create menu.');
 		}
+		
 		this.gameManager.showBackgroundGame();
 		this.stopGameStateMonitoring();
 	}
@@ -204,37 +188,33 @@ export class GameComponent extends Component<GameComponentState> {
 		const currentUser = appState.getCurrentUser();
 		const playerName = currentUser?.username || 'Player 1';
 		const playerColor = appState.getAccentColorHex() || '#ffffff';
+		
 		if (state.currentMode === GameMode.SINGLE && (!state.playerIds || state.playerIds.length === 0)) {
-			if (currentUser && currentUser.id) {
-				state.playerIds = [currentUser.id];
-			}
+			if (currentUser?.id) state.playerIds = [currentUser.id];
 		}
-		if (this.menuComponent) {
-			this.menuComponent.hide();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		
+		this.menuComponent?.hide();
+		this.gameOverComponent?.hide();
 		this.gameManager.hideBackgroundGame();
+		
 		if (!this.canvasComponent) {
-			if (this.gameContainer) {
-				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
-				this.canvasComponent.render();
-			} else {
+			if (!this.gameContainer) {
 				NotificationManager.showError('Game container not available');
 				return;
 			}
-		} else {
-			this.canvasComponent.render();
+			this.canvasComponent = new GameCanvasComponent(this.gameContainer);
 		}
+		
+		this.canvasComponent.render();
+		
 		if (this.canvasComponent) {
 			const playerNames = state.playerNames || [playerName];
 			const playerColors = state.playerColors || [playerColor];
 			
 			const playerInfo: any = {
 				playerIds: state.playerIds,
-				playerNames: playerNames,
-				playerColors: playerColors
+				playerNames,
+				playerColors
 			};
 			
 			if (state.currentMode === GameMode.TOURNAMENT) {
@@ -247,6 +227,7 @@ export class GameComponent extends Component<GameComponentState> {
 			
 			this.canvasComponent.startGame(state.currentMode, playerInfo);
 		}
+		
 		this.startGameStateMonitoring();
 	}
 	
@@ -256,27 +237,26 @@ export class GameComponent extends Component<GameComponentState> {
 	private showGameOver(): void {
 		const cachedResult = MatchCache.getLastMatchResult();
 		const gameInfo = MatchCache.getCurrentGameInfo();
+		
 		if (!cachedResult) {
 			NotificationManager.showError('No game result found in cache');
 			return;
 		}
-		if (this.canvasComponent) {
-			const gameEngine = this.canvasComponent.getEngine();
-			if (gameEngine && !gameEngine.isGamePaused()) {
-				gameEngine.togglePause();
-			}
+		
+		const gameEngine = this.canvasComponent?.getEngine();
+		if (gameEngine && !gameEngine.isGamePaused()) {
+			gameEngine.togglePause();
 		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.showGameResult({
-				winner: cachedResult.winner || 'Unknown',
-				gameMode: gameInfo.gameMode,
-				player1Name: cachedResult.player1Name || 'Player 1',
-				player2Name: cachedResult.player2Name || 'Player 2',
-				player1Score: cachedResult.player1Score || 0,
-				player2Score: cachedResult.player2Score || 0,
-				matchId: cachedResult.matchId
-			});
-		}
+		
+		this.gameOverComponent?.showGameResult({
+			winner: cachedResult.winner || 'Unknown',
+			gameMode: gameInfo.gameMode,
+			player1Name: cachedResult.player1Name || 'Player 1',
+			player2Name: cachedResult.player2Name || 'Player 2',
+			player1Score: cachedResult.player1Score || 0,
+			player2Score: cachedResult.player2Score || 0,
+			matchId: cachedResult.matchId
+		});
 	}
 
 	// =========================================
@@ -293,25 +273,24 @@ export class GameComponent extends Component<GameComponentState> {
 			this.updateGameState(GameState.MENU);
 			return;
 		}
+		
 		this.updateInternalState({ currentMode: mode });
-		if (mode === GameMode.MULTI || mode === GameMode.TOURNAMENT) {
-			this.updateGameState(GameState.PLAYER_REGISTRATION);
-		} else {
-			this.updateGameState(GameState.PLAYING);
-		}
+		this.updateGameState(
+			mode === GameMode.SINGLE ? 
+			GameState.PLAYING : 
+			GameState.PLAYER_REGISTRATION
+		);
 	}
 
 	/**
 	 * Handles play again button from game over screen.
 	 */
 	private handlePlayAgain(mode: GameMode): void {
-		if (this.isTransitioning === true) {
-			return;
-		}
+		if (this.isTransitioning) return;
+		
 		this.stopGameStateMonitoring();
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		this.gameOverComponent?.hide();
+		
 		const gameInfo = MatchCache.getCurrentGameInfo();
 		this.updateInternalState({ 
 			currentMode: mode,
@@ -319,49 +298,43 @@ export class GameComponent extends Component<GameComponentState> {
 			playerNames: gameInfo.playerNames,
 			playerColors: gameInfo.playerColors
 		});
+		
 		const needsCleanup = this.canvasComponent && this.gameManager.isMainGameActive();
-		let startSequence: Promise<void>;
-		if (needsCleanup) {
-			startSequence = this.cleanupCurrentGame();
-		} else {
-			startSequence = Promise.resolve();
-		}
+		const startSequence = needsCleanup ? this.cleanupCurrentGame() : Promise.resolve();
+		
 		startSequence
 			.then(() => {
-				const gameManager = GameManager.getInstance();
-				gameManager.hideBackgroundGame();
+				this.gameManager.hideBackgroundGame();
 				return this.startNewGame(mode);
 			})
 			.catch(error => {
 				NotificationManager.showError('Error restarting game: ' + error);
 				this.updateGameState(GameState.MENU);
 			})
-			.finally(() => {
-				setTimeout(() => {
-					this.isTransitioning = false;
-				}, 500);
-			});
+			.finally(() => setTimeout(() => this.isTransitioning = false, 500));
 	}
 
 	/**
 	 * Handles back to menu button from game over screen.
 	 */
 	private handleBackToMenu(): void {
-		if (this.isTransitioning) {
-			return;
-		}
+		if (this.isTransitioning) return;
+		
 		this.isTransitioning = true;
 		this.stopGameStateMonitoring();
 		MatchCache.clearCache();
+		
 		if (this.TournamentComponent) {
 			this.TournamentComponent.hide();
 			this.TournamentComponent.destroy();
 			this.TournamentComponent = null;
 		}
+		
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
 			this.menuComponent = null;
 		}
+		
 		this.cleanupCurrentGame()
 			.then(() => {
 				if (this.gameContainer) {
@@ -372,20 +345,15 @@ export class GameComponent extends Component<GameComponentState> {
 						this.handleShowTournamentSchedule.bind(this)
 					);
 				}
-				this.updateInternalState({
-					currentState: GameState.MENU
-				});
-				if (this.menuComponent) {
-					this.menuComponent.show();
-				}
+				
+				this.updateInternalState({ currentState: GameState.MENU });
+				this.menuComponent?.show();
 			})
 			.catch(error => {
 				NotificationManager.showError('Error returning to menu: ' + error);
 				this.forceMenuState();
 			})
-			.finally(() => {
-				this.isTransitioning = false;
-			});
+			.finally(() => this.isTransitioning = false);
 	}
 
 	/**
@@ -394,12 +362,8 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private cleanupCurrentGame(): Promise<void> {
 		return new Promise<void>((resolve) => {
-			if (this.canvasComponent) {
-				this.canvasComponent.stopGame();
-			}
-			if (this.gameOverComponent) {
-				this.gameOverComponent.hide();
-			}
+			this.canvasComponent?.stopGame();
+			this.gameOverComponent?.hide();
 			setTimeout(resolve, 100);
 		});
 	}
@@ -411,14 +375,17 @@ export class GameComponent extends Component<GameComponentState> {
 	private startNewGame(mode: GameMode): Promise<void> {
 		return new Promise<void>((resolve) => {
 			this.updateInternalState({ currentMode: mode });
+			
 			if (!this.canvasComponent && this.gameContainer) {
 				this.canvasComponent = new GameCanvasComponent(this.gameContainer);
 			}
+			
 			if (this.canvasComponent) {
 				this.canvasComponent.render();
 			} else {
 				NotificationManager.showError('Failed to create canvas component');
 			}
+			
 			this.updateGameState(GameState.PLAYING);
 			this.gameStartTime = Date.now();
 			setTimeout(resolve, 200);
@@ -433,13 +400,14 @@ export class GameComponent extends Component<GameComponentState> {
 			this.canvasComponent.destroy();
 			this.canvasComponent = null;
 		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.hide();
-		}
+		
+		this.gameOverComponent?.hide();
+		
 		if (this.menuComponent) {
 			this.menuComponent.destroy();
 			this.menuComponent = null;
 		}
+		
 		if (this.gameContainer) {
 			this.menuComponent = new GameMenuComponent(
 				this.gameContainer,
@@ -448,13 +416,10 @@ export class GameComponent extends Component<GameComponentState> {
 				this.handleShowTournamentSchedule.bind(this)
 			);
 		}
+		
 		this.gameManager.showBackgroundGame();
-		this.updateInternalState({
-			currentState: GameState.MENU
-		});
-		if (this.menuComponent) {
-			this.menuComponent.show();
-		}
+		this.updateInternalState({ currentState: GameState.MENU });
+		this.menuComponent?.show();
 	}
 
 	// =========================================
@@ -467,12 +432,14 @@ export class GameComponent extends Component<GameComponentState> {
 	private startGameStateMonitoring(): void {
 		this.stopGameStateMonitoring();
 		this.lastGameOverCheck = Date.now();
+		
 		this.gameStateInterval = window.setInterval(() => {
 			if (!this.canvasComponent) return;
+			
 			const now = Date.now();
 			const gameElapsedTime = now - this.gameStartTime;
-			if (gameElapsedTime < this.MIN_GAME_DURATION_MS || 
-				(now - this.lastGameOverCheck) < 1000) {
+			
+			if (gameElapsedTime < this.MIN_GAME_DURATION_MS || (now - this.lastGameOverCheck) < 1000) {
 				return;
 			}
 			this.lastGameOverCheck = now;
@@ -512,24 +479,18 @@ export class GameComponent extends Component<GameComponentState> {
 			this.renderComponent();
 		}
 		
-		// Don't destroy game during tournament when switching tabs
 		const state = this.getInternalState();
+		const engine = this.canvasComponent?.getEngine();
+		
+
 		if ('isPlaying' in newState && !newState.isPlaying && 
-			state.currentMode === GameMode.TOURNAMENT && 
-			this.canvasComponent && this.canvasComponent.getEngine()) {
-			// Pause the game but don't destroy it
-			const engine = this.canvasComponent.getEngine();
-			if (engine && !engine.isGamePaused()) {
-				engine.requestPause();
-			}
+			state.currentMode === GameMode.TOURNAMENT && engine) {
+			if (!engine.isGamePaused()) engine.requestPause();
 			return;
 		}
 		
-		if ('accentColor' in newState) {
-			const accentColorHex = appState.getAccentColorHex();
-			if (this.gameManager.isMainGameActive()) {
-				this.gameManager.updateMainGamePlayerColor(accentColorHex);
-			}
+		if ('accentColor' in newState && this.gameManager.isMainGameActive()) {
+			this.gameManager.updateMainGamePlayerColor(appState.getAccentColorHex());
 		}
 	}
 
@@ -538,24 +499,19 @@ export class GameComponent extends Component<GameComponentState> {
 	 * Called by the router when returning from auth cancellation.
 	 */
 	public resetToMenu(): void {
-		// Reset container styles to avoid layout issues
-		if (this.container) {
-			this.container.style.height = "";
-		}
+		if (this.container) this.container.style.height = "";
 		
 		if (this.gameContainer) {
-			// Reset game container styles
 			this.gameContainer.style.position = "relative";
 			this.gameContainer.style.height = "";
 		}
 		
-		// Force a full recreation of components
 		this.initializeComponents();
 		this.updateGameState(GameState.MENU);
 	}
 
 	// =========================================
-	// NEW METHODS FOR GAME COMPONENT
+	// PLAYER REGISTRATION METHODS
 	// =========================================
 
 	/**
@@ -563,12 +519,10 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private showPlayerRegistration(): void {
 		const state = this.getInternalState();
-		if (this.menuComponent) {
-			this.menuComponent.hide();
-		}
-		if (this.gameOverComponent) {
-			this.gameOverComponent.destroy();
-		}
+		
+		this.menuComponent?.hide();
+		this.gameOverComponent?.destroy();
+		
 		if (this.playerRegistrationComponent) {
 			this.playerRegistrationComponent.destroy();
 			this.playerRegistrationComponent = null;
@@ -592,15 +546,15 @@ export class GameComponent extends Component<GameComponentState> {
 	 * @param playerColors - The player colors
 	 */
 	private handlePlayersRegistered(playerIds: string[], playerNames: string[], playerColors: string[]): void {
-		if (this.isTransitioning) {
-			return;
-		}
+		if (this.isTransitioning) return;
+		
 		this.isTransitioning = true;
 		this.updateInternalState({
-			playerIds: playerIds,
-			playerNames: playerNames,
-			playerColors: playerColors
+			playerIds,
+			playerNames,
+			playerColors
 		});
+		
 		if (this.playerRegistrationComponent) {
 			this.playerRegistrationComponent.destroy();
 			this.playerRegistrationComponent = null;
@@ -617,6 +571,10 @@ export class GameComponent extends Component<GameComponentState> {
 		}
 	}
 
+	// =========================================
+	// TOURNAMENT METHODS
+	// =========================================
+
 	/**
 	 * Handles the tournament transition screen.
 	 */
@@ -629,6 +587,7 @@ export class GameComponent extends Component<GameComponentState> {
 					this.handleBackToMenu.bind(this)
 				);
 			}
+			
 			const phase = TournamentCache.getTournamentPhase();
 			if (this.TournamentComponent) {
 				if (phase === 'complete') {
@@ -637,6 +596,7 @@ export class GameComponent extends Component<GameComponentState> {
 					this.TournamentComponent.showTournamentSchedule();
 				}
 			}
+			
 			this.isTransitioning = false;
 		}, 50);
 	}
@@ -646,12 +606,14 @@ export class GameComponent extends Component<GameComponentState> {
 	 */
 	private handleTournamentContinue(): void {
 		if (!this.TournamentComponent) return;
+		
 		try {
 			const playerInfo = this.TournamentComponent.handleContinue();
 			if (!playerInfo) {
 				this.handleBackToMenu();
 				return;
 			}
+			
 			this.updateInternalState({
 				playerIds: playerInfo.playerIds,
 				playerNames: playerInfo.playerNames,
@@ -659,7 +621,7 @@ export class GameComponent extends Component<GameComponentState> {
 				tournamentId: playerInfo.tournamentId,
 				isFinal: playerInfo.isFinal
 			});
-			console.log(`GameComponent.handleTournamentContinue - isFinal:`, playerInfo.isFinal);
+			
 			this.updateGameState(GameState.PLAYING);
 		} catch (error) {
 			if (error instanceof Error) {
@@ -690,29 +652,5 @@ export class GameComponent extends Component<GameComponentState> {
 	private handleTournamentRestored(): void {
 		this.updateInternalState({ currentMode: GameMode.TOURNAMENT });
 		this.updateGameState(GameState.TOURNAMENT);
-	}
-
-	/**
-	 * Public method to resume the game state when navigating back to it.
-	 * Called by the router when returning to a game in progress.
-	 */
-	public resumeGameIfPaused(): void {
-		if (!this.canvasComponent) return;
-		
-		const engine = this.canvasComponent.getEngine();
-		if (engine && engine.isGamePaused()) {
-			// Let the user decide to unpause
-			NotificationManager.showInfo("Game is paused. Press 'P' to resume.");
-		}
-		
-		// Make sure the game container is visible
-		if (this.gameContainer) {
-			this.gameContainer.style.display = 'block';
-		}
-		
-		// Ensure canvas is properly sized
-		if (this.canvasComponent) {
-			this.canvasComponent.render();
-		}
 	}
 }

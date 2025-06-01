@@ -78,7 +78,9 @@ $ cd transcendence
 # Run the Makefile to launch the project
 $ make
 
-# The server will initialize in the <https://localhost:8043>
+# Website will initialize in the <https://localhost:8048>
+# Swagger will initialize in the <https://localhost:8085/documentation>
+# Grafana will initialize in the <https://localhost:8081>
 ```
 
 &#xa0;

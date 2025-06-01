@@ -7,6 +7,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	private onModeSelected: (mode: GameMode) => void;
 	private onTournamentRestored: () => void;
 	private onShowTournamentSchedule: () => void;
+	private boundAuthHandler: EventListener;
 	
 	/**
 	 * Creates a new game menu component
@@ -29,11 +30,12 @@ export class GameMenuComponent extends Component<GameMenuState> {
 		this.onModeSelected = onModeSelected;
 		this.onTournamentRestored = onTournamentRestored;
 		this.onShowTournamentSchedule = onShowTournamentSchedule;
+		this.boundAuthHandler = this.handleAuthStateChange.bind(this);
 		
 		this.checkAuthentication();
 		
-		document.addEventListener('user-logout', this.handleAuthStateChange.bind(this));
-		document.addEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
+		document.addEventListener('user-logout', this.boundAuthHandler);
+		document.addEventListener('user-authenticated', this.boundAuthHandler);
 	}
 	
 	// =========================================
@@ -50,56 +52,65 @@ export class GameMenuComponent extends Component<GameMenuState> {
 			return;
 		}
 		
-		let menuContent;
-		
-		if (state.isAuthenticated) {
-			menuContent = html`
-				<div id="game-menu" class="game-menu">
-					<div class="ascii-title">
-						<pre class="pong-title">${ASCII_ART.PONG}</pre>
-					</div>
-					<div class="menu-buttons">
-						<button class="menu-button" 
-								onclick="${() => this.handleModeSelection(GameMode.SINGLE)}">
-							Single Player
-						</button>
-						<button class="menu-button" 
-								onclick="${() => this.handleModeSelection(GameMode.MULTI)}">
-							Multiplayer
-						</button>
-						<button class="menu-button" 
-								onclick="${() => this.handleModeSelection(GameMode.TOURNAMENT)}">
-							Tournament
-						</button>
-					</div>
-				</div>
-			`;
-		} else {
-			menuContent = html`
-				<div id="game-menu" class="game-menu">
-					<div class="ascii-title">
-						<pre class="pong-title">${ASCII_ART.PONG}</pre>
-					</div>
-					<div class="menu-buttons">
-						<button class="menu-button auth-trigger" 
-								onclick="${() => this.showAuthComponent()}">
-							Connect to Play
-						</button>
-					</div>
-				</div>
-			`;
-		}
+		const menuContent = state.isAuthenticated 
+			? this.renderAuthenticatedMenu() 
+			: this.renderUnauthenticatedMenu();
 		
 		render(menuContent, this.container);
+	}
+	
+	/**
+	 * Renders menu for authenticated users
+	 */
+	private renderAuthenticatedMenu() {
+		return html`
+			<div id="game-menu" class="game-menu">
+				<div class="ascii-title">
+					<pre class="pong-title">${ASCII_ART.PONG}</pre>
+				</div>
+				<div class="menu-buttons">
+					<button class="menu-button" 
+							onclick="${() => this.handleModeSelection(GameMode.SINGLE)}">
+						Single Player
+					</button>
+					<button class="menu-button" 
+							onclick="${() => this.handleModeSelection(GameMode.MULTI)}">
+						Multiplayer
+					</button>
+					<button class="menu-button" 
+							onclick="${() => this.handleModeSelection(GameMode.TOURNAMENT)}">
+						Tournament
+					</button>
+				</div>
+			</div>
+		`;
+	}
+	
+	/**
+	 * Renders menu for unauthenticated users
+	 */
+	private renderUnauthenticatedMenu() {
+		return html`
+			<div id="game-menu" class="game-menu">
+				<div class="ascii-title">
+					<pre class="pong-title">${ASCII_ART.PONG}</pre>
+				</div>
+				<div class="menu-buttons">
+					<button class="menu-button auth-trigger" 
+							onclick="${() => this.showAuthComponent()}">
+						Connect to Play
+					</button>
+				</div>
+			</div>
+		`;
 	}
 	
 	/**
 	 * Cleans up resources used by the component
 	 */
 	destroy(): void {
-		document.removeEventListener('user-logout', this.handleAuthStateChange.bind(this));
-		document.removeEventListener('user-authenticated', this.handleAuthStateChange.bind(this));
-		
+		document.removeEventListener('user-logout', this.boundAuthHandler);
+		document.removeEventListener('user-authenticated', this.boundAuthHandler);
 		super.destroy();
 	}
 	
@@ -111,13 +122,8 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 * Checks if the user is authenticated
 	 */
 	private checkAuthentication(): void {
-		const localUser = localStorage.getItem('auth_user');
-		const sessionUser = sessionStorage.getItem('auth_user');
-		const storedUser = localUser || sessionUser;
-		
-		this.updateInternalState({
-			isAuthenticated: !!storedUser
-		});
+		const storedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
+		this.updateInternalState({ isAuthenticated: !!storedUser });
 	}
 	
 	/**
@@ -133,12 +139,7 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	 */
 	private showAuthComponent(): void {
 		this.hide();
-		
-		navigate('/auth', { 
-			state: { 
-				returnTo: '/game' 
-			}
-		});
+		navigate('/auth', { state: { returnTo: '/game' } });
 	}
 	
 	// =========================================
@@ -172,27 +173,23 @@ export class GameMenuComponent extends Component<GameMenuState> {
 	private handleModeSelection(mode: GameMode): void {
 		if (mode === GameMode.TOURNAMENT) {
 			const hasRestoredTournament = TournamentCache.restoreFromLocalStorage();
+			
 			if (hasRestoredTournament) {
-				const localUser = localStorage.getItem('auth_user');
-				const sessionUser = sessionStorage.getItem('auth_user');
-				const storedUser = localUser || sessionUser;
+				const storedUser = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
 				let currentUserId: string | null = null;
 				
 				if (storedUser) {
-					const user = JSON.parse(storedUser);
-					currentUserId = user.id;
+					currentUserId = JSON.parse(storedUser).id;
 				}
 				
-				if (currentUserId !== null && isUserInCurrentTournament(currentUserId)) {
+				if (currentUserId && isUserInCurrentTournament(currentUserId)) {
 					this.onShowTournamentSchedule();
 					this.onTournamentRestored();
-					return;
-				} else {
-					this.onModeSelected(mode);
 					return;
 				}
 			}
 		}
+		
 		this.onModeSelected(mode);
 	}
 }

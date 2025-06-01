@@ -66,7 +66,6 @@ export class DbService {
 	 */
 	private static async handleApiResponse<T>(response: Response): Promise<T> {
 		if (response.status >= 400) {
-			console.log('response', response.url);
 			const errorData = await response.json();
 			if (response.status === 403) {
 				const { appState } = await import('../utils/app-state');
@@ -171,8 +170,6 @@ export class DbService {
 	 * @returns Promise resolving to authentication response with user data and token
 	 */
 	static async register(userData: IAddUser): Promise<AuthResponse> {
-		console.log('userData', userData);
-		console.log('AUTH ENDPOINT', AUTH.REGISTER);
 		this.logRequest('POST', `${AUTH.REGISTER}`, {
 			username: userData.username,
 			email: userData.email,
@@ -606,8 +603,8 @@ export class DbService {
 	 * @returns Promise resolving to FinalResultObject containing finalist player IDs
 	 */
 	static async getTournamentFinalists(tournamentId: string): Promise<any> {
-		this.logRequest('GET', `${GAME.TOURNAMENT.FINALE(tournamentId)}`);
-		return this.fetchApi<any>(`${GAME.TOURNAMENT.FINALE(tournamentId)}`);
+		this.logRequest('GET', `${GAME.TOURNAMENT.FINALS(tournamentId)}`);
+		return this.fetchApi<any>(`${GAME.TOURNAMENT.FINALS(tournamentId)}`);
 	}
 
 	/**

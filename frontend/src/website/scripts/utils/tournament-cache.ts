@@ -121,12 +121,6 @@ class TournamentCacheSingleton {
 			
 			this.tournamentPhase = 'pool';
 			
-			console.log('Tournament initialized:', { 
-				players: this.tournamentPlayers,
-				matches: this.tournamentMatches,
-				phase: this.tournamentPhase
-			});
-			
 			this.saveToLocalStorage();
 		} catch (error) {
 			NotificationManager.handleError(error);
@@ -214,8 +208,6 @@ class TournamentCacheSingleton {
 	 */
 	public setCurrentMatchIndex(index: number): void {
 		try {
-			console.log('Setting current match index to:', index);
-			
 			this.tournamentMatches.forEach(match => {
 				match.isCurrent = false;
 			});
@@ -223,7 +215,6 @@ class TournamentCacheSingleton {
 			if (index >= 0 && index < this.tournamentMatches.length) {
 				this.currentMatchIndex = index;
 				this.tournamentMatches[index].isCurrent = true;
-				console.log('Current match set:', this.tournamentMatches[index]);
 			}
 		} catch (error) {
 			NotificationManager.handleError(error);

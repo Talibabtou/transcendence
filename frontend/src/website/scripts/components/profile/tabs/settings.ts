@@ -262,8 +262,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						if (toggle) toggle.checked = twoFactorEnabled;
 					}, 0);
 				})
-				.catch(err => {
-					console.warn('Error fetching user data:', err);
+				.catch(() => {
+					NotificationManager.showError('Error fetching user data');
 				});
 			}
 		} else if (userAccentColor !== currentComponentState.profile?.preferences?.accentColor) {
@@ -797,7 +797,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				}
 			});
 		} catch (err) {
-			console.warn('Error refreshing settings data:', err);
+			NotificationManager.showError('Error refreshing settings data');
 		}
 		this.dataLoadInProgress = false;
 	}

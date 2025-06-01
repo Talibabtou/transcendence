@@ -7,6 +7,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	private onContinue: () => void;
 	private onBackToMenu: () => void;
 	private inTransition: boolean = false;
+	private boundCancellationHandler: EventListener;
 	
 	constructor(
 		container: HTMLElement,
@@ -21,11 +22,9 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		
 		this.onContinue = onContinue;
 		this.onBackToMenu = onBackToMenu;
+		this.boundCancellationHandler = this.handleCancelTournament.bind(this) as EventListener;
 		
-		// Listen for tournament cancellation events
-		document.addEventListener('tournament-cancelled', () => {
-			this.handleCancelTournament();
-		});
+		document.addEventListener('tournament-cancelled', this.boundCancellationHandler);
 	}
 	
 	// =========================================
@@ -47,9 +46,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		
 		const phase = TournamentCache.getTournamentPhase();
 		if (phase === 'complete' && state.currentScreen !== 'winner') {
-			this.updateInternalState({
-				currentScreen: 'winner'
-			});
+			this.updateInternalState({ currentScreen: 'winner' });
 			setTimeout(() => this.render(), 0);
 			return;
 		}
@@ -68,51 +65,58 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	 * @returns HTML template for the tournament schedule
 	 */
 	private renderTournamentSchedule(): any {
-		// Normal synchronous render without awaits
 		const schedule = TournamentCache.getTournamentSchedule();
 		const phase = TournamentCache.getTournamentPhase();
 		const nextGame = TournamentCache.getNextGameInfo();
 		
-		let buttonText = 'Start First Match';
-		if (phase === 'pool' && nextGame?.matchIndex !== undefined && nextGame.matchIndex > 0) {
-			buttonText = 'Next Match';
-		} else if (phase === 'finals') {
-			buttonText = 'Start Finals';
-		}
+		const buttonText = this.getContinueButtonText(phase, nextGame);
+		const matchesList = this.renderMatchesList(schedule, phase);
 		
-		const matchesList = schedule.map((match, index) => {
-			let statusClass = '';
+		return html`
+			<button class="back-button nav-item" onclick="${() => this.handleBackToMenu()}">
+				← Back
+			</button>
 			
-			if (match.isComplete) {
-				statusClass = 'match-complete';
-			} else if (match.isCurrent) {
-				statusClass = 'match-current';
-			} else if (match.isFinals && (phase === 'pool')) {
-				statusClass = 'match-pending-finals';
-			}
+			<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
+				Cancel
+			</button>
 			
-			let player1Class = '';
-			let player2Class = '';
+			<div class="ascii-title-container ascii-title-tournament">
+				<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALS : ASCII_ART.POOL}</div>
+			</div>
 			
-			let player1Score = 0;
-			let player2Score = 0;
+			<div class="tournament-matches-list">
+				${matchesList}
+			</div>
 			
-			if (match.isComplete) {
-				player1Score = match.player1Score || 0;
-				player2Score = match.player2Score || 0;
-				
-				if (player1Score > player2Score) {
-					player1Class = 'winner-name';
-					player2Class = 'loser-name';
-				} else {
-					player1Class = 'loser-name';
-					player2Class = 'winner-name';
-				}
-			}
+			<div class="tournament-controls">
+				<button class="menu-button continue-button" onclick="${() => this.handleContinueButton()}">
+					${buttonText}
+				</button>
+			</div>
+		`;
+	}
+	
+	/**
+	 * Gets the text for the continue button based on tournament phase
+	 */
+	private getContinueButtonText(phase: string, nextGame: any): string {
+		if (phase === 'finals') return 'Start Finals';
+		if (phase === 'pool' && nextGame?.matchIndex !== undefined && nextGame.matchIndex > 0) return 'Next Match';
+		return 'Start First Match';
+	}
+	
+	/**
+	 * Renders the list of matches for the tournament schedule
+	 */
+	private renderMatchesList(schedule: any[], phase: string) {
+		return schedule.map((match, index) => {
+			const statusClass = this.getMatchStatusClass(match, phase);
+			const { player1Class, player2Class, player1Score, player2Score } = this.getPlayerClassesAndScores(match);
 			
 			return html`
 				<div class="tournament-match ${statusClass} ${match.isFinals ? 'finale-match' : ''}">
-					<div class="match-number">${match.isFinals ? 'FINALE' : `Match ${index + 1}`}</div>
+					<div class="match-number">${match.isFinals ? 'FINALS' : `Match ${index + 1}`}</div>
 					<div class="match-players">
 						<div class="match-player match-player-left ${player1Class}">
 							${match.player1Name}
@@ -128,30 +132,41 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				</div>
 			`;
 		});
+	}
+	
+	/**
+	 * Gets the status class for a match
+	 */
+	private getMatchStatusClass(match: any, phase: string): string {
+		if (match.isComplete) return 'match-complete';
+		if (match.isCurrent) return 'match-current';
+		if (match.isFinals && phase === 'pool') return 'match-pending-finals';
+		return '';
+	}
+	
+	/**
+	 * Gets the player classes and scores for a match
+	 */
+	private getPlayerClassesAndScores(match: any) {
+		let player1Class = '';
+		let player2Class = '';
+		let player1Score = 0;
+		let player2Score = 0;
 		
-		return html`
-			<button class="back-button nav-item" onclick="${() => this.handleBackToMenu()}">
-				← Back
-			</button>
+		if (match.isComplete) {
+			player1Score = match.player1Score || 0;
+			player2Score = match.player2Score || 0;
 			
-			<button class="cancel-button" onclick="${() => this.handleCancelTournament()}">
-				Cancel
-			</button>
-			
-			<div class="ascii-title-container ascii-title-tournament">
-				<div class="ascii-title">${phase === 'finals' ? ASCII_ART.FINALE : ASCII_ART.POOL}</div>
-			</div>
-			
-			<div class="tournament-matches-list">
-				${matchesList}
-			</div>
-			
-			<div class="tournament-controls">
-				<button class="menu-button continue-button" onclick="${() => this.handleContinueButton()}">
-					${buttonText}
-				</button>
-			</div>
-		`;
+			if (player1Score > player2Score) {
+				player1Class = 'winner-name';
+				player2Class = 'loser-name';
+			} else {
+				player1Class = 'loser-name';
+				player2Class = 'winner-name';
+			}
+		}
+		
+		return { player1Class, player2Class, player1Score, player2Score };
 	}
 	
 	/**
@@ -198,22 +213,22 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	 * Handles returning to the main menu
 	 */
 	private handleBackToMenu(): void {
-		if (!this.inTransition) {
-			this.inTransition = true;
-			this.onBackToMenu();
-			setTimeout(() => this.inTransition = false, 100);
-		}
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		this.onBackToMenu();
+		setTimeout(() => this.inTransition = false, 100);
 	}
 	
 	/**
 	 * Handles the continue button press
 	 */
 	private handleContinueButton(): void {
-		if (!this.inTransition) {
-			this.inTransition = true;
-			this.onContinue();
-			setTimeout(() => this.inTransition = false, 100);
-		}
+		if (this.inTransition) return;
+		
+		this.inTransition = true;
+		this.onContinue();
+		setTimeout(() => this.inTransition = false, 100);
 	}
 	
 	/**
@@ -223,25 +238,16 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		if (this.inTransition) return;
 		
 		this.inTransition = true;
-		console.log("Tournament component handling cancellation");
 		
 		try {
-			// Clear tournament data
 			TournamentCache.clearTournament();
-			
-			// Hide the component
 			this.hide();
-			
-			// Navigate back to menu
 			this.onBackToMenu();
 		} catch (error) {
-			console.error("Error during tournament cancellation in component:", error);
-			// Try to force a redirect to the menu
+			NotificationManager.showError("Error during tournament cancellation");
 			window.location.hash = '#menu';
 		} finally {
-			setTimeout(() => {
-				this.inTransition = false;
-			}, 100);
+			setTimeout(() => this.inTransition = false, 100);
 		}
 	}
 	
@@ -268,27 +274,30 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const tournamentId = TournamentCache.getTournamentId();
 		if (tournamentId) {
 			try {
-
-				const serverMatches = await DbService.getTournament(tournamentId);
-				if (!serverMatches || !Array.isArray(serverMatches) || serverMatches.length === 0) {
-					console.log("No tournament matches found on server");
-				} else {
-					console.log("Updating matches from server data:", serverMatches);
-					TournamentCache.updateMatchFromServer(serverMatches);
-				}
-				
-				if (TournamentCache.areAllPoolMatchesCompleted() && phase === 'pool') {
-					await this.determineTournamentFinalists();
-				}
+				await this.loadTournamentData(tournamentId, phase);
 			} catch (error) {
-				console.error("Failed to fetch tournament data:", error);
-				NotificationManager.showError("Failed to load tournament data");
+				NotificationManager.showError("Failed to fetch tournament data");
 				this.handleCancelTournament();
 				return;
 			}
 		}
 		
 		this.renderComponent();
+	}
+	
+	/**
+	 * Loads tournament data from the server
+	 */
+	private async loadTournamentData(tournamentId: string, phase: string): Promise<void> {
+		const serverMatches = await DbService.getTournament(tournamentId);
+		
+		if (serverMatches && Array.isArray(serverMatches) && serverMatches.length > 0) {
+			TournamentCache.updateMatchFromServer(serverMatches);
+		}
+		
+		if (TournamentCache.areAllPoolMatchesCompleted() && phase === 'pool') {
+			await this.determineTournamentFinalists();
+		}
 	}
 	
 	/**
@@ -302,38 +311,42 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		
 		try {
-			console.log("Determining tournament finalists for tournament:", tournamentId);
 			const finalists = await DbService.getTournamentFinalists(tournamentId);
-			console.log("Finalists determined:", finalists);
 			
-			if (!finalists || !finalists.player_1 || !finalists.player_2) {
+			if (!finalists?.player_1 || !finalists?.player_2) {
 				NotificationManager.showError("Could not determine finalists");
 				return;
 			}
 			
-			const tournamentPlayers = TournamentCache.getTournamentPlayers();
-			const player1Index = tournamentPlayers.findIndex(p => p.id === finalists.player_1);
-			const player2Index = tournamentPlayers.findIndex(p => p.id === finalists.player_2);
-			
-			if (player1Index === -1 || player2Index === -1) {
-				NotificationManager.showError("Finalist players not found in tournament");
-				return;
-			}
-			
-			const tournamentMatches = TournamentCache.getTournamentMatches();
-			const finalsMatchIndex = tournamentMatches.length - 1;
-			
-			tournamentMatches[finalsMatchIndex].player1Index = player1Index;
-			tournamentMatches[finalsMatchIndex].player2Index = player2Index;
-			
-			TournamentCache.setTournamentPhase('finals');
-			TournamentCache.setCurrentMatchIndex(finalsMatchIndex);
-			
-			this.renderComponent();
+			await this.setupFinalsMatch(finalists);
 		} catch (error) {
-			console.error("Failed to determine finalists:", error);
 			NotificationManager.showError("Failed to determine tournament finalists");
 		}
+	}
+	
+	/**
+	 * Sets up the finals match with the determined finalists
+	 */
+	private async setupFinalsMatch(finalists: any): Promise<void> {
+		const tournamentPlayers = TournamentCache.getTournamentPlayers();
+		const player1Index = tournamentPlayers.findIndex(p => p.id === finalists.player_1);
+		const player2Index = tournamentPlayers.findIndex(p => p.id === finalists.player_2);
+		
+		if (player1Index === -1 || player2Index === -1) {
+			NotificationManager.showError("Finalist players not found in tournament");
+			return;
+		}
+		
+		const tournamentMatches = TournamentCache.getTournamentMatches();
+		const finalsMatchIndex = tournamentMatches.length - 1;
+		
+		tournamentMatches[finalsMatchIndex].player1Index = player1Index;
+		tournamentMatches[finalsMatchIndex].player2Index = player2Index;
+		
+		TournamentCache.setTournamentPhase('finals');
+		TournamentCache.setCurrentMatchIndex(finalsMatchIndex);
+		
+		this.renderComponent();
 	}
 	
 	/**
@@ -361,8 +374,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		const currentIndex = TournamentCache.getCurrentMatchIndex();
 		const phase = TournamentCache.getTournamentPhase();
 		
-		console.log("proceedToNextMatch called", { currentIndex, phase });
-		
 		if (phase === 'complete') {
 			this.showTournamentWinner();
 			return;
@@ -375,23 +386,29 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		}
 		
 		const nextIndex = TournamentCache.findNextMatchIndex();
-		console.log("Next match index:", nextIndex);
 		
 		if (nextIndex >= 0) {
-			const isMovingToFinals = TournamentCache.getTournamentPhase() === 'pool' && 
-				TournamentCache.getTournamentMatches()[nextIndex].isFinals;
-			
-			if (isMovingToFinals) {
-				this.showTournamentSchedule();
-				return;
-			}
-			
-			TournamentCache.setCurrentMatchIndex(nextIndex);
-			this.showTournamentSchedule();
+			await this.handleNextMatch(nextIndex);
 		} else {
 			TournamentCache.setTournamentPhase('complete');
 			this.showTournamentWinner();
 		}
+	}
+	
+	/**
+	 * Handles moving to the next match
+	 */
+	private async handleNextMatch(nextIndex: number): Promise<void> {
+		const isMovingToFinals = TournamentCache.getTournamentPhase() === 'pool' && 
+			TournamentCache.getTournamentMatches()[nextIndex].isFinals;
+		
+		if (isMovingToFinals) {
+			await this.showTournamentSchedule();
+			return;
+		}
+		
+		TournamentCache.setCurrentMatchIndex(nextIndex);
+		await this.showTournamentSchedule();
 	}
 	
 	/**
@@ -415,8 +432,6 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		
 		this.hide();
 		
-		const isFinal = phase === 'finals';
-		
 		return {
 			playerIds: [
 				nextMatch.matchInfo.player1Id,
@@ -430,8 +445,8 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				nextMatch.matchInfo.player1Color,
 				nextMatch.matchInfo.player2Color
 			],
-			tournamentId: tournamentId,
-			isFinal: isFinal
+			tournamentId,
+			isFinal: phase === 'finals'
 		};
 	}
 	
@@ -455,9 +470,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		if (!currentUser) return false;
 		
 		const tournamentPlayers = TournamentCache.getTournamentPlayers();
-		if (!tournamentPlayers || !tournamentPlayers.length) {
-			return false;
-		}
+		if (!tournamentPlayers?.length) return false;
 		
 		return tournamentPlayers.some(player => player.id === currentUser.id);
 	}
@@ -471,14 +484,14 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 		if (this.isCurrentUserInTournament()) {
 			this.showTournamentSchedule();
 			return true;
-		} else {
-			onRedirectToRegistration();
-			return false;
 		}
+		
+		onRedirectToRegistration();
+		return false;
 	}
 	
 	public destroy(): void {
-		document.removeEventListener('tournament-cancelled', this.handleCancelTournament);
+		document.removeEventListener('tournament-cancelled', this.boundCancellationHandler);
 		super.destroy();
 	}
 }

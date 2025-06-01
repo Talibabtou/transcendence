@@ -538,8 +538,8 @@ export class ProfileComponent extends Component<ProfileState> {
 							
 							pendingFriends = incomingRequests;
 						})
-						.catch(error => {
-							console.warn('Could not fetch pending friend requests:', error);
+						.catch(() => {
+							NotificationManager.showError('Could not fetch pending friend requests');
 						})
 				);
 			}
@@ -553,7 +553,7 @@ export class ProfileComponent extends Component<ProfileState> {
 						})
 						.catch(error => {
 							if (error?.response?.status !== 404) {
-								console.warn('Unexpected error fetching friendship status:', error);
+								NotificationManager.showError('Unexpected error fetching friendship status');
 							}
 						})
 				);
@@ -961,7 +961,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				this.updateNotificationDot(pendingFriends.length > 0);
 			}
 		} catch (error) {
-			console.warn('Could not fetch pending friend requests:', error);
+			NotificationManager.showError('Could not fetch pending friend requests');
 		}
 	}
 	

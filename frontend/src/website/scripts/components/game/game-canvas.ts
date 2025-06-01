@@ -95,17 +95,13 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * Stops and hides the game
 	 */
 	stopGame(): void {
-		try {
-			this.updateInternalState({
-				visible: false,
-				isPlaying: false,
-				isPaused: false
-			});
-			
-			this.gameManager.cleanupMainGame();
-		} catch (error) {
-			this.gameManager.cleanupMainGame();
-		}
+		this.updateInternalState({
+			visible: false,
+			isPlaying: false,
+			isPaused: false
+		});
+		
+		this.gameManager.cleanupMainGame();
 	}
 
 	/**
@@ -113,17 +109,11 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * @returns True if the game is over, false otherwise
 	 */
 	isGameOver(): boolean {
-		if (!this.getInternalState().isPlaying) {
-			return false;
-		}
+		if (!this.getInternalState().isPlaying) return false;
 		
 		try {
 			const gameState = this.gameManager.getMainGameState();
-			if (!gameState) {
-				return false;
-			}
-			
-			return Boolean(gameState.isGameOver);
+			return gameState ? Boolean(gameState.isGameOver) : false;
 		} catch (error) {
 			NotificationManager.showError('Error checking game over state');
 			return false;
@@ -146,18 +136,14 @@ export class GameCanvasComponent extends Component<GameCanvasState> {
 	 * Shows the game canvas
 	 */
 	public show(): void {
-		if (this.canvas) {
-			this.canvas.style.display = 'block';
-		}
+		if (this.canvas) this.canvas.style.display = 'block';
 	}
 	
 	/**
 	 * Hides the game canvas
 	 */
 	public hide(): void {
-		if (this.canvas) {
-			this.canvas.style.display = 'none';
-		}
+		if (this.canvas) this.canvas.style.display = 'none';
 	}
 
 	// =========================================
