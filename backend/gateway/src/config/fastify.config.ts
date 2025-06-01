@@ -11,8 +11,7 @@ export const fastifyConfig = {
       },
     },
   },
-  bodyLimit: 1024 * 1024, // 1 Mo
-  // http2: true,
+  bodyLimit: 1024 * 1024,
   https: {
     key: fs.readFileSync(process.env.SSL_KEY_PATH || '/etc/certs/nginx.key'),
     cert: fs.readFileSync(process.env.SSL_CERT_PATH || '/etc/certs/nginx.crt'),

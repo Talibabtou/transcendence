@@ -9,12 +9,21 @@ import {
   IId,
   IReplyTwofaStatus,
 } from '../shared/types/auth.types.js';
-import { FastifyJWT } from '../middleware/jwt.js';
+import { FastifyJWT } from '../shared/types/auth.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
 
+/**
+ * Retrieves the ID of a user by their username.
+ *
+ * @param request - FastifyRequest object containing the username in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends the user ID if found.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function getId(request: FastifyRequest<{ Params: IUsername }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -28,6 +37,15 @@ export async function getId(request: FastifyRequest<{ Params: IUsername }>, repl
   }
 }
 
+/**
+ * Retrieves the username of a user by their ID.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends the username if found.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function getUsername(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -41,6 +59,15 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
   }
 }
 
+/**
+ * Retrieves a user by their ID.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends the user data if found.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -54,6 +81,16 @@ export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: F
   }
 }
 
+/**
+ * Generates a two-factor authentication QR code for a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 204: Sends a success response if the QR code is generated.
+ *   - 400: Sends an error response if the QR code generation fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -71,6 +108,16 @@ export async function twofaGenerate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
+/**
+ * Validates a two-factor authentication code for a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends a success response if the code is valid.
+ *   - 400: Sends an error response if the code is invalid.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function twofaValidate(request: FastifyRequest, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -92,11 +139,19 @@ export async function twofaValidate(request: FastifyRequest, reply: FastifyReply
   }
 }
 
+/**
+ * Creates a new user.
+ *
+ * @param request - FastifyRequest object containing the user data in the request body.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends the created user data.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, reply: FastifyReply) {
   try {
 	  const subpath = request.url.split('/auth')[1];
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}${subpath}`;
-		request.server.log.info(`serviceUrl: ${serviceUrl}`);
     const response = await fetch(serviceUrl, {
       method: 'POST',
       headers: {
@@ -113,6 +168,16 @@ export async function postUser(request: FastifyRequest<{ Body: IAddUser }>, repl
   }
 }
 
+/**
+ * Updates a user's information.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters and the user data in the request body.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends a success response if the user is updated.
+ *   - 400: Sends an error response if the user update fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
     const id: string = (request.user as FastifyJWT['user']).id;
@@ -136,6 +201,16 @@ export async function patchUser(request: FastifyRequest<{ Body: IModifyUser }>, 
   }
 }
 
+/**
+ * Disables two-factor authentication for a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends a success response if the two-factor authentication is disabled.
+ *   - 400: Sends an error response if the two-factor authentication disable fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }>, reply: FastifyReply) {
   try {
 	  const id: string = (request.user as FastifyJWT['user']).id;
@@ -153,6 +228,16 @@ export async function twofaDisable(request: FastifyRequest<{ Body: IModifyUser }
   }
 }
 
+/**
+ * Logs out a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends a success response if the user is logged out.
+ *   - 400: Sends an error response if the logout fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   try {
     const jwtId = (request.user as FastifyJWT['user']).jwtId;
@@ -177,6 +262,16 @@ export async function postLogout(request: FastifyRequest, reply: FastifyReply) {
   }
 }
 
+/**
+ * Logs in a user.
+ *
+ * @param request - FastifyRequest object containing the user data in the request body.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 204: Sends a success response if the user is logged in.
+ *   - 400: Sends an error response if the login fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -199,6 +294,17 @@ export async function postLogin(request: FastifyRequest<{ Body: ILogin }>, reply
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }
+
+/**
+ * Logs in a guest user.
+ *
+ * @param request - FastifyRequest object containing the user data in the request body.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 204: Sends a success response if the guest user is logged in.
+ *   - 400: Sends an error response if the login fails.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, reply: FastifyReply) {
   try {
     const subpath = request.url.split('/auth')[1];
@@ -218,6 +324,15 @@ export async function postLoginGuest(request: FastifyRequest<{ Body: ILogin }>, 
   }
 }
 
+/**
+ * Retrieves the two-factor authentication status of a user.
+ *
+ * @param request - FastifyRequest object containing the user ID in the request parameters.
+ * @param reply - FastifyReply object used to send the response.
+ * @returns Promise<void>
+ *   - 200: Sends the two-factor authentication status.
+ *   - 500: Sends an error response for internal server issues.
+ */
 export async function twofaStatus(request: FastifyRequest, reply: FastifyReply) {
   try {
 	  const id: string = (request.user as FastifyJWT['user']).id;

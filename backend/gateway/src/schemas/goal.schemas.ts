@@ -19,7 +19,7 @@ export const goalSchema = {
       format: 'uuid',
       pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
     },
-    duration: { type: ['integer', 'null'], minimum: 0, default: null }, // duration in seconds
+    duration: { type: ['integer', 'null'], minimum: 0, default: null },
     created_at: { type: 'string', format: 'date-time' },
   },
   required: ['id', 'match_id', 'player', 'duration', 'created_at'],
@@ -47,38 +47,6 @@ export const getGoalSchema = {
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.goalNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
-export const getGoalsSchema = {
-  querystring: {
-    type: 'object',
-    properties: {
-      match_id: {
-        type: 'string',
-        format: 'uuid',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      },
-      player: {
-        type: 'string',
-        format: 'uuid',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      },
-      limit: { type: 'integer', minimum: 1, default: 10 },
-      offset: { type: 'integer', minimum: 0, default: 0 },
-    },
-    required: ['player', 'limit', 'offset'],
-    additionalProperties: false,
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: goalSchema,
     },
     500: {
       ...errorResponseSchema,

@@ -39,7 +39,6 @@ export class Server {
 
   public static async start(): Promise<void> {
     const server = Server.getInstance();
-		const metricsPort = process.env.OTEL_EXPORTER_PORT || 9464;
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
@@ -75,9 +74,9 @@ export class Server {
       server.log.info(
         `Server listening at https://${process.env.GATEWAY_ADDR || '0.0.0.0'}:${process.env.GATEWAY_PORT || 8085}`
       );
-			server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
       setInterval(checkMicroservices, 2000);
     } catch (err) {
+      server.log.error('Startup error:');
       server.log.error(err);
     }
   }

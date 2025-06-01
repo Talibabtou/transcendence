@@ -208,25 +208,6 @@ export const patchAcceptSchema = {
   },
 };
 
-export const deleteAllSchema = {
-  querystring: {
-    type: 'object',
-    additionalProperties: false,
-    properties: {},
-  },
-  response: {
-    204: {},
-    404: {
-      ...errorResponseSchema,
-      example: ErrorExamples.friendshipNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
 export const deleteFriendSchema = {
   querystring: {
     type: 'object',

@@ -2,15 +2,15 @@ export const helmetConfig = {
   global: false,
 	contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'", 'https://localhost:8085'],
-      scriptSrc: ["'self'", 'https://localhost:8085'],
-      styleSrc: ["'self'", 'https://localhost:8085', 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://localhost:8085', 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https://localhost:8085'],
-      connectSrc: ["'self'", 'https://localhost:8085'],
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      imgSrc: ["'self'", 'data:'],
+      connectSrc: ["'self'"],
       objectSrc: ["'none'"],
-      frameAncestors: ["'none'"], // anti clickjacking
-      upgradeInsecureRequests: [], // force https
+      frameAncestors: ["'none'"],
+      upgradeInsecureRequests: [],
     },
   },
   strictTransportSecurity: {

@@ -22,7 +22,6 @@ export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: Fa
     const id = request.params.id;
     if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
     const uploadDir = path.join(path.resolve(), './uploads');
-		request.server.log.info(`uploadDir: ${uploadDir}`);
     const existingFile: string | undefined = fs.readdirSync(uploadDir).find((file) => file.startsWith(id));
     const link: IReplyPic = {
       link: 'default',
@@ -52,7 +51,6 @@ export async function getHistory(
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}/match/history/${id}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[];
-		console.log(responseData);
     return reply.code(200).send(responseData);
   } catch (err) {
     request.server.log.error(err);

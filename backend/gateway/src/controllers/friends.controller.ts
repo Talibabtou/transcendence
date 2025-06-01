@@ -1,4 +1,4 @@
-import { FastifyJWT } from '../middleware/jwt.js';
+import { FastifyJWT } from '../shared/types/auth.types.js';
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';

@@ -14,7 +14,7 @@ export const eloSchema = {
       format: 'uuid',
       pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
     },
-    elo: { type: ['integer'], minimum: 0, default: 1000 }, // duration in seconds
+    elo: { type: ['integer'], minimum: 0, default: 1000 },
     created_at: { type: 'string', format: 'date-time' },
   },
   required: ['id', 'player', 'elo', 'created_at'],
@@ -58,33 +58,6 @@ export const getEloSchema = {
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.playerNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
-export const getElosSchema = {
-  querystring: {
-    type: 'object',
-    properties: {
-      player: {
-        type: 'string',
-        format: 'uuid',
-        pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      },
-      limit: { type: 'integer', minimum: 1, default: 10 },
-      offset: { type: 'integer', minimum: 0, default: 0 },
-    },
-    required: ['player'],
-    additionalProperties: false,
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: eloSchema,
     },
     500: {
       ...errorResponseSchema,

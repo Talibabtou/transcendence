@@ -4,7 +4,7 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 
 const connectedClients = new Map<string, WebSocket>();
 
-async function websocketRoutes(fastify: FastifyInstance, options: any) {
+async function websocketRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/ws/status',
     {
@@ -67,15 +67,8 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
           } else {
             fastify.log.warn({ userId, requestId: req.id, message }, 'Received unhandled WebSocket message type');
           }
-        } catch (error) {
-          fastify.log.error({
-            msg: `Error processing message from user ${userId}`,
-            error: (error as Error).message,
-            stack: (error as Error).stack,
-            userId,
-            requestId: req.id,
-            rawMessage: rawMessage.toString(),
-          });
+        } catch (err) {
+					fastify.log.error(err);
         }
       });
 

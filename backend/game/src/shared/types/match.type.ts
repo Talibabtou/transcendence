@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Match {
   id: string;
   player_1: string;

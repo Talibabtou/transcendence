@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Elo {
   id: string;
   player: string;

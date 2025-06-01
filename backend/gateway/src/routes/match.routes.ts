@@ -1,16 +1,14 @@
 import { FastifyInstance } from 'fastify';
 import { IId } from '../shared/types/gateway.types.js';
-import { GetMatchesQuery, CreateMatchRequest } from '../shared/types/match.type.js';
+import { CreateMatchRequest } from '../shared/types/match.type.js';
 import {
   getMatch,
-  getMatches,
   createMatch,
   matchStats,
   matchSummary,
 } from '../controllers/match.controller.js';
 import {
   getMatchSchema,
-  getMatchesSchema,
   createMatchSchema,
   matchStatsSchema,
   matchSummarySchema,
@@ -18,20 +16,6 @@ import {
 import { routesConfigAuth, rateLimitConfigHigh } from '../config/routes.config.js';
 
 export default async function matchRoutes(fastify: FastifyInstance): Promise<void> {
-  fastify.get<{ Querystring: GetMatchesQuery }>(
-    '/game/matches',
-    {
-      schema: {
-        ...getMatchesSchema,
-        tags: ['matches'],
-      },
-      config: {
-        ...routesConfigAuth,
-        rateLimit: rateLimitConfigHigh,
-      },
-    },
-    getMatches
-  );
 
   fastify.get<{ Params: IId }>(
     '/game/match/:id',

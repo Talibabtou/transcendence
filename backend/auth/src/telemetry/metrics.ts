@@ -13,7 +13,7 @@ export let JWTRevocationCounter: Counter;
  * This function should be called *after* the OpenTelemetry SDK has started.
  */
 export function initializeMetrics() {
-  const meter = metrics.getMeter('auth-service'); // Get the meter *after* SDK start
+  const meter = metrics.getMeter('auth-service');
 
   fastQueryDurationHistogram = meter.createHistogram('fast_query_duration', {
     description: 'Duration of fast queries in ms',
@@ -43,7 +43,6 @@ export function initializeMetrics() {
     },
   });
 
-  // Auth-specific metrics
   userCreationCounter = meter.createCounter('user_creation_total', {
     description: 'Total number of users created',
   });
@@ -58,8 +57,6 @@ export function initializeMetrics() {
   });
 }
 
-// Optional: Export the meter getter if needed elsewhere,
-// but generally import specific metrics where needed.
 export function getMeter(name = 'auth-service') {
   return metrics.getMeter(name);
 }

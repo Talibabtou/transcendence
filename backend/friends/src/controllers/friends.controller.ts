@@ -47,7 +47,7 @@ export async function getFriends(
       WHERE id_1 = ? OR id_2 = ?`,
       [id, id, id]
     );
-		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime);
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
@@ -108,7 +108,7 @@ export async function getFriendsMe(
       WHERE id_1 = ? OR id_2 = ?`,
       [id, id, id]
     );
-		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime);
     if (!friends) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     for (let i = 0; i < friends.length; i++) {
       friends[i].request = friends[i].requesting !== id && friends[i].accepted === false;
@@ -167,7 +167,7 @@ export async function getFriendStatus(
       `,
       [id, request.params.id, request.params.id, id]
     );
-		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime);
     if (!friendStatus) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     return reply.code(200).send(friendStatus);
   } catch (err) {
@@ -197,14 +197,14 @@ export async function postFriend(
           EXISTS (SELECT 1 FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_2 = ? AND id_1 = ?)) AS FriendExists`,
       [request.params.id, id, request.params.id, id]
     );
-		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime);
     if (friend.FriendExists) return sendError(reply, 409, ErrorCodes.FRIENDSHIP_EXISTS);
 		startTime = performance.now();
     await request.server.db.run(
       'INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);',
       [request.params.id, id]
     );
-		recordMediumDatabaseMetrics('INSERT', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('INSERT', 'friends', performance.now() - startTime);
 		friendsRequestCreationCounter.add(1);
     return reply.code(201).send();
   } catch (err) {
@@ -238,34 +238,8 @@ export async function patchFriend(
       'UPDATE friends SET accepted = true WHERE id_2 = ? AND id_1 = ?',
       [request.params.id, id]
     );
-		recordMediumDatabaseMetrics('UPDATE', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('UPDATE', 'friends', performance.now() - startTime);
     if (friend.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
-		return reply.code(204).send();
-  } catch (err) {
-    request.server.log.error(err);
-    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
-  }
-}
-
-/**
- * Deletes all friends for a given user.
- *
- * @param request - FastifyRequest object containing user ID in params.
- * @param reply - FastifyReply object for sending the response.
- * @returns 204 on success, 404 if no friends found, 500 on server error.
- */
-export async function deleteFriends(
-  request: FastifyRequest<{ Params: IId }>,
-  reply: FastifyReply
-): Promise<void> {
-  try {
-		const startTime = performance.now();
-    const result = await request.server.db.run('DELETE FROM friends WHERE id_1 = ? OR id_2 = ?', [
-      request.params.id,
-      request.params.id,
-    ]);
-		recordMediumDatabaseMetrics('DELETE', 'friends', performance.now() - startTime); // Record metric
-    if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
 		return reply.code(204).send();
   } catch (err) {
     request.server.log.error(err);
@@ -292,7 +266,7 @@ export async function deleteFriend(
       'DELETE FROM friends WHERE (id_1 = ? AND id_2 = ?) OR (id_1 = ? AND id_2 = ?)',
       [request.params.id, id, id, request.params.id]
     );
-		recordMediumDatabaseMetrics('DELETE', 'friends', performance.now() - startTime); // Record metric
+		recordMediumDatabaseMetrics('DELETE', 'friends', performance.now() - startTime);
     if (result.changes === 0) return sendError(reply, 404, ErrorCodes.FRIENDS_NOTFOUND);
     return reply.code(204).send();
   } catch (err) {

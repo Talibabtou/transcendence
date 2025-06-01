@@ -10,7 +10,6 @@ import {
   getStatusSchema,
   postCreateSchema,
   patchAcceptSchema,
-  deleteAllSchema,
   deleteFriendSchema,
 } from '../schemas/friends.schemas.js';
 import { FastifyInstance } from 'fastify';
@@ -21,7 +20,6 @@ import {
   postFriend,
   patchFriend,
   deleteFriend,
-  deleteFriends,
 } from '../controllers/friends.controller.js';
 import { IId } from '../shared/types/gateway.types.js';
 
@@ -99,21 +97,6 @@ export default async function friendsRoutes(fastify: FastifyInstance) {
       },
     },
     patchFriend
-  );
-
-  fastify.delete(
-    '/friends/delete/all',
-    {
-      schema: {
-        ...deleteAllSchema,
-        tags: ['friends'],
-      },
-      config: {
-        ...routesConfigAuth,
-        rateLimit: rateLimitConfigLow,
-      },
-    },
-    deleteFriends
   );
 
   fastify.delete<{ Params: IId }>(

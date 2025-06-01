@@ -3,7 +3,7 @@ import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const
 import { sendError, isValidId } from '../helper/friends.helper.js';
 import { recordFastDatabaseMetrics } from '../telemetry/metrics.js';
 import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
-import { Match, Finalist, FinalResultObject, MatchHistory, TournamentMatch, GetPageQuery } from '../shared/types/match.type.js';
+import { Finalist, FinalResultObject, TournamentMatch, GetPageQuery } from '../shared/types/match.type.js';
 
 /**
  * Retrieves all matches for a specific tournament by tournament ID.
@@ -71,8 +71,8 @@ export async function getTournament(
       matchesHistory.push(matchHistory);
     }
     return reply.code(200).send(matchesHistory);
-  } catch (error) {
-    request.log.error(error);
+  } catch (err) {
+		request.server.log.error(err);
     const errorResponse = createErrorResponse(500, ErrorCodes.INTERNAL_ERROR);
     return reply.code(500).send(errorResponse);
   }
@@ -92,7 +92,6 @@ export async function getFinalMatches(
   reply: FastifyReply
 ): Promise<void> {
   const { id } = request.params;
-	request.server.log.info(`id: ${id}`);
   if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     let startTime = performance.now();
@@ -101,20 +100,16 @@ export async function getFinalMatches(
       id
     );
     recordFastDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
-		request.server.log.info(`matchCountResult: ${matchCountResult.total_matches}`);
     if (matchCountResult.total_matches !== 6) return sendError(reply, 400, ErrorCodes.TOURNAMENT_WRONG_MATCH_COUNT);
 		startTime = performance.now();
-		request.server.log.info(`topVictories requested`);
     const topVictories = (await request.server.db.all(
-      'SELECT player_id, victory_count FROM tournament_top_victories WHERE tournament_id = ? LIMIT 4', // Ensure you get top 3
+      'SELECT player_id, victory_count FROM tournament_top_victories WHERE tournament_id = ? LIMIT 4',
       id
     )) as Finalist[];
 		recordFastDatabaseMetrics('SELECT', 'tournament_top_victories', performance.now() - startTime);
-		request.server.log.info(`topVictories: ${topVictories}`);
     if (topVictories.length < 3) return sendError(reply, 400, ErrorCodes.TOURNAMENT_INSUFFICIENT_PLAYERS);
     let finalResult: FinalResultObject = { player_1: null, player_2: null };
     if (topVictories[1].victory_count !== topVictories[2].victory_count) {
-      console.log('topVictories', topVictories);
       finalResult = {
         player_1: topVictories[0].player_id,
         player_2: topVictories[1].player_id,
@@ -250,7 +245,7 @@ export async function getFinalMatches(
     }
     return reply.code(200).send(finalResult);
   } catch (err) {
-    request.server.log.error(err);
+		request.server.log.error(err);
     return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
   }
 }

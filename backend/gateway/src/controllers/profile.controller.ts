@@ -1,4 +1,4 @@
-import { FastifyJWT } from '../middleware/jwt.js';
+import { FastifyJWT } from '../shared/types/auth.types.js';
 import { MultipartFile } from '@fastify/multipart';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
@@ -46,7 +46,6 @@ export async function getHistory(
   try {
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
-		console.log(serviceUrl);
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as MatchHistory[] | ErrorResponse;
     return reply.code(response.status).send(responseData);
@@ -72,7 +71,6 @@ export async function getSummary(
   try {
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
-		console.log(serviceUrl);
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
     const responseData = (await response.json()) as IReplySummary | ErrorResponse;
     return reply.code(response.status).send(responseData);

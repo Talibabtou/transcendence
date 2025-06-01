@@ -53,3 +53,21 @@ export interface IReplyQrCode {
 export interface IReplyTwofaStatus {
   two_factor_enabled: boolean;
 }
+
+export interface FastifyJWT {
+  user: {
+    id: string;
+    role: string;
+    jwtId?: string;
+    twofa?: boolean;
+    iat?: number;
+    exp?: number;
+  };
+}
+
+declare module 'fastify' {
+  interface FastifyContextConfig {
+    auth?: boolean;
+    roles?: string[];
+  }
+}

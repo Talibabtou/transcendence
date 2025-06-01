@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Goal {
   id: string;
   match_id: string;

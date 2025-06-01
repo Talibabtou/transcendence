@@ -22,12 +22,12 @@ export interface CreateGoalRequest {
   duration: number;
 }
 
-export interface GetGoalsQuery {
-  match_id?: string;
-  player?: string;
-  limit?: number;
-  offset?: number;
-}
+// export interface GetGoalsQuery {
+//   match_id?: string;
+//   player?: string;
+//   limit?: number;
+//   offset?: number;
+// }
 
 export interface IId {
   id: string;

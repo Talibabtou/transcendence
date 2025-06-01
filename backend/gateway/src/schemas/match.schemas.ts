@@ -8,7 +8,7 @@ export const matchSchema = {
     player_1: { type: 'string', format: 'uuid' },
     player_2: { type: 'string', format: 'uuid' },
     active: { type: 'boolean', default: false },
-    duration: { type: ['integer', 'null'], minimum: 0, default: null }, // duration in seconds
+    duration: { type: ['integer', 'null'], minimum: 0, default: null },
     tournament_id: {
       type: ['string', 'null'],
       default: null,
@@ -38,30 +38,6 @@ export const getMatchSchema = {
     404: {
       ...errorResponseSchema,
       example: ErrorExamples.matchNotFound,
-    },
-    500: {
-      ...errorResponseSchema,
-      example: ErrorExamples.internalError,
-    },
-  },
-};
-
-export const getMatchesSchema = {
-  querystring: {
-    type: 'object',
-    properties: {
-      player_id: { type: 'string', format: 'uuid' },
-      active: { type: 'boolean' },
-      limit: { type: 'integer', minimum: 1, default: 10 }, //runtime validation
-      offset: { type: 'integer', minimum: 0, default: 0 },
-    },
-    required: ['player_id', 'active'],
-    additionalProperties: false,
-  },
-  response: {
-    200: {
-      type: 'array',
-      items: matchSchema,
     },
     500: {
       ...errorResponseSchema,

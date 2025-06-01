@@ -14,7 +14,7 @@ export let eloHistogram: Histogram;
  * This function should be called *after* the OpenTelemetry SDK has started.
  */
 export function initializeMetrics() {
-  const meter = metrics.getMeter('game-service'); // Get the meter *after* SDK start
+  const meter = metrics.getMeter('game-service');
 
   fastQueryDurationHistogram = meter.createHistogram('fast_query_duration', {
     description: 'Duration of fast queries in ms',
@@ -44,7 +44,6 @@ export function initializeMetrics() {
     },
   });
 
-  // Match-specific metrics
   matchCreationCounter = meter.createCounter('match_creation_total', {
     description: 'Total number of matches created',
   });
@@ -64,8 +63,6 @@ export function initializeMetrics() {
       explicitBucketBoundaries: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
     },
   });
-  //Elo-specific metrics
-  //diff match update / elo creation
   eloHistogram = meter.createHistogram('elo_creation', {
     description: 'Elo creations for a specific match ID',
     advice: {
@@ -77,8 +74,6 @@ export function initializeMetrics() {
   });
 }
 
-// Optional: Export the meter getter if needed elsewhere,
-// but generally import specific metrics where needed.
 export function getMeter(name = 'game-service') {
   return metrics.getMeter(name);
 }

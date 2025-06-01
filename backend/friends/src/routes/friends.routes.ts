@@ -5,7 +5,6 @@ import {
   postFriend,
   patchFriend,
   deleteFriend,
-  deleteFriends,
 } from '../controllers/friends.controller.js';
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -20,8 +19,6 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
   fastify.post<{ Body: IId; Params: IId }>('/create/:id', postFriend);
 
   fastify.patch<{ Body: IId; Params: IId }>('/accept/:id', patchFriend);
-
-  fastify.delete<{ Params: IId }>('/delete/all/:id', deleteFriends);
 
   fastify.delete<{ Querystring: IId; Params: IId }>('/delete/:id', deleteFriend);
 

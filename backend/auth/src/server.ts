@@ -17,7 +17,6 @@ class Server {
 
   public static async start(): Promise<void> {
     const server: FastifyInstance = Server.getInstance();
-    const metricsPort = process.env.OTEL_EXPORTER_PORT || 9464;
     try {
       process.once('SIGINT', () => Server.shutdown('SIGINT'));
       process.once('SIGTERM', () => Server.shutdown('SIGTERM'));
@@ -31,7 +30,6 @@ class Server {
       server.log.info(
         `Server listening at http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}`
       );
-      server.log.info(`Prometheus metrics exporter available at http://localhost:${metricsPort}/metrics`);
     } catch (err) {
       server.log.error('Startup error:');
       server.log.error(err);

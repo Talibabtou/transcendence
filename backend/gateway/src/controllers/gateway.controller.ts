@@ -1,7 +1,7 @@
 import { Server } from '../server.js';
 import { sendError } from '../helper/friends.helper.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
-import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
+import { FastifyRequest, FastifyReply } from 'fastify';
 
 /**
  * Fastify pre-handler hook to check the health of required microservices before processing a request.
@@ -14,17 +14,9 @@ import { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify';
  */
 export async function checkMicroservicesHook(request: FastifyRequest, reply: FastifyReply) {
   try {
-    if (request.url.includes('/ws')) {
-      request.server.log.info({
-        request: request,
-      });
-    }
     if (
       request.url.includes(process.env.AUTH_ADDR || 'auth') &&
       (Server.microservices.get(process.env.AUTH_ADDR || 'auth') === false)
-        // Server.microservices.get('game') === false ||
-        // Server.microservices.get('profile') === false ||
-        // Server.microservices.get('friends') === false)
     ) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     } else if (
@@ -89,6 +81,7 @@ async function checkService(serviceName: string, servicePort: string): Promise<b
     const response = await fetch(serviceUrl, { method: 'GET' });
     return response.ok;
   } catch (err) {
+		console.error('Error checking microservices:', err);
     return false;
   }
 }

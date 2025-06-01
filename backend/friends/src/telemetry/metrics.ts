@@ -10,7 +10,7 @@ export let friendsRequestCreationCounter: Counter;
  * This function should be called *after* the OpenTelemetry SDK has started.
  */
 export function initializeMetrics() {
-  const meter = metrics.getMeter('friends-service'); // Get the meter *after* SDK start
+  const meter = metrics.getMeter('friends-service');
 
   fastQueryDurationHistogram = meter.createHistogram('fast_query_duration', {
     description: 'Duration of fast queries in ms',
@@ -40,14 +40,11 @@ export function initializeMetrics() {
     },
   });
 
-  // Friends-specific metrics
 	friendsRequestCreationCounter = meter.createCounter('friends_request_total', {
 		description: 'Total number of friends requests',
 	});
 }
 
-// Optional: Export the meter getter if needed elsewhere,
-// but generally import specific metrics where needed.
 export function getMeter(name = 'friends-service') {
   return metrics.getMeter(name);
 }
