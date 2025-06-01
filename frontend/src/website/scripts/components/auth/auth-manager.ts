@@ -147,7 +147,6 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 			NotificationManager.showError("AuthManager: handleSuccessfulAuth called with no currentUser.");
 			return;
 		}
-		if (!this.activeToken || !localstorage.token) NotificationManager.showError("Authentication may be incomplete. Token is missing.");
 
 		const userForAppState = {
 			id: this.currentUser.id,
