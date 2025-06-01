@@ -76,7 +76,7 @@ services:
     container_name: cadvisor
     expose:
       - 8080
-    command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080}"]
+    command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
       # - /run/user/102787/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
@@ -143,7 +143,7 @@ services:
       - GATEWAY_PORT=${GATEWAY_PORT:-8085}
       - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
     ports:
-      - 8085:8085
+      - ${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}
     expose:
       - ${OTEL_EXPORTER_PORT:-9464}
     networks:
