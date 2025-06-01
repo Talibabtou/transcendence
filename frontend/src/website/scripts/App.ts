@@ -48,15 +48,21 @@ export class App {
 		}
 	}
 
+	private ensureWebSocketConnected(): void {
+		if (this.webSocketClient) {
+			this.webSocketClient.connect();
+		}
+	}
+
 	private initializeWebSocketClient(): void {
 		try {
-			const token = localStorage.getItem('jwt_token') || '';
-			const websocketUrl = `wss://localhost:$HTTPS_PORT/ws/status?token=${token}`; 
+			const token = localStorage.getItem('jwt_token') || sessionStorage.getItem('jwt_token') || '';
+			const websocketUrl = `wss://localhost:$HTTPS_PORT/ws/status${token ? '?token=' + token : ''}`;
 			this.webSocketClient = WebSocketClient.getInstance(websocketUrl);
 			this.webSocketClient.connect();
 			window.webSocketClient = this.webSocketClient;
 		} catch (error) {
-			NotificationManager.showError('Failed to initialize WebSocket client');
+			NotificationManager.showError('Failed to initialize WebSocket client: ' + (error as Error).message);
 		}
 	}
 
@@ -64,6 +70,24 @@ export class App {
 		const contentContainer = document.querySelector('.content-container') as HTMLElement;
 		if (contentContainer) {
 			new Router(contentContainer);
+
+			this.ensureWebSocketConnected();
+
+			window.addEventListener('popstate', () => {
+				this.ensureWebSocketConnected();
+			});
+
+			const originalPushState = history.pushState;
+			history.pushState = (...args) => {
+				originalPushState.apply(history, args);
+				this.ensureWebSocketConnected();
+			};
+
+			const originalReplaceState = history.replaceState;
+			history.replaceState = (...args) => {
+				originalReplaceState.apply(history, args);
+				this.ensureWebSocketConnected();
+			};
 		} else {
 			NotificationManager.showError('Could not find content container element');
 		}

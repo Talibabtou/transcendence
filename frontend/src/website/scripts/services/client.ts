@@ -3,12 +3,17 @@ import { NotificationManager } from "@website/scripts/services";
 
 type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
 
+const PING_INTERVAL = 30 * 1000; // 30 seconds
+const MAX_SERVER_INACTIVITY_DURATION = 75 * 1000; // 75 seconds
+
 export class WebSocketClient {
 	private socket: WebSocket | null = null;
 	private readonly url: string;
 	private static instance: WebSocketClient;
 	private onlineUsers: Set<string> = new Set();
 	private statusChangeListeners: OnlineStatusChangeCallback[] = [];
+	private pingIntervalId: NodeJS.Timeout | null = null;
+	private serverInactivityTimerId: NodeJS.Timeout | null = null;
 
 	private constructor(url: string) {
 		this.url = url;
@@ -66,9 +71,13 @@ export class WebSocketClient {
 	private setupSocketHandlers(): void {
 		if (!this.socket) return;
 		
-		this.socket.onopen = () => {};
+		this.socket.onopen = () => {
+			this.startKeepAlive();
+			this.resetServerInactivityTimer();
+		};
 		
 		this.socket.onmessage = (event) => {
+			this.resetServerInactivityTimer();
 			try {
 				const data = JSON.parse(event.data as string);
 				this.handleWebSocketMessage(data);
@@ -78,11 +87,16 @@ export class WebSocketClient {
 		};
 		
 		this.socket.onerror = () => {
+			this.stopKeepAlive();
+			this.clearServerInactivityTimer();
 			appState.logout();
 			NotificationManager.showError('WebSocket error: Disconnecting...');
 		};
 		
-		this.socket.onclose = () => {};
+		this.socket.onclose = () => {
+			this.stopKeepAlive();
+			this.clearServerInactivityTimer();
+		};
 	}
 
 	/**
@@ -98,6 +112,9 @@ export class WebSocketClient {
 				break;
 			case 'user_offline':
 				this.handleUserOffline(data.userId);
+				break;
+			case 'pong':
+				this.handlePong();
 				break;
 		}
 	}
@@ -174,6 +191,8 @@ export class WebSocketClient {
 	public sendMessage(message: any): void {
 		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
 			this.socket.send(JSON.stringify(message));
+		} else {
+			NotificationManager.showWarning('WebSocket not open. Message not sent.');
 		}
 	}
 
@@ -181,6 +200,8 @@ export class WebSocketClient {
 	 * Closes the WebSocket connection
 	 */
 	public disconnect(): void {
+		this.stopKeepAlive();
+		this.clearServerInactivityTimer();
 		if (this.socket) {
 			this.socket.close();
 		}
@@ -208,6 +229,59 @@ export class WebSocketClient {
 	 */
 	public getReadyState(): number | null {
 		return this.socket ? this.socket.readyState : null;
+	}
+
+	// =========================================
+	// KEEP-ALIVE MECHANISM
+	// =========================================
+
+	private startKeepAlive(): void {
+		this.stopKeepAlive(); // Clear any existing interval
+		this.pingIntervalId = setInterval(() => this.sendPing(), PING_INTERVAL);
+	}
+
+	private stopKeepAlive(): void {
+		if (this.pingIntervalId) {
+			clearInterval(this.pingIntervalId);
+			this.pingIntervalId = null;
+		}
+	}
+
+	private sendPing(): void {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			this.sendMessage({ type: 'ping' });
+		}
+	}
+
+	private handlePong(): void {
+		// Pong received, connection is healthy from server's perspective
+		// console.debug('Pong received from server');
+	}
+
+	private resetServerInactivityTimer(): void {
+		this.clearServerInactivityTimer();
+		this.serverInactivityTimerId = setTimeout(
+			() => this.handleServerInactivity(),
+			MAX_SERVER_INACTIVITY_DURATION
+		);
+	}
+
+	private clearServerInactivityTimer(): void {
+		if (this.serverInactivityTimerId) {
+			clearTimeout(this.serverInactivityTimerId);
+			this.serverInactivityTimerId = null;
+		}
+	}
+
+	private handleServerInactivity(): void {
+		if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+			NotificationManager.showWarning(
+				'No response from server. Connection may be stale. Attempting to reconnect.'
+			);
+			this.disconnect(); // This will also clear timers
+			// Add a small delay before reconnecting to avoid rapid hammering
+			setTimeout(() => this.connect(), 1000); 
+		}
 	}
 }
 

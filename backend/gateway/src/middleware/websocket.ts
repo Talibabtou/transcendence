@@ -59,6 +59,26 @@ async function websocketRoutes(fastify: FastifyInstance, options: any) {
         }
       }
 
+      socket.on('message', (rawMessage) => {
+        try {
+          const message = JSON.parse(rawMessage.toString());
+          if (message.type === 'ping') {
+            socket.send(JSON.stringify({ type: 'pong' }));
+          } else {
+            fastify.log.warn({ userId, requestId: req.id, message }, 'Received unhandled WebSocket message type');
+          }
+        } catch (error) {
+          fastify.log.error({
+            msg: `Error processing message from user ${userId}`,
+            error: (error as Error).message,
+            stack: (error as Error).stack,
+            userId,
+            requestId: req.id,
+            rawMessage: rawMessage.toString(),
+          });
+        }
+      });
+
       socket.on('close', (code, reason) => {
         connectedClients.delete(userId);
         fastify.log.info({
