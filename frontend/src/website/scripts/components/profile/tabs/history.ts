@@ -43,9 +43,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				historyPage: 0
 			});
 			
-			if (!state.dataLoadInProgress) {
-				this.fetchAndProcessMatchHistory(profile.id);
-			}
+			if (!state.dataLoadInProgress) this.fetchAndProcessMatchHistory(profile.id);
 		}
 	}
 	
@@ -55,6 +53,16 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 */
 	public setHandlers(handlers: { onPlayerClick: (username: string) => void }): void {
 		this.updateInternalState({ handlers });
+	}
+
+	/**
+	 * Refreshes the history data
+	 */
+	public refreshData(): void {
+		const state = this.getInternalState();
+		if (!state.dataLoadInProgress && state.profile?.id) {
+			this.fetchAndProcessMatchHistory(state.profile.id);
+		}
 	}
 
 	// =========================================
@@ -71,7 +79,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		
 		try {
 			this.updateInternalState({ dataLoadInProgress: true });
-
 			const rawHistory = await DbService.getUserHistory(userId);
 			
 			if (!rawHistory || !Array.isArray(rawHistory)) {
@@ -88,7 +95,6 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 				.map((entry: MatchHistory) => {
 					const playerScore = typeof entry.goals1 === 'string' ? parseInt(entry.goals1) : entry.goals1;
 					const opponentScore = typeof entry.goals2 === 'string' ? parseInt(entry.goals2) : entry.goals2;
-					const result = (playerScore > opponentScore ? 'win' : 'loss') as 'win' | 'loss';
 					
 					return {
 						id: entry.matchId,
@@ -97,22 +103,20 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 						opponentId: entry.id2,
 						playerScore,
 						opponentScore,
-						result,
+						result: (playerScore > opponentScore ? 'win' : 'loss') as 'win' | 'loss',
 						final: entry.final
 					};
 				})
 				.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-			const { historyPageSize } = state;
-			const initialMatches = processedHistory.slice(0, historyPageSize);
+			const initialMatches = processedHistory.slice(0, state.historyPageSize);
 			
 			this.updateInternalState({
 				allMatches: processedHistory,
 				matches: initialMatches,
-				hasMoreMatches: processedHistory.length > historyPageSize,
+				hasMoreMatches: processedHistory.length > state.historyPageSize,
 				dataLoadInProgress: false
 			});
-
 		} catch (error) {
 			NotificationManager.showError('Failed to load match history');
 			this.updateInternalState({ 
@@ -131,24 +135,14 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 		const state = this.getInternalState();
 		const { allMatches, historyPage, historyPageSize } = state;
 		
-		const startIndex = 0;
 		const endIndex = (historyPage + 1) * historyPageSize;
-		const displayedMatches = allMatches.slice(startIndex, endIndex);
+		const displayedMatches = allMatches.slice(0, endIndex);
 		
 		this.updateInternalState({
 			matches: displayedMatches,
 			hasMoreMatches: endIndex < allMatches.length
 		});
 	}
-
-		/**
-	 * Refreshes the history data
-	 */
-		public refreshData(): void {
-			const state = this.getInternalState();
-			if (state.dataLoadInProgress || !state.profile?.id) return;
-			this.fetchAndProcessMatchHistory(state.profile.id);
-		}
 
 	// =========================================
 	// EVENT HANDLERS
@@ -159,9 +153,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 */
 	private loadMoreMatches = (): void => {
 		const state = this.getInternalState();
-		if (state.isLoading || !state.hasMoreMatches) {
-			return;
-		}
+		if (state.isLoading || !state.hasMoreMatches) return;
 		
 		this.updateInternalState({ historyPage: state.historyPage + 1 });
 		this.updateDisplayedMatches();
@@ -177,13 +169,14 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	 */
 	render(): void {
 		const state = this.getInternalState();
-		const displayedMatchesToRender = state.matches;
+		const matches = state.matches;
+		const noMatches = state.allMatches.length === 0 && matches.length === 0;
 
 		const template = html`
 			<div class="history-content" ref=${(el: HTMLElement) => this.contentElement = el}>
-				${state.isLoading && displayedMatchesToRender.length === 0 ? 
+				${state.isLoading && matches.length === 0 ? 
 					html`<p class="loading">Loading match history...</p>` :
-					!state.isLoading && state.allMatches.length === 0 && displayedMatchesToRender.length === 0 ?
+					!state.isLoading && noMatches ?
 					html`<p class="no-data">No match history available</p>` :
 					html`
 						<table class="game-history-table">
@@ -196,7 +189,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 								</tr>
 							</thead>
 							<tbody>
-								${displayedMatchesToRender.map(game => html`
+								${matches.map(game => html`
 									<tr class="game-${game.result}">
 										<td>${game.date.toLocaleDateString()}</td>
 										<td 

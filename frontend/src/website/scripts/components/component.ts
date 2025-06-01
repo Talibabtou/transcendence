@@ -237,16 +237,6 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	public refresh(): void {
 		this.render();
 		this.afterRender();
-		
-		// Call setupEventListeners if component implements it
-		// This was causing listeners to be re-added on existing components when router called refresh.
-		// Individual components should manage listener re-creation during their own render/refresh 
-		// cycle if necessary, and do so idempotently.
-		// if (typeof (this as any).setupEventListeners === 'function') {
-		// 	setTimeout(() => {
-		// 		(this as any).setupEventListeners();
-		// 	}, 0);
-		// }
 	}
 
 	public getDOMContainer(): HTMLElement {

@@ -37,9 +37,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				goalDurationChartRendered: false
 			});
 			
-			if (!state.dataLoadInProgress) {
-				await this.loadData();
-			}
+			if (!state.dataLoadInProgress) await this.loadData();
 		}
 	}
 	
@@ -47,8 +45,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 	 * Refreshes the stats data
 	 */
 	public refreshData(): void {
-		if (this.getInternalState().dataLoadInProgress) return;
-		this.loadData();
+		if (!this.getInternalState().dataLoadInProgress) this.loadData();
 	}
 	
 	// =========================================
@@ -80,9 +77,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 				goalDurationChartRendered: false
 			});
 			
-			setTimeout(() => {
-				this.renderCharts();
-			}, 0);
+			setTimeout(() => this.renderCharts(), 0);
 		} catch (error) {
 			NotificationManager.showError("Error loading stats data");
 			this.updateInternalState({ 
@@ -143,9 +138,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 			}
 		}
 		
-		if (Object.keys(updates).length > 1) {
-			this.updateInternalState(updates);
-		}
+		if (Object.keys(updates).length > 1) this.updateInternalState(updates);
 	}
 	
 	/**
@@ -186,12 +179,7 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		`;
 		
 		render(template, this.container);
-		
-		if (!state.isLoading) {
-			requestAnimationFrame(() => {
-				this.renderCharts();
-			});
-		}
+		if (!state.isLoading) requestAnimationFrame(() => this.renderCharts());
 	}
 	
 	// =========================================
@@ -205,17 +193,9 @@ export class ProfileStatsComponent extends Component<ProfileStatsState> {
 		super.destroy();
 		
 		const state = this.getInternalState();
-		if (state.cleanup?.eloChart) {
-			state.cleanup.eloChart();
-		}
-		if (state.cleanup?.matchDurationChart) {
-			state.cleanup.matchDurationChart();
-		}
-		if (state.cleanup?.dailyActivityChart) {
-			state.cleanup.dailyActivityChart();
-		}
-		if (state.cleanup?.goalDurationChart) {
-			state.cleanup.goalDurationChart();
-		}
+		if (state.cleanup?.eloChart) state.cleanup.eloChart();
+		if (state.cleanup?.matchDurationChart) state.cleanup.matchDurationChart();
+		if (state.cleanup?.dailyActivityChart) state.cleanup.dailyActivityChart();
+		if (state.cleanup?.goalDurationChart) state.cleanup.goalDurationChart();
 	}
 }

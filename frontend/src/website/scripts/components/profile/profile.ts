@@ -39,7 +39,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			isUserOnline: false
 		});
 		
-		// Bind the method so we can remove it later
 		this.boundHandleUrlChange = this.handleUrlChange.bind(this);
 		window.addEventListener('popstate', this.boundHandleUrlChange);
 		this.wsClient = WebSocketClient.getInstance();
@@ -54,56 +53,33 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	async initialize(): Promise<void> {
 		const state = this.getInternalState();
-		if (state.initialized || state.isLoading || this.dataFetchInProgress) {
-			return;
-		}
+		if (state.initialized || state.isLoading || this.dataFetchInProgress) return;
 		
-		// Cancel any existing requests
-		if (this.abortController) {
-			this.abortController.abort();
-		}
+		if (this.abortController) this.abortController.abort();
 		this.abortController = new AbortController();
 		
-		this.updateInternalState({ 
-			isLoading: true,
-			initialized: true
-		});
+		this.updateInternalState({ isLoading: true, initialized: true });
 		
 		try {
 			this.dataFetchInProgress = true;
 			await this.fetchProfileData();
-			
-			// Check if component was destroyed while fetching
-			if (this.abortController.signal.aborted) {
-				return;
-			}
-			
+			if (this.abortController.signal.aborted) return;
 			this.dataFetchInProgress = false;
-			
 			const updatedState = this.getInternalState();
 			
 			if (updatedState.profile) {
 				this.setupOnlineStatusListener();
-				
-				const userId = updatedState.profile.id;
-				const isOnline = this.wsClient.isUserOnline(userId);
-				this.updateInternalState({ isUserOnline: isOnline });
-				
+				this.updateInternalState({ isUserOnline: this.wsClient.isUserOnline(updatedState.profile.id) });
 				await this.renderView();
 				this.initialRenderComplete = true;
 				this.initializeTabContent();
 			}
 		} catch (error) {
-			// Only show error if not aborted
 			if (!this.abortController.signal.aborted) {
 				NotificationManager.showError("Error initializing profile");
 			}
 			this.dataFetchInProgress = false;
-			
-			this.updateInternalState({ 
-				isLoading: false,
-				initialized: false
-			});
+			this.updateInternalState({ isLoading: false, initialized: false });
 		}
 	}
 	
@@ -111,16 +87,13 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Set up listener for online status changes
 	 */
 	private setupOnlineStatusListener(): void {
-		if (this.statusChangeUnsubscribe) {
-			this.statusChangeUnsubscribe();
-		}
+		if (this.statusChangeUnsubscribe) this.statusChangeUnsubscribe();
 		
 		this.statusChangeUnsubscribe = this.wsClient.addStatusChangeListener((userId, isOnline) => {
 			const state = this.getInternalState();
 			if (state.profile && state.profile.id === userId) {
 				this.updateOnlineStatusIndicator(isOnline);
-				const newState = { ...state, isUserOnline: isOnline };
-				(this as any).state = newState;
+				(this as any).state = { ...state, isUserOnline: isOnline };
 			}
 		});
 	}
@@ -130,25 +103,16 @@ export class ProfileComponent extends Component<ProfileState> {
 	 */
 	private updateOnlineStatusIndicator(isOnline: boolean): void {
 		const indicator = this.container.querySelector('.online-status-indicator');
-		
-		if (indicator) {
-			if (isOnline) {
-				indicator.classList.add('online');
-			} else {
-				indicator.classList.remove('online');
-			}
-		}
+		if (indicator) indicator.classList[isOnline ? 'add' : 'remove']('online');
 	}
 	
 	/**
 	 * Renders the component based on current state
 	 */
 	render(): void {
-		if (!this.getInternalState().initialized && !this.dataFetchInProgress) {
-			this.initialize();
-		} else {
-			this.renderView();
-		}
+		!this.getInternalState().initialized && !this.dataFetchInProgress 
+			? this.initialize() 
+			: this.renderView();
 	}
 	
 	/**
@@ -167,7 +131,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	public loadProfile(profileId: string): void {
 		if (this.dataFetchInProgress) return;
 		
-		// Cancel any existing requests
 		if (this.abortController) {
 			this.abortController.abort();
 			this.abortController = undefined;
@@ -202,7 +165,6 @@ export class ProfileComponent extends Component<ProfileState> {
 	public refresh(): void {
 		if (this.dataFetchInProgress) return;
 		
-		// Cancel any existing requests
 		if (this.abortController) {
 			this.abortController.abort();
 			this.abortController = undefined;
@@ -234,15 +196,10 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Cleanup all child components
 	 */
 	private cleanupComponents(): void {
-		if (this.statsComponent) {
-			this.statsComponent = undefined;
-		}
-		if (this.historyComponent) {
-			this.historyComponent = undefined;
-		}
-		if (this.friendsComponent) {
-			this.friendsComponent = undefined;
-		}
+		this.statsComponent = undefined;
+		this.historyComponent = undefined;
+		this.friendsComponent = undefined;
+		
 		if (this.settingsComponent) {
 			if (typeof this.settingsComponent.destroy === 'function') {
 				this.settingsComponent.destroy();
@@ -255,27 +212,20 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Cleanup resources when component is destroyed
 	 */
 	public destroy(): void {
-		// Cancel any in-flight requests
 		if (this.abortController) {
 			this.abortController.abort();
 			this.abortController = undefined;
 		}
 		
-		// Reset fetch state
 		this.dataFetchInProgress = false;
 		
-		// Clean up WebSocket listener
 		if (this.statusChangeUnsubscribe) {
 			this.statusChangeUnsubscribe();
 			this.statusChangeUnsubscribe = undefined;
 		}
 		
-		// Clean up all child components
 		this.cleanupComponents();
-		
-		// Remove event listeners
 		window.removeEventListener('popstate', this.boundHandleUrlChange);
-		
 		super.destroy();
 	}
 	
@@ -292,9 +242,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		
 		requestAnimationFrame(() => {
 			const tabContainer = this.container.querySelector(`.tab-content`);
-			if (!tabContainer) return;
-			
-			this.createTabComponent(state.activeTab);
+			if (tabContainer) this.createTabComponent(state.activeTab);
 		});
 	}
 	
@@ -315,18 +263,10 @@ export class ProfileComponent extends Component<ProfileState> {
 		tabContentDiv.appendChild(tabContainer);
 
 		switch (tabName) {
-			case 'stats':
-				this.initializeStatsTab(tabContentDiv, tabContainer);
-				break;
-			case 'history':
-				this.initializeHistoryTab(tabContentDiv, tabContainer);
-				break;
-			case 'friends':
-				this.initializeFriendsTab(tabContentDiv, tabContainer);
-				break;
-			case 'settings':
-				this.initializeSettingsTab(tabContentDiv, tabContainer);
-				break;
+			case 'stats': this.initializeStatsTab(tabContentDiv, tabContainer); break;
+			case 'history': this.initializeHistoryTab(tabContentDiv, tabContainer); break;
+			case 'friends': this.initializeFriendsTab(tabContentDiv, tabContainer); break;
+			case 'settings': this.initializeSettingsTab(tabContentDiv, tabContainer); break;
 		}
 	}
 	
@@ -443,18 +383,10 @@ export class ProfileComponent extends Component<ProfileState> {
 		const state = this.getInternalState();
 		
 		switch (state.activeTab) {
-			case 'stats':
-				if (this.statsComponent) this.statsComponent.refreshData();
-				break;
-			case 'history':
-				if (this.historyComponent) this.historyComponent.refreshData();
-				break;
-			case 'friends':
-				if (this.friendsComponent) this.friendsComponent.refreshData();
-				break;
-			case 'settings':
-				if (this.settingsComponent) this.settingsComponent.refreshData();
-				break;
+			case 'stats': if (this.statsComponent) this.statsComponent.refreshData(); break;
+			case 'history': if (this.historyComponent) this.historyComponent.refreshData(); break;
+			case 'friends': if (this.friendsComponent) this.friendsComponent.refreshData(); break;
+			case 'settings': if (this.settingsComponent) this.settingsComponent.refreshData(); break;
 		}
 	}
 	
@@ -482,7 +414,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		this.updateInternalState({ currentProfileId: userId });
 		
 		try {
-			// Fetch basic profile data first
 			const userProfile = await DbService.getUserProfile(userId);
 			
 			if (!userProfile) {
@@ -509,10 +440,9 @@ export class ProfileComponent extends Component<ProfileState> {
 			this.updateInternalState({ profile });
 			
 			const isOwnProfile = this.isCurrentUserProfile(userId);
-			
 			const additionalDataPromises = [];
-			
 			let pendingFriends: any[] = [];
+			
 			if (isOwnProfile) {
 				additionalDataPromises.push(
 					DbService.getMyFriends()
@@ -530,13 +460,11 @@ export class ProfileComponent extends Component<ProfileState> {
 							return [];
 						})
 						.then(friendshipDetails => {
-							const incomingRequests = friendshipDetails
+							pendingFriends = friendshipDetails
 								.filter(({ friendshipStatus }) => 
 									friendshipStatus && friendshipStatus.requesting !== userId
 								)
 								.map(({ friendship }) => friendship);
-							
-							pendingFriends = incomingRequests;
 						})
 						.catch(() => {
 							NotificationManager.showError('Could not fetch pending friend requests');
@@ -576,9 +504,9 @@ export class ProfileComponent extends Component<ProfileState> {
 		}
 	}
 	
-	//--------------------------------
-	// Event Handlers
-	//--------------------------------
+	// =========================================
+	// HANDLERS
+	// =========================================
 	
 	/**
 	 * Handle player profile clicks with callback
@@ -595,25 +523,25 @@ export class ProfileComponent extends Component<ProfileState> {
 	/**
 	 * Handles updates from the ProfileSettingsComponent
 	 */
-	private handleProfileSettingsUpdate = async (updatedFields: Partial<User>): Promise<void> => {
+	private handleProfileSettingsUpdate = (updatedFields: Partial<User>): void => {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 
-		let profileWasActuallyUpdatedInParent = false;
-		const newProfileDataForParent = { ...state.profile };
+		let profileUpdated = false;
+		const newProfileData = { ...state.profile };
 
-		if (updatedFields.username && updatedFields.username !== newProfileDataForParent.username) {
-			newProfileDataForParent.username = updatedFields.username;
-			profileWasActuallyUpdatedInParent = true;
+		if (updatedFields.username && updatedFields.username !== newProfileData.username) {
+			newProfileData.username = updatedFields.username;
+			profileUpdated = true;
 		}
 		
-		if (updatedFields.pfp && updatedFields.pfp !== newProfileDataForParent.avatarUrl) {
-			newProfileDataForParent.avatarUrl = updatedFields.pfp;
-			profileWasActuallyUpdatedInParent = true;
+		if (updatedFields.pfp && updatedFields.pfp !== newProfileData.avatarUrl) {
+			newProfileData.avatarUrl = updatedFields.pfp;
+			profileUpdated = true;
 		}
 
-		if (profileWasActuallyUpdatedInParent) {
-			this.updateInternalState({ profile: newProfileDataForParent });
+		if (profileUpdated) {
+			this.updateInternalState({ profile: newProfileData });
 			this.renderView();
 		}
 	}
@@ -626,12 +554,8 @@ export class ProfileComponent extends Component<ProfileState> {
 		const newProfileId = url.searchParams.get('id');
 		const state = this.getInternalState();
 		
-		// Prevent handling if we're already loading or if it's the same profile
-		if (this.dataFetchInProgress || newProfileId === state.currentProfileId) {
-			return;
-		}
+		if (this.dataFetchInProgress || newProfileId === state.currentProfileId) return;
 		
-		// Cancel any existing requests
 		if (this.abortController) {
 			this.abortController.abort();
 			this.abortController = undefined;
@@ -664,11 +588,7 @@ export class ProfileComponent extends Component<ProfileState> {
 		if (!state.profile) return;
 		
 		const friendButton = this.container.querySelector('.friend-button') as HTMLButtonElement;
-		if (!friendButton) return;
-		
-		if (friendButton.classList.contains('is-friend')) {
-			return;
-		}
+		if (!friendButton || friendButton.classList.contains('is-friend')) return;
 		
 		const isPending = friendButton.classList.contains('pending');
 		
@@ -676,51 +596,32 @@ export class ProfileComponent extends Component<ProfileState> {
 		friendButton.textContent = 'Processing...';
 		
 		try {
+			let newStatus;
+			
 			if (isPending) {
 				await DbService.removeFriend(state.profile.id);
-				const newStatus = await DbService.getFriendship(state.profile.id);
-				
+				newStatus = await DbService.getFriendship(state.profile.id);
 				NotificationManager.showSuccess('Friend request cancelled');
-				
-				if (newStatus === null) {
-					friendButton.textContent = 'Add Friend';
-					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
-				} else if (newStatus.status === false) {
-					friendButton.textContent = 'Pending';
-					friendButton.classList.add('pending', 'request-sent');
-					friendButton.classList.remove('is-friend');
-				} else {
-					friendButton.textContent = 'Already Friends';
-					friendButton.classList.add('is-friend');
-					friendButton.classList.remove('pending', 'request-sent');
-				}
-				
-				this.updateInternalState({
-					friendshipStatus: newStatus
-				});
 			} else {
 				await DbService.addFriend(state.profile.id);
-				const newStatus = await DbService.getFriendship(state.profile.id);
-				
+				newStatus = await DbService.getFriendship(state.profile.id);
 				NotificationManager.showSuccess('Friend request sent');
-				
-				if (newStatus === null) {
-					friendButton.textContent = 'Add Friend';
-					friendButton.classList.remove('pending', 'request-sent', 'is-friend');
-				} else if (newStatus.status === false) {
-					friendButton.textContent = 'Pending';
-					friendButton.classList.add('pending', 'request-sent');
-					friendButton.classList.remove('is-friend');
-				} else {
-					friendButton.textContent = 'Already Friends';
-					friendButton.classList.add('is-friend');
-					friendButton.classList.remove('pending', 'request-sent');
-				}
-				
-				this.updateInternalState({
-					friendshipStatus: newStatus
-				});
 			}
+			
+			if (newStatus === null) {
+				friendButton.textContent = 'Add Friend';
+				friendButton.classList.remove('pending', 'request-sent', 'is-friend');
+			} else if (newStatus.status === false) {
+				friendButton.textContent = 'Pending';
+				friendButton.classList.add('pending', 'request-sent');
+				friendButton.classList.remove('is-friend');
+			} else {
+				friendButton.textContent = 'Already Friends';
+				friendButton.classList.add('is-friend');
+				friendButton.classList.remove('pending', 'request-sent');
+			}
+			
+			this.updateInternalState({ friendshipStatus: newStatus });
 		} catch (error) {
 			NotificationManager.showError("Error managing friend relationship");
 			
@@ -762,9 +663,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				
 				${state.isLoading ? 
 					html`<p class="loading-text">Loading profile data...</p>` :
-					html`
-						<div class="profile-content"></div>
-					`
+					html`<div class="profile-content"></div>`
 				}
 			</div>
 		`;
@@ -780,12 +679,11 @@ export class ProfileComponent extends Component<ProfileState> {
 			const summaryElement = document.createElement('div');
 			summaryElement.className = 'profile-hero';
 			
+			const isAiUser = state.profile.username.toLowerCase() === 'ai';
 			const avatarHtml = `
 				<div class="profile-avatar">
-					<img src="${state.profile.username.toLowerCase() === 'ai' ? '/images/ai-avatar.jpg' : state.profile.avatarUrl}" alt="${state.profile.username}">
-					${state.profile.username.toLowerCase() !== 'ai' ? `
-						<div class="online-status-indicator ${state.isUserOnline ? 'online' : ''}"></div>
-					` : ''}
+					<img src="${isAiUser ? '/images/ai-avatar.jpg' : state.profile.avatarUrl}" alt="${state.profile.username}">
+					${!isAiUser ? `<div class="online-status-indicator ${state.isUserOnline ? 'online' : ''}"></div>` : ''}
 				</div>
 			`;
 			
@@ -794,10 +692,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				<div class="profile-info">
 					<h2 class="username">
 						${state.profile.username}
-						${state.profile.username.toLowerCase() === 'ai' ? 
-							'<span class="bot-badge">BOT</span>' : 
-							''
-						}
+						${isAiUser ? '<span class="bot-badge">BOT</span>' : ''}
 					</h2>
 					<div class="summary-stats">
 						<div class="stat">
@@ -822,10 +717,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			
 			const url = new URL(window.location.href);
 			const urlProfileId = url.searchParams.get('id');
-			
 			const isCurrentUserProfile = this.isCurrentUserProfile(urlProfileId || state.profile.id);
-			
-			const isAiBot = state.profile.username.toLowerCase() === 'ai';
 			
 			let friendButtonText = 'Add Friend';
 			let friendButtonClass = 'friend-button tab-button';
@@ -838,9 +730,6 @@ export class ProfileComponent extends Component<ProfileState> {
 					friendButtonText = 'Already Friends';
 					friendButtonClass += ' is-friend';
 				}
-			} else {
-				friendButtonText = 'Add Friend';
-				friendButtonClass = 'friend-button tab-button';
 			}
 			
 			const tabsHTML = `
@@ -853,7 +742,7 @@ export class ProfileComponent extends Component<ProfileState> {
 							<button class="tab-button">Match History</button>
 						</li>
 						<li class="tab-item ${state.activeTab === 'friends' ? 'active' : ''}" data-tab="friends">
-							${isAiBot ? '' : `
+							${isAiUser ? '' : `
 							<button class="tab-button">
 								Friends
 								${isCurrentUserProfile && state.pendingFriends.length > 0 ? 
@@ -863,11 +752,11 @@ export class ProfileComponent extends Component<ProfileState> {
 							</button>
 							`}
 						</li>
-						${isCurrentUserProfile && !isAiBot ? `
+						${isCurrentUserProfile && !isAiUser ? `
 							<li class="tab-item ${state.activeTab === 'settings' ? 'active' : ''}" data-tab="settings">
 								<button class="tab-button">Settings</button>
 							</li>
-						` : !isAiBot ? `
+						` : !isAiUser ? `
 							<li class="tab-item" data-tab="add-friend">
 								<button class="${friendButtonClass}">${friendButtonText}</button>
 							</li>
@@ -890,7 +779,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 			await this.waitForNextFrame();
-			
 			this.createTabComponent(state.activeTab);
 		}
 	}
@@ -903,11 +791,7 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Returns a promise that resolves on the next animation frame
 	 */
 	private waitForNextFrame(): Promise<void> {
-		return new Promise(resolve => {
-			requestAnimationFrame(() => {
-				resolve();
-			});
-		});
+		return new Promise(resolve => requestAnimationFrame(() => resolve()));
 	}
 
 	/**
@@ -929,8 +813,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	}
 
 	/**
- * Checks pending friend requests
- */
+	 * Checks pending friend requests
+	 */
 	private async checkPendingFriendRequests(): Promise<void> {
 		const state = this.getInternalState();
 		if (!state.profile) return;

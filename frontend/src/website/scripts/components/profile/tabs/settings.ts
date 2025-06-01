@@ -41,7 +41,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const availableColors = Object.entries(appState.getAvailableColors());
 		const firstRowColors = availableColors.slice(0, 6);
 		const secondRowColors = availableColors.slice(6);
-		
 		const currentColor = AppStateManager.getUserAccentColor(state.profile.id);
 		
 		const template = html`
@@ -181,7 +180,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						<button type="submit" class="save-settings-button">
 							Save Changes
 						</button>
-						${state.formErrors.form && !state.noChangesMessage ? html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
+						${state.formErrors.form && !state.noChangesMessage ? 
+														html`<div class="form-error save-error">${state.formErrors.form}</div>` : ''}
 					</div>
 				</form>
 			</div>
@@ -213,10 +213,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Sets the user profile for the settings component
 	 */
 	public setProfile(profile: UserProfile): void {
-		const currentComponentState = this.getInternalState();
+		const state = this.getInternalState();
 		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
 		
-		if (currentComponentState.profile?.id !== profile.id || this.initialDbUsername === null) {
+		if (state.profile?.id !== profile.id || this.initialDbUsername === null) {
 			this.initialDbUsername = profile.username || '';
 			this.initialDbEmail = null;
 			
@@ -262,16 +262,14 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						if (toggle) toggle.checked = twoFactorEnabled;
 					}, 0);
 				})
-				.catch(() => {
-					NotificationManager.showError('Error fetching user data');
-				});
+				.catch(() => NotificationManager.showError('Error fetching user data'));
 			}
-		} else if (userAccentColor !== currentComponentState.profile?.preferences?.accentColor) {
+		} else if (userAccentColor !== state.profile?.preferences?.accentColor) {
 			this.updateInternalState({
 				profile: {
-					...currentComponentState.profile,
+					...state.profile,
 					preferences: {
-						...(currentComponentState.profile.preferences || {}),
+						...(state.profile.preferences || {}),
 						accentColor: userAccentColor
 					}
 				}
@@ -283,9 +281,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Sets handlers for component events
 	 */
 	public setHandlers(handlers: { onProfileUpdate?: (updatedFields: Partial<User>) => void }): void {
-		if (handlers.onProfileUpdate) {
-			this.onProfileUpdate = handlers.onProfileUpdate;
-		}
+		if (handlers.onProfileUpdate) this.onProfileUpdate = handlers.onProfileUpdate;
 	}
 
 	// =========================================
@@ -298,9 +294,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private handleExternalThemeUpdate(event: Event): void {
 		const customEvent = event as CustomEvent<{ userId: string, theme: string }>;
 		if (customEvent.detail && this.getInternalState().profile) {
-			if (customEvent.detail.userId === this.getInternalState().profile!.id) {
-				this.render();
-			}
+			if (customEvent.detail.userId === this.getInternalState().profile!.id) this.render();
 		}
 	}
 	
@@ -311,96 +305,65 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
 		
-		if (file) {
-			const state = this.getInternalState();
-			if (!state.profile) return;
+		if (!file) return;
+				
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
+		if (!validTypes.includes(file.type)) {
+			NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
+			this.updateInternalState({ uploadSuccess: false, isUploading: false });
+			return;
+		}
+		
+		if (file.size > 1 * 1024 * 1024) {
+			NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
+			this.updateInternalState({ uploadSuccess: false, isUploading: false });
+			return;
+		}
+		
+		this.updateInternalState({ isUploading: true, uploadSuccess: false });
+		
+		try {
+			await DbService.updateProfilePicture(file);
+			NotificationManager.showSuccess('Profile picture updated successfully');
+			const picResponse = await DbService.getPic(state.profile.id);
 			
-			const validTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
-			if (!validTypes.includes(file.type)) {
-				NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
+			if (picResponse?.link) {
 				this.updateInternalState({
-					uploadSuccess: false,
-					isUploading: false
+					isUploading: false,
+					uploadSuccess: true,
+					profile: { ...state.profile, avatarUrl: picResponse.link }
 				});
-				return;
+				
+				if (this.onProfileUpdate) this.onProfileUpdate({ pfp: picResponse.link });
+			} else {
+				this.updateInternalState({ isUploading: false, uploadSuccess: true });
 			}
-			
-			if (file.size > 1 * 1024 * 1024) {
-				NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
-				this.updateInternalState({
-					uploadSuccess: false,
-					isUploading: false
-				});
-				return;
-			}
-			
-			this.updateInternalState({
-				isUploading: true,
-				uploadSuccess: false
-			});
-			
-			try {
-				await DbService.updateProfilePicture(file);
+		} catch (error) {
+			if (error instanceof TypeError && error.message.includes('null')) {
 				NotificationManager.showSuccess('Profile picture updated successfully');
-				const picResponse = await DbService.getPic(state.profile!.id);
-				if (picResponse && picResponse.link) {
-					this.updateInternalState({
-						isUploading: false,
-						uploadSuccess: true,
-						profile: {
-							...this.getInternalState().profile!,
-							avatarUrl: picResponse.link
-						}
-					});
-					if (this.onProfileUpdate) {
-						this.onProfileUpdate({
-							pfp: picResponse.link
-						});
-					}
-				} else {
-					this.updateInternalState({
-						isUploading: false,
-						uploadSuccess: true
-					});
-				}
-			} catch (error) {
-				if (error instanceof TypeError && error.message.includes('null')) {
-					NotificationManager.showSuccess('Profile picture updated successfully');
-					try {
-						const picResponse = await DbService.getPic(state.profile!.id);
-						if (picResponse && picResponse.link) {
-							this.updateInternalState({
-								isUploading: false,
-								uploadSuccess: true,
-								profile: {
-									...this.getInternalState().profile!,
-									avatarUrl: picResponse.link
-								}
-							});
-							if (this.onProfileUpdate) {
-								this.onProfileUpdate({
-									pfp: picResponse.link
-								});
-							}
-						} else {
-							this.updateInternalState({
-								isUploading: false,
-								uploadSuccess: true
-							});
-						}
-					} catch {
+				
+				try {
+					const picResponse = await DbService.getPic(state.profile.id);
+					if (picResponse?.link) {
 						this.updateInternalState({
 							isUploading: false,
-							uploadSuccess: true
+							uploadSuccess: true,
+							profile: { ...state.profile, avatarUrl: picResponse.link }
 						});
+						
+						if (this.onProfileUpdate) this.onProfileUpdate({ pfp: picResponse.link });
+					} else {
+						this.updateInternalState({ isUploading: false, uploadSuccess: true });
 					}
-				} else {
-					NotificationManager.showError('Upload failed. Please try again.');
-					this.updateInternalState({
-						isUploading: false,
-						uploadSuccess: false
-					});
+				} catch {
+					this.updateInternalState({ isUploading: false, uploadSuccess: true });
 				}
+			} else {
+				NotificationManager.showError('Upload failed. Please try again.');
+				this.updateInternalState({ isUploading: false, uploadSuccess: false });
 			}
 		}
 	}
@@ -414,7 +377,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 
 		AppStateManager.setUserAccentColor(state.profile.id, colorHex);
 		appState.setPlayerAccentColor(1, colorHex, state.profile.id);
-		
 		NotificationManager.showSuccess('Theme color updated');
 	}
 	
@@ -427,26 +389,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		if (name === 'username') {
 			const sanitizedValue = value.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-		
 			
-			if (sanitizedValue !== value) {
-				input.value = sanitizedValue;
-			}
+			if (sanitizedValue !== value) input.value = sanitizedValue;
 			
 			this.updateInternalState({
-				formData: {
-					...this.getInternalState().formData,
-					[name]: sanitizedValue
-				}
+				formData: { ...this.getInternalState().formData, [name]: sanitizedValue }
 			});
 			return;
 		}
 		
 		this.updateInternalState({
-			formData: {
-				...this.getInternalState().formData,
-				[name]: value
-			}
+			formData: { ...this.getInternalState().formData, [name]: value }
 		});
 	}
 	
@@ -487,30 +440,20 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		if (Object.keys(errors).length > 0) {
 			this.updateInternalState({ formErrors: errors, saveSuccess: false, noChangesMessage: null });
-			
-			const firstError = Object.values(errors)[0];
-			NotificationManager.showError(firstError);
+			NotificationManager.showError(Object.values(errors)[0]);
 			return;
 		}
 		
 		this.updateInternalState({ formErrors: {}, noChangesMessage: null });
 		const updateData: Partial<User> = {};
 		
-		if (state.formData.username !== this.initialDbUsername) {
-			updateData.username = state.formData.username;
-		}
-		if (state.formData.email !== this.initialDbEmail) {
-			updateData.email = state.formData.email;
-		}
-		if (state.formData.password) {
-			updateData.password = await hashPassword(state.formData.password);
-		}
+		if (state.formData.username !== this.initialDbUsername) updateData.username = state.formData.username;
+		if (state.formData.email !== this.initialDbEmail) updateData.email = state.formData.email;
+		if (state.formData.password) updateData.password = await hashPassword(state.formData.password);
 		
 		if (Object.keys(updateData).length === 0) {
 			NotificationManager.showInfo('No changes detected');
-			this.updateInternalState({ 
-				formErrors: { form: undefined }
-			});
+			this.updateInternalState({ formErrors: { form: undefined } });
 			return;
 		}
 
@@ -525,10 +468,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			this.initialDbEmail = newEmail;
 			
 			this.updateInternalState({
-				profile: {
-					...state.profile,
-					username: newUsername,
-				},
+				profile: { ...state.profile, username: newUsername },
 				formData: {
 					username: newUsername,
 					email: newEmail || '',
@@ -539,19 +479,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				formErrors: { form: undefined }
 			});
 			
-			const actualChangesForParent: Partial<User> = {};
-			if (updateData.username) actualChangesForParent.username = newUsername;
-			if (updateData.email !== undefined) actualChangesForParent.email = newEmail || undefined;
+			const actualChanges: Partial<User> = {};
+			if (updateData.username) actualChanges.username = newUsername;
+			if (updateData.email !== undefined) actualChanges.email = newEmail || undefined;
 			
-			if (Object.keys(actualChangesForParent).length > 0) {
-				appState.updateUserData(actualChangesForParent);
-				if (actualChangesForParent.username) {
-					appState.setPlayerName(state.profile.id, actualChangesForParent.username);
+			if (Object.keys(actualChanges).length > 0) {
+				appState.updateUserData(actualChanges);
+				if (actualChanges.username) {
+					appState.setPlayerName(state.profile.id, actualChanges.username);
 				}
-				this.updateAuthUserInStorage(actualChangesForParent);
-				if (this.onProfileUpdate) {
-					this.onProfileUpdate(actualChangesForParent);
-				}
+				this.updateAuthUserInStorage(actualChanges);
+				if (this.onProfileUpdate) this.onProfileUpdate(actualChanges);
 			}
 		} catch (error) {
 			const currentFormErrors = { ...state.formErrors };
@@ -579,9 +517,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				NotificationManager.showError('Failed to update profile');
 			}
 			
-			this.updateInternalState({ 
-				formErrors: currentFormErrors
-			});
+			this.updateInternalState({ formErrors: currentFormErrors });
 		}
 	}
 	
@@ -609,17 +545,13 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				this.updateInternalState({
 					profile: { ...state.profile, twoFactorEnabled: false }
 				});
-				if (toggleContainer) {
-					toggleContainer.classList.remove('active');
-				}
+				if (toggleContainer) toggleContainer.classList.remove('active');
 			}
 		} catch (error) {
 			NotificationManager.showError('2FA operation failed');
 			
 			toggle.checked = !toggle.checked;
-			if (toggleContainer) {
-				toggleContainer.classList.toggle('active', toggle.checked);
-			}
+			if (toggleContainer) toggleContainer.classList.toggle('active', toggle.checked);
 			
 			this.updateInternalState({
 				formErrors: {
@@ -695,11 +627,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		try {
 			await DbService.validate2FA(code);
 			NotificationManager.showSuccess('Two-factor authentication enabled successfully');
+			
 			this.updateInternalState({
-				profile: { 
-					...this.getInternalState().profile!, 
-					twoFactorEnabled: true 
-				}
+				profile: { ...this.getInternalState().profile!, twoFactorEnabled: true }
 			});
 			
 			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
@@ -745,20 +675,20 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 */
 	private updateAuthUserInStorage(updatedUser: any): void {
 		const authUserJson = localStorage.getItem('auth_user') || sessionStorage.getItem('auth_user');
-		if (authUserJson) {
-			const authUser = JSON.parse(authUserJson);
-			const updatedAuthUser = {
-				...authUser,
-				pseudo: updatedUser.username,
-				username: updatedUser.username,
-				email: updatedUser.email || authUser.email
-			};
-			
-			if (localStorage.getItem('auth_user')) {
-				localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			} else if (sessionStorage.getItem('auth_user')) {
-				sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
-			}
+		if (!authUserJson) return;
+				
+		const authUser = JSON.parse(authUserJson);
+		const updatedAuthUser = {
+			...authUser,
+			pseudo: updatedUser.username,
+			username: updatedUser.username,
+			email: updatedUser.email || authUser.email
+		};
+		
+		if (localStorage.getItem('auth_user')) {
+			localStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
+		} else if (sessionStorage.getItem('auth_user')) {
+			sessionStorage.setItem('auth_user', JSON.stringify(updatedAuthUser));
 		}
 	}
 
@@ -775,6 +705,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				DbService.getUser(state.profile.id),
 				DbService.check2FAStatus()
 			]);
+			
 			this.initialDbUsername = userFromDb.username;
 			this.initialDbEmail = userFromDb.email || null;
 

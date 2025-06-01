@@ -56,7 +56,7 @@ export interface ProcessedMatch {
 	playerScore: number;
 	opponentScore: number;
 	result: 'win' | 'loss';
-	finals: boolean;
+	final: boolean;
 }
 
 /**

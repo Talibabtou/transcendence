@@ -53,19 +53,15 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	public setProfile(profile: UserProfile): void {
 		const state = this.getInternalState();
 		if (state.profile?.id !== profile.id) {
-			const isCurrentUser = state.currentUserId === profile.id;
-			
 			this.updateInternalState({ 
 				profile,
-				isCurrentUser,
+				isCurrentUser: state.currentUserId === profile.id,
 				pendingFriends: [],
 				acceptedFriends: [],
 				friends: []
 			});
 			
-			if (!state.dataLoadInProgress) {
-				this.loadFriendsData();
-			}
+			if (!state.dataLoadInProgress) this.loadFriendsData();
 		}
 	}
 	
@@ -77,10 +73,9 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		onPlayerClick: (username: string) => void; 
 		onFriendRequestAccepted?: () => void;
 	}): void {
-		const currentHandlers = this.getInternalState().handlers;
 		this.updateInternalState({ 
 			handlers: {
-				...currentHandlers,
+				...this.getInternalState().handlers,
 				...handlers
 			}
 		});
@@ -92,6 +87,14 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	 */
 	public setPendingFriends(pendingFriends: Friend[]): void {
 		this.updateInternalState({ pendingFriends });
+	}
+	
+	/**
+	 * Refreshes the friends data
+	 */
+	public refreshData(): void {
+		const state = this.getInternalState();
+		if (!state.dataLoadInProgress && state.profile) this.loadFriendsData();
 	}
 	
 	// =========================================
@@ -117,23 +120,23 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				const pendingFriends: Friend[] = [];
 				const acceptedFriends: IReplyGetFriend[] = [];
 				
-				for (const friend of friendsResponse) {
+				friendsResponse.forEach(friend => {
 					if (friend.accepted) {
 						acceptedFriends.push(friend);
 					} else {
-						pendingPromises.push(DbService.getFriendship(friend.id)
-							.then(friendshipStatus => {
-								pendingFriends.push({
-									...friend,
-									requesting: friendshipStatus?.requesting || ''
-								});
-							}));
+						pendingPromises.push(
+							DbService.getFriendship(friend.id)
+								.then(friendshipStatus => {
+									pendingFriends.push({
+										...friend,
+										requesting: friendshipStatus?.requesting || ''
+									});
+								})
+						);
 					}
-				}
+				});
 				
-				if (pendingPromises.length > 0) {
-					await Promise.all(pendingPromises);
-				}
+				if (pendingPromises.length > 0) await Promise.all(pendingPromises);
 				
 				this.updateInternalState({
 					pendingFriends,
@@ -158,15 +161,6 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				dataLoadInProgress: false
 			});
 		}
-	}
-	
-	/**
-	 * Refreshes the friends data
-	 */
-	public refreshData(): void {
-		const state = this.getInternalState();
-		if (state.dataLoadInProgress || !state.profile) return;
-		this.loadFriendsData();
 	}
 	
 	// =========================================
@@ -195,11 +189,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			await DbService.acceptFriendRequest(friendId);
 			await this.loadFriendsData();
 			
-			// Notify parent that a friend request was accepted
-			const state = this.getInternalState();
-			if (state.handlers.onFriendRequestAccepted) {
-				state.handlers.onFriendRequestAccepted();
-			}
+			const { onFriendRequestAccepted } = this.getInternalState().handlers;
+			if (onFriendRequestAccepted) onFriendRequestAccepted();
 		} catch (error) {
 			NotificationManager.showError('Failed to accept friend request');
 		}
