@@ -49,9 +49,10 @@ clean:
 	@$(DOCKER) $(DOWN)
 
 fclean: clean
-	@echo -e "$(GREEN)[FCLEAN] Deleting all generated directories...$(NC)"
+	@echo "$(GREEN)[FCLEAN] Deleting all generated directories...$(NC)"
 	@for dir in $(DIRS); do \
-		if [ "$$dir" != "$(PATH_GRAFANA_DATA)" ]; then \
+		if [ "$$dir" != "$(PATH_GRAFANA_DATA)" ] && [ "$$dir" != "$(PATH_PROMETHEUS_DATA)" ]; then \
+			echo "$$dir deleted"; \
 			$(RM) "$$dir"; \
 		fi \
 	done
