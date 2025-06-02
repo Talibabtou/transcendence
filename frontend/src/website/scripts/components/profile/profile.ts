@@ -499,7 +499,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 		} catch (error) {
-			NotificationManager.showError("Error fetching profile data");
+			NotificationManager.handleError(error);
 			this.updateInternalState({ isLoading: false });
 		}
 	}

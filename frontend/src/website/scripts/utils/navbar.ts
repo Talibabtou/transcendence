@@ -63,7 +63,7 @@ export class NavbarComponent {
 			
 			const handleLinkClick = (e: Event, path: string) => {
 				e.preventDefault();
-				navigate(path, { preventReload: true });
+				navigate(path);
 			};
 			
 			const navbarTemplate = html`
@@ -103,8 +103,7 @@ export class NavbarComponent {
 			this.authButtonActive = true;
 			this.renderNavbar();
 			navigate('/auth', { 
-				state: { returnTo: location.pathname },
-				preventReload: true 
+				state: { returnTo: location.pathname }
 			});
 		} catch (error) {
 			NotificationManager.handleError(error);

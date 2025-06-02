@@ -1,5 +1,5 @@
 import { AppState, AccentColor, ACCENT_COLORS } from '@website/types';
-import { NotificationManager, Router, disconnectWebSocket } from '@website/scripts/services';
+import { NotificationManager, Router, disconnectWebSocket, navigate } from '@website/scripts/services';
 
 type StateChangeListener = (newState: Partial<AppState>, oldState: Partial<AppState>) => void;
 
@@ -333,7 +333,7 @@ export class AppStateManager {
 		if (wasAuthenticated) {
 			Router.refreshAllComponents();
 			if (window.location.pathname.includes('/profile')) {
-				window.location.href = '/';
+				navigate('/');
 			}
 		}
 	}

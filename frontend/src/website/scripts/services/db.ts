@@ -7,7 +7,7 @@ import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { GameManager } from '../components/game/game-manager';
-import { navigate, Router } from '../services/router';
+import { navigate } from '../services/router';
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -75,9 +75,6 @@ export class DbService {
 				gameManager.cleanupMainGame();
 				gameManager.showBackgroundGame();
 				navigate('/');
-				setTimeout(() => {
-					Router.resetGameComponentToMenu();
-				}, 50);
 			}
 			if (response.status >= 500) {
 				throw new Error(response.statusText);

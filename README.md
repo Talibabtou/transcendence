@@ -75,8 +75,10 @@ $ cd transcendence
 
 # Setup .env.example to .env
 
-# Run the Makefile to launch the project
+# Run the Makefile to launch the project on a 42 school computer with local volume management
 $ make
+# Or run directly the docker compose command to let docker manage volume
+$ docker compose up --build
 
 # Website will initialize in the <https://localhost:8048>
 # Swagger will initialize in the <https://localhost:8085/documentation>
