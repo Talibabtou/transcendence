@@ -478,7 +478,7 @@ export class Player implements GraphicalElement {
 	 * Updates AI inputs based on ball position and game state
 	 */
 	protected updateAIInputs(ctx: GameContext): void {
-		const vx = Math.abs(this.ball.Velocity.dx);
+		const vx = Math.abs(this.currentVelVec.dx);
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		if (vx > 0) {
 			const Width = ctx.canvas.width;
