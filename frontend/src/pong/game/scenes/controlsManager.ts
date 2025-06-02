@@ -1,27 +1,16 @@
 import { Player, PlayerType } from '@pong/types';
-import { GameScene } from '@pong/game/scenes/GameScene';
+import { GameScene } from '@pong/game/scenes';
 import { GameMode } from '@website/types';
 
-/**
- * Manages player controls and input handling based on game mode.
- * Handles switching between human and AI control for players.
- */
 export class ControlsManager {
 	private readonly player1: Player;
 	private readonly player2: Player;
 	private gameScene: GameScene | null = null;
 
-	/**
-	 * Creates a new ControlsManager instance
-	 * @param player1 The first player
-	 * @param player2 The second player
-	 */
 	constructor(player1: Player, player2: Player) {
 		this.player1 = player1;
 		this.player2 = player2;
 	}
-
-
 
 	/**
 	 * Sets up player controls based on the game mode

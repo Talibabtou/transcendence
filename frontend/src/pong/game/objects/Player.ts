@@ -1,19 +1,9 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
-import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
+import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState, VelocityValue } from '@pong/types';
 import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
 
-// Assuming VelocityValue is defined as: interface VelocityValue { dx: number; dy: number; }
-// For the purpose of this edit, we'll assume it (or a similar type) is available.
-// If not, it should be defined here or imported.
-interface VelocityValue { dx: number; dy: number; }
-
-/**
- * Represents a player in the game, managing paddle movement,
- * input handling, scoring, and AI behavior.
- */
 export class Player implements GraphicalElement {
-
 	public paddle: Paddle;
 	public paddleWidth: number = 10;
 	public paddleHeight: number = 100;
@@ -75,18 +65,6 @@ export class Player implements GraphicalElement {
 	};
 
 
-	// =========================================
-	// Constructor
-	// =========================================
-	/**
-	 * Creates a new Player instance
-	 * @param x The horizontal position
-	 * @param y The vertical position
-	 * @param ball The ball object for tracking and collision
-	 * @param context The canvas rendering context
-	 * @param position The player's position (left or right)
-	 * @param type Whether the player is AI or human controlled
-	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -311,10 +289,10 @@ export class Player implements GraphicalElement {
 				opponentPaddleEdgeX
 			);
 
-			this._determineEarliestCollision(); // Uses this._collisionTimesHolder
+			this._determineEarliestCollision();
 
 			if (this._earliestCollisionHolder.collisionType === 'none' || this._earliestCollisionHolder.timeToCollision === Infinity) {
-				this._targetY = this.y + this.paddleHeight / 2; // Default if no collision
+				this._targetY = this.y + this.paddleHeight / 2;
 				break;
 			}
 
@@ -328,11 +306,10 @@ export class Player implements GraphicalElement {
 
 			this._handleReflection(
 				this._earliestCollisionHolder.collisionType as 'top' | 'bottom' | 'opponent',
-				this.currentVelVec, // Pass current velocity for reflection calculation
+				this.currentVelVec,
 				simulatedSpeedMultiplier,
 				this.ball.baseSpeed
 			);
-			// Update currentVelVec and simulatedSpeedMultiplier from member variables
 			this.currentVelVec.dx = this._reusableVelocityVector.dx;
 			this.currentVelVec.dy = this._reusableVelocityVector.dy;
 			simulatedSpeedMultiplier = this._reflectionSpeedMultiplierHolder;

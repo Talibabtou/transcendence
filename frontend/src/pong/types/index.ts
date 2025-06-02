@@ -1,3 +1,5 @@
+import { GameMode } from '@website/types';
+
 // =========================================
 // Core Game Types
 // =========================================
@@ -193,7 +195,45 @@ export interface GameSizes {
  */
 export interface SceneParams {
 	winner?: Player;
-	[key: string]: any;
+	[key: string]: unknown;
+}
+
+export interface GameOverDetail {
+	matchId: string;
+	gameMode: GameMode;
+	isBackgroundGame: boolean;
+	player1Score: number;
+	player2Score: number;
+	player1Name: string;
+	player2Name: string;
+	winner: string;
+}
+
+export interface PositionValue {
+	x: number;
+	y: number;
+}
+
+export interface VelocityValue {
+	dx: number;
+	dy: number;
+}
+
+export interface DimensionsValue {
+	width: number;
+	height: number;
+}
+
+export interface SweepResult {
+	t: number;
+	normal: { nx: number; ny: number };
+	collided: boolean;
+}
+
+export interface CircleAABBOverlapResult {
+	penetration: { dx: number; dy: number };
+	normal: { nx: number; ny: number };
+	collided: boolean;
 }
 
 export type CountdownCallback = (text: string | number | string[] | null) => void;

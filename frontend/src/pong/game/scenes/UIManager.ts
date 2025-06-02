@@ -1,58 +1,35 @@
 import { GameContext, Player } from '@pong/types';
 import { COLORS, FONTS, MESSAGES, UI_CONFIG, calculateFontSizes } from '@pong/constants';
 
-/**
- * Manages all UI rendering in the game, including scores, player names,
- * countdown, pause overlay, and other UI elements.
- */
 export class UIManager {
-
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
 	private cachedPlayer1NameForBg: string = '';
 	private cachedPlayer2NameForBg: string = '';
-
-	// Cached dimensions and font sizes
 	private cachedCanvasWidth: number = 0;
 	private cachedCanvasHeight: number = 0;
 	private cachedFontSizes: ReturnType<typeof calculateFontSizes> | null = null;
-
-	// Reusable object for getTextPosition
 	private _reusableTextPosition = { x: 0, y: 0 };
-
-	// Offscreen canvas for countdown numbers
 	private countdownNumberCanvas: HTMLCanvasElement;
 	private countdownNumberContext: CanvasRenderingContext2D | null;
 	private cachedCountdownNumberString: string = "";
 	private cachedCountdownNumberFont: string = "";
-
-	// Offscreen canvas for the entire background (scores and names)
 	private backgroundCacheCanvas: HTMLCanvasElement;
 	private backgroundCacheContext: CanvasRenderingContext2D | null;
 	private backgroundNeedsRedraw: boolean = true;
 	private cachedPlayer1Score: number = -1;
 	private cachedPlayer2Score: number = -1;
 
-	/**
-	 * Creates a new UIManager instance
-	 * @param context The canvas rendering context
-	 */
 	constructor(context: GameContext) {
 		this.context = context;
-
-		// Initialize countdown number offscreen canvas
 		this.countdownNumberCanvas = document.createElement('canvas');
 		this.countdownNumberContext = this.countdownNumberCanvas.getContext('2d');
 		if (this.countdownNumberContext) {
-			// Fixed size, large enough for biggest number/style
 			this.countdownNumberCanvas.width = 200; 
 			this.countdownNumberCanvas.height = 300;
 		}
-
-		// Initialize background cache canvas
 		this.backgroundCacheCanvas = document.createElement('canvas');
 		this.backgroundCacheContext = this.backgroundCacheCanvas.getContext('2d');
-		// Initial size will be set on first draw or resize
 		this.backgroundCacheCanvas.width = 0;
 		this.backgroundCacheCanvas.height = 0;
 	}
@@ -79,8 +56,8 @@ export class UIManager {
 		const { width, height } = this.context.canvas;
 		const sizes = this.getFontSizes(width, height);
 
-		this.setTextStyleHelper( // Use helper for cache context
-			this.backgroundCacheContext!, // Draw to cache
+		this.setTextStyleHelper(
+			this.backgroundCacheContext!,
 			`${sizes.SCORE_SIZE} ${FONTS.FAMILIES.SCORE}`,
 			COLORS.SCORE,
 			'center',
@@ -94,7 +71,7 @@ export class UIManager {
 	 * Draws player names
 	 */
 	private drawPlayerNames(player1: Player, player2: Player): void {
-		const { width, height } = this.context.canvas; // Still use main canvas for layout
+		const { width, height } = this.context.canvas;
 		const sizes = this.getFontSizes(width, height);
 		const paddingTop = height * 0.02;
 		const paddingLeft = width * 0.06;
@@ -102,11 +79,9 @@ export class UIManager {
 		const nameFont = `${sizes.SUBTITLE_SIZE} ${FONTS.FAMILIES.SUBTITLE}`;
 
 		if (this.backgroundCacheContext) {
-			// Draw Player 1's name (left-aligned)
 			this.setTextStyleHelper(this.backgroundCacheContext, nameFont, COLORS.NAMES, 'left', 'top');
 			this.backgroundCacheContext.fillText(player1.name, paddingLeft, paddingTop);
 
-			// Draw Player 2's name (right-aligned)
 			this.setTextStyleHelper(this.backgroundCacheContext, nameFont, COLORS.NAMES, 'right', 'top');
 			this.backgroundCacheContext.fillText(player2.name, width - paddingRight, paddingTop);
 		}
@@ -142,15 +117,14 @@ export class UIManager {
 		);
 
 		if (Array.isArray(this.countdownText)) {
-			// Direct drawing for messages, ensure style is set on main context
 			this.setTextStyle(
-				`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`, // Example, adjust as needed for messages
+				`${sizes.PAUSE_SIZE} ${FONTS.FAMILIES.PAUSE}`,
 				UI_CONFIG.TEXT.COLOR,
 				UI_CONFIG.TEXT.ALIGN
 			);
 			this.drawCountdownMessages(sizes);
 		} else if (typeof this.countdownText === 'number') {
-			this.drawCountdownNumber(sizes); // Pass sizes to get the font
+			this.drawCountdownNumber(sizes);
 		}
 	}
 
@@ -177,13 +151,11 @@ export class UIManager {
 		const text = this.countdownText.toString();
 		const font = `${sizes.COUNTDOWN_SIZE} ${FONTS.FAMILIES.COUNTDOWN}`;
 
-		// Redraw to offscreen canvas only if text or font changes
 		if (text !== this.cachedCountdownNumberString || font !== this.cachedCountdownNumberFont) {
 			this.cachedCountdownNumberString = text;
 			this.cachedCountdownNumberFont = font;
 
 			this.countdownNumberContext.clearRect(0, 0, this.countdownNumberCanvas.width, this.countdownNumberCanvas.height);
-			// Style for the offscreen canvas context, text centered
 			this.setTextStyleHelper(
 				this.countdownNumberContext,
 				font,
@@ -191,7 +163,6 @@ export class UIManager {
 				'center',
 				'middle'
 			);
-			// Draw centered in the offscreen canvas
 			const offscreenCenterX = this.countdownNumberCanvas.width / 2;
 			const offscreenCenterY = this.countdownNumberCanvas.height / 2;
 
@@ -201,7 +172,6 @@ export class UIManager {
 			this.countdownNumberContext.fillText(text, offscreenCenterX, offscreenCenterY);
 		}
 
-		// Draw the offscreen canvas onto the main canvas
 		const customCenterY = this.context.canvas.height * 0.25;
 		const pos = this.getTextPosition(0, 1, customCenterY);
 
@@ -229,32 +199,29 @@ export class UIManager {
 		if (!this.backgroundCacheContext) return;
 		const { width, height } = this.context.canvas;
 
-		// Ensure cache canvas matches main canvas size
 		if (this.backgroundCacheCanvas.width !== width || this.backgroundCacheCanvas.height !== height) {
 			this.backgroundCacheCanvas.width = width;
 			this.backgroundCacheCanvas.height = height;
-			// Font sizes might change with canvas size, so force font size recalculation
 			this.cachedFontSizes = null; 
 		}
 		this.backgroundCacheContext.clearRect(0, 0, width, height);
-		this.drawPlayerNames(player1, player2); // Draws to backgroundCacheContext
-		this.drawScores(player1, player2);    // Draws to backgroundCacheContext
+		this.drawPlayerNames(player1, player2);
+		this.drawScores(player1, player2);
 		this.cachedPlayer1Score = player1.Score;
 		this.cachedPlayer2Score = player2.Score;
-		this.cachedPlayer1NameForBg = player1.name; // Update cached names
-		this.cachedPlayer2NameForBg = player2.name; // Update cached names
+		this.cachedPlayer1NameForBg = player1.name;
+		this.cachedPlayer2NameForBg = player2.name;
 		this.backgroundNeedsRedraw = false;
 	}
 	
 	public drawBackground(player1: Player, player2: Player): void {
 		const { width, height } = this.context.canvas;
 		if (this.backgroundCacheCanvas.width !== width || this.backgroundCacheCanvas.height !== height) {
-			this.backgroundNeedsRedraw = true; // Force redraw if canvas size changed
+			this.backgroundNeedsRedraw = true;
 		}
 		if (player1.Score !== this.cachedPlayer1Score || player2.Score !== this.cachedPlayer2Score) {
 			this.backgroundNeedsRedraw = true;
 		}
-		// Check if player names have changed
 		if (player1.name !== this.cachedPlayer1NameForBg || player2.name !== this.cachedPlayer2NameForBg) {
 			this.backgroundNeedsRedraw = true;
 		}

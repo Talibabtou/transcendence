@@ -2,14 +2,10 @@ import { Ball, Player } from '@pong/game/objects';
 import { PhysicsManager } from '@pong/game/physics';
 import { GraphicalElement, GameContext, GameState, PlayerPosition, PlayerType } from '@pong/types';
 import { GAME_CONFIG, calculateGameSizes } from '@pong/constants';
-import { PauseManager, ResizeManager } from '@pong/game/engine';
+import { GameEngine, PauseManager, ResizeManager } from '@pong/game/engine';
 import { UIManager, ControlsManager } from '@pong/game/scenes';
 import { GameMode } from '@website/types';
 
-/**
- * Main game scene that coordinates game objects, managers, and game flow.
- * Acts as the central coordinator between different game components.
- */
 export class GameScene {
 
 	private ball!: Ball;
@@ -24,12 +20,8 @@ export class GameScene {
 	private readonly winningScore = GAME_CONFIG.WINNING_SCORE;
 	private gameMode: GameMode = GameMode.SINGLE;
 	private isFrozen: boolean = false;
-	private gameEngine: any;
+	private gameEngine: GameEngine | null = null;
 
-	/**
-	 * Creates a new GameScene instance
-	 * @param context The canvas rendering context
-	 */
 	constructor(private readonly context: GameContext) {
 		if (!context) {
 			throw new Error('Context must be provided to GameScene');
@@ -107,6 +99,9 @@ export class GameScene {
 		this.createGameObjects(width, height);
 		this.objectsInScene = [this.player1, this.player2, this.ball];
 		this.initializeManagers();
+		if (!this.gameEngine) {
+			throw new Error('GameEngine must be provided to GameScene');
+		}
 		this.physicsManager = new PhysicsManager(this.ball, this.player1, this.player2, this.gameEngine, this);
 		this.physicsManager.setOnScoreUpdateCallback(() => {
 			if (this.uiManager && typeof this.uiManager.invalidateBackgroundCache === 'function') {
@@ -224,6 +219,7 @@ export class GameScene {
 	public handlePause(): void { this.pauseManager.pause(); }
 	public handleResume(): void { this.pauseManager.resume(); }
 	private shouldSkipUpdate(): boolean { return !this.isBackgroundDemo() && this.pauseManager.hasState(GameState.PAUSED); }
+
 	private initializeManagers(): void {
 		this.initializePauseManager();
 		this.initializeResizeManager();
@@ -243,15 +239,15 @@ export class GameScene {
 	private cleanupManagers(): void {
 		this.pauseManager?.cleanup();
 		this.resizeManager?.cleanup();
-		this.pauseManager = null as any;
+		this.pauseManager = null as unknown as PauseManager;
 		this.resizeManager = null;
 	}
 
 	private cleanupGameObjects(): void {
 		this.objectsInScene = [];
-		this.ball = null as any;
-		this.player1 = null as any;
-		this.player2 = null as any;
+		this.ball = null as unknown as Ball;
+		this.player1 = null as unknown as Player;
+		this.player2 = null as unknown as Player;
 	}
 
 	////////////////////////////////////////////////////////////
@@ -264,7 +260,8 @@ export class GameScene {
 	public get Player2(): Player { return this.player2; }
 	public get Ball(): Ball { return this.ball; }
 	public get GameMode(): GameMode {return this.gameMode;}
-	public get GameEngine(): any { return this.gameEngine; }
+	public get GameEngine(): GameEngine | null { return this.gameEngine; }
+	
 	public get Winner(): Player | null {
 		if (!this.isGameOver()) return null;
 		return this.player1.Score >= this.winningScore ? this.player1 : this.player2;
@@ -286,10 +283,10 @@ export class GameScene {
 			this.controlsManager.setupControls(mode);
 	}
 
-	public setGameEngine(engine: any): void {
+	public setGameEngine(engine: GameEngine): void {
 		this.gameEngine = engine;
-		if (this.physicsManager && typeof (this.physicsManager as any).setGameEngine === 'function') {
-			(this.physicsManager as any).setGameEngine(engine);
+		if (this.physicsManager && typeof this.physicsManager.setGameEngine === 'function') {
+			this.physicsManager.setGameEngine(engine);
 		}
 	}
 }

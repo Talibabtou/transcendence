@@ -1,14 +1,9 @@
+import { GameState, GameSnapshot, CountdownCallback, PlayerType } from '@pong/types';
 import { Ball, Player } from '@pong/game/objects';
-import { GameState, GameSnapshot, CountdownCallback } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
-import { PlayerType } from '@pong/types';
+import { GameEngine } from '@pong/game/engine';
 
-/**
- * Manages game pause, countdown, and resume functionality,
- * coordinating the state transitions between different game states.
- */
 export class PauseManager {
-
 	private ball: Ball;
 	private player1: Player;
 	private player2: Player;
@@ -19,18 +14,11 @@ export class PauseManager {
 	private gameSnapshot: GameSnapshot | null = null;
 	private countdownCallback: CountdownCallback | null = null;
 	private pendingPauseRequest: boolean = false;
-	private gameEngine: any;
+	private gameEngine: GameEngine | null = null;
 	private pointStartedCallback: (() => void) | null = null;
 	private gameScene: GameScene;
 	private isNextCountdownForNewPoint: boolean = false;
 
-	/**
-	 * Creates a new PauseManager.
-	 * @param ball The ball object.
-	 * @param player1 The left player.
-	 * @param player2 The right player.
-	 * @param gameScene The GameScene instance.
-	 */
 	constructor(ball: Ball, player1: Player, player2: Player, gameScene: GameScene) {
 		this.ball = ball;
 		this.player1 = player1;
@@ -39,8 +27,6 @@ export class PauseManager {
 		this.states.add(GameState.PAUSED);
 		this.isFirstStart = true;
 	}
-
-
 
 	/**
 	 * Starts a new game with countdown.
@@ -346,6 +332,7 @@ export class PauseManager {
 	////////////////////////////////////////////////////////////
 	// Getters and Setters
 	////////////////////////////////////////////////////////////
+	
 	public get States(): Set<GameState> { return new Set(this.states); }
 	public get GameSnapshot(): GameSnapshot | null { return this.gameSnapshot; }
 	public get StatesArray(): GameState[] { return Array.from(this.states); }
@@ -355,5 +342,5 @@ export class PauseManager {
 	public setCountdownCallback(callback: CountdownCallback): void { this.countdownCallback = callback; }
 	public setPointStartedCallback(callback: () => void): void { this.pointStartedCallback = callback; }
 	public setPendingPauseRequest(value: boolean): void { this.pendingPauseRequest = value; }
-	public setGameEngine(engine: any): void { this.gameEngine = engine; }
+	public setGameEngine(engine: GameEngine): void { this.gameEngine = engine; }
 }

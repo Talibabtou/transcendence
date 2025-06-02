@@ -4,3 +4,10 @@ export interface ErrorResponse {
 	error: string;
 	message: string;
 }
+
+export interface CustomError extends Error {
+	statusCode?: number;
+	code?: string;
+	validation?: unknown[];
+	validationContext?: string;
+}

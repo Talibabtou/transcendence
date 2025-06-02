@@ -1,13 +1,9 @@
-import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
-import { GameScene } from '@pong/game/scenes';
+import { GameContext, GameOverDetail, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
+import { GameScene } from '@pong/game/scenes';
 import { DbService, NotificationManager } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 
-/**
- * Main game engine that coordinates game scenes, handles input,
- * and manages the game loop.
- */
 export class GameEngine {
 	private scene!: GameScene;
 	private context: GameContext;
@@ -17,7 +13,7 @@ export class GameEngine {
 	private matchStartTime: number = 0;
 	private playerIds: string[] = [];
 	private playerColors: [string, string] = [COLORS.PADDLE, COLORS.PADDLE];
-	private matchId: string | null = null;
+	private matchId: string = '';
 	private goalStartTime: number = 0;
 	private isPaused: boolean = false;
 	private pauseStartTime: number = 0;
@@ -26,13 +22,9 @@ export class GameEngine {
 	private matchCompleted: boolean = false;
 	private readonly AI: string = 'ai';
 	private aiPlayerId: string | null = null;
-	public onGameOver?: (detail: any) => void;
+	public onGameOver?: (detail: GameOverDetail) => void;
 	private _gameStateInfo: GameStateInfo;
 
-	/**
-	 * Creates a new GameEngine.
-	 * @param ctx Canvas rendering context for the main canvas.
-	 */
 	constructor(ctx: GameContext) {
 		this.context = ctx;
 		this.boundKeydownHandler = this.handleKeydown.bind(this);
@@ -182,12 +174,12 @@ export class GameEngine {
 		if (this.scene) {
 			try {
 				this.scene.unload();
-				this.scene = null as any;
+				this.scene = null as unknown as GameScene;
 			} catch (error) {
 				console.error('Error unloading scene:', error);
 			}
 		}
-		this.context = null as any;
+		this.context = null as unknown as GameContext;
 	}
 
 	/**
@@ -229,7 +221,7 @@ export class GameEngine {
 				player2.setColor(actualP2Color);
 			}
 			this.playerColors = [actualP1Color, actualP2Color];
-		} catch (error: any) {
+		} catch (error: unknown) {
 			console.error('Error updating player colors:', error);
 		}
 	}
@@ -243,12 +235,10 @@ export class GameEngine {
 			return;
 		}
 
-		// Check that we have all necessary info
 		if (this.playerIds.length < 1 || this.playerIds[0] === undefined) {
 			return;
 		}
 
-		// Important: Mark as created before the async operation
 		this.matchCreated = true;
 		
 		const player1Id = this.playerIds[0];
@@ -256,30 +246,25 @@ export class GameEngine {
 		
 		try {
 			if (this.gameMode === 'single') {
-				// Always fetch the AI player ID fresh to ensure it's accurate
 				this.aiPlayerId = await DbService.getIdByUsername(this.AI);
 				player2Id = this.aiPlayerId;
 			} else {
-				// For multiplayer, get player 2's ID
 				if (this.playerIds.length < 2) {
 					throw new Error('No player 2 ID provided for multiplayer game');
 				}
 				player2Id = this.playerIds[1];
 			}
 
-			// Only proceed if we're still in a valid state
 			if (!this.matchCreated) return;
 			
 			const match = await DbService.createMatch(player1Id, player2Id, tournamentId, isFinal);
 			this.matchId = match.id;
 		} catch (error) {
-			// Handle errors
 			if (error instanceof Error) {
 				NotificationManager.showError(`Failed to create match: ${error.message}`);
 			} else {
 				NotificationManager.showError('Failed to create match: ' + error);
 			}
-			// Reset flag to allow retry
 			this.matchCreated = false;
 		}
 	}
@@ -381,21 +366,16 @@ export class GameEngine {
 			return;
 		}
 		
-		// Skip if match is already completed
 		if (this.matchCompleted) {
 			return;
 		}
-		
-		// Determine the scoring player's ID
+
 		let scoringPlayerId: string;
 		
 		if (scoringPlayerIndex === 0) {
-			// Player 1 scored
 			scoringPlayerId = this.playerIds[0];
 		} else if (scoringPlayerIndex === 1) {
-			// Player 2 or AI scored
 			if (this.gameMode === 'single') {
-				// Use the stored AI player ID instead of fetching it again
 				if (!this.aiPlayerId) {
 					console.error('AI player ID not available for goal recording');
 					return;
@@ -410,7 +390,6 @@ export class GameEngine {
 			return;
 		}
 		
-		// Calculate goal duration accounting for pauses
 		const currentTime = Date.now();
 		const goalDuration = Math.floor(((currentTime - this.goalStartTime) - 
 							  (this.isPaused ? (currentTime - this.pauseStartTime) : 0)) / 1000);
@@ -419,24 +398,19 @@ export class GameEngine {
 			return;
 		}
 		
-		// Record the goal in the database
 		DbService.recordGoal(this.matchId, scoringPlayerId, goalDuration)
 			.then(() => {
 				this.resetGoalTimer();
 			})
-			.catch((error: any) => {
-				if (error instanceof Error) {
-					if (error.message.includes('Match not found')) {
-						NotificationManager.showError('Cannot record goal: Match no longer exists');
-					} else if (error.message.includes('Match not active')) {
-						// Expected when match is completed, can ignore
-					} else if (error.message.includes('Player not in match')) {
-						NotificationManager.showError('Cannot record goal: Player not in match');
-					} else {
-						NotificationManager.showError(`Failed to record goal: ${error.message}`);
-					}
-				} else if (!(error && error.message && error.message.includes('already completed'))) {
-					NotificationManager.showError('Failed to record goal: ' + error);
+			.catch((error: Error) => {
+				if (error.message.includes('Match not found')) {
+					NotificationManager.showError('Cannot record goal: Match no longer exists');
+				} else if (error.message.includes('Match not active')) {
+					NotificationManager.showError('Cannot record goal: Match not active');
+				} else if (error.message.includes('Player not in match')) {
+					NotificationManager.showError('Cannot record goal: Player not in match');
+				} else {
+					NotificationManager.showError(`Failed to record goal: ${error.message}`);
 				}
 			});
 	}
