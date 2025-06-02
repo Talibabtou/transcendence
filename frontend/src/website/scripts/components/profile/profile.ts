@@ -336,7 +336,8 @@ export class ProfileComponent extends Component<ProfileState> {
 			this.friendsComponent.setProfile(state.profile);
 			this.friendsComponent.setHandlers({
 				onPlayerClick: this.handlePlayerClick,
-				onFriendRequestAccepted: this.handleFriendRequestAccepted
+				onFriendRequestAccepted: this.handleFriendRequestAccepted,
+				onFriendRequestRefused: this.handleFriendRequestRefused
 			});
 		}
 	}
@@ -641,6 +642,14 @@ export class ProfileComponent extends Component<ProfileState> {
 	 * Handles friend request acceptance
 	 */
 	private handleFriendRequestAccepted = (): void => {
+		this.checkPendingFriendRequests();
+		this.renderView();
+	}
+	
+	/**
+	 * Handles friend request refusal
+	 */
+	private handleFriendRequestRefused = (): void => {
 		this.checkPendingFriendRequests();
 		this.renderView();
 	}

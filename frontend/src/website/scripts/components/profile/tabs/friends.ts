@@ -18,7 +18,8 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 			isCurrentUser: false,
 			handlers: {
 				onPlayerClick: () => {},
-				onFriendRequestAccepted: () => {}
+				onFriendRequestAccepted: () => {},
+				onFriendRequestRefused: () => {}
 			},
 			dataLoadInProgress: false,
 			currentUserId: ''
@@ -72,6 +73,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 	public setHandlers(handlers: { 
 		onPlayerClick: (username: string) => void; 
 		onFriendRequestAccepted?: () => void;
+		onFriendRequestRefused?: () => void;
 	}): void {
 		this.updateInternalState({ 
 			handlers: {
@@ -196,6 +198,22 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 		}
 	}
 	
+	/**
+	 * Handles refusing a friend request
+	 * @param friendId - ID of the friend request to refuse
+	 */
+	private async handleRefuseFriendRequest(friendId: string): Promise<void> {
+		try {
+			await DbService.removeFriend(friendId);
+			await this.loadFriendsData();
+			
+			const { onFriendRequestRefused } = this.getInternalState().handlers;
+			if (onFriendRequestRefused) onFriendRequestRefused();
+		} catch (error) {
+			NotificationManager.showError('Failed to refuse friend request');
+		}
+	}
+	
 	// =========================================
 	// RENDERING
 	// =========================================
@@ -226,8 +244,15 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 											</div>
 											${state.isCurrentUser ? 
 												(friend.requesting === state.currentUserId
-													? html`<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>` 
-													: html`<button class="accept-friend-button" onClick=${() => this.handleAcceptFriend(friend.id)}>Accept</button>`)
+													? html`
+														<button class="cancel-friend-button" onClick=${() => this.handleRemoveFriend(friend.id)}>Cancel</button>
+													`
+													: html`
+														<div class="friend-actions">
+															<button class="accept-friend-button icon-button" title="Accept" onClick=${() => this.handleAcceptFriend(friend.id)}>✓</button>
+															<button class="refuse-friend-button icon-button" title="Refuse" onClick=${() => this.handleRefuseFriendRequest(friend.id)}>✗</button>
+														</div>
+													`)
 												: ''}
 										</div>
 									`)}

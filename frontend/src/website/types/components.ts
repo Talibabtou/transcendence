@@ -203,6 +203,7 @@ export interface ProfileFriendsState {
 	handlers: {
 		onPlayerClick: (username: string) => void;
 		onFriendRequestAccepted?: () => void;
+		onFriendRequestRefused?: () => void;
 	};
 	dataLoadInProgress: boolean;
 	currentUserId: string;
