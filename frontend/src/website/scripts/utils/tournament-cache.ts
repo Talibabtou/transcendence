@@ -348,10 +348,27 @@ class TournamentCacheSingleton {
 	} | null {
 		try {
 			const currentMatch = this.getCurrentMatch();
-			if (!currentMatch) return null;
-			
-			const player1 = this.tournamentPlayers[currentMatch.player1Index];
-			const player2 = this.tournamentPlayers[currentMatch.player2Index];
+			if (!currentMatch) {
+				return null;
+			}
+			if (currentMatch.isFinals && this.tournamentPhase === 'pool') {
+				return null;
+			}
+			const p1Idx = currentMatch.player1Index;
+			const p2Idx = currentMatch.player2Index;
+			if (
+				typeof p1Idx !== 'number' || p1Idx < 0 || p1Idx >= this.tournamentPlayers.length ||
+				typeof p2Idx !== 'number' || p2Idx < 0 || p2Idx >= this.tournamentPlayers.length
+			) {
+				return null;
+			}
+
+			const player1 = this.tournamentPlayers[p1Idx];
+			const player2 = this.tournamentPlayers[p2Idx];
+
+			if (!player1 || !player2) {
+				return null;
+			}
 			
 			return {
 				isNewMatch: currentMatch.gamesPlayed === 0,
