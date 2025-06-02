@@ -51,5 +51,7 @@ clean:
 fclean: clean
 	@echo -e "$(GREEN)[FCLEAN] Deleting all generated directories...$(NC)"
 	@for dir in $(DIRS); do \
-		$(RM) "$$dir"; \
+		if [ "$$dir" != "$(PATH_GRAFANA_DATA)" ]; then \
+			$(RM) "$$dir"; \
+		fi \
 	done
