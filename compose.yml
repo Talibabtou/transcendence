@@ -39,38 +39,40 @@ services:
     labels:
       - "container_name=frontend"
 
-  # prometheus:
-  #   build:
-  #     context: ./monitoring/prometheus
-  #     dockerfile: Dockerfile
-  #     args:
-  #       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
-  #       - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
-  #   container_name: prometheus
-  #   expose:
-  #     - "${PROMETHEUS_PORT:-9090}"
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
-  #   volumes:
-  #     - prometheus_data:/prometheus
-  #   user: "${UID}:${GID}"
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--storage.tsdb.retention.time=15d'
-  #     - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-  #     - '--web.console.templates=/usr/share/prometheus/consoles'
-  #     - '--web.listen-address=:${PROMETHEUS_PORT:-9090}'
-  #   depends_on:
-  #     cadvisor:
-  #       condition: service_started
-  #   restart: unless-stopped
-  #   networks:
-  #     - backend-net
-  #   labels:
-  #     - "container_name=prometheus"
+  prometheus:
+    build:
+      context: ./monitoring/prometheus
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: prometheus
+    expose:
+      - "${PROMETHEUS_PORT:-9090}"
+    env_file:
+      - .env
+    environment:
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+      - UID=${UID}
+      - GID=${GID}
+    volumes:
+      - prometheus_data:/prometheus
+    # user: "${UID}:${GID}"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:${PROMETHEUS_PORT:-9090}'
+    depends_on:
+      cadvisor:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend-net
+    labels:
+      - "container_name=prometheus"
   
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.49.1
@@ -79,7 +81,8 @@ services:
       - 8080
     command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
-      - /run/user/$UID/docker.sock:/var/run/docker.sock:ro
+      # - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
@@ -96,37 +99,37 @@ services:
     labels:
       - "container_name=cadvisor"
 
-  # grafana:
-  #   build:
-  #     context: ./monitoring/grafana
-  #     dockerfile: Dockerfile
-  #     args:
-  #       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
-  #   container_name: grafana
-  #   ports:
-  #     - "${GRAFANA_PORT:-8086}:3000"
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ./monitoring/grafana/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
-  #     - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
-  #     - certs_data:/etc/certs:ro
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
-  #     - GF_USERS_ALLOW_SIGN_UP=false
-  #     - GF_SERVER_PROTOCOL=https
-  #     - GF_SERVER_CERT_FILE=${SSL_CERT_PATH:-/etc/certs/nginx.crt}
-  #     - GF_SERVER_CERT_KEY=${SSL_KEY_PATH:-/etc/certs/nginx.key}
-  #     - GF_SERVER_HTTP_PORT=3000
-  #     # depends_on:
-  #     #   prometheus:
-  #     #     condition: service_started
-  #   restart: unless-stopped
-  #   networks:
-  #     - backend-net
-  #   labels:
-  #     - "container_name=grafana"
+  grafana:
+    build:
+      context: ./monitoring/grafana
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT:-8086}:3000"
+    env_file:
+      - .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - certs_data:/etc/certs:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=${SSL_CERT_PATH:-/etc/certs/nginx.crt}
+      - GF_SERVER_CERT_KEY=${SSL_KEY_PATH:-/etc/certs/nginx.key}
+      - GF_SERVER_HTTP_PORT=3000
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend-net
+    labels:
+      - "container_name=grafana"
 
   gateway:
     build: 
@@ -278,43 +281,43 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/certs_data"
+      device: "/home/${USER}/goinfre/certs_data"
       o: bind
   profile_pictures:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/profile_pictures"
+      device: "/home/${USER}/goinfre/profile_pictures"
       o: bind
   auth:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/auth"
+      device: "/home/${USER}/goinfre/auth"
       o: bind
   friends:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/friends"
+      device: "/home/${USER}/goinfre/friends"
       o: bind
   game:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/game"
+      device: "/home/${USER}/goinfre/game"
       o: bind
-  # prometheus_data:
-  #   driver: local
-  #   driver_opts:
-  #     type: none
-  #     device: "/home/bboissen/sgoinfre/prometheus_data"
-  #     o: bind
+  prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/prometheus_data"
+      o: bind
   grafana_data:
     driver: local
     driver_opts:
       type: none
-      device: "/home/bboissen/sgoinfre/grafana_data"
+      device: "/home/${USER}/goinfre/grafana_data"
       o: bind
 
 networks:
@@ -322,4 +325,3 @@ networks:
     driver: bridge
   frontend-net:
     driver: bridge
-
