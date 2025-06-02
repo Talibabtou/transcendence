@@ -73,8 +73,8 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   // Common errors
   [ErrorCodes.INTERNAL_ERROR, 'Internal server error'],
   [ErrorCodes.SERVICE_UNAVAILABLE, 'Service unavailable'],
-  [ErrorCodes.SQLITE_MISMATCH, 'Sqlite mismatch'],
-  [ErrorCodes.SQLITE_CONSTRAINT, 'Sqlite constraint'],
+  [ErrorCodes.SQLITE_MISMATCH, 'Invalid input'],
+  [ErrorCodes.SQLITE_CONSTRAINT, 'Username already exists'],
   [ErrorCodes.BAD_REQUEST, 'Bad request'],
   [ErrorCodes.PLAYER_NOT_FOUND, 'Player not found'],
   [ErrorCodes.RATE_LIMIT, 'Too many requests'],

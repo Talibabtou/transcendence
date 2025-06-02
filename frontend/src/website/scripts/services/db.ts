@@ -79,7 +79,13 @@ export class DbService {
 					Router.resetGameComponentToMenu();
 				}, 50);
 			}
-			throw new Error(response.statusText);
+			if (response.status >= 500) {
+				throw new Error(response.statusText);
+			}
+			else {
+				const errorData = await response.json();
+				throw new Error(errorData.message);
+			}
 		}
 		if (!response.ok) {
 			const errorData: ErrorResponse = await response.json().catch(() => ({
