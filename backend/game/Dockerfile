@@ -2,12 +2,13 @@
 FROM node:23.6-alpine AS build
 
 WORKDIR /app
-COPY package.json ./
-COPY tsconfig.json ./
+COPY ./backend/game/package.json ./
+COPY ./backend/game/tsconfig.json ./
 RUN npm install
 RUN npm ci
 
-COPY ./src/ /app/src/
+COPY ./shared /app/src/shared
+COPY ./backend/game/src/ /app/src/
 RUN npm run build
 
 # Stage 2: Production
@@ -17,11 +18,12 @@ ARG GAME_PORT
 ARG OTEL_EXPORTER_PORT
 
 WORKDIR /app
-RUN mkdir /app/db/
-COPY ./init/ /app/init/
+RUN mkdir -p /app/db/
+COPY ./backend/game/init/ /app/init/
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-COPY package*.json ./
+COPY --from=build /app/src/shared /app/src/shared
+COPY ./backend/game/package*.json ./
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD node -e "fetch('http://game:${GAME_PORT}/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"

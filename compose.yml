@@ -130,7 +130,8 @@ services:
 
   gateway:
     build: 
-      context: ./backend/gateway
+      context: .
+      dockerfile: ./backend/gateway/Dockerfile
       args:
         - GATEWAY_PORT=${GATEWAY_PORT:-8085}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
@@ -175,7 +176,8 @@ services:
       
   profile:
     build:
-      context: ./backend/profile
+      context: .
+      dockerfile: ./backend/profile/Dockerfile
       args:
         - PROFILE_PORT=${PROFILE_PORT:-8081}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
@@ -198,7 +200,8 @@ services:
 
   auth:
     build:
-      context: ./backend/auth
+      context: .
+      dockerfile: ./backend/auth/Dockerfile
       args:
         - AUTH_PORT=${AUTH_PORT:-8082}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
@@ -224,7 +227,8 @@ services:
 
   game:
     build:
-      context: ./backend/game
+      context: .
+      dockerfile: ./backend/game/Dockerfile
       args:
         - GAME_PORT=${GAME_PORT:-8083}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
@@ -247,7 +251,8 @@ services:
 
   friends:
     build:
-      context: ./backend/friends
+      context: .
+      dockerfile: ./backend/friends/Dockerfile
       args:
         - FRIENDS_PORT=${FRIENDS_PORT:-8084}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}

@@ -12,7 +12,7 @@ import { updateEloRatings } from './elo.controller.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { ErrorCodes } from '../shared/constants/error.const.js';
 import { sendError, isValidId } from '../helper/friends.helper.js';
-import { Goal, LongestGoal, CreateGoalRequest, GetGoalsQuery } from '../shared/types/goal.type.js';
+import { Goal, LongestGoal, CreateGoalRequest } from '../shared/types/goal.type.js';
 
 /**
  * Retrieves a single goal by its ID.
