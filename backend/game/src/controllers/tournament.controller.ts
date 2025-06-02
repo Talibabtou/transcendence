@@ -41,7 +41,6 @@ export async function getTournament(
       `,
       [id, limit, offset]
     );
-		console.log(matches);
 		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
