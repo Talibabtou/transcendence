@@ -1,18 +1,53 @@
-import { GameContext, MovableObject, Direction, PositionValue, VelocityValue, DimensionsValue } from '@pong/types';
+import { GameContext, MovableObject, Direction } from '@pong/types';
 import { COLORS, calculateGameSizes } from '@pong/constants';
 
+interface PositionValue {
+	x: number;
+	y: number;
+}
+
+interface VelocityValue {
+	dx: number;
+	dy: number;
+}
+
+interface DimensionsValue {
+	width: number;
+	height: number;
+}
+
+/**
+ * Represents a paddle in the game, handling its movement,
+ * rendering, and physics properties.
+ */
 export class Paddle implements MovableObject {
+	// =========================================
+	// Properties
+	// =========================================
 	private direction: Direction = Direction.NONE;
 	private speed: number;
 	private _paddleWidth: number;
 	private _paddleHeight: number;
 	private prevX: number;
 	private prevY: number;
+
+	// Pre-allocated objects for getters
 	private _currentPosition: PositionValue;
 	private _currentVelocity: VelocityValue;
 	private _previousPositionObj: PositionValue;
 	private _dimensions: DimensionsValue;
 
+	// =========================================
+	// Constructor
+	// =========================================
+	/**
+	 * Creates a new Paddle instance
+	 * @param x The horizontal position
+	 * @param y The vertical position
+	 * @param paddleWidth The width of the paddle
+	 * @param paddleHeight The height of the paddle
+	 * @param context The canvas rendering context
+	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -30,6 +65,7 @@ export class Paddle implements MovableObject {
 		this.prevX = x;
 		this.prevY = y;
 
+		// Initialize pre-allocated objects
 		this._currentPosition = { x: this.x, y: this.y };
 		this._currentVelocity = { dx: 0, dy: 0 };
 		this._previousPositionObj = { x: this.prevX, y: this.prevY };
@@ -79,7 +115,7 @@ export class Paddle implements MovableObject {
 		return this._previousPositionObj;
 	}
 	public get Velocity(): VelocityValue {
-		this._currentVelocity.dx = 0;
+		this._currentVelocity.dx = 0; 
 		this._currentVelocity.dy = this.y - this.prevY;
 		return this._currentVelocity;
 	}

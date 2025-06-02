@@ -1,6 +1,6 @@
 import { Component, GuestAuthComponent } from '@website/scripts/components';
 import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/scripts/utils';
-import { DbService, html, render, NotificationManager } from '@website/scripts/services';
+import { DbService, html, render, NotificationManager, VNode } from '@website/scripts/services';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
@@ -54,7 +54,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const hostData: PlayerData = {
 			id: hostId,
 			username: currentUser.username || 'Player 1',
-			pfp: currentUser.profilePicture || '/images/default-avatar.svg',
+			pfp: currentUser.avatar || '/images/default-avatar.svg',
 			isConnected: true,
 			theme: hostTheme,
 			elo: 0
@@ -197,8 +197,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @param host - The host player data
 	 * @returns HTML template for the host player
 	 */
-	private renderHostPlayer(host: PlayerData | null): any {
-		if (!host || !host.id) return '';
+	private renderHostPlayer(host: PlayerData | null): VNode {
+		if (!host || !host.id) return html``;
 		
 		const availableColors = Object.entries(appState.getAvailableColors());
 		const currentColor = AppStateManager.getUserAccentColor(host.id);
@@ -244,8 +244,8 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @param guest - The guest player data
 	 * @returns HTML template for the guest player
 	 */
-	private renderConnectedGuest(guest: PlayerData | null): any {
-		if (!guest || !guest.id) return '';
+	private renderConnectedGuest(guest: PlayerData | null): VNode {
+		if (!guest || !guest.id) return html``;
 		
 		const availableColors = Object.entries(appState.getAvailableColors());
 		const firstRowColors = availableColors.slice(0, 6);
@@ -290,7 +290,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @param state - The current component state
 	 * @returns HTML template for the play button
 	 */
-	private renderPlayButton(state: PlayersRegisterState): any {
+	private renderPlayButton(state: PlayersRegisterState): VNode {
 		const connectedCount = (state.host ? 1 : 0) + 
 			state.guests.filter(g => g && g.isConnected).length;
 		const isReady = connectedCount >= this.maxPlayers;
@@ -399,7 +399,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	 * @param event - The authentication event
 	 */
 	private handleGuestAuthenticatedEvent = (event: Event): void => {
-		const customEvent = event as CustomEvent<{ user: any, position?: number }>;
+		const customEvent = event as CustomEvent<{ user: PlayerData, position?: number }>;
 		if (!customEvent.detail?.user) return;
 		
 		const userData = customEvent.detail.user;
@@ -409,7 +409,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const guestData: PlayerData = {
 			id: guestId,
 			username: userData.username,
-			pfp: userData.profilePicture,
+			pfp: userData.pfp,
 			isConnected: true,
 			theme: userData.theme,
 			elo: userData.elo,
@@ -507,12 +507,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		const state = this.getInternalState();
 		
 		if (state.host && state.host.id === guestData.id) {
-			const currentAuthManager = this.authManagers.get('guest') || 
-				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
-			
-			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') {
-				(currentAuthManager as any).showError('This user is already the host');
-			}
+			NotificationManager.showError('This user is already the host');
 			return;
 		}
 		
@@ -521,12 +516,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 		);
 		
 		if (isDuplicate) {
-			const currentAuthManager = this.authManagers.get('guest') || 
-				this.authManagers.get(`guest-${state.guests.filter(g => g && g.isConnected).length}`);
-			
-			if (currentAuthManager && typeof (currentAuthManager as any).showError === 'function') {
-				(currentAuthManager as any).showError('This user is already registered as a player');
-			}
+			NotificationManager.showError('This user is already registered as a player');
 			return;
 		}
 

@@ -255,7 +255,6 @@ class TournamentCacheSingleton {
 			const winnerIndex = player1Score > player2Score ? 
 				currentMatch.player1Index : currentMatch.player2Index;
 			
-			// Add game result
 			currentMatch.games.push({
 				winner: winnerIndex,
 				player1Score,
@@ -265,7 +264,6 @@ class TournamentCacheSingleton {
 			
 			currentMatch.gamesPlayed++;
 			
-			// Update player stats
 			if (player1Score > player2Score) {
 				this.tournamentPlayers[currentMatch.player1Index].gamesWon++;
 				this.tournamentPlayers[currentMatch.player2Index].gamesLost++;
@@ -720,15 +718,12 @@ class TournamentCacheSingleton {
 				return;
 			}
 			
-			// Process each match from the server and update our local matches
 			for (const serverMatch of serverMatches) {
-				// Find player indexes in our tournament players array
 				const player1Index = this.tournamentPlayers.findIndex(p => p.id === serverMatch.id1);
 				const player2Index = this.tournamentPlayers.findIndex(p => p.id === serverMatch.id2);
 				
 				if (player1Index === -1 || player2Index === -1) continue;
 				
-				// Find corresponding match in our tournament matches
 				const matchIndex = this.tournamentMatches.findIndex(m => 
 					(m.player1Index === player1Index && m.player2Index === player2Index) ||
 					(m.player1Index === player2Index && m.player2Index === player1Index)
@@ -738,7 +733,6 @@ class TournamentCacheSingleton {
 				
 				const match = this.tournamentMatches[matchIndex];
 				
-				// Update match with server data
 				match.completed = true;
 				match.games = [{
 					winner: serverMatch.goals1 > serverMatch.goals2 ? match.player1Index : match.player2Index,
@@ -748,7 +742,6 @@ class TournamentCacheSingleton {
 				}];
 				match.gamesPlayed = 1;
 				
-				// Update player stats
 				if (serverMatch.goals1 > serverMatch.goals2) {
 					match.winner = match.player1Index;
 					this.tournamentPlayers[match.player1Index].wins++;
@@ -781,9 +774,6 @@ class TournamentCacheSingleton {
 	}
 }
 
-// Export the singleton instance
-export const TournamentCache = TournamentCacheSingleton.getInstance();
-
 /**
  * Checks if a user ID is part of the current tournament players
  * @param userId User ID to check
@@ -798,3 +788,5 @@ export function isUserInCurrentTournament(userId: string): boolean {
 		return false;
 	}
 }
+
+export const TournamentCache = TournamentCacheSingleton.getInstance();

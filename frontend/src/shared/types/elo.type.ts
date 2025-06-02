@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Elo {
 	id: string;
 	player: string;
@@ -10,12 +9,7 @@ export interface LeaderboardEntry extends Omit<Elo, 'id' | 'created_at'> {
 	victories: number;
 	defeats: number;
 	total_matches: number;
-}
-
-export interface GetElosQuery {
-	player?: string;
-	limit?: number;
-	offset?: number;
+	username?: string;
 }
 
 export interface DailyElo {

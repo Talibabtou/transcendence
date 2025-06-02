@@ -1,13 +1,13 @@
 import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
-import { AuthMethod, UserData } from '@website/types';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
+import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
 
 	constructor(
-		private updateState: (state: any) => void,
+		private updateState: (state: AuthComponentState) => void,
 		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
@@ -15,7 +15,7 @@ export class RegistrationHandler {
 	/**
 	 * Renders the registration form
 	 */
-	renderRegisterForm(switchToLogin: () => void): any {
+	renderRegisterForm(switchToLogin: () => void): VNode {
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.REGISTER}</pre>

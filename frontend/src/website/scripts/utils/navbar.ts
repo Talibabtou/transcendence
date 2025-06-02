@@ -1,6 +1,6 @@
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { html, render, navigate, DbService, NotificationManager } from '@website/scripts/services';
-import { GameManager } from '@website/scripts/components';
+import { GameManager } from '@website/scripts/components'; 
 
 /**
  * Custom event declarations for TypeScript

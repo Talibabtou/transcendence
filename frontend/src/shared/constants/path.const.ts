@@ -12,7 +12,6 @@ export const HEALTH_CHECK_PATH = '/health';
 
 // Game service paths
 export const GAME = {
-	BASE: '/game/matches',
 	MATCH: {
 		BASE: '/game/match',
 		BY_ID: (id: string) => `/game/match/${id}`,

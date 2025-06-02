@@ -1,3 +1,7 @@
+export interface IUsername {
+	username: string;
+}
+
 export interface IAddUser {
 	username: string;
 	email: string;
@@ -22,7 +26,7 @@ export interface IReplyUser {
 }
 
 export interface IReplyLogin {
-	token: string;
+	token?: string;
 	id?: string;
 	role?: string;
 	username?: string;
@@ -44,4 +48,27 @@ export interface IId {
 export interface IReplyQrCode {
 	qrcode: string;
 	otpauth: string | undefined;
+}
+
+export interface IReplyTwofaStatus {
+	two_factor_enabled: boolean;
+}
+
+
+export interface FastifyJWT {
+	user: {
+		id: string;
+		role: string;
+		jwtId?: string;
+		twofa?: boolean;
+		iat?: number;
+		exp?: number;
+	};
+}
+
+declare module 'fastify' {
+	interface FastifyContextConfig {
+		auth?: boolean;
+		roles?: string[];
+	}
 }

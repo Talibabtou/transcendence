@@ -1,7 +1,22 @@
-import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState, PositionValue, VelocityValue } from '@pong/types';
+import { GraphicalElement, GameContext, GameState, PhysicsObject, BallState } from '@pong/types';
 import { COLORS, calculateGameSizes, BALL_CONFIG } from '@pong/constants';
 
+interface PositionValue {
+	x: number;
+	y: number;
+}
+
+interface VelocityValue {
+	dx: number;
+	dy: number;
+}
+
+/**
+ * Represents the ball in the game, handling its movement,
+ * physics, collisions, and rendering.
+ */
 export class Ball implements GraphicalElement, PhysicsObject {
+
 	private readonly context: GameContext;
 	private readonly color = COLORS.BALL;
 	public size!: number;
@@ -15,13 +30,21 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	public prevPosition: { x: number; y: number } = { x: 0, y: 0 };
 	public prevRenderX: number = 0;
 	public prevRenderY: number = 0;
+
 	private _currentPosition: PositionValue;
 	private _currentVelocity: VelocityValue;
 	private _prevPositionObj: PositionValue;
 	private _normalizedVelocity: VelocityValue;
+
 	private ballPath: Path2D | null = null;
 	private static readonly UNIT_CIRCLE_RADIUS = 1;
 
+	/**
+	 * Creates a new Ball instance
+	 * @param x The initial x position
+	 * @param y The initial y position
+	 * @param context The canvas rendering context
+	 */
 	constructor(
 		public x: number,
 		public y: number,
@@ -205,9 +228,7 @@ export class Ball implements GraphicalElement, PhysicsObject {
 	////////////////////////////////////////////////////////////
 	// Helper methods
 	////////////////////////////////////////////////////////////
-
 	public isDestroyed(): boolean { return this.destroyed; }
-
 	public isHitLeftBorder(): boolean { return this.hitLeftBorder; }
 
 	////////////////////////////////////////////////////////////
@@ -218,23 +239,18 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		this._currentVelocity.dy = this.dy;
 		return this._currentVelocity;
 	}
-
 	public get Position(): PositionValue {
 		this._currentPosition.x = this.x;
 		this._currentPosition.y = this.y;
 		return this._currentPosition;
 	}
-
 	public get PrevPosition(): PositionValue {
 		this._prevPositionObj.x = this.prevPosition.x;
 		this._prevPositionObj.y = this.prevPosition.y;
 		return this._prevPositionObj;
 	}
-
 	public get Context(): GameContext { return this.context; }
-
 	public get Size(): number { return this.size; }
-
 	public get NormalizedVelocity(): VelocityValue {
 		const magnitude = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
 		if (magnitude === 0) {
@@ -246,6 +262,5 @@ export class Ball implements GraphicalElement, PhysicsObject {
 		}
 		return this._normalizedVelocity;
 	}
-
 	public getColor(): string { return this.color; }
 }

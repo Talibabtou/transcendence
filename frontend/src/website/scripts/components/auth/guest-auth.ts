@@ -1,7 +1,7 @@
 import { Component } from '@website/scripts/components';
 import { hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 import { IAuthComponent, GuestAuthState } from '@website/types';
-import { DbService, html, render, NotificationManager } from '@website/scripts/services';
+import { DbService, html, render, NotificationManager, VNode } from '@website/scripts/services';
 import { ErrorCodes } from '@shared/constants/error.const';
 
 export class GuestAuthComponent extends Component<GuestAuthState> implements IAuthComponent {
@@ -77,7 +77,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	/**
 	 * Renders the appropriate content based on state
 	 */
-	private renderContent(): any {
+	private renderContent(): VNode {
 		const state = this.getInternalState();
 
 		if (state.needsVerification) {
@@ -96,7 +96,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	/**
 	 * Renders the login form for guest authentication
 	 */
-	private renderLoginForm(): any {
+	private renderLoginForm(): VNode {
 		return html`
 			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleLoginSubmit}>
 				<div class="form-group">
@@ -131,7 +131,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	/**
 	 * Renders the register form for guest creation
 	 */
-	private renderRegisterForm(): any {
+	private renderRegisterForm(): VNode {
 		const form = html`
 			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
@@ -172,7 +172,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	/**
 	 * Renders the 2FA verification form
 	 */
-	private render2FAForm(): any {
+	private render2FAForm(): VNode {
 		return html`
 			<form class="auth-form guest-auth-form twofa-form" novalidate onsubmit=${this.handle2FAVerification}>
 				<div class="form-group">

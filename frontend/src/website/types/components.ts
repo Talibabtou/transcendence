@@ -23,8 +23,8 @@ export interface ProfileState {
 	};
 	matchesCache: Map<number, ProcessedMatch>;
 	currentProfileId: string | null;
-	friendshipStatus?: any;
-	pendingFriends: any[];
+	friendshipStatus?: boolean;
+	pendingFriends: IReplyGetFriend[];
 	isUserOnline?: boolean;
 }
 

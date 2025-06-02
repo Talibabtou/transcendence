@@ -1,9 +1,13 @@
-import { GameContext, GameOverDetail, GameState, GameStateInfo, PlayerType } from '@pong/types';
-import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
+import { GameContext, GameState, GameStateInfo, PlayerType } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
+import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
 import { DbService, NotificationManager } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 
+/**
+ * Main game engine that coordinates game scenes, handles input,
+ * and manages the game loop.
+ */
 export class GameEngine {
 	private scene!: GameScene;
 	private context: GameContext;
@@ -13,7 +17,7 @@ export class GameEngine {
 	private matchStartTime: number = 0;
 	private playerIds: string[] = [];
 	private playerColors: [string, string] = [COLORS.PADDLE, COLORS.PADDLE];
-	private matchId: string = '';
+	private matchId: string | null = null;
 	private goalStartTime: number = 0;
 	private isPaused: boolean = false;
 	private pauseStartTime: number = 0;
@@ -22,9 +26,13 @@ export class GameEngine {
 	private matchCompleted: boolean = false;
 	private readonly AI: string = 'ai';
 	private aiPlayerId: string | null = null;
-	public onGameOver?: (detail: GameOverDetail) => void;
+	public onGameOver?: (detail: any) => void;
 	private _gameStateInfo: GameStateInfo;
 
+	/**
+	 * Creates a new GameEngine.
+	 * @param ctx Canvas rendering context for the main canvas.
+	 */
 	constructor(ctx: GameContext) {
 		this.context = ctx;
 		this.boundKeydownHandler = this.handleKeydown.bind(this);
@@ -174,12 +182,12 @@ export class GameEngine {
 		if (this.scene) {
 			try {
 				this.scene.unload();
-				this.scene = null as unknown as GameScene;
+				this.scene = null as any;
 			} catch (error) {
 				console.error('Error unloading scene:', error);
 			}
 		}
-		this.context = null as unknown as GameContext;
+		this.context = null as any;
 	}
 
 	/**
@@ -221,7 +229,7 @@ export class GameEngine {
 				player2.setColor(actualP2Color);
 			}
 			this.playerColors = [actualP1Color, actualP2Color];
-		} catch (error: unknown) {
+		} catch (error: any) {
 			console.error('Error updating player colors:', error);
 		}
 	}
@@ -361,7 +369,6 @@ export class GameEngine {
 	 * @param scoringPlayerIndex The index of the player who scored (0 or 1).
 	 */
 	public async recordGoal(scoringPlayerIndex: number): Promise<void> {
-		// Skip recording for background demo or if scene is not available
 		if (!this.scene || this.scene.isBackgroundDemo()) {
 			return;
 		}
@@ -369,7 +376,7 @@ export class GameEngine {
 		if (this.matchCompleted) {
 			return;
 		}
-
+		
 		let scoringPlayerId: string;
 		
 		if (scoringPlayerIndex === 0) {
@@ -402,15 +409,18 @@ export class GameEngine {
 			.then(() => {
 				this.resetGoalTimer();
 			})
-			.catch((error: Error) => {
-				if (error.message.includes('Match not found')) {
-					NotificationManager.showError('Cannot record goal: Match no longer exists');
-				} else if (error.message.includes('Match not active')) {
-					NotificationManager.showError('Cannot record goal: Match not active');
-				} else if (error.message.includes('Player not in match')) {
-					NotificationManager.showError('Cannot record goal: Player not in match');
-				} else {
-					NotificationManager.showError(`Failed to record goal: ${error.message}`);
+			.catch((error: any) => {
+				if (error instanceof Error) {
+					if (error.message.includes('Match not found')) {
+						NotificationManager.showError('Cannot record goal: Match no longer exists');
+					} else if (error.message.includes('Match not active')) {
+					} else if (error.message.includes('Player not in match')) {
+						NotificationManager.showError('Cannot record goal: Player not in match');
+					} else {
+						NotificationManager.showError(`Failed to record goal: ${error.message}`);
+					}
+				} else if (!(error && error.message && error.message.includes('already completed'))) {
+					NotificationManager.showError('Failed to record goal: ' + error);
 				}
 			});
 	}

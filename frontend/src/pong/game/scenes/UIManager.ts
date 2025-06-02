@@ -2,6 +2,7 @@ import { GameContext, Player } from '@pong/types';
 import { COLORS, FONTS, MESSAGES, UI_CONFIG, calculateFontSizes } from '@pong/constants';
 
 export class UIManager {
+
 	private countdownText: string | number | string[] | null = null;
 	private readonly context: GameContext;
 	private cachedPlayer1NameForBg: string = '';
@@ -182,7 +183,7 @@ export class UIManager {
 		);
 	}
 
-		
+	
 	// =========================================
 	// Helper Methods
 	// =========================================
@@ -239,6 +240,7 @@ export class UIManager {
 	////////////////////////////////////////////////////////////
 	// Getters and setters
 	////////////////////////////////////////////////////////////
+	
 	private getTextPosition(
 		lineIndex: number = 0,
 		totalLines: number = 1,

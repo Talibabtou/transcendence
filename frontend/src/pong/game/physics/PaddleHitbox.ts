@@ -1,8 +1,15 @@
 import { Paddle } from '@pong/game/objects';
 import { BoundingBox, Collidable } from '@pong/types';
 
+/**
+ * Provides collision detection capabilities for Paddle objects
+ * by implementing the Collidable interface.
+ */
 export class PaddleHitbox implements Collidable {
-
+	/**
+	 * Creates a new PaddleHitbox instance
+	 * @param paddle The paddle object this hitbox represents
+	 */
 	constructor(private readonly paddle: Paddle) {
 		if (!paddle) {
 			throw new Error('Paddle must be provided to PaddleHitbox');
@@ -16,7 +23,6 @@ export class PaddleHitbox implements Collidable {
 	public get Velocity(): { dx: number; dy: number } { return this.paddle.Velocity; }
 	public get Position(): { x: number; y: number } { return this.paddle.Position; }
 	public get PreviousPosition(): { x: number; y: number } { return this.paddle.PreviousPosition; }
-	
 	public get BoundingBox(): BoundingBox {
 		const pos = this.paddle.Position;
 		return {

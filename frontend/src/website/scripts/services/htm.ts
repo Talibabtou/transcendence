@@ -1,5 +1,5 @@
 import htm from 'htm';
-import { NotificationManager } from './notification-manager';
+import { NotificationManager } from '@website/scripts/services';
 
 // =========================================
 // CORE ELEMENT CREATION
@@ -14,7 +14,7 @@ import { NotificationManager } from './notification-manager';
  */
 function createElement(
 	type: string,
-	props: Record<string, any> | null,
+	props: Record<string, string | number | boolean | EventListener | { __html: string } | Record<string, string | number>> | null,
 	...children: (Node | string | (Node | string)[])[]
 ): HTMLElement | Text | DocumentFragment {
 	try {
@@ -50,7 +50,10 @@ function createFragment(children: (Node | string | (Node | string)[])[]) {
  * @param element - Target DOM element
  * @param props - Properties to apply
  */
-function applyProps(element: HTMLElement, props: Record<string, any>): void {
+function applyProps(
+	element: HTMLElement,
+	props: Record<string, string | number | boolean | EventListener | { __html: string } | Record<string, string | number>>
+): void {
 	Object.entries(props).forEach(([name, value]) => {
 		try {
 			if (name.startsWith('on') && name.toLowerCase() in window) {
@@ -59,8 +62,8 @@ function applyProps(element: HTMLElement, props: Record<string, any>): void {
 				element.setAttribute('class', value as string);
 			} else if (name === 'style' && typeof value === 'object') {
 				Object.assign(element.style, value);
-			} else if (name === 'dangerouslySetInnerHTML' && value?.__html) {
-				element.innerHTML = value.__html;
+			} else if (name === 'dangerouslySetInnerHTML' && typeof value === 'object' && value?.__html) {
+				element.innerHTML = value.__html as string;
 			} else {
 				element.setAttribute(name, value as string);
 			}
@@ -110,6 +113,9 @@ function appendChildren(
  * </div>`
  */
 export const html = htm.bind(createElement);
+export type VNode = HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[];
+export type VNodeArray = VNode[];
+export type VNodeOrArray = VNode | VNodeArray;
 
 /**
  * Renders virtual DOM nodes into a container element.
@@ -118,7 +124,7 @@ export const html = htm.bind(createElement);
  * @param container - Target container element
  */
 export function render(
-	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
+	vdom: VNodeOrArray,
 	container: HTMLElement
 ): void {
 	try {
@@ -142,7 +148,7 @@ export function render(
  * @param container - Target container element to update
  */
 export function update(
-	vdom: HTMLElement | Text | DocumentFragment | (HTMLElement | Text | DocumentFragment)[],
+	vdom: VNodeOrArray,
 	container: HTMLElement
 ): void {
 	try {

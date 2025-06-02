@@ -23,9 +23,9 @@ export enum AuthMethod {
  * Define state interface for the auth component
  */
 export interface AuthComponentState {
-	currentState: AuthState;
-	isLoading: boolean;
-	redirectTarget: string | null;
+	currentState?: AuthState;
+	isLoading?: boolean;
+	redirectTarget?: string | null;
 }
 
 /**

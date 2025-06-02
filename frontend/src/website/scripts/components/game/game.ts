@@ -7,13 +7,11 @@ import { NotificationManager } from '@website/scripts/services';
 export class GameComponent extends Component<GameComponentState> {
 	private gameManager: GameManager;
 	private gameStateInterval: number | null = null;
-	
 	private menuComponent: GameMenuComponent | null = null;
 	private gameOverComponent: GameOverComponent | null = null;
 	private canvasComponent: GameCanvasComponent | null = null;
 	private playerRegistrationComponent: PlayersRegisterComponent | null = null;
 	private TournamentComponent: TournamentComponent | null = null;
-
 	private gameContainer: HTMLElement | null = null;
 	private isTransitioning = false;
 	private lastGameOverCheck = 0;

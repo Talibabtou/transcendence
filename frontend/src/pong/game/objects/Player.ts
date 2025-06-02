@@ -1,9 +1,12 @@
 import { Ball } from './Ball';
 import { Paddle } from './Paddle';
-import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState, VelocityValue } from '@pong/types';
+import { GraphicalElement, GameContext, Direction, PlayerPosition, PlayerType, GameState } from '@pong/types';
 import { COLORS, calculateGameSizes, KEYS, BALL_CONFIG } from '@pong/constants';
 
+interface VelocityValue { dx: number; dy: number; }
+
 export class Player implements GraphicalElement {
+
 	public paddle: Paddle;
 	public paddleWidth: number = 10;
 	public paddleHeight: number = 100;
@@ -63,7 +66,6 @@ export class Player implements GraphicalElement {
 		}
 		this.updateDirection();
 	};
-
 
 	constructor(
 		public x: number,
@@ -262,7 +264,7 @@ export class Player implements GraphicalElement {
 		const { width, height } = this.context.canvas;
 		const ballRadius = this.ball.Size;
 		const sizes = calculateGameSizes(width, height);
-		const maxBouncesToSimulate = Player.MAX_PREDICTED_BOUNCES; // This now acts as a simulation depth limit
+		const maxBouncesToSimulate = Player.MAX_PREDICTED_BOUNCES;
 
 		this.currentPosVec.x = startPoint.x;
 		this.currentPosVec.y = startPoint.y;
@@ -478,7 +480,7 @@ export class Player implements GraphicalElement {
 	 * Updates AI inputs based on ball position and game state
 	 */
 	protected updateAIInputs(ctx: GameContext): void {
-		const vx = Math.abs(this.currentVelVec.dx);
+		const vx = Math.abs(this.ball.Velocity.dx);
 		const paddleCenter = this.y + (this.paddleHeight * 0.5);
 		if (vx > 0) {
 			const Width = ctx.canvas.width;

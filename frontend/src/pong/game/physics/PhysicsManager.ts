@@ -1,19 +1,35 @@
-import {GameState, PlayerType, PositionValue, VelocityValue, SweepResult, CircleAABBOverlapResult } from '@pong/types';
 import { BALL_CONFIG } from '@pong/constants';
 import { Ball, Player } from '@pong/game/objects';
+import {GameState, PlayerType } from '@pong/types';
 import { GameScene } from '@pong/game/scenes';
-import { GameEngine } from '@pong/game/engine';
-import { reflectVelocity, correctPosition, checkCircleAABBOverlap, applyPaddleDeflection, sweepCircleVsMovingRect } from '@pong/game/physics';
+import {
+		reflectVelocity,
+		correctPosition,
+		checkCircleAABBOverlap,
+		applyPaddleDeflection,
+		sweepCircleVsMovingRect,
+		SweepResult,
+		CircleAABBOverlapResult
+} from '@pong/game/physics';
 
+interface PositionVector {
+	x: number;
+	y: number;
+}
+
+interface DirectionVector {
+	dx: number;
+	dy: number;
+}
 
 export class PhysicsManager {
 	private ball: Ball;
 	private player1: Player;
 	private player2: Player;
-	private gameEngine: GameEngine;
+	private gameEngine: any;
 	private gameScene: GameScene;
-	private tmpPos: PositionValue;
-	private tmpDir: VelocityValue;
+	private tmpPos: PositionVector;
+	private tmpDir: DirectionVector;
 	private onScoreUpdateCallback: (() => void) | null = null;
 
 	private sweepResult: SweepResult = { t: 0, normal: { nx: 0, ny: 0 }, collided: false };
@@ -23,7 +39,7 @@ export class PhysicsManager {
 		collided: false
 	};
 
-	constructor(ball: Ball, player1: Player, player2: Player, gameEngine: GameEngine, gameScene: GameScene) {
+	constructor(ball: Ball, player1: Player, player2: Player, gameEngine: any, gameScene: GameScene) {
 		this.ball = ball;
 		this.player1 = player1;
 		this.player2 = player2;
@@ -78,7 +94,6 @@ export class PhysicsManager {
 			const epsilon = ballRadius * 0.01;
 			const p0 = ball.prevPosition;
 
-			// Use pre-allocated vectors
 			this.tmpPos.x = ball.x;
 			this.tmpPos.y = ball.y;
 
@@ -260,13 +275,12 @@ export class PhysicsManager {
 					}
 					reflectVelocity(ballVelocity.dx, ballVelocity.dy, normal.nx, normal.ny, dotProduct, this.tmpDir);
 
-					// Reuse tmpPos for the contact point argument
 					this.tmpPos.x = contactX;
 					this.tmpPos.y = contactY;
 
 					applyPaddleDeflection(
-						this.tmpPos, // Pass pre-allocated tmpPos
-						this.tmpDir, // Pass pre-allocated tmpDir as reflectedVel and out
+						this.tmpPos,
+						this.tmpDir,
 						pTop, pBottom,
 						this.tmpDir
 					);
@@ -343,6 +357,6 @@ export class PhysicsManager {
 	////////////////////////////////////////////////////////////
 	// Getters and setters
 	////////////////////////////////////////////////////////////
-	public setGameEngine(engine: GameEngine): void { this.gameEngine = engine; }
+	public setGameEngine(engine: any): void { this.gameEngine = engine; }
 	public setOnScoreUpdateCallback(callback: () => void): void { this.onScoreUpdateCallback = callback; }
 } 

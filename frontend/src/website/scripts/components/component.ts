@@ -112,11 +112,7 @@ export abstract class Component<StateType = any, TemplateDataType = any> {
 	protected updateInternalState(newState: Partial<StateType>): void {
 		const oldState = { ...this.internalState } as StateType;
 		this.internalState = { ...this.internalState, ...newState } as StateType;
-		
-		// Notify listeners of state change
 		this.internalStateListeners.forEach(listener => listener(this.internalState, oldState));
-		
-		// Trigger re-render with new state
 		this.renderComponent();
 	}
 

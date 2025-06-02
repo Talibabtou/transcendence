@@ -1,5 +1,5 @@
 import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/components';
-import { html, render, navigate, NotificationManager } from '@website/scripts/services';
+import { html, render, navigate, NotificationManager, VNode } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
 
@@ -61,11 +61,11 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Renders the appropriate content based on the current auth state
 	 * @returns The HTML template for the current auth state
 	 */
-	private renderAuthContent(): any {
+	private renderAuthContent(): VNode {
 		const state = this.getInternalState();
 		
 		if (state.currentState === AuthState.SUCCESS) return this.renderSuccessMessage();
-		if (state.isLoading) return html`<div class="auth-processing"></div>`;
+		if (state.isLoading) return html`<div class="auth-processing"></div>` as unknown as VNode;
 		
 		const setUserAndTokenCallback = (user: UserData | null, token?: string) => {
 			this.currentUser = user;
@@ -112,8 +112,8 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 	 * Renders a success message after authentication
 	 * @returns The HTML template for the success message
 	 */
-	protected renderSuccessMessage(): any {
-		return html`
+	protected renderSuccessMessage(): VNode {
+		return html `
 			<div class="auth-success">
 				<h2>Authentication Successful</h2>
 				<p>Welcome back, ${this.currentUser?.username || 'User'}!</p>

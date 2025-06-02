@@ -3,8 +3,8 @@ import { NotificationManager } from "@website/scripts/services";
 
 type OnlineStatusChangeCallback = (userId: string, isOnline: boolean) => void;
 
-const PING_INTERVAL = 30 * 1000; // 30 seconds
-const MAX_SERVER_INACTIVITY_DURATION = 75 * 1000; // 75 seconds
+const PING_INTERVAL = 30 * 1000;
+const MAX_SERVER_INACTIVITY_DURATION = 75 * 1000;
 const DEFAULT_WS_URL = 'wss://localhost:$HTTPS_PORT/ws/status';
 
 export class WebSocketClient {

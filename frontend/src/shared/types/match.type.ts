@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Match {
 	id: string;
 	player_1: string;
@@ -6,6 +5,7 @@ export interface Match {
 	active: boolean;
 	duration: number | null;
 	tournament_id: string | null;
+	final: boolean;
 	created_at: string;
 }
 
@@ -13,25 +13,19 @@ export interface MatchHistory {
 	matchId: string;
 	username1: string;
 	id1: string;
-	goals1: number | string;
+	goals1: number;
 	username2: string;
 	id2: string;
-	goals2: number | string;
+	goals2: number;
 	final: boolean;
 	created_at: string;
 }
 
 export interface CreateMatchRequest {
+	player_1: string;
 	player_2: string;
 	tournament_id?: string | null;
-}
-
-export interface GetMatchesQuery {
-	player_id?: string;
-	active?: boolean;
-	tournament_id?: string;
-	limit?: number;
-	offset?: number;
+	final?: boolean;
 }
 
 export interface GetTournamentQuery {
@@ -40,15 +34,15 @@ export interface GetTournamentQuery {
 
 export interface TournamentMatch {
 	matchId: string;
-  username1: string;
-  id1: string;
-  goals1: number;
-  username2: string;
-  id2: string;
-  goals2: number;
+	username1: string;
+	id1: string;
+	goals1: number;
+	username2: string;
+	id2: string;
+	goals2: number;
 	winner: string;
 	final: boolean;
-  created_at: string;
+	created_at: string;
 }
 
 export interface PlayerMatchSummary {
@@ -56,7 +50,6 @@ export interface PlayerMatchSummary {
 	elo: number;
 	victories: number;
 	defeats: number;
-	win_ratio: number;
 }
 
 export interface DailyPerformance {
@@ -106,4 +99,9 @@ export interface Finalist {
 	goals_scored?: number;
 	goals_conceded?: number;
 	goal_duration?: number;
+}
+
+export interface GetPageQuery {
+	limit?: number;
+	offset?: number;
 }

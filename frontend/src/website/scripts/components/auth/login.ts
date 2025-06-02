@@ -1,7 +1,7 @@
-import { ASCII_ART, hashPassword } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager } from '@website/scripts/services';
-import { AuthMethod, UserData } from '@website/types';
+import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { ASCII_ART, hashPassword } from '@website/scripts/utils';
+import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
 
 export class LoginHandler {
 	private persistSession: boolean = false;
@@ -10,7 +10,7 @@ export class LoginHandler {
 	private lastLoginAttempt: Date | null = null;
 
 	constructor(
-		private updateState: (state: any) => void,
+		private updateState: (state: AuthComponentState) => void,
 		private setCurrentUser: (user: UserData | null, token?: string) => void,
 		private switchToSuccessState: () => void
 	) {}
@@ -27,7 +27,7 @@ export class LoginHandler {
 	 * @param switchToRegister - Callback to switch to registration form
 	 * @returns HTML template for the login form
 	 */
-	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): any {
+	renderLoginForm(persistSession: boolean = true, onPersistChange: (value: boolean) => void, switchToRegister: () => void): VNode {
 		this.persistSession = persistSession;
 		
 		if (sessionStorage.getItem('auth_2fa_needed') === 'true') return this.render2FAForm();
@@ -80,7 +80,7 @@ export class LoginHandler {
 	 * 
 	 * @returns HTML template for the 2FA verification form
 	 */
-	private render2FAForm(): any {
+	private render2FAForm(): VNode {
 		return html`
 			<div class="ascii-title-container">
 				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>

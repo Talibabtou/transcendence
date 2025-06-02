@@ -1,10 +1,11 @@
-import { GameContext, GameState } from '@pong/types';
-import { calculateGameSizes } from '@pong/constants';
 import { Ball, Player } from '@pong/game/objects';
 import { PauseManager } from '@pong/game/engine';
+import { GameContext, GameState } from '@pong/types';
+import { calculateGameSizes } from '@pong/constants';
 import { GameScene } from '@pong/game/scenes';
 
 export class ResizeManager {
+
 	private isResizing: boolean = false;
 	private context: GameContext;
 	private scene: GameScene;
@@ -14,6 +15,7 @@ export class ResizeManager {
 	private pauseManager: PauseManager | null;
 	private readonly DEBOUNCE_MS = 50;
 	private resizeTimeoutId: number | null = null;
+
 	private previousCanvasWidth: number;
 	private previousCanvasHeight: number;
 
@@ -44,12 +46,12 @@ export class ResizeManager {
 			clearTimeout(this.resizeTimeoutId);
 			this.resizeTimeoutId = null;
 		}
-		this.context = null as unknown as GameContext;
-		this.scene = null as unknown as GameScene;
-		this.ball = null as unknown as Ball;
-		this.player1 = null as unknown as Player;
-		this.player2 = null as unknown as Player;
-		this.pauseManager = null as unknown as PauseManager;
+		this.context = null as any;
+		this.scene = null as any;
+		this.ball = null as any;
+		this.player1 = null as any;
+		this.player2 = null as any;
+		this.pauseManager = null as any;
 	}
 
 
@@ -135,12 +137,14 @@ export class ResizeManager {
 			this.ball.prevPosition.x = this.ball.x;
 			this.ball.prevPosition.y = this.ball.y;
 
+			// Player 1
 			const p1CurrentCenterY = this.player1.y + this.player1.paddleHeight * 0.5;
 			const p1RelativeY = p1CurrentCenterY / oldHeight;
 			this.player1.updateSizes();
 			const p1NewCenterY = p1RelativeY * newHeight;
 			this.player1.y = p1NewCenterY - this.player1.paddleHeight * 0.5;
 
+			// Player 2
 			const p2CurrentCenterY = this.player2.y + this.player2.paddleHeight * 0.5;
 			const p2RelativeY = p2CurrentCenterY / oldHeight;
 			this.player2.updateSizes();
@@ -176,7 +180,6 @@ export class ResizeManager {
 	////////////////////////////////////////////////////////////
 	// Helper methods
 	////////////////////////////////////////////////////////////
-	
 	private isGameScene(): boolean { return !!(this.context && this.scene && this.ball && this.player1 && this.player2 && this.pauseManager); }
 	private isInBackgroundDemo(): boolean { return this.scene?.isBackgroundDemo() ?? false; }
 	public isCurrentlyResizing(): boolean { return this.isResizing; }
