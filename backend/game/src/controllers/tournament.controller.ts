@@ -27,7 +27,6 @@ export async function getTournament(
       `
       SELECT 
         match_id, 
-				player_id,
         player_1, 
         player_2,
         p1_score,
@@ -37,10 +36,12 @@ export async function getTournament(
         created_at
       FROM player_match_history
       WHERE tournament_id = ?
+      GROUP BY match_id, player_1, player_2, p1_score, p2_score, tournament_id, final, created_at
       ORDER BY created_at DESC LIMIT ? OFFSET ?;
       `,
       [id, limit, offset]
     );
+		console.log(matches);
 		recordFastDatabaseMetrics('SELECT', 'player_match_history', performance.now() - startTime);
     if (!matches) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
