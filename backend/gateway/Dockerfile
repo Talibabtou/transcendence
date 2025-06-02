@@ -2,12 +2,13 @@
 FROM node:23.6-alpine AS build
 
 WORKDIR /app
-COPY package.json ./
-COPY tsconfig.json ./
+COPY ./backend/gateway/package.json ./
+COPY ./backend/gateway/tsconfig.json ./
 RUN npm install
 RUN npm ci
 
-COPY ./src/ /app/src/
+COPY ./shared /app/src/shared
+COPY ./backend/gateway/src/ /app/src/
 RUN npm run build
 
 # Stage 2: Production
@@ -22,7 +23,8 @@ WORKDIR /app
 RUN mkdir -p uploads
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
-COPY package*.json ./
+COPY --from=build /app/src/shared /app/src/shared
+COPY ./backend/gateway/package*.json ./
 
 EXPOSE ${GATEWAY_PORT}
 EXPOSE ${OTEL_EXPORTER_PORT}

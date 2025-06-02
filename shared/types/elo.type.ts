@@ -12,12 +12,6 @@ export interface LeaderboardEntry extends Omit<Elo, 'id' | 'created_at'> {
   username?: string;
 }
 
-export interface GetElosQuery {
-  player?: string;
-  limit?: number;
-  offset?: number;
-}
-
 export interface DailyElo {
   player: string;
   match_date: string;

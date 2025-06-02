@@ -1,4 +1,3 @@
-// Define TypeScript interfaces for sharing
 export interface Match {
   id: string;
   player_1: string;
@@ -27,14 +26,6 @@ export interface CreateMatchRequest {
   player_2: string;
   tournament_id?: string | null;
 	final?: boolean;
-}
-
-export interface GetMatchesQuery {
-  player_id?: string;
-  active?: boolean;
-  tournament_id?: string;
-  limit?: number;
-  offset?: number;
 }
 
 export interface GetTournamentQuery {
