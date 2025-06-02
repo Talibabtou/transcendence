@@ -37,18 +37,18 @@ export class LoginHandler {
 				<pre class="ascii-title">${ASCII_ART.AUTH}</pre>
 			</div>
 			
-			<form class="auth-form" onSubmit=${(e: Event) => {
+			<form class="auth-form" novalidate onSubmit=${(e: Event) => {
 				e.preventDefault();
 				this.handleLogin(e);
 			}}>
 				<div class="form-group">
 					<label for="email">Email:</label>
-					<input type="email" id="email" name="email" required />
+					<input type="email" id="email" name="email" />
 				</div>
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required/>
+					<input type="password" id="password" name="password" />
 				</div>
 				
 				<div class="form-group checkbox-group">
@@ -89,7 +89,7 @@ export class LoginHandler {
 			<div class="auth-form twofa-form">
 				<p>Please enter the 6-digit code from your authenticator app:</p>
 				
-				<form onSubmit=${(e: Event) => {
+				<form novalidate onSubmit=${(e: Event) => {
 					e.preventDefault();
 					this.handle2FAVerification(e);
 				}}>
@@ -100,7 +100,6 @@ export class LoginHandler {
 							name="twofa-code" 
 							maxlength="6" 
 							pattern="[0-9]{6}" 
-							required 
 							placeholder="000000"
 							autocomplete="one-time-code"
 							autofocus
@@ -141,12 +140,12 @@ export class LoginHandler {
 		const password = formData.get('password') as string;
 		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
 		
-		if (!emailRegex.test(email)) {
-			NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
-			return;
-		}
 		if (!email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
+			return;
+		}
+		if (!emailRegex.test(email)) {
+			NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
 			return;
 		}
 

@@ -98,15 +98,15 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderLoginForm(): any {
 		return html`
-			<form class="auth-form guest-auth-form" onsubmit=${this.handleLoginSubmit}>
+			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleLoginSubmit}>
 				<div class="form-group">
 					<label for="email">Email:</label>
-					<input type="email" id="email" name="email" required autocomplete="off" />
+					<input type="email" id="email" name="email" autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
 					<label for="password">Password:</label>
-					<input type="password" id="password" name="password" required autocomplete="off" />
+					<input type="password" id="password" name="password" autocomplete="off" />
 				</div>
 				
 				<button type="submit" class="menu-button">Login</button>
@@ -133,15 +133,15 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderRegisterForm(): any {
 		const form = html`
-			<form class="auth-form guest-auth-form" onsubmit=${this.handleRegisterSubmit}>
+			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
+					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
 					<label for="email">Email:</label>
-					<input type="email" id="email" name="email" required autocomplete="off" />
+					<input type="email" id="email" name="email" autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
@@ -150,7 +150,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 						type="password" 
 						id="password" 
 						name="password" 
-						required 
 						autocomplete="off" 
 						onInput=${(e: Event) => this.handlePasswordInput(e)}
 					/>
@@ -175,7 +174,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private render2FAForm(): any {
 		return html`
-			<form class="auth-form guest-auth-form twofa-form" onsubmit=${this.handle2FAVerification}>
+			<form class="auth-form guest-auth-form twofa-form" novalidate onsubmit=${this.handle2FAVerification}>
 				<div class="form-group">
 					<p>Please enter the 6-digit code from your authenticator app:</p>
 					<div class="twofa-input-container">
@@ -185,7 +184,6 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 							name="twofa-code" 
 							maxlength="6" 
 							pattern="[0-9]{6}" 
-							required 
 							placeholder="000000"
 							autocomplete="one-time-code"
 							autofocus
@@ -221,6 +219,8 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		this.resetForm(form);
 		if (email && password) {
 			this.authenticateGuest(email.toLowerCase(), password);
+		} else {
+			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
 		}
 	}
 	
@@ -236,6 +236,22 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;
 		this.resetForm(form);
+
+		if (!username || !email || !password) {
+			NotificationManager.handleErrorCode('required_field', 'All fields are required.');
+			return;
+		}
+		if (!emailRegex.test(email)) {
+			NotificationManager.handleErrorCode('invalid_email', 'Please enter a valid email address');
+			return;
+		}
+		
+		const usernameRegex = /^[A-Za-z0-9_]{3,}$/;
+		if (!usernameRegex.test(username)) {
+			NotificationManager.handleErrorCode('invalid_username', 'Username must be at least 3 characters long and contain only letters, numbers, and underscores.');
+			return;
+		}
+
 		if (username && email && password) {
 			const passwordValidation = validatePassword(password);
 			if (!emailRegex.test(email)) {
