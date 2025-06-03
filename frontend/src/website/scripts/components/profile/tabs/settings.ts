@@ -310,7 +310,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
-		// Validate file type using magic bytes
 		const isValid = await this.validateFileType(file);
 		if (!isValid) {
 			NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
@@ -373,29 +372,21 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Validates file type using magic bytes
 	 */
 	private async validateFileType(file: File): Promise<boolean> {
-		// Magic bytes for supported image types
 		const magicBytes = {
 			jpeg: [0xFF, 0xD8, 0xFF],
 			png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
 			gif87a: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
 			gif89a: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
 		};
-		
-		// Read the first bytes of the file
 		const buffer = await file.arrayBuffer();
 		const bytes = new Uint8Array(buffer, 0, 8);
 		
-		// Check for JPEG
 		if (this.compareBytes(bytes, magicBytes.jpeg)) {
 			return true;
 		}
-		
-		// Check for PNG
 		if (this.compareBytes(bytes, magicBytes.png)) {
 			return true;
 		}
-		
-		// Check for GIF (both versions)
 		if (this.compareBytes(bytes, magicBytes.gif87a) || 
 			this.compareBytes(bytes, magicBytes.gif89a)) {
 			return true;
