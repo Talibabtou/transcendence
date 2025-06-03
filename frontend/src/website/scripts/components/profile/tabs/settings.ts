@@ -301,43 +301,35 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	/**
 	 * Handles file upload for profile picture
 	 */
-	private async handleFileChange(event: Event): Promise<void> {
+	private async handleFileChange(event: Event): Promise<void> { 
 		const input = event.target as HTMLInputElement;
 		const file = input.files?.[0];
-		
 		if (!file) return;
-				
+
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		
-		// Validate file type using magic bytes
-		const isValid = await this.validateFileType(file);
-		if (!isValid) {
-			NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
-			this.updateInternalState({ uploadSuccess: false, isUploading: false });
-			return;
-		}
-		
+		// const isValid = await this.validateFileType(file);
+		// if (!isValid) {
+		// 	NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
+		// 	this.updateInternalState({ uploadSuccess: false, isUploading: false });
+		// 	return;
+		// }
 		if (file.size > 1 * 1024 * 1024) {
 			NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
 			this.updateInternalState({ uploadSuccess: false, isUploading: false });
 			return;
 		}
-		
 		this.updateInternalState({ isUploading: true, uploadSuccess: false });
-		
 		try {
 			await DbService.updateProfilePicture(file);
 			NotificationManager.showSuccess('Profile picture updated successfully');
 			const picResponse = await DbService.getPic(state.profile.id);
-			
 			if (picResponse?.link) {
 				this.updateInternalState({
 					isUploading: false,
 					uploadSuccess: true,
 					profile: { ...state.profile, avatarUrl: picResponse.link }
 				});
-				
 				if (this.onProfileUpdate) this.onProfileUpdate({ pfp: picResponse.link });
 			} else {
 				this.updateInternalState({ isUploading: false, uploadSuccess: true });
@@ -345,7 +337,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		} catch (error) {
 			if (error instanceof TypeError && error.message.includes('null')) {
 				NotificationManager.showSuccess('Profile picture updated successfully');
-				
 				try {
 					const picResponse = await DbService.getPic(state.profile.id);
 					if (picResponse?.link) {
@@ -373,7 +364,6 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Validates file type using magic bytes
 	 */
 	private async validateFileType(file: File): Promise<boolean> {
-		// Magic bytes for supported image types
 		const magicBytes = {
 			jpeg: [0xFF, 0xD8, 0xFF],
 			png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
@@ -381,11 +371,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			gif89a: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
 		};
 		
-		// Read the first bytes of the file
 		const buffer = await file.arrayBuffer();
 		const bytes = new Uint8Array(buffer, 0, 8);
-		
-		// Check for JPEG
+
 		if (this.compareBytes(bytes, magicBytes.jpeg)) {
 			return true;
 		}

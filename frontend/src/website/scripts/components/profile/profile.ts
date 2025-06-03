@@ -624,8 +624,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			
 			this.updateInternalState({ friendshipStatus: newStatus });
 		} catch (error) {
-			NotificationManager.showError("Error managing friend relationship");
-			
+			NotificationManager.showError(error.message);
 			if (isPending) {
 				friendButton.textContent = 'Pending';
 				friendButton.classList.add('pending', 'request-sent');

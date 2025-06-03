@@ -352,6 +352,14 @@ export async function login(request: FastifyRequest<{ Body: ILogin }>, reply: Fa
       jwtId: jti,
       twofa: data.two_factor_enabled,
     });
+    if (data.two_factor_enabled && data.verified) {
+      startTime = performance.now();
+      await request.server.db.run(
+        'UPDATE users SET verified = false WHERE id = ?',
+        [data.id]
+      );
+      recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
+    }
     const user: IReplyLogin = {
       token: token,
       id: data.id,
@@ -412,7 +420,7 @@ export async function loginGuest(
         'UPDATE users SET verified = false WHERE id = ?',
         [data.id]
       );
-		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
+		  recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
 		}
     const user: IReplyLogin = {
       id: data.id,
@@ -501,7 +509,7 @@ export async function twofaValidate(
     if (verify) {
 			startTime = performance.now();
       await request.server.db.run(
-        'UPDATE users SET verified = true, two_factor_enabled = true WHERE id = ?',
+        'UPDATE users SET two_factor_enabled = true WHERE id = ?',
         [id]
       );
 		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);

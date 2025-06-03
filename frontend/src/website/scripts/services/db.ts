@@ -632,9 +632,7 @@ export class DbService {
 		this.logRequest('GET', `${SOCIAL.FRIENDS.CHECK(friendId)}`);
 		try {
 			const response = await this.fetchApi<IReplyFriendStatus>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
-			if (!response || Object.keys(response).length === 0) {
-				return null;
-			}
+			if (!response || Object.keys(response).length === 0) return null;
 			return response;
 		} catch (error) {
 			return null;

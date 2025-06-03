@@ -19,7 +19,7 @@ export const helmetConfig = {
     preload: true,
   },
   frameguard: { action: 'deny' as const },
-  noSniff: true,
+  // noSniff: true,
   referrerPolicy: { policy: 'no-referrer' as const },
   permissionsPolicy: {
     features: {

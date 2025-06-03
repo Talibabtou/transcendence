@@ -27,13 +27,6 @@ NC=\033[0m
 
 .PHONY: all re clean fclean init
 
-init:
-	@echo -e "$(GREEN)[INIT] Checking dependencies...$(NC)"
-	@command -v docker >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Docker is not installed.$(NC)"; exit 1; }
-	@command -v $(DOCKER) >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Docker Compose is not installed.$(NC)"; exit 1; }
-	@command -v make >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Make is not installed.$(NC)"; exit 1; }
-	@echo -e "$(GREEN)[INIT] All required tools are installed.$(NC)"
-
 all: init
 	@echo -e "$(GREEN)[ALL] Creating directories if they don't exist...$(NC)"
 	@for dir in $(DIRS); do \
@@ -41,6 +34,13 @@ all: init
 	done
 	@echo -e "$(GREEN)[ALL] Starting Docker containers...$(NC)"
 	@$(DOCKER) $(UP)
+
+init:
+	@echo -e "$(GREEN)[INIT] Checking dependencies...$(NC)"
+	@command -v docker >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Docker is not installed.$(NC)"; exit 1; }
+	@command -v $(DOCKER) >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Docker Compose is not installed.$(NC)"; exit 1; }
+	@command -v make >/dev/null 2>&1 || { echo -e "$(RED)[ERROR] Make is not installed.$(NC)"; exit 1; }
+	@echo -e "$(GREEN)[INIT] All required tools are installed.$(NC)"
 
 re: fclean all
 
