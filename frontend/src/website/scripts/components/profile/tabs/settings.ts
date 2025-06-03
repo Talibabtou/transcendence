@@ -308,12 +308,14 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 
 		const state = this.getInternalState();
 		if (!state.profile) return;
-		// const isValid = await this.validateFileType(file);
-		// if (!isValid) {
-		// 	NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
-		// 	this.updateInternalState({ uploadSuccess: false, isUploading: false });
-		// 	return;
-		// }
+		
+		const isValid = await this.validateFileType(file);
+		if (!isValid) {
+			NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
+			this.updateInternalState({ uploadSuccess: false, isUploading: false });
+			return;
+		}
+		
 		if (file.size > 1 * 1024 * 1024) {
 			NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
 			this.updateInternalState({ uploadSuccess: false, isUploading: false });
@@ -370,20 +372,15 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			gif87a: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
 			gif89a: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
 		};
-		
 		const buffer = await file.arrayBuffer();
 		const bytes = new Uint8Array(buffer, 0, 8);
-
+		
 		if (this.compareBytes(bytes, magicBytes.jpeg)) {
 			return true;
 		}
-		
-		// Check for PNG
 		if (this.compareBytes(bytes, magicBytes.png)) {
 			return true;
 		}
-		
-		// Check for GIF (both versions)
 		if (this.compareBytes(bytes, magicBytes.gif87a) || 
 			this.compareBytes(bytes, magicBytes.gif89a)) {
 			return true;

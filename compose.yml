@@ -12,12 +12,12 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: ./frontend/Dockerfile
       args:
         - HTTPS_PORT=${HTTPS_PORT:-8043}
         - HTTP_PORT=${HTTP_PORT:-8080}
         - GATEWAY_PORT=${GATEWAY_PORT:-8085}
-      dockerfile: Dockerfile
     container_name: frontend
     env_file:
       - .env

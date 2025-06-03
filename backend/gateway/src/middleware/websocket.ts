@@ -4,6 +4,11 @@ import { FastifyInstance, FastifyRequest } from 'fastify';
 
 const connectedClients = new Map<string, WebSocket>();
 
+// Rate limiting constants
+const MAX_MESSAGES_PER_WINDOW = 10; // Max 10 messages
+const RATE_LIMIT_WINDOW_MS = 5000; // Per 5 seconds
+const userMessageTimestamps = new Map<string, number[]>(); // Stores timestamps of messages for each user
+
 async function websocketRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/ws/status',
@@ -61,6 +66,32 @@ async function websocketRoutes(fastify: FastifyInstance) {
 
       socket.on('message', (rawMessage) => {
         try {
+          const currentTime = Date.now();
+          let timestamps = userMessageTimestamps.get(userId);
+
+          if (!timestamps) {
+            timestamps = [];
+            userMessageTimestamps.set(userId, timestamps);
+          }
+
+          // Remove timestamps older than the window
+          timestamps = timestamps.filter(ts => currentTime - ts < RATE_LIMIT_WINDOW_MS);
+          userMessageTimestamps.set(userId, timestamps);
+
+          if (timestamps.length >= MAX_MESSAGES_PER_WINDOW) {
+            fastify.log.warn({
+              msg: `User ${userId} exceeded rate limit. Message dropped.`,
+              userId,
+              requestId: req.id,
+              messageCount: timestamps.length,
+            });
+            // Optionally send a message back to the client
+            // socket.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Please slow down.' }));
+            return; // Drop the message
+          }
+
+          timestamps.push(currentTime);
+
           const message = JSON.parse(rawMessage.toString());
           if (message.type === 'ping') {
             socket.send(JSON.stringify({ type: 'pong' }));
@@ -74,6 +105,7 @@ async function websocketRoutes(fastify: FastifyInstance) {
 
       socket.on('close', (code, reason) => {
         connectedClients.delete(userId);
+        userMessageTimestamps.delete(userId); // Clean up rate limit data on disconnect
         fastify.log.info({
           msg: `User ${userId} disconnected from WebSocket. Code: ${code}, Reason: ${reason.toString() || 'N/A'}. Total clients: ${connectedClients.size}`,
           userId,
@@ -94,6 +126,7 @@ async function websocketRoutes(fastify: FastifyInstance) {
         });
         if (connectedClients.has(userId)) {
           connectedClients.delete(userId);
+          userMessageTimestamps.delete(userId); // Clean up rate limit data on error
           for (const [id, clientSocket] of connectedClients.entries()) {
             clientSocket.send(JSON.stringify({ type: 'user_offline', userId }));
           }
