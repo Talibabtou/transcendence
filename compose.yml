@@ -53,11 +53,8 @@ services:
       - .env
     environment:
       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
-      - UID=${UID}
-      - GID=${GID}
     volumes:
       - prometheus_data:/prometheus
-    # user: "${UID}:${GID}"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
