@@ -53,11 +53,8 @@ services:
       - .env
     environment:
       - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9090}
-      - UID=${UID}
-      - GID=${GID}
     volumes:
       - prometheus_data:/prometheus
-    # user: "${UID}:${GID}"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -81,8 +78,7 @@ services:
       - 8080
     command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
-      # - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
