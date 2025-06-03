@@ -1,0 +1,335 @@
+services:
+  cert-generator:
+    image: alpine/openssl
+    container_name: cert_generator
+    entrypoint: ""
+    volumes:
+      - ./scripts:/scripts
+      - certs_data:/etc/certs
+    command: ["/bin/sh", "-c", "/scripts/generate-certs.sh && chmod 0644 /etc/certs/nginx.key && chmod 0644 /etc/certs/nginx.crt && echo 'Cert generator finished'"]
+    labels:
+      - "container_name=cert_generator"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      args:
+        - HTTPS_PORT=${HTTPS_PORT:-8043}
+        - HTTP_PORT=${HTTP_PORT:-8080}
+        - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+    container_name: frontend
+    env_file:
+      - .env
+    environment:
+      - HTTPS_PORT=${HTTPS_PORT:-8043}
+      - HTTP_PORT=${HTTP_PORT:-8080}
+      - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+    ports:
+      - "${HTTPS_PORT:-8043}:443"
+      - "${HTTP_PORT:-8080}:80"
+    networks:
+      - frontend-net
+    volumes:
+      - certs_data:/etc/certs:ro
+    depends_on:
+      gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    labels:
+      - "container_name=frontend"
+
+  prometheus:
+    build:
+      context: ./monitoring/prometheus
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9060}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9060}:${PROMETHEUS_PORT:-9060}"
+    env_file:
+      - .env
+    environment:
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9060}
+    volumes:
+      - prometheus_data:/prometheus
+      - certs_data:/etc/certs:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.listen-address=:${PROMETHEUS_PORT:-9060}'
+      - '--web.config.file=/etc/prometheus/web-config.yml'
+    depends_on:
+      cadvisor:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend-net
+    labels:
+      - "container_name=prometheus"
+  
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    expose:
+      - 8080
+    command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
+    volumes:
+      - - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - backend-net
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    depends_on:
+      gateway:
+        condition: service_healthy
+    labels:
+      - "container_name=cadvisor"
+
+  grafana:
+    build:
+      context: ./monitoring/grafana
+      dockerfile: Dockerfile
+      args:
+        - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9060}
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT:-8086}:3000"
+    env_file:
+      - .env
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboard-provisioning.yaml:/etc/grafana/provisioning/dashboards/dashboard-provisioning.yaml
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - certs_data:/etc/certs:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_PROTOCOL=https
+      - GF_SERVER_CERT_FILE=${SSL_CERT_PATH:-/etc/certs/nginx.crt}
+      - GF_SERVER_CERT_KEY=${SSL_KEY_PATH:-/etc/certs/nginx.key}
+      - GF_SERVER_HTTP_PORT=3000
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend-net
+    labels:
+      - "container_name=grafana"
+
+  gateway:
+    build: 
+      context: .
+      dockerfile: ./backend/gateway/Dockerfile
+      args:
+        - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: gateway
+    env_file:
+      - .env
+    environment:
+      - SSL_KEY_PATH=/etc/certs/nginx.key
+      - SSL_CERT_PATH=/etc/certs/nginx.crt
+      - GATEWAY_PORT=${GATEWAY_PORT:-8085}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    ports:
+      - ${GATEWAY_PORT:-8085}:${GATEWAY_PORT:-8085}
+    expose:
+      - ${OTEL_EXPORTER_PORT:-9464}
+    networks:
+      - frontend-net
+      - backend-net
+    volumes:
+      - profile_pictures:/app/uploads
+      - certs_data:/etc/certs:ro
+    depends_on:
+      auth:
+        condition: service_healthy
+      profile:
+        condition: service_healthy
+      friends:
+        condition: service_healthy
+      game:
+        condition: service_healthy
+      cert-generator:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "-k", "https://gateway:${GATEWAY_PORT:-8085}/api/v1/health"]
+      interval: 10s
+      timeout: 10s
+      start_period: 5s
+      retries: 5
+    restart: unless-stopped
+    labels:
+      - "container_name=gateway"
+      
+  profile:
+    build:
+      context: .
+      dockerfile: ./backend/profile/Dockerfile
+      args:
+        - PROFILE_PORT=${PROFILE_PORT:-8081}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: profile
+    env_file:
+      - .env
+    environment:
+      - PROFILE_PORT=${PROFILE_PORT:-8081}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    expose:
+      - ${PROFILE_PORT:-8081}
+      - ${OTEL_EXPORTER_PORT:-9464}
+    networks:
+      - backend-net
+    volumes:
+      - profile_pictures:/app/uploads
+    restart: unless-stopped
+    labels:
+      - "container_name=profile"
+
+  auth:
+    build:
+      context: .
+      dockerfile: ./backend/auth/Dockerfile
+      args:
+        - AUTH_PORT=${AUTH_PORT:-8082}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: auth
+    env_file:
+      - .env
+    environment:
+      - AUTH_PORT=${AUTH_PORT:-8082}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    expose:
+      - ${AUTH_PORT:-8082}
+      - ${OTEL_EXPORTER_PORT:-9464}
+    networks:
+      - backend-net
+    volumes:
+      - auth:/app/db
+    restart: unless-stopped
+    depends_on:
+      game:
+        condition: service_healthy
+    labels:
+      - "container_name=auth"
+
+  game:
+    build:
+      context: .
+      dockerfile: ./backend/game/Dockerfile
+      args:
+        - GAME_PORT=${GAME_PORT:-8083}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: game
+    env_file:
+      - .env
+    environment:
+      - GAME_PORT=${GAME_PORT:-8083}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    expose:
+      - ${GAME_PORT:-8083}
+      - ${OTEL_EXPORTER_PORT:-9464}
+    networks:
+      - backend-net
+    volumes:
+      - game:/app/db
+    restart: unless-stopped
+    labels:
+      - "container_name=game"
+
+  friends:
+    build:
+      context: .
+      dockerfile: ./backend/friends/Dockerfile
+      args:
+        - FRIENDS_PORT=${FRIENDS_PORT:-8084}
+        - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    container_name: friends
+    env_file:
+      - .env
+    environment:
+      - FRIENDS_PORT=${FRIENDS_PORT:-8084}
+      - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+    expose:
+      - ${FRIENDS_PORT:-8084}
+      - ${OTEL_EXPORTER_PORT:-9464}
+    networks:
+      - backend-net
+    volumes:
+      - friends:/app/db
+    restart: unless-stopped
+    labels:
+      - "container_name=friends"
+
+# volumes:
+#   certs_data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/certs_data"
+#       o: bind
+#   profile_pictures:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/profile_pictures"
+#       o: bind
+#   auth:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/auth"
+#       o: bind
+#   friends:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/friends"
+#       o: bind
+#   game:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/game"
+#       o: bind
+#   prometheus_data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/prometheus_data"
+#       o: bind
+#   grafana_data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       device: "/home/${USER}/goinfre/grafana_data"
+#       o: bind
+
+volume:
+  certs_data:
+  profile_pictures:
+  auth:
+  friends:
+  game:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  backend-net:
+    driver: bridge
+  frontend-net:
+    driver: bridge

@@ -1,0 +1,57 @@
+groups:
+- name: backend_health_alerts
+  rules:
+  - alert: BackendServiceDown
+    expr: up{job=~"gateway-service|auth-service|profile-service|friends-service|game-service"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Backend service {{ $labels.job }} is down"
+      description: "The service {{ $labels.job }} at {{ $labels.instance }} is not responding."
+
+  - alert: GatewayHighP99HttpLatency
+    # Assumes http_server_duration_seconds_bucket metric from OpenTelemetry auto-instrumentation.
+    expr: histogram_quantile(0.99, sum(rate(http_server_duration_seconds_bucket{job="gateway-service"}[5m])) by (le, job)) > 1.0 # 1.0 second
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High P99 HTTP request latency for Gateway"
+      description: 'P99 latency for job {{ $labels.job }} is {{ $value | printf "%.2f" }}s over the last 5 minutes.'
+
+  - alert: AuthServiceHighP99MediumQueryLatency
+    # The custom metric 'medium_query_duration' is described as "in ms".
+    # This rule assumes it's exported as 'medium_query_duration_milliseconds_bucket' or 'medium_query_duration_bucket' (with values in ms).
+    # Threshold is 500ms.
+    # If the metric is actually exported in seconds (e.g., medium_query_duration_seconds_bucket),
+    # change metric name and adjust threshold to 0.5.
+    expr: histogram_quantile(0.99, sum(rate(medium_query_duration_milliseconds_bucket{job="auth-service"}[5m])) by (le, job)) > 500
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High P99 latency for Auth service medium DB queries"
+      description: 'P99 latency for {{ $labels.job }} medium DB queries is {{ $value | printf "%.0f" }}ms over the last 5 minutes.'
+
+  - alert: GatewayHigh5xxErrorRate
+    # Assumes http_server_duration_seconds_count metric from OpenTelemetry auto-instrumentation,
+    # with http_response_status_code label.
+    expr: (sum(rate(http_server_duration_seconds_count{job="gateway-service", http_response_status_code=~"5.."}[5m])) by (job) / sum(rate(http_server_duration_seconds_count{job="gateway-service"}[5m])) by (job)) * 100 > 5 # 5% error rate
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High 5xx error rate on Gateway"
+      description: '{{ $labels.job }} is experiencing {{ $value | printf "%.2f" }}% 5xx errors over the last 5 minutes.'
+
+  - alert: ContainerHighMemoryUsage
+    # Uses cAdvisor metrics. Assumes container name label in cAdvisor is 'name'.
+    # Alerts if memory usage is >85% of limit, only if a memory limit is set.
+    expr: (container_memory_working_set_bytes{name=~"gateway|auth"} / container_spec_memory_limit_bytes{name=~"gateway|auth"}) * 100 > 85 and container_spec_memory_limit_bytes{name=~"gateway|auth"} > 0
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage for container {{ $labels.name }}"
+      description: 'Container {{ $labels.name }} is using {{ $value | printf "%.0f" }}% of its memory limit.' 

@@ -1,0 +1,270 @@
+/* ===== TOURNAMENT MATCHES LIST ===== */
+.tournament-matches-list {
+	width: 50%;
+	height: 100%;
+	align-self: center;
+	overflow-y: visible;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+}
+
+.ascii-title-tournament {
+	margin-bottom: 4rem;
+}
+
+/* ===== TOURNAMENT ===== */
+.tournament-match {
+	margin-bottom: 0.5rem;
+	padding: 1rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
+	background-color: rgba(0, 0, 0, 0.4);
+	border: 1px solid var(--border-color);
+	height: 4rem;
+	overflow: hidden;
+}
+
+.tournament-match.match-current {
+	border: 0.25rem solid white;
+	box-shadow: 0 0 1.5rem rgba(255, 255, 255, 0.7);
+	transform: scale(1.05);
+	z-index: var(--z-ui);
+}
+
+.tournament-match.match-pending-finals {
+	opacity: 0.7;
+	border: 1px dashed gold;
+}
+
+.tournament-match.finals-match {
+	border: 2px solid gold;
+}
+
+.tournament-match.match-complete {
+	background-color: rgba(255, 255, 255, 0.3);
+	transform: none;
+	border-width: 1px;
+}
+
+.tournament-controls {
+	margin-top: 1.5rem;
+	display: flex;
+	justify-content: center;
+}
+
+/* ===== MATCHES ===== */
+.match-number {
+	font-weight: bold;
+	min-width: 8rem;
+}
+
+.match-players {
+	display: grid;
+	grid-template-columns: 1fr auto 1fr;
+	width: 100%;
+	align-items: center;
+	font-size: 1.3rem;
+	font-weight: bold;
+}
+
+.match-player-left {
+	text-align: right;
+	padding-right: 1.5rem;
+	justify-self: end;
+}
+
+.match-player-right {
+	text-align: left;
+	padding-left: 1.5rem;
+	justify-self: start;
+}
+
+.vs {
+	text-align: center;
+	width: 7rem;
+	justify-self: center;
+	font-size: 1.2rem;
+	color: var(--text-color);
+	margin: 0 1rem;
+}
+
+.match-status {
+	font-weight: bold;
+	font-size: 1.1rem;
+	min-width: 8rem;
+	text-align: right;
+}
+
+.match-status:not(:empty) {
+	color: white;
+}
+
+.match-score {
+	font-size: 3rem;
+	font-weight: bold;
+	margin-bottom: 1rem;
+}
+
+.score-separator {
+	margin: 0 1rem;
+}
+
+.winner {
+	color: var(--winner-color);
+}
+
+.match-winner {
+	font-size: 1.5rem;
+	color: var(--winner-color);
+}
+
+.match-complete .vs {
+	font-weight: bold;
+	font-size: 1.5rem;
+}
+
+/* ===== GAME RESULT ===== */
+.game-result {
+	margin-bottom: 0.75rem;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	background-color: rgba(0, 0, 0, 0.3);
+	border: 1px solid var(--border-color);
+}
+
+.game-number {
+	font-weight: bold;
+	min-width: 5rem;
+}
+
+.game-scores {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.game-winner {
+	min-width: 8rem;
+	text-align: right;
+}
+
+.winner-name:not(.match-player) {
+	padding-top: 7rem;
+	font-size: 6rem;
+	font-weight: bold;
+	text-align: center;
+}
+
+.match-player.winner-name {
+	font-size: 1.3rem;
+	color: var(--win-color);
+	text-shadow: 0 0 5px var(--win-color);
+}
+
+.match-player.loser-name {
+	font-size: 1.3rem;
+	color: var(--loss-color);
+	text-shadow: 0 0 5px var(--loss-color);
+}
+
+/* ===== FINALISTS ===== */
+.finalists {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2rem;
+	margin: 2rem 0;
+}
+
+.finalist {
+	font-size: 2.5rem;
+	font-weight: bold;
+}
+
+.finals-description, .winner-description {
+	text-align: center;
+	font-size: 1.2rem;
+	margin: 2rem 0;
+}
+
+/* ===== BUTTONS ===== */
+.back-button {
+	position: absolute;
+	top: 1%;
+	left: 5%;
+	cursor: pointer;
+	font-size: 1rem;
+	z-index: var(--z-ui);
+}
+
+.cancel-button {
+	position: absolute;
+	top: 1%;
+	right: 5%;
+	cursor: pointer;
+	font-size: 1rem;
+	z-index: var(--z-ui);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--error-color);
+	text-decoration: none;
+	padding: 0.8rem 1rem;
+	transition: all var(--transition-normal);
+	font-family: var(--font-family);
+	border: 1px solid var(--border-color);
+	background-color: var(--menu-bg);
+	position: absolute;
+	overflow: hidden;
+}
+
+.cancel-button:hover {
+	text-shadow: 0 0 10px var(--error-color);
+	border-color: var(--error-color);
+	box-shadow: 0 0 20px rgba(255, 0, 0, 0.2);
+}
+
+/* ===== WINNER CONTAINER ===== */
+.winner-container {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	margin: 4rem 0;
+}
+
+.champion-name {
+	font-size: 5rem !important;
+	margin-bottom: 2rem;
+	text-transform: uppercase;
+	letter-spacing: 0.2rem;
+}
+
+.winner-description {
+	font-size: 1.5rem;
+	margin: 0.5rem 0;
+}
+
+/* ===== TOURNAMENT FOOTER ===== */
+.tournament-footer {
+	position: absolute;
+	bottom: 10%;
+	left: 0;
+	right: 0;
+	display: flex;
+	justify-content: center;
+}
+
+.back-button-centered {
+	position: relative;
+	top: auto;
+	left: auto;
+	font-size: 1.2rem;
+	padding: 1rem 2rem;
+}

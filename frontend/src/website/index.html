@@ -1,0 +1,86 @@
+<!--
+	Transcendence - Single Page Application (SPA) Main Index
+
+	This is the entry point HTML file for the entire application.
+	It defines the core structure including content sections,
+	and loads the necessary stylesheets and scripts. The application
+	uses a client-side routing mechanism that displays different sections
+	based on the current URL path.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<!-- Meta information and character encoding -->
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<link rel="icon" href="./favicon.ico">
+	<title>Transcendence</title>
+
+	<!-- Application stylesheets -->
+	<!-- main.css contains global styles and layout -->
+	<link rel="stylesheet" href="./styles/main.css">
+	<!-- Component-specific stylesheets -->
+	<link rel="stylesheet" href="./styles/game.css">
+	<link rel="stylesheet" href="./styles/leaderboard.css">
+	<link rel="stylesheet" href="./styles/profile.css">
+	<link rel="stylesheet" href="./styles/auth.css">
+	<link rel="stylesheet" href="./styles/player-register.css">
+	<link rel="stylesheet" href="./styles/tournament.css">
+	<link rel="stylesheet" href="./styles/notifications.css">
+</head>
+<body>
+	<!-- 
+		Main content container
+		This element is targeted by the Router to swap content based on navigation.
+		Each section represents a different "page" in the SPA.
+	-->
+	<main class="content-container">
+		<!-- 
+			Game Section
+			Default visible section containing the game canvas.
+			GameManager (referenced in App.ts) controls the game functionality.
+		-->
+		<section id="game" class="section">
+			<div class="game-container">
+				<!-- Canvas element where the game is rendered -->
+				<canvas id="game-canvas"></canvas>
+			</div>
+		</section>
+
+		<!--
+			Leaderboard Section
+			Initially hidden, displays player rankings and scores.
+			Shown when navigating to /leaderboard.
+		-->
+		<section id="leaderboard" class="section hidden">
+			<h2 class="section-title">Leaderboard</h2>
+			<div class="leaderboard-content">
+			</div>
+		</section>
+
+		<!--
+			Profile Section
+			Initially hidden, displays user profile information.
+			Shown when navigating to /profile.
+		-->
+		<section id="profile" class="section hidden">
+			<h2 class="section-title">Profile</h2>
+			<div class="profile-content">
+			</div>
+		</section>
+	</main>
+
+	<!-- Footer with copyright information -->
+	<footer class="footer">
+		<div class="footer-content">© 2025 Transcendence</div>
+	</footer>
+
+	<!--
+		Application entry point script
+		Loads as a module and initializes the App class, which sets up
+		routing, navigation, and the game functionality.
+	-->
+	<script type="module" src="./scripts/App.ts" defer></script>
+</body>
+</html>
