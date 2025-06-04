@@ -6,5 +6,9 @@ datasources:
     access: proxy
     url: https://prometheus:${PROMETHEUS_PORT}
     isDefault: true
+    basicAuth: true
+    basicAuthUser: $PROMETHEUS_ADMIN_USER
     jsonData:
       tlsSkipVerify: true
+    secureJsonData:
+      basicAuthPassword: $PROMETHEUS_ADMIN_PASSWORD

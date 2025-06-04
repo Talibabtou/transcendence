@@ -46,6 +46,8 @@ services:
       args:
         - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9060}
         - OTEL_EXPORTER_PORT=${OTEL_EXPORTER_PORT:-9464}
+        - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
+        - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: prometheus
     ports:
       - "${PROMETHEUS_PORT:-9060}:${PROMETHEUS_PORT:-9060}"
@@ -105,6 +107,8 @@ services:
       dockerfile: Dockerfile
       args:
         - PROMETHEUS_PORT=${PROMETHEUS_PORT:-9060}
+        - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
+        - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: grafana
     ports:
       - "${GRAFANA_PORT:-8086}:3000"
