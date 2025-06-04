@@ -25,7 +25,8 @@ export class GameOverComponent extends Component<GameOverState> {
 			player1Name: 'Player 1',
 			player2Name: 'Player 2',
 			player1Score: 0,
-			player2Score: 0
+			player2Score: 0,
+			isTimeout: false
 		});
 		
 		this.onPlayAgain = onPlayAgain;
@@ -97,7 +98,9 @@ export class GameOverComponent extends Component<GameOverState> {
 						<div class="go-ascii-container">
 							<pre class="ascii-title">${ASCII_ART.GAME_OVER}</pre>
 						</div>
-						<div class="go-winner">${state.winner} Wins!</div>
+						<div class="go-winner">
+							${state.isTimeout ? 'Match Timed Out' : `${state.winner} Wins!`}
+						</div>
 						<div class="go-buttons">
 							${this.renderButtons(state.gameMode)}
 						</div>
@@ -207,6 +210,7 @@ export class GameOverComponent extends Component<GameOverState> {
 		player1Score: number;
 		player2Score: number;
 		matchId?: string;
+		isTimeout?: boolean;
 	}): void {
 		if (this.inTransition) return;
 		
@@ -245,13 +249,14 @@ export class GameOverComponent extends Component<GameOverState> {
 
 		if (cachedResult && !cachedResult.isBackgroundGame) {
 			this.showGameResult({
-				winner: cachedResult.winner,
+				winner: cachedResult.winner || '',
 				gameMode: gameInfo.gameMode,
 				player1Name: cachedResult.player1Name,
 				player2Name: cachedResult.player2Name,
 				player1Score: cachedResult.player1Score,
 				player2Score: cachedResult.player2Score,
-				matchId: cachedResult.matchId
+				matchId: cachedResult.matchId,
+				isTimeout: cachedResult.isTimeout
 			});
 		}
 	}

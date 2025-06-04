@@ -80,7 +80,7 @@ services:
       - 8080
     command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
-      - - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       # - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -319,7 +319,7 @@ services:
 #       device: "/home/${USER}/goinfre/grafana_data"
 #       o: bind
 
-volume:
+volumes:
   certs_data:
   profile_pictures:
   auth:

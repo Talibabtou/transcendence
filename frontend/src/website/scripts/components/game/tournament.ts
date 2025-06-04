@@ -455,8 +455,14 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 	 * @param player1Score - Score of player 1
 	 * @param player2Score - Score of player 2
 	 * @param matchId - Optional match ID
+	 * @param isTimeout - Whether the match ended due to timeout
 	 */
-	public processGameResult(player1Score: number, player2Score: number, matchId?: string): void {
+	public async processGameResult(player1Score: number, player2Score: number, matchId?: string, isTimeout?: boolean): Promise<void> {
+		if (TournamentCache.getTournamentPhase() === 'finals' && isTimeout) {
+			this.showTournamentSchedule();
+			return;
+		}
+		
 		TournamentCache.recordGameResult(player1Score, player2Score, matchId);
 		this.proceedToNextMatch();
 	}

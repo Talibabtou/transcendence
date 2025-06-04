@@ -36,7 +36,8 @@ export class GameComponent extends Component<GameComponentState> {
 				this.TournamentComponent.processGameResult(
 					result.player1Score,
 					result.player2Score,
-					result.matchId
+					result.matchId,
+					result.isTimeout
 				);
 			}
 			this.updateGameState(GameState.GAME_OVER);
@@ -253,7 +254,8 @@ export class GameComponent extends Component<GameComponentState> {
 			player2Name: cachedResult.player2Name || 'Player 2',
 			player1Score: cachedResult.player1Score || 0,
 			player2Score: cachedResult.player2Score || 0,
-			matchId: cachedResult.matchId
+			matchId: cachedResult.matchId,
+			isTimeout: cachedResult.isTimeout
 		});
 	}
 

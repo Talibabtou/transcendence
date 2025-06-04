@@ -6,18 +6,18 @@
 </div>
 
 <p align="center">
-  <a href="#about">About</a> &#xa0; | &#xa0; 
-  <a href="#features">Features</a> &#xa0; | &#xa0;
-  <a href="#technologies">Technologies</a> &#xa0; | &#xa0;
-  <a href="#requirements">Requirements</a> &#xa0; | &#xa0;
-  <a href="#starting">Starting</a> &#xa0; | &#xa0;
-  <a href="#license">License</a> &#xa0; | &#xa0;
-  <a href="https://github.com/talibabtou" target="_blank">Author</a>
+  <a href="#about-">About</a> &#xa0; | &#xa0; 
+  <a href="#features-">Features</a> &#xa0; | &#xa0;
+  <a href="#technologies-">Technologies</a> &#xa0; | &#xa0;
+  <a href="#requirements-">Requirements</a> &#xa0; | &#xa0;
+  <a href="#starting-">Starting</a> &#xa0; | &#xa0;
+  <a href="#license-">License</a> &#xa0; | &#xa0;
+  <a href="https://projects.intra.42.fr/ft_transcendence/bboissen" target="_blank">Authors</a>
 </p>
 
 <br>
 
-# 🎯​ About #
+# About 🎯
 
 ### Backend
 The transcendence backend is built on a robust microservices architecture, with dedicated services for authentication, user profiles, friend management, game logic, and a central gateway. Each microservice operates independently with its own database and business logic, communicating through well-defined APIs. The auth service handles user authentication with secure JWT token management, while the profile service maintains user information and statistics. The friends service manages social connections between users, and the game service orchestrates match creation, gameplay state, and tournament functionality. This distributed architecture ensures scalability, resilience, and maintainable code through clear separation of concerns.
@@ -33,7 +33,7 @@ The Pong game engine showcases sophisticated physics simulation with continuous 
 
 &#xa0;
 
-# ✨​ Features #
+# Features ✨
 
 ✅​ Native Typescript mock React SPA\
 ✅​ Pong game, single-multi player & round-robin tournaments\
@@ -41,7 +41,7 @@ The Pong game engine showcases sophisticated physics simulation with continuous 
 
 &#xa0;
 
-# 🚀​ Technologies #
+# Technologies 🚀
 
 The following language, tools and libraries were used in this project:
 
@@ -58,13 +58,13 @@ The following language, tools and libraries were used in this project:
 
 &#xa0;
 
-# ☑️​ Requirements #
+# Requirements ☑️
 
 Before starting, you need to have [Git](https://git-scm.com), [Docker](https://docs.docker.com/compose/) and [Node](https://nodejs.org/en/) installed.
 
 &#xa0;
 
-# 🏁​ Starting #
+# Starting 🏁
 
 ```bash
 # Clone this project
@@ -87,7 +87,7 @@ $ docker compose up --build
 
 &#xa0;
 
-# 📝​ License #
+# License 📝 
 
 This project is under license from MIT. For more details, see the [LICENSE](LICENSE.md) file.
 

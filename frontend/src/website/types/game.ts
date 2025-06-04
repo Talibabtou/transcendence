@@ -98,4 +98,5 @@ export interface GameOverState {
 	player2Name: string;
 	player1Score: number;
 	player2Score: number;
+	isTimeout: boolean;
 }

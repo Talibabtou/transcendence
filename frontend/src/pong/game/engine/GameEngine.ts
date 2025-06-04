@@ -303,7 +303,7 @@ export class GameEngine {
 		setTimeout(() => {
 			if (!this.matchCompleted && this.matchId && (!this.scene || !this.scene.isBackgroundDemo())) {
 				const winnerIndex = this.scene?.Player1?.Score > this.scene?.Player2?.Score ? 0 : 1;
-				this.completeMatch(winnerIndex);
+				this.completeMatch(winnerIndex, true);
 			}
 		}, GAME_CONFIG.MAX_MATCH_DURATION);
 	}
@@ -311,13 +311,14 @@ export class GameEngine {
 	/**
 	 * Completes the match and records the result.
 	 * @param winnerIndex The index of the winning player (0 or 1), or -1 for a draw.
+	 * @param isTimeout Whether the match ended due to timeout
 	 */
-	public completeMatch(_winnerIndex: number): void {
+	public completeMatch(_winnerIndex: number, isTimeout: boolean = false): void {
 		if (!this.scene || this.scene.isBackgroundDemo() || this.matchCompleted) {
 			return;
 		}
 		this.matchCompleted = true;
-		this.dispatchGameOver();
+		this.dispatchGameOver(isTimeout);
 		this.isPaused = true;
 	}
 
@@ -427,17 +428,21 @@ export class GameEngine {
 
 	/**
 	 * Dispatches a game over event.
+	 * @param isTimeout Whether the match ended due to timeout
 	 */
-	private dispatchGameOver(): void {
+	private dispatchGameOver(isTimeout: boolean = false): void {
 		if (!this.scene || this.scene.isBackgroundDemo()) return;
 		const player1 = this.scene.Player1;
 		const player2 = this.scene.Player2;
-		const winner = this.scene.Winner;
+		const winner = isTimeout ? null : this.scene.Winner;
 		const player1Name = player1.name; 
 		const player2Name = player2.name;
 		const player1Score = player1.Score;
 		const player2Score = player2.Score;
-		const winnerName = winner ? winner.name : (player1Score > player2Score ? player1Name : player2Name);
+		
+		const winnerName = isTimeout ? null : 
+						(winner ? winner.name : 
+						(player1Score > player2Score ? player1Name : player2Name));
 
 		import('@website/scripts/utils').then(({ MatchCache }) => {
 			MatchCache.setLastMatchResult({
@@ -446,7 +451,8 @@ export class GameEngine {
 				player2Name: player2Name,
 				player1Score: player1Score,
 				player2Score: player2Score,
-				isBackgroundGame: false
+				isBackgroundGame: false,
+				isTimeout: isTimeout
 			});
 			MatchCache.setCurrentGameInfo({
 				gameMode: this.gameMode,
@@ -463,7 +469,8 @@ export class GameEngine {
 					player2Score: player2Score,
 					player1Name: player1Name,
 					player2Name: player2Name,
-					winner: winnerName
+					winner: winnerName,
+					isTimeout: isTimeout
 				});
 			}
 		});

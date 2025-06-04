@@ -15,7 +15,7 @@ interface ExtendedMatch extends Match {
  * Structure for match result data
  */
 interface MatchResult {
-	winner: string;
+	winner: string | null;
 	player1Name: string;
 	player2Name: string;
 	player1Score: number;
@@ -23,6 +23,7 @@ interface MatchResult {
 	matchId?: string;
 	gameMode?: GameMode;
 	isBackgroundGame?: boolean;
+	isTimeout?: boolean;
 }
 
 /**
