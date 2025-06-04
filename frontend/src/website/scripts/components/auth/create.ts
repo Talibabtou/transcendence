@@ -144,7 +144,7 @@ export class RegistrationHandler {
 				
 				this.setCurrentUser(userData, loginResponse.token);
 				this.resetForm(form);
-				connectAuthenticatedWebSocket(loginResponse.token);
+				// connectAuthenticatedWebSocket(loginResponse.token);
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();

@@ -187,7 +187,7 @@ export class LoginHandler {
 					persistent: this.persistSession
 				};
 				this.setCurrentUser(userData, response.token);
-				connectAuthenticatedWebSocket(response.token);
+				// connectAuthenticatedWebSocket(response.token);
 				this.switchToSuccessState();
 				this.resetForm(form);
 				NotificationManager.showSuccess('Login successful');
@@ -277,7 +277,7 @@ export class LoginHandler {
 					persistent: this.persistSession
 				};
 				this.setCurrentUser(userData, loginResponse.token);
-				connectAuthenticatedWebSocket(loginResponse.token);
+				// connectAuthenticatedWebSocket(loginResponse.token);
 				this.switchToSuccessState();
 				NotificationManager.showSuccess('Login successful');
 			}
