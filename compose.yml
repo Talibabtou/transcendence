@@ -80,13 +80,14 @@ services:
       - 8080
     command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # - /run/user/${UID}/docker.sock:/var/run/docker.sock:ro
+      - ${ENV_WORK}
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
+    environment:
+      - ENV_WORK=${ENV_WORK}
     networks:
       - backend-net
     privileged: true

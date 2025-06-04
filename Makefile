@@ -2,6 +2,8 @@ DOCKER=docker compose
 UP=up --build
 DOWN=down -v
 RM=rm -rf
+UID:= $(shell echo $${SUDO_UID:-$(shell id -u)})
+GID := $(shell echo $${SUDO_GID:-$(shell id -g)})
 
 # Paths
 PATH_CERTS_DATA=/home/$(USER)/goinfre/certs_data
@@ -11,6 +13,8 @@ PATH_FRIENDS=/home/$(USER)/goinfre/friends
 PATH_GAME=/home/$(USER)/goinfre/game
 PATH_PROMETHEUS_DATA=/home/$(USER)/goinfre/prometheus_data
 PATH_GRAFANA_DATA=/home/$(USER)/goinfre/grafana_data
+ENV_WORK_LOCAL=/run/user/$(UID)/docker.sock:/var/run/docker.sock:ro
+ENV_WORK_VM=/var/run/docker.sock:/var/run/docker.sock:ro
 
 DIRS=$(PATH_CERTS_DATA) \
      $(PATH_PROFILE_PIC) \
@@ -25,7 +29,7 @@ GREEN=\033[0;32m
 RED=\033[0;31m
 NC=\033[0m
 
-.PHONY: all re clean fclean init prune
+.PHONY: all re clean fclean init prune vm re-vm
 
 all: init
 	@echo "$(GREEN)[ALL] Creating directories if they don't exist...$(NC)"
@@ -33,7 +37,15 @@ all: init
 		[ -d "$$dir" ] || mkdir -p "$$dir"; \
 	done
 	@echo "$(GREEN)[ALL] Starting Docker containers...$(NC)"
-	@$(DOCKER) $(UP)
+	@ENV_WORK=$(ENV_WORK_LOCAL) UID=$(UID) GID=$(GID) $(DOCKER) $(UP)
+
+vm:
+	@echo "$(GREEN)[ALL] Creating directories if they don't exist...$(NC)"
+	@for dir in $(DIRS); do \
+		[ -d "$$dir" ] || mkdir -p "$$dir"; \
+	done
+	@echo "$(GREEN)[ALL] Starting Docker containers...$(NC)"
+	@ENV_WORK=$(ENV_WORK_VM) UID=$(UID) GID=$(GID) $(DOCKER) $(UP)
 
 init:
 	@echo "$(GREEN)[INIT] Checking dependencies...$(NC)"
@@ -44,9 +56,12 @@ init:
 
 re: fclean all
 
+re-vm: fclean vm
+
 clean:
 	@echo "$(GREEN)[CLEAN] Stopping and removing Docker containers...$(NC)"
-	@$(DOCKER) $(DOWN)
+	@ENV_WORK=$(ENV_WORK_VM) $(DOCKER) $(DOWN)
+	@ENV_WORK=$(ENV_WORK_LOCAL) $(DOCKER) $(DOWN)
 
 fclean: clean
 	@echo "$(GREEN)[FCLEAN] Deleting all generated directories...$(NC)"
