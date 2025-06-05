@@ -49,6 +49,10 @@ services:
         - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
         - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     ports:
       - "${PROMETHEUS_PORT:-9060}:${PROMETHEUS_PORT:-9060}"
     env_file:
@@ -110,6 +114,10 @@ services:
         - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
         - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: grafana
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     ports:
       - "${GRAFANA_PORT:-8086}:3000"
     env_file:

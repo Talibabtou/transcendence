@@ -48,7 +48,7 @@ groups:
   - alert: ContainerHighMemoryUsage
     # Uses cAdvisor metrics. Assumes container name label in cAdvisor is 'name'.
     # Alerts if memory usage is >85% of limit, only if a memory limit is set.
-    expr: (container_memory_working_set_bytes{name=~"gateway|auth"} / container_spec_memory_limit_bytes{name=~"gateway|auth"}) * 100 > 85 and container_spec_memory_limit_bytes{name=~"gateway|auth"} > 0
+    expr: (container_memory_working_set_bytes{name=~"grafana|prometheus"} / container_spec_memory_limit_bytes{name=~"grafana|prometheus"}) * 100 > 85 and container_spec_memory_limit_bytes{name=~"grafana|prometheus"} > 0
     for: 5m
     labels:
       severity: warning
