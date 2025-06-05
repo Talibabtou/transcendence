@@ -231,7 +231,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 		e.preventDefault();
 		const form = e.target as HTMLFormElement;
 		const formData = new FormData(form);
-		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		const username = formData.get('username') as string;
 		const email = formData.get('email') as string;
 		const password = formData.get('password') as string;

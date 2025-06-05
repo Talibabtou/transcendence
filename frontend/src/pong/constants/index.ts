@@ -85,7 +85,7 @@ export const BALL_CONFIG = {
 	},
 	EDGES: {
 		ZONE_SIZE: 0.3,  // 5% edge detection zone
-		MAX_DEFLECTION: 0.04  // 1% max deflection
+		MAX_DEFLECTION: 0.05  // 5% max deflection
 	},
 	PHYSICS_MAX_TIMESTEP_S: 1 / 50, // Max physics delta allowed per update call (in seconds) - Adjusted to match 50 FPS physics rate
 	MIN_VERTICAL_VELOCITY_RATIO_ON_PADDLE_HIT: 0.1 // Minimum vertical speed component relative to total speed after a paddle hit

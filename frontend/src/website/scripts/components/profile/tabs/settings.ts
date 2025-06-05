@@ -466,7 +466,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			errors.username = 'Username can only contain letters and numbers';
 		}
 		
-		if (state.formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.formData.email)) {
+		if (state.formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(state.formData.email)) {
 			errors.email = 'Please enter a valid email address';
 		}
 		

@@ -288,58 +288,49 @@ services:
     labels:
       - "container_name=friends"
 
-# volumes:
-#   certs_data:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/certs_data"
-#       o: bind
-#   profile_pictures:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/profile_pictures"
-#       o: bind
-#   auth:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/auth"
-#       o: bind
-#   friends:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/friends"
-#       o: bind
-#   game:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/game"
-#       o: bind
-#   prometheus_data:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/prometheus_data"
-#       o: bind
-#   grafana_data:
-#     driver: local
-#     driver_opts:
-#       type: none
-#       device: "/home/${USER}/goinfre/grafana_data"
-#       o: bind
-
 volumes:
   certs_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/certs_data"
+      o: bind
   profile_pictures:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/profile_pictures"
+      o: bind
   auth:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/auth"
+      o: bind
   friends:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/friends"
+      o: bind
   game:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/game"
+      o: bind
   prometheus_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/prometheus_data"
+      o: bind
   grafana_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: "/home/${USER}/goinfre/grafana_data"
+      o: bind
 
 networks:
   backend-net:

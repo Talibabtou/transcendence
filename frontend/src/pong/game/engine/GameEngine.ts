@@ -4,10 +4,6 @@ import { KEYS, GAME_CONFIG, COLORS } from '@pong/constants';
 import { DbService, NotificationManager } from '@website/scripts/services';
 import { GameMode } from '@website/types';
 
-/**
- * Main game engine that coordinates game scenes, handles input,
- * and manages the game loop.
- */
 export class GameEngine {
 	private scene!: GameScene;
 	private context: GameContext;
@@ -29,10 +25,6 @@ export class GameEngine {
 	public onGameOver?: (detail: any) => void;
 	private _gameStateInfo: GameStateInfo;
 
-	/**
-	 * Creates a new GameEngine.
-	 * @param ctx Canvas rendering context for the main canvas.
-	 */
 	constructor(ctx: GameContext) {
 		this.context = ctx;
 		this.boundKeydownHandler = this.handleKeydown.bind(this);

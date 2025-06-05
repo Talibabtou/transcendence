@@ -1,7 +1,7 @@
-import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
-import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { AuthComponentState, AuthMethod, UserData } from '@website/types';
+import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -101,7 +101,7 @@ export class RegistrationHandler {
 		let username = (formData.get('username') as string).toLowerCase();
 		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
-		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		
 		if (!username || !email || !password) {
 			NotificationManager.showError('Please fill in all fields');
@@ -144,7 +144,6 @@ export class RegistrationHandler {
 				
 				this.setCurrentUser(userData, loginResponse.token);
 				this.resetForm(form);
-				// connectAuthenticatedWebSocket(loginResponse.token);
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();

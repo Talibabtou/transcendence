@@ -1,7 +1,7 @@
-import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { ASCII_ART, hashPassword } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
+import { AuthComponentState, AuthMethod, UserData } from '@website/types';
+import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
 
 export class LoginHandler {
 	private persistSession: boolean = false;
@@ -138,7 +138,7 @@ export class LoginHandler {
 		const formData = new FormData(form);
 		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
-		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		
 		if (!email || !password) {
 			NotificationManager.handleErrorCode('required_field', 'Please enter both email and password');
@@ -187,7 +187,6 @@ export class LoginHandler {
 					persistent: this.persistSession
 				};
 				this.setCurrentUser(userData, response.token);
-				// connectAuthenticatedWebSocket(response.token);
 				this.switchToSuccessState();
 				this.resetForm(form);
 				NotificationManager.showSuccess('Login successful');
@@ -277,7 +276,6 @@ export class LoginHandler {
 					persistent: this.persistSession
 				};
 				this.setCurrentUser(userData, loginResponse.token);
-				// connectAuthenticatedWebSocket(loginResponse.token);
 				this.switchToSuccessState();
 				NotificationManager.showSuccess('Login successful');
 			}
