@@ -1,4 +1,4 @@
-import Plotly, { ScatterData } from 'plotly.js-dist';
+import Plotly, { ScatterData } from 'plotly.js-dist-min';
 
 /**
  * Renders an ELO history chart
