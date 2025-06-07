@@ -162,6 +162,10 @@ export const postCreateSchema = {
         },
       ],
     },
+    404: {
+      ...errorResponseSchema,
+      example: ErrorExamples.playerNotFound,
+    },
     409: {
       ...errorResponseSchema,
       example: ErrorExamples.sqliteConstraint,
@@ -169,6 +173,10 @@ export const postCreateSchema = {
     500: {
       ...errorResponseSchema,
       example: ErrorExamples.internalError,
+    },
+    503: {
+      ...errorResponseSchema,
+      example: ErrorExamples.serviceUnavailable,
     },
   },
 };
