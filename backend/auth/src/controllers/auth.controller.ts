@@ -509,7 +509,7 @@ export async function twofaValidate(
     if (verify) {
 			startTime = performance.now();
       await request.server.db.run(
-        'UPDATE users SET two_factor_enabled = true WHERE id = ?',
+        'UPDATE users SET two_factor_enabled = true, verified = true WHERE id = ?',
         [id]
       );
 		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);

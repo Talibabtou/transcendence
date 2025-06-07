@@ -1,9 +1,10 @@
-DOCKER=docker compose
-UP=up --build
-DOWN=down -v
-RM=rm -rf
-UID:= $(shell echo $${SUDO_UID:-$(shell id -u)})
-GID := $(shell echo $${SUDO_GID:-$(shell id -g)})
+DOCKER:=docker compose
+UP:=up --build
+DOWN:=down -v
+RM:=rm -rf
+USER:=$(shell [ -n "$$SUDO_USER" ] && echo $$SUDO_USER || echo $$USER)
+UID:=$(shell [ -n "$$SUDO_UID" ] && echo $$SUDO_UID || id -u)
+GID:=$(shell [ -n "$$SUDO_GID" ] && echo $$SUDO_GID || id -g)
 
 # Paths
 PATH_CERTS_DATA=/home/$(USER)/goinfre/certs_data
