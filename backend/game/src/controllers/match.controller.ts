@@ -35,7 +35,7 @@ export async function getMatch(
   const { id } = request.params;
   try {
     const startTime = performance.now();
-    const match = (await request.server.db.get('SELECT * FROM matches WHERE id = ?', id)) as Match | null;
+    const match = (await request.server.db.get('SELECT id, player_1, player_2, active, duration, tournament_id, final, created_at FROM matches WHERE id = ?', id)) as Match | null;
     recordMediumDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
     if (!match) {
       const errorResponse = createErrorResponse(404, ErrorCodes.MATCH_NOT_FOUND);
@@ -161,7 +161,7 @@ export async function createMatch(
   try {
     let startTime = performance.now();
     const prevMatches = (await request.server.db.all(
-      "SELECT *, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE",
+      "SELECT id, player_1, player_2, active, duration, tournament_id, final, created_at, CAST((julianday('now') - julianday(created_at)) * 24 * 60 * 60 AS INTEGER) as duration_seconds FROM matches WHERE (player_1 = ? OR player_2 = ?) AND active = TRUE",
       [player_1, player_2]
     )) as (Match & { duration_seconds: number })[];
     recordMediumDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
@@ -180,7 +180,7 @@ export async function createMatch(
 
     startTime = performance.now();
     const newMatch = (await request.server.db.get(
-      'INSERT INTO matches (player_1, player_2, tournament_id, final) VALUES (?, ?, ?, ?) RETURNING *',
+      'INSERT INTO matches (player_1, player_2, tournament_id, final) VALUES (?, ?, ?, ?) RETURNING id, player_1, player_2, active, duration, tournament_id, final, created_at',
       [player_1, player_2, tournament_id || null, final || false]
     )) as Match;
 

@@ -30,7 +30,7 @@ export async function getGoal(
   if (!isValidId(id)) return sendError(reply, 400, ErrorCodes.BAD_REQUEST);
   try {
     const startTime = performance.now();
-    const goal = (await request.server.db.get('SELECT * FROM goal WHERE id = ?', [id])) as Goal | null;
+    const goal = (await request.server.db.get('SELECT id, match_id, player, duration, created_at FROM goal WHERE id = ?', [id])) as Goal | null;
     recordMediumDatabaseMetrics('SELECT', 'goal', performance.now() - startTime);
     if (!goal) return sendError(reply, 404, ErrorCodes.GOAL_NOT_FOUND);
     return reply.code(200).send(goal);
@@ -61,7 +61,7 @@ export async function createGoal(
   try {
     let startTime = performance.now();
     const match = (await request.server.db.get(
-      'SELECT * FROM matches WHERE id = ?',
+      'SELECT id, player_1, player_2, active, duration, tournament_id, final, created_at FROM matches WHERE id = ?',
       match_id
     )) as Match | null;
     recordMediumDatabaseMetrics('SELECT', 'matches', performance.now() - startTime);
@@ -71,7 +71,7 @@ export async function createGoal(
     if (match.player_1 !== player && match.player_2 !== player) return sendError(reply, 400, ErrorCodes.PLAYER_NOT_IN_MATCH);
     startTime = performance.now();
     const newGoal = (await request.server.db.get(
-      'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?) RETURNING *',
+      'INSERT INTO goal (match_id, player, duration) VALUES (?, ?, ?) RETURNING id, match_id, player, duration, created_at',
       match_id,
       player,
       duration || null

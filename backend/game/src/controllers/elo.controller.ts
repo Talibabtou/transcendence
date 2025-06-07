@@ -57,7 +57,7 @@ export async function getElo(
   try {
     const startTime = performance.now();
     const elo = (await request.server.db.get(
-      'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
+      'SELECT id, elo, player, created_at FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
       [player_id]
     )) as Elo | null;
     recordMediumDatabaseMetrics('SELECT', 'elo', performance.now() - startTime);
@@ -93,7 +93,7 @@ export async function createElo(
   try {
     const startTime = performance.now();
     const newElo = (await request.server.db.get(
-      'INSERT OR IGNORE INTO elo (player, elo) VALUES (?, ?) RETURNING *',
+      'INSERT OR IGNORE INTO elo (player, elo) VALUES (?, ?) RETURNING id, player, elo, created_at',
       player,
       elo
     )) as Elo;
@@ -156,11 +156,11 @@ export async function updateEloRatings(
 ): Promise<{ newWinnerElo: number; newLoserElo: number }> {
   let startTime = performance.now();
   const winnerElo = (await db.get(
-    'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
+    'SELECT id, player, elo, created_at FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
     [winner]
   )) as Elo | null;
   const loserElo = (await db.get(
-    'SELECT * FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
+    'SELECT id, player, elo, created_at FROM elo INDEXED BY idx_elo_player_created_at WHERE player = ? ORDER BY created_at DESC LIMIT 1',
     [loser]
   )) as Elo | null;
   recordMediumDatabaseMetrics('SELECT', 'elo', (performance.now() - startTime) / 2);
@@ -173,8 +173,8 @@ export async function updateEloRatings(
     loserElo.elo
   );
   startTime = performance.now();
-  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [winner, newWinnerElo]);
-  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING *', [loser, newLoserElo]);
+  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING id, player, elo, created_at', [winner, newWinnerElo]) as Elo;
+  await db.get('INSERT INTO elo (player, elo) VALUES (?, ?) RETURNING id, player, elo, created_at', [loser, newLoserElo]) as Elo;
   recordMediumDatabaseMetrics('INSERT', 'elo', (performance.now() - startTime) / 2);
   eloHistogram.record(newWinnerElo);
   eloHistogram.record(newLoserElo);
