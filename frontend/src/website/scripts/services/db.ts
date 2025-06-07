@@ -313,7 +313,7 @@ export class DbService {
 	 * @param token - The temporary authentication token
 	 * @returns Promise that resolves when verification is complete
 	 */
-	static async verify2FALogin(userId: string, code: string, token: string): Promise<void> {
+	static async verify2FALogin(_userId: string, code: string, token: string): Promise<void> {
 		const response = await fetch(`${API_PREFIX}${AUTH.TWO_FA.VALIDATE}`, {
 			method: 'POST',
 			headers: {
@@ -370,7 +370,7 @@ export class DbService {
 	 * @param userData - Partial user object containing fields to update
 	 * @returns Promise resolving to the updated user object
 	 */
-	static async updateUser(userId: string, userData: Partial<User>): Promise<User> {
+	static async updateUser(_userId: string, userData: Partial<User>): Promise<User> {
 		return this.fetchApi<User>(USER.ME_UPDATE, {
 			method: 'PATCH',
 			body: JSON.stringify(userData)
