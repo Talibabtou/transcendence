@@ -2,7 +2,6 @@ import { metrics, Counter, Histogram } from '@opentelemetry/api';
 
 export let mediumQueryDurationHistogram: Histogram;
 export let userCreationCounter: Counter;
-export let twofaEnabledCounter: Counter;
 export let JWTGenerationCounter: Counter;
 export let JWTRevocationCounter: Counter;
 
@@ -26,9 +25,6 @@ export function initializeMetrics() {
 
   userCreationCounter = meter.createCounter('user_creation_total', {
     description: 'Total number of users created',
-  });
-  twofaEnabledCounter = meter.createCounter('twofa_enabled_counter', {
-    description: 'Total number of 2fa enabled users',
   });
   JWTGenerationCounter = meter.createCounter('jwt_generation_total', {
     description: 'Total number of JWT generated',
