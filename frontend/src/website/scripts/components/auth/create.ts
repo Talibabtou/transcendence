@@ -1,7 +1,7 @@
-import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
-import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { AuthComponentState, AuthMethod, UserData } from '@website/types';
+import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -144,7 +144,6 @@ export class RegistrationHandler {
 				
 				this.setCurrentUser(userData, loginResponse.token);
 				this.resetForm(form);
-				// connectAuthenticatedWebSocket(loginResponse.token);
 				this.updateState({ isLoading: false });
 				NotificationManager.showSuccess('Account created successfully');
 				this.switchToSuccessState();
