@@ -47,138 +47,142 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		const template = html`
 			<div class="settings-content">
-				<div class="settings-grid">
-					<div class="settings-section">
-						<h3 class="section-title">Profile Picture</h3>
-						<div class="profile-picture-container">
-							<div class="current-picture">
-								<img src="${state.profile.avatarUrl}" alt="${state.profile.username}" />
-							</div>
-							<div class="upload-controls">
-								<label for="profile-picture-upload" class="upload-label">
-									Choose File
-									<input 
-										type="file" 
-										id="profile-picture-upload" 
-										accept=".jpg,.jpeg,.png,.gif"
-										onchange=${(e: Event) => this.handleFileChange(e)}
-									/>
-								</label>
-								<div class="upload-info">
-									${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
-									${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
-									<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
-								</div>
-							</div>
-						</div>
-					</div>
-					
-					<div class="settings-section">
-						<h3 class="section-title">Accent Color</h3>
-						<div class="player-color-selection settings-color-selection">
-							<div class="color-picker">
-								<div class="color-row">
-									${firstRowColors.map(([colorName, colorHex]) => html`
-										<div 
-											class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
-											style="background-color: ${colorHex}"
-											onClick=${() => this.handleColorSelect(colorHex)}
-											title="${colorName}"
-										></div>
-									`)}
-								</div>
-								<div class="color-row">
-									${secondRowColors.map(([colorName, colorHex]) => html`
-										<div 
-											class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
-											style="background-color: ${colorHex}"
-											onClick=${() => this.handleColorSelect(colorHex)}
-											title="${colorName}"
-										></div>
-									`)}
-								</div>
-							</div>
-						</div>
-						
-						<div class="security-options">
-							<h4 class="section-title">2FA Authentication</h4>
-							<div class="toggle-container">
-								<label class="toggle-label">Two-Factor Authentication</label>
-								<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
-									<input 
-										type="checkbox" 
-										id="twofa-toggle" 
-										${state.profile.twoFactorEnabled ? 'checked' : ''}
-										onclick=${(e: Event) => this.handle2FAToggle(e)}
-									/>
-									<span class="toggle-slider"></span>
-								</div>
-							</div>
-							${state.formErrors.twoFA ? html`<div class="form-error">${state.formErrors.twoFA}</div>` : ''}
-						</div>
-					</div>
-					
-					<div class="settings-section">
-						<h3 class="section-title">Account Information</h3>
-						<div class="form-group">
-							<label for="username">Username</label>
-							<input 
-								type="text" 
-								id="username" 
-								name="username"
-								maxlength="20"
-								value=${escapeHtml(state.formData.username)}
-								onchange=${(e: Event) => this.handleInputChange(e)}
-							/>
-							${state.formErrors.username ? 
-								html`<div class="form-error">${state.formErrors.username}</div>` : ''}
-						</div>
-						
-						<div class="form-group">
-							<label for="email">Email</label>
-							<input 
-								type="email"
-								id="email"
-								name="email"
-								value=${escapeHtml(state.formData.email)}
-								onchange=${(e: Event) => this.handleInputChange(e)}
-							/>
-							${state.formErrors.email ? 
-								html`<div class="form-error">${state.formErrors.email}</div>` : ''}
-						</div>
-					</div>
-					
-					<div class="settings-section">
-						<h3 class="section-title">Change Password</h3>
-						<div class="form-group">
-							<label for="password">New Password</label>
-							<input 
-								type="password" 
-								id="password" 
-								name="password" 
-								value=${state.formData.password}
-								onchange=${(e: Event) => this.handleInputChange(e)}
-							/>
-							${state.formErrors.password ? 
-								html`<div class="form-error">${state.formErrors.password}</div>` : ''}
-						</div>
-						
-						<div class="form-group">
-							<label for="confirmPassword">Confirm Password</label>
-							<input 
-								type="password" 
-								id="confirmPassword" 
-								name="confirmPassword" 
-								value=${state.formData.confirmPassword}
-								onchange=${(e: Event) => this.handleInputChange(e)}
-							/>
-							${state.formErrors.confirmPassword ? 
-								html`<div class="form-error">${state.formErrors.confirmPassword}</div>` : ''}
-						</div>
-					</div>
-				</div>
-				
 				<form class="settings-form" onsubmit=${(e: Event) => this.handleSubmit(e)}>
+					<div class="settings-grid">
+						<div class="settings-section">
+							<h3 class="section-title">Profile Picture</h3>
+							<div class="profile-picture-container">
+								<div class="current-picture">
+									<img src="${state.profile.avatarUrl}" alt="${state.profile.username}" />
+								</div>
+								<div class="upload-controls">
+									<label for="profile-picture-upload" class="upload-label">
+										Choose File
+										<input 
+											type="file" 
+											id="profile-picture-upload" 
+											accept=".jpg,.jpeg,.png,.gif"
+											onchange=${(e: Event) => this.handleFileChange(e)}
+										/>
+									</label>
+									<div class="upload-info">
+										${state.isUploading ? html`<span class="uploading">Uploading...</span>` : ''}
+										${state.uploadSuccess ? html`<span class="upload-success">Upload successful!</span>` : ''}
+										<p class="upload-hint">Supported formats: JPG, JPEG, PNG, GIF</p>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<div class="settings-section">
+							<h3 class="section-title">Accent Color</h3>
+							<div class="player-color-selection settings-color-selection">
+								<div class="color-picker">
+									<div class="color-row">
+										${firstRowColors.map(([colorName, colorHex]) => html`
+											<div 
+												class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
+												style="background-color: ${colorHex}"
+												onClick=${() => this.handleColorSelect(colorHex)}
+												title="${colorName}"
+											></div>
+										`)}
+									</div>
+									<div class="color-row">
+										${secondRowColors.map(([colorName, colorHex]) => html`
+											<div 
+												class="color-option ${colorHex.toLowerCase() === currentColor.toLowerCase() ? 'selected' : ''}"
+												style="background-color: ${colorHex}"
+												onClick=${() => this.handleColorSelect(colorHex)}
+												title="${colorName}"
+											></div>
+										`)}
+									</div>
+								</div>
+							</div>
+							
+							<div class="security-options">
+								<h4 class="section-title">2FA Authentication</h4>
+								<div class="toggle-container">
+									<label class="toggle-label">Two-Factor Authentication</label>
+									<div class="toggle-switch ${state.profile.twoFactorEnabled ? 'active' : ''}">
+										<input 
+											type="checkbox" 
+											id="twofa-toggle" 
+											${state.profile.twoFactorEnabled ? 'checked' : ''}
+											onclick=${(e: Event) => this.handle2FAToggle(e)}
+										/>
+										<span class="toggle-slider"></span>
+									</div>
+								</div>
+								${state.formErrors.twoFA ? html`<div class="form-error">${state.formErrors.twoFA}</div>` : ''}
+							</div>
+						</div>
+						
+						<div class="settings-section">
+							<h3 class="section-title">Account Information</h3>
+							<div class="form-group">
+								<label for="username">Username</label>
+								<input 
+									type="text" 
+									id="username" 
+									name="username"
+									maxlength="20"
+									autocomplete="off"
+									value=${escapeHtml(state.formData.username)}
+									onchange=${(e: Event) => this.handleInputChange(e)}
+								/>
+								${state.formErrors.username ? 
+									html`<div class="form-error">${state.formErrors.username}</div>` : ''}
+							</div>
+							
+							<div class="form-group">
+								<label for="email">Email</label>
+								<input 
+									type="email"
+									id="email"
+									name="email"
+									autocomplete="off"
+									value=${escapeHtml(state.formData.email)}
+									onchange=${(e: Event) => this.handleInputChange(e)}
+								/>
+								${state.formErrors.email ? 
+									html`<div class="form-error">${state.formErrors.email}</div>` : ''}
+							</div>
+						</div>
+						
+						<div class="settings-section">
+							<h3 class="section-title">Change Password</h3>
+							<div class="form-group">
+								<label for="password">New Password</label>
+								<input 
+									type="password" 
+									id="password" 
+									name="password" 
+									autocomplete="off"
+									value=${state.formData.password}
+									onchange=${(e: Event) => this.handleInputChange(e)}
+								/>
+								${state.formErrors.password ? 
+									html`<div class="form-error">${state.formErrors.password}</div>` : ''}
+							</div>
+							
+							<div class="form-group">
+								<label for="confirmPassword">Confirm Password</label>
+								<input 
+									type="password" 
+									id="confirmPassword" 
+									name="confirmPassword" 
+									autocomplete="off"
+									value=${state.formData.confirmPassword}
+									onchange=${(e: Event) => this.handleInputChange(e)}
+								/>
+								${state.formErrors.confirmPassword ? 
+									html`<div class="form-error">${state.formErrors.confirmPassword}</div>` : ''}
+							</div>
+						</div>
+					</div>
+					
 					<div class="form-actions">
 						<button type="submit" class="save-settings-button">
 							Save Changes
@@ -601,20 +605,33 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				1. Scan this QR code with your authentication app<br>
 				2. Enter the 6-digit code from your app below
 			</p>
-			<div class="code-input-container">
-				<input type="text" id="twofa-code" maxlength="6" placeholder="000000" />
-				<button id="verify-twofa-btn" class="verify-twofa-button">Verify</button>
-			</div>
+			<form id="twofa-form" class="code-input-container">
+				<input 
+					type="text" 
+					id="twofa-code" 
+					name="twofa-code" 
+					maxlength="6" 
+					pattern="[0-9]{6}" 
+					placeholder="000000"
+					autocomplete="off"
+					autofocus
+				/>
+				<button type="submit" id="verify-twofa-btn" class="verify-twofa-button">Verify</button>
+			</form>
 		`;
 		
 		popupOverlay.appendChild(popupContent);
 		document.body.appendChild(popupOverlay);
 		
-		const verifyButton = document.getElementById('verify-twofa-btn');
 		const cancelButton = document.getElementById('cancel-twofa-btn');
 		const codeInput = document.getElementById('twofa-code') as HTMLInputElement;
+		const form = document.getElementById('twofa-form') as HTMLFormElement;
 		
-		verifyButton?.addEventListener('click', () => this.verify2FACode(codeInput.value));
+		form?.addEventListener('submit', (e) => {
+			e.preventDefault();
+			this.verify2FACode(codeInput.value);
+		});
+		
 		cancelButton?.addEventListener('click', () => {
 			document.body.removeChild(popupOverlay);
 			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;

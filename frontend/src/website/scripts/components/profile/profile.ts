@@ -1,5 +1,5 @@
 import { Component, ProfileStatsComponent, ProfileHistoryComponent, ProfileFriendsComponent, ProfileSettingsComponent } from '@website/scripts/components';
-import { ASCII_ART, AppStateManager } from '@website/scripts/utils';
+import { ASCII_ART, AppStateManager, sanitizeUsername } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager, WebSocketClient } from '@website/scripts/services';
 import { ProfileState, User } from '@website/types';
 
@@ -707,7 +707,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				${avatarHtml}
 				<div class="profile-info">
 					<h2 class="username">
-						${escapeHtml(state.profile.username)}
+						${sanitizeUsername(state.profile.username)}
 						${isAiUser ? '<span class="bot-badge">BOT</span>' : ''}
 					</h2>
 					<div class="summary-stats">

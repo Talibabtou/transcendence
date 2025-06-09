@@ -110,13 +110,24 @@ export class Router {
 	}
 
 	/**
-	 * Gets URL parameters from current location
+	 * Gets URL parameters from current location with validation
 	 */
 	private getUrlParams(): Record<string, string> {
 		const url = new URL(window.location.href);
 		const params: Record<string, string> = {};
 		url.searchParams.forEach((value, key) => {
-			params[key] = value;
+			if (value && typeof value === 'string') {
+				if (key === 'id') {
+					if (/^[a-zA-Z0-9_-]+$/.test(value)) {
+						params[key] = value;
+					} else {
+						console.warn('Invalid ID parameter detected:', value);
+						params[key] = '';
+					}
+				} else {
+					params[key] = value;
+				}
+			}
 		});
 		return params;
 	}

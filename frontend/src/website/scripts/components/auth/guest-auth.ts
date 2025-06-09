@@ -98,7 +98,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderLoginForm(): VNode {
 		return html`
-			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleLoginSubmit}>
+			<form class="auth-form guest-auth-form" novalidate onSubmit=${this.handleLoginSubmit}>
 				<div class="form-group">
 					<label for="email">Email:</label>
 					<input type="email" id="email" name="email" autocomplete="off" />
@@ -113,7 +113,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			</form>
 			
 			<div class="auth-links">
-				<a href="#" onclick=${this.switchToRegister}>Create account</a>
+				<a href="#" onClick=${this.switchToRegister}>Create account</a>
 			</div>
 		`;
 	}
@@ -133,7 +133,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private renderRegisterForm(): VNode {
 		const form = html`
-			<form class="auth-form guest-auth-form" novalidate onsubmit=${this.handleRegisterSubmit}>
+			<form class="auth-form guest-auth-form" novalidate onSubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
 					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" autocomplete="off" />
@@ -160,7 +160,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			</form>
 			
 			<div class="auth-links">
-				<a href="#" onclick=${this.switchToLogin}>Back to login</a>
+				<a href="#" onClick=${this.switchToLogin}>Back to login</a>
 			</div>
 		`;
 
@@ -174,7 +174,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 	 */
 	private render2FAForm(): VNode {
 		return html`
-			<form class="auth-form guest-auth-form twofa-form" novalidate onsubmit=${this.handle2FAVerification}>
+			<form class="auth-form guest-auth-form twofa-form" novalidate onSubmit=${this.handle2FAVerification}>
 				<div class="form-group">
 					<p>Please enter the 6-digit code from your authenticator app:</p>
 					<div class="twofa-input-container">
@@ -197,7 +197,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				</div>
 				
 				<div class="auth-links twofa-cancel-container">
-					<a href="#" onclick=${this.cancelTwoFactor}>Cancel</a>
+					<a href="#" onClick=${this.cancelTwoFactor}>Cancel</a>
 				</div>
 			</form>
 		`;

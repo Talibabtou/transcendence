@@ -949,6 +949,13 @@ input:checked + .toggle-slider:before {
 	border: 1px solid var(--border-color);
 	color: var(--text-color);
 	width: 50%;
+	outline: none;
+	transition: border-color 0.3s ease;
+}
+
+.code-input-container input:focus {
+	border-color: var(--text-color);
+	box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
 }
 
 .verify-twofa-button {

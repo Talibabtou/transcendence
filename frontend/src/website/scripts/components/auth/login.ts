@@ -101,7 +101,7 @@ export class LoginHandler {
 							maxlength="6" 
 							pattern="[0-9]{6}" 
 							placeholder="000000"
-							autocomplete="one-time-code"
+							autocomplete="off"
 							autofocus
 							class="twofa-input"
 						/>
