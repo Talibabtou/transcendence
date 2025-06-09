@@ -27,7 +27,7 @@ export class RegistrationHandler {
 			}}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
+					<input pattern="^[a-zA-Z0-9_.-]{3,20}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
 				</div>
 				
 				<div class="form-group">

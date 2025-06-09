@@ -476,6 +476,53 @@ export async function twofaGenerate(request: FastifyRequest<{ Params: IId }>, re
 }
 
 /**
+ * Validates a user's 2FA code after QR code setup and activates 2FA.
+ *
+ * @param request - FastifyRequest object containing the user ID in params and 2FA code in body.
+ * @param reply - FastifyReply object for sending the response.
+ * @returns
+ *   200 - Success, 2FA activated
+ *   401 - Invalid or expired 2FA code (ErrorCodes.UNAUTHORIZED)
+ *   500 - Internal server error (ErrorCodes.INTERNAL_ERROR)
+ */
+export async function twofaValidateGenerate(
+  request: FastifyRequest<{
+    Body: I2faCode;
+    Params: IId;
+  }>,
+  reply: FastifyReply
+) {
+  try {
+    const id = request.params.id;
+    const { twofaCode } = request.body;
+		let startTime = performance.now();
+    const data = await request.server.db.get(
+      'SELECT two_factor_secret, two_factor_enabled FROM users WHERE id = ?;',
+      [id]
+    );
+		recordMediumDatabaseMetrics('SELECT', 'users', performance.now() - startTime);
+    const verify = speakeasy.totp.verify({
+      secret: data.two_factor_secret,
+      encoding: 'base32',
+      token: twofaCode,
+    });
+    if (verify) {
+			startTime = performance.now();
+      await request.server.db.run(
+        'UPDATE users SET two_factor_enabled = true WHERE id = ?',
+        [id]
+      );
+		  recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
+		  return reply.code(200).send();
+    }
+    return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
+  } catch (err) {
+    request.server.log.error(err);
+    return sendError(reply, 500, ErrorCodes.INTERNAL_ERROR);
+  }
+}
+
+/**
  * Validates a 2FA code for a user.
  *
  * @param request - FastifyRequest object containing 2FA code in body and user ID in params.
@@ -509,11 +556,11 @@ export async function twofaValidate(
     if (verify) {
 			startTime = performance.now();
       await request.server.db.run(
-        'UPDATE users SET two_factor_enabled = true, verified = true WHERE id = ?',
+        'UPDATE users SET verified = true WHERE id = ?',
         [id]
       );
-		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
-		return reply.code(200).send();
+		  recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
+		  return reply.code(200).send();
     }
     return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);
   } catch (err) {

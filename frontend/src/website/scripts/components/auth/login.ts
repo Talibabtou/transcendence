@@ -1,6 +1,7 @@
+import { AuthMethod } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { ASCII_ART, hashPassword } from '@website/scripts/utils';
-import { DbService, html, connectAuthenticatedWebSocket, NotificationManager, VNode } from '@website/scripts/services';
+import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
 
 export class LoginHandler {
 	private persistSession: boolean = false;

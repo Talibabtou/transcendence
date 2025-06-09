@@ -289,7 +289,7 @@ export class DbService {
 	 * @returns Promise that resolves when validation is complete
 	 */
 	static async validate2FA(code: string): Promise<void> {
-		return this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE}`, {
+		return this.fetchApi<void>(`${AUTH.TWO_FA.VALIDATE_GENERATE}`, {
 			method: 'POST',
 			body: JSON.stringify({ twofaCode: code })
 		});

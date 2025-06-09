@@ -54,6 +54,7 @@ export const AUTH = {
 	REFRESH: '/auth/refresh',
 	TWO_FA: {
 		GENERATE: '/auth/2fa/generate',
+		VALIDATE_GENERATE: '/auth/2fa/generate/validate',
 		VALIDATE: '/auth/2fa/validate',
 		DISABLE: '/auth/2fa/disable',
 		STATUS: '/auth/2fa/status',

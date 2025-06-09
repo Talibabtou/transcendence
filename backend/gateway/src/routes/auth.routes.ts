@@ -112,6 +112,21 @@ export default async function authRoutes(fastify: FastifyInstance) {
   );
 
   fastify.post(
+    '/auth/2fa/generate/validate',
+    {
+      schema: {
+        ...twofaValidateSchema,
+        tags: ['2fa'],
+      },
+      config: {
+        ...routesConfigTwofa,
+        rateLimit: rateLimitConfigLow,
+      },
+    },
+    twofaValidate
+  );
+
+  fastify.post(
     '/auth/2fa/validate',
     {
       schema: {

@@ -21,6 +21,7 @@ import {
   getId,
   getUsername,
   twofaStatus,
+  twofaValidateGenerate,
 } from '../controllers/auth.controller.js';
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
@@ -41,6 +42,8 @@ export default async function authRoutes(fastify: FastifyInstance): Promise<void
 
   fastify.get<{ Params: IId }>('/2fa/status/:id', twofaStatus);
 
+  fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/generate/validate/:id', twofaValidateGenerate);
+  
   fastify.post<{ Body: I2faCode; Params: IId }>('/2fa/validate/:id', twofaValidate);
 
   fastify.post<{ Body: IAddUser }>('/register', addUser);

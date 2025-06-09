@@ -124,7 +124,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 							<input 
 								type="text" 
 								id="username" 
-								name="username" 
+								name="username"
 								value=${state.formData.username}
 								onchange=${(e: Event) => this.handleInputChange(e)}
 							/>
@@ -135,9 +135,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 						<div class="form-group">
 							<label for="email">Email</label>
 							<input 
-								type="email" 
-								id="email" 
-								name="email" 
+								type="email"
+								id="email"
+								name="email"
 								value=${state.formData.email}
 								onchange=${(e: Event) => this.handleInputChange(e)}
 							/>
@@ -409,9 +409,10 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const { name, value } = input;
 		
 		if (name === 'username') {
-			const sanitizedValue = value.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+			const sanitizedValue = value.toLowerCase()
+			// sanitizedValue.replace(/[^a-zA-Z0-9]/g, '');
 			
-			if (sanitizedValue !== value) input.value = sanitizedValue;
+			// if (sanitizedValue !== value) input.value = sanitizedValue;
 			
 			this.updateInternalState({
 				formData: { ...this.getInternalState().formData, [name]: sanitizedValue }
@@ -441,8 +442,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			errors.username = 'Username must be at least 3 characters';
 		} else if (state.formData.username.length > 20) {
 			errors.username = 'Username cannot exceed 20 characters';
-		} else if (!/^[a-zA-Z0-9]+$/.test(state.formData.username)) {
-			errors.username = 'Username can only contain letters and numbers';
+		} else if (!/^[a-zA-Z0-9_.-]+$/.test(state.formData.username)) {
+			errors.username = 'Username can only contain letters, numbers and special characters: . - or _';
 		}
 		
 		if (state.formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(state.formData.email)) {
