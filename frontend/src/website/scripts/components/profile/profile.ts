@@ -515,7 +515,8 @@ export class ProfileComponent extends Component<ProfileState> {
 	private handlePlayerClick = async (username: string): Promise<void> => {
 		try {
 			const userId = await DbService.getIdByUsername(username);
-			navigate(`/profile?id=${userId}`);
+			const encodedUserId = encodeURIComponent(userId);
+			navigate(`/profile?id=${encodedUserId}`);
 		} catch (error) {
 			NotificationManager.showError(`Could not find user: ${username}`);
 		}
@@ -554,6 +555,12 @@ export class ProfileComponent extends Component<ProfileState> {
 		const url = new URL(window.location.href);
 		const newProfileId = url.searchParams.get('id');
 		const state = this.getInternalState();
+		
+		if (newProfileId && !/^[a-zA-Z0-9_-]+$/.test(newProfileId)) {
+			NotificationManager.showError('Invalid profile ID in URL');
+			navigate('/profile');
+			return;
+		}
 		
 		if (this.dataFetchInProgress || newProfileId === state.currentProfileId) return;
 		

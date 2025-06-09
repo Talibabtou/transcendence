@@ -1,13 +1,13 @@
 import { User, Match, Goal, AuthResponse, LeaderboardEntry } from '@website/types';
 import { AppStateManager } from '@website/scripts/utils';
-import { NotificationManager, ErrorResponse } from '@website/scripts/services';
+import { NotificationManager, ErrorResponse, navigate } from '@website/scripts/services';
+import { GameManager } from '@website/scripts/components/game';
 import { API_PREFIX, AUTH, GAME, USER, SOCIAL } from '@shared/constants/path.const';
 import { ILogin, IAddUser, IReplyUser, IReplyLogin } from '@shared/types/auth.types';
 import { IGetPicResponse } from '@shared/types/gateway.types';
 import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { ErrorCodes } from '@shared/constants/error.const';
-import { GameManager } from '../components/game/game-manager';
-import { navigate } from '../services/router';
+
 export class DbService {
 	// =========================================
 	// CORE API UTILITIES
@@ -351,7 +351,8 @@ export class DbService {
 	 * @returns Promise resolving to the user object
 	 */
 	static async getUser(id: string): Promise<User> {
-		return this.fetchApi<User>(USER.BY_ID(id));
+		const encodedId = encodeURIComponent(id);
+		return this.fetchApi<User>(USER.BY_ID(encodedId));
 	}
 	
 	/**
@@ -360,7 +361,8 @@ export class DbService {
 	 * @returns Promise resolving to the user's ID
 	 */
 	static async getIdByUsername(username: string): Promise<string> {
-		const user = await this.fetchApi<User>(USER.BY_USERNAME(username));
+		const encodedUsername = encodeURIComponent(username);
+		const user = await this.fetchApi<User>(USER.BY_USERNAME(encodedUsername));
 		return user.id;
 	}
 
@@ -383,7 +385,8 @@ export class DbService {
 	 * @returns Promise resolving to the user's profile data
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
-		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${userId}`);
+		const encodedUserId = encodeURIComponent(userId);
+		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${encodedUserId}`);
 
 		if (userProfile?.pics?.link) {
 			if (userProfile.pics.link === 'default') {
@@ -401,7 +404,8 @@ export class DbService {
 	 * @returns Promise resolving to the user's profile history data
 	 */
 	static async getUserHistory(userId: string): Promise<any> {
-		return this.fetchApi<any>(`${USER.PROFILE_HISTORY(userId)}`);
+		const encodedUserId = encodeURIComponent(userId);
+		return this.fetchApi<any>(`${USER.PROFILE_HISTORY(encodedUserId)}`);
 	}
 
 	/**
@@ -410,7 +414,8 @@ export class DbService {
 	 * @returns Promise resolving to an object containing the picture URL
 	 */
 	static async getPic(userId: string): Promise<IGetPicResponse> {
-		const response = await this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(userId));
+		const encodedUserId = encodeURIComponent(userId);
+		const response = await this.fetchApi<IGetPicResponse>(USER.PROFILE_PIC_LINK(encodedUserId));
 		
 		if (response?.link) {
 			const pathParts = response.link.split('/');
@@ -553,7 +558,8 @@ export class DbService {
 	 * @returns Promise resolving to the player's ELO rating information
 	 */
 	static async getPlayerElo(playerId: string): Promise<any> {
-		return this.fetchApi<any>(`${GAME.ELO.BY_ID(playerId)}`);
+		const encodedPlayerId = encodeURIComponent(playerId);
+		return this.fetchApi<any>(`${GAME.ELO.BY_ID(encodedPlayerId)}`);
 	}
 
 	// =========================================
@@ -566,8 +572,9 @@ export class DbService {
 	 * @returns Promise resolving to IReplyFriendStatus object or null if no relationship exists
 	 */
 	static async getFriendship(friendId: string): Promise<IReplyFriendStatus | null> {
+		const encodedFriendId = encodeURIComponent(friendId);
 		try {
-			const response = await this.fetchApi<IReplyFriendStatus>(`${SOCIAL.FRIENDS.CHECK(friendId)}`);
+			const response = await this.fetchApi<IReplyFriendStatus>(`${SOCIAL.FRIENDS.CHECK(encodedFriendId)}`);
 			if (!response || Object.keys(response).length === 0) {
 				return null;
 			}
@@ -583,7 +590,8 @@ export class DbService {
 	 * @returns Promise resolving to an array of IReplyGetFriend objects
 	 */
 	static async getFriendList(userId: string): Promise<IReplyGetFriend[]> {
-		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(userId)}`);
+		const encodedUserId = encodeURIComponent(userId);
+		const friends = await this.fetchApi<IReplyGetFriend[]>(`${SOCIAL.FRIENDS.ALL.BY_ID(encodedUserId)}`);
 		
 		if (Array.isArray(friends)) {
 			friends.forEach(friend => {
@@ -644,7 +652,8 @@ export class DbService {
 	 * @returns Promise resolving to the API response
 	 */
 	static async removeFriend(friendId: string): Promise<any> {
-		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.BY_ID(friendId)}`, {
+		const encodedFriendId = encodeURIComponent(friendId);
+		return this.fetchApi<any>(`${SOCIAL.FRIENDS.DELETE.BY_ID(encodedFriendId)}`, {
 			method: 'DELETE',
 			body: JSON.stringify({})
 		});
