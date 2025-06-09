@@ -289,7 +289,8 @@ export function connectAuthenticatedWebSocket(token?: string): void {
  */
 export function disconnectWebSocket(): void {
 	try {
-		WebSocketClient.getInstance().disconnect();
+		const socket = WebSocketClient.getInstance();
+		socket.disconnect();
 	} catch (err) {
 		NotificationManager.handleError(err);
 	}

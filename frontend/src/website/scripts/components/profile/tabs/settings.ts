@@ -2,6 +2,7 @@ import { Component } from '@website/scripts/components';
 import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
+import { fileTypeFromBlob } from 'file-type-browser';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
@@ -310,22 +311,16 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
 		
-		const isValid = await this.validateFileType(file);
-		if (!isValid) {
-			NotificationManager.handleErrorCode('invalid_file_type', 'Invalid file type. Please use JPG, JPEG, PNG, or GIF.');
-			this.updateInternalState({ uploadSuccess: false, isUploading: false });
-			return;
-		}
-		
-		if (file.size > 1 * 1024 * 1024) {
-			NotificationManager.handleErrorCode('file_too_large', 'File too large. Maximum size is 1MB.');
-			this.updateInternalState({ uploadSuccess: false, isUploading: false });
-			return;
-		}
-		
 		this.updateInternalState({ isUploading: true, uploadSuccess: false });
 		
 		try {
+			const isValid = await this.validateFileType(file);
+			if (!isValid) {
+				NotificationManager.showError('Invalid file. Please upload a valid JPG, PNG, or GIF image under 1MB.');
+				this.updateInternalState({ uploadSuccess: false, isUploading: false });
+				return;
+			}
+
 			await DbService.updateProfilePicture(file);
 			NotificationManager.showSuccess('Profile picture updated successfully');
 			const picResponse = await DbService.getPic(state.profile.id);
@@ -372,42 +367,26 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 * Validates file type using magic bytes
 	 */
 	private async validateFileType(file: File): Promise<boolean> {
-		const magicBytes = {
-			jpeg: [0xFF, 0xD8, 0xFF],
-			png: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
-			gif87a: [0x47, 0x49, 0x46, 0x38, 0x37, 0x61],
-			gif89a: [0x47, 0x49, 0x46, 0x38, 0x39, 0x61]
-		};
-		const buffer = await file.arrayBuffer();
-		const bytes = new Uint8Array(buffer, 0, 8);
-		
-		if (this.compareBytes(bytes, magicBytes.jpeg)) {
-			return true;
-		}
-		if (this.compareBytes(bytes, magicBytes.png)) {
-			return true;
-		}
-		if (this.compareBytes(bytes, magicBytes.gif87a) || 
-			this.compareBytes(bytes, magicBytes.gif89a)) {
-			return true;
-		}
-		
-		return false;
-	}
-
-	/**
-	 * Compares file bytes with magic bytes
-	 */
-	private compareBytes(fileBytes: Uint8Array, magicBytes: number[]): boolean {
-		if (fileBytes.length < magicBytes.length) return false;
-		
-		for (let i = 0; i < magicBytes.length; i++) {
-			if (fileBytes[i] !== magicBytes[i]) {
+		try {
+			const fileType = await fileTypeFromBlob(file);
+			const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+			
+			if (!fileType || !allowedTypes.includes(fileType.mime)) {
 				return false;
 			}
+
+			if (file.size > 1 * 1024 * 1024) { // 1MB limit
+				return false;
+			}
+
+			if (fileType.mime !== file.type) {
+				return false;
+			}
+
+			return true;
+		} catch (error) {
+			return false;
 		}
-		
-		return true;
 	}
 
 	/**
@@ -466,7 +445,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			errors.username = 'Username can only contain letters and numbers';
 		}
 		
-		if (state.formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state.formData.email)) {
+		if (state.formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(state.formData.email)) {
 			errors.email = 'Please enter a valid email address';
 		}
 		

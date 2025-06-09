@@ -1,4 +1,4 @@
-import Plotly from 'plotly.js-dist';
+import Plotly from 'plotly.js-dist-min';
 
 interface DailyPerformance {
 	match_date: string;

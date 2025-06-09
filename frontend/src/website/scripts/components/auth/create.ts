@@ -101,7 +101,7 @@ export class RegistrationHandler {
 		let username = (formData.get('username') as string).toLowerCase();
 		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
-		const emailRegex = /^[A-Za-z0-9]+@[A-Za-z0-9]+\.[A-Za-z]{2,}$/;
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		
 		if (!username || !email || !password) {
 			NotificationManager.showError('Please fill in all fields');

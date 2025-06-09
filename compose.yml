@@ -49,6 +49,10 @@ services:
         - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
         - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     ports:
       - "${PROMETHEUS_PORT:-9060}:${PROMETHEUS_PORT:-9060}"
     env_file:
@@ -82,14 +86,15 @@ services:
       - 8080
     command: ["/usr/bin/cadvisor", "-logtostderr", "-port=8080"]
     volumes:
-      - ${ENV_WORK}
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # - ${ENV_WORK}
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
       - /dev/disk/:/dev/disk:ro
-    environment:
-      - ENV_WORK=${ENV_WORK}
+    # environment:
+    #   - ENV_WORK=${ENV_WORK}
     networks:
       - backend-net
     privileged: true
@@ -110,6 +115,10 @@ services:
         - PROMETHEUS_ADMIN_USER=${PROMETHEUS_ADMIN_USER:-admin}
         - PROMETHEUS_ADMIN_PASSWORD=${PROMETHEUS_ADMIN_PASSWORD:-your_plain_password}
     container_name: grafana
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     ports:
       - "${GRAFANA_PORT:-8086}:3000"
     env_file:
@@ -285,43 +294,43 @@ services:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/certs_data"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/certs_data"
 #       o: bind
 #   profile_pictures:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/profile_pictures"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/profile_pictures"
 #       o: bind
 #   auth:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/auth"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/auth"
 #       o: bind
 #   friends:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/friends"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/friends"
 #       o: bind
 #   game:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/game"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/game"
 #       o: bind
 #   prometheus_data:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/prometheus_data"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/prometheus_data"
 #       o: bind
 #   grafana_data:
 #     driver: local
 #     driver_opts:
 #       type: none
-#       device: "/home/${USER}/goinfre/grafana_data"
+#       device: "/home/${SUDO_USER:-$USER}/goinfre/grafana_data"
 #       o: bind
 
 volumes:

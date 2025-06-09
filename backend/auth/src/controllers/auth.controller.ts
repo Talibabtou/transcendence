@@ -19,7 +19,7 @@ import {
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError, isValidId } from '../helper/auth.helper.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
-import { recordMediumDatabaseMetrics, userCreationCounter, twofaEnabledCounter, JWTRevocationCounter, JWTGenerationCounter } from '../telemetry/metrics.js';
+import { recordMediumDatabaseMetrics, userCreationCounter, JWTRevocationCounter, JWTGenerationCounter } from '../telemetry/metrics.js';
 
 /**
  * Retrieves the user ID for a given username.
@@ -509,11 +509,10 @@ export async function twofaValidate(
     if (verify) {
 			startTime = performance.now();
       await request.server.db.run(
-        'UPDATE users SET two_factor_enabled = true WHERE id = ?',
+        'UPDATE users SET two_factor_enabled = true, verified = true WHERE id = ?',
         [id]
       );
 		recordMediumDatabaseMetrics('UPDATE', 'users', performance.now() - startTime);
-		twofaEnabledCounter.add(1);
 		return reply.code(200).send();
     }
     return sendError(reply, 401, ErrorCodes.UNAUTHORIZED);

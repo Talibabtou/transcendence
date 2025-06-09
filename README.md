@@ -20,23 +20,23 @@
 # About 🎯
 
 ### Backend
-The transcendence backend is built on a robust microservices architecture, with dedicated services for authentication, user profiles, friend management, game logic, and a central gateway. Each microservice operates independently with its own database and business logic, communicating through well-defined APIs. The auth service handles user authentication with secure JWT token management, while the profile service maintains user information and statistics. The friends service manages social connections between users, and the game service orchestrates match creation, gameplay state, and tournament functionality. This distributed architecture ensures scalability, resilience, and maintainable code through clear separation of concerns.
+The transcendence backend is built on a robust microservices architecture, with dedicated services for authentication, user profiles, friend management, game data, and a central gateway. Each microservice operates independently with its own database and business logic, communicating through APIs gateway. The auth service handles user authentication with secure JWT token management. The friends service manages social connections between users, and the game service orchestrates match creation, gameplay state, and tournament functionality. This distributed architecture ensures scalability, resilience, and maintainable code through clear separation of concerns.
 
 ### Devops
 The project implements a sophisticated monitoring infrastructure using OpenTelemetry, Prometheus, and Grafana. Custom instrumentation throughout the microservices collects detailed metrics on service performance, resource utilization, and user interactions. The monitoring system tracks API response times, database query performance, WebSocket connections, and game statistics. Prometheus scrapes these metrics at regular intervals, while Grafana provides customizable dashboards for real-time visualization of application health and user engagement. This observability stack enables proactive identification of performance bottlenecks and facilitates data-driven improvements to the gaming experience.
 
 ### Website
-The frontend features a native TypeScript implementation that mimics React's component architecture without any dependencies on the React library itself. This custom framework provides component lifecycle management, state handling, and a virtual DOM-like rendering system. The application employs a custom Router for client-side navigation, a NotificationManager for user alerts, and a WebSocketClient for real-time updates. Core UI components are structured hierarchically with proper encapsulation and reusability. This approach demonstrates deep understanding of modern frontend architecture while maintaining complete control over the rendering pipeline and application performance.
+The frontend features a native TypeScript implementation that mimics React's component architecture without any dependencies on the React library itself. This custom framework provides component lifecycle management, state handling, and a virtual DOM-like rendering system. The application employs a custom Router for client-side navigation, a NotificationManager for user alerts, and a WebSocketClient for real-time updates. Core UI components are structured hierarchically with proper encapsulation and reusability.
 
 ### Pong
-The Pong game engine showcases sophisticated physics simulation with continuous collision detection using sweep AABB (Axis-Aligned Bounding Box) algorithms. This ensures accurate collision handling even at high ball speeds. The system implements two distinct AI opponents: a background "no brain" AI that provides ambient gameplay demonstrations with simple ball tracking and center-seeking behavior, and an advanced single-player algorithmic AI capable of predicting up to 8 ball collisions. This predictive AI analyzes potential ball trajectories, calculating reflection angles and acceleration to position its paddle optimally. The prediction system refreshes every second, creating a challenging yet beatable opponent that adapts to increasing ball speeds and complex bounces throughout the match.
+The Pong custom game engine showcases physics simulation with continuous collision detection using sweep AABB (Axis-Aligned Bounding Box) algorithms. This ensures accurate collision handling even at high ball speeds. The system implements two distinct AI opponents: a background AI that provides ambient gameplay demonstrations with simple ball tracking and center-seeking behavior, and an advanced single-player algorithmic AI capable of calculating up to 8 ball collisions in advance. This predictive AI analyzes potential ball trajectories, calculating reflection angles (without taking into account deflection) and acceleration to position its paddle optimally. The prediction system refreshes at most every 1 second, creating a challenging yet beatable opponent that adapts to increasing ball speed and complex bounces throughout the match.
 
 &#xa0;
 
 # Features ✨
 
 ✅​ Native Typescript mock React SPA\
-✅​ Pong game, single-multi player & round-robin tournaments\
+✅​ Pong game, single-multi player & round-robin tournaments and algo AI opponents\
 ✅​ Users system with profile, statistics, friends and settings
 
 &#xa0;
@@ -77,12 +77,11 @@ $ cd transcendence
 
 # Run the Makefile to launch the project on a 42 school computer with local volume management
 $ make
-# Or run directly the docker compose command to let docker manage volume
-$ docker compose up --build
 
 # Website will initialize in the <https://localhost:8048>
 # Swagger will initialize in the <https://localhost:8085/documentation>
 # Grafana will initialize in the <https://localhost:8081>
+# Prometheus will initialize in the <https://localhost:9060>
 ```
 
 &#xa0;

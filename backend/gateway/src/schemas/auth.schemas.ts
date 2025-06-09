@@ -146,6 +146,7 @@ export const createUserSchema = {
         type: 'string',
         minLength: 3,
         maxLength: 20,
+        pattern: "^[a-zA-Z0-9_.-]{3,20}$",
         description: 'Unique username for the user, must be between 3-20 characters',
       },
       email: {
@@ -336,6 +337,7 @@ export const modifyUserSchema = {
         type: 'string',
         minLength: 3,
         maxLength: 20,
+        pattern: "^[a-zA-Z0-9_.-]{3,20}$",
         description: 'New username to update, must be between 3-20 characters',
       },
       password: {
