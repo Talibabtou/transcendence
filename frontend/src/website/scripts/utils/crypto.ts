@@ -187,3 +187,15 @@ export class PasswordStrengthComponent {
 		}
 	}
 }
+
+/**
+ * Sanitizes a username by removing all special characters except underscore and hyphen
+ * @param username The raw username input
+ * @returns Sanitized username
+ */
+export function sanitizeUsername(username: string): string {
+	let sanitized = username.toLowerCase();
+	sanitized = sanitized.replace(/[^a-z0-9_-]/g, '');
+	sanitized = sanitized.substring(0, 20);
+	return sanitized;
+}

@@ -1,5 +1,5 @@
 import { Component } from '@website/scripts/components';
-import { appState, hashPassword, AppStateManager } from '@website/scripts/utils';
+import { appState, hashPassword, AppStateManager, sanitizeUsername } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
 import { fileTypeFromBlob } from 'file-type-browser';
@@ -125,6 +125,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								type="text" 
 								id="username" 
 								name="username"
+								maxlength="20"
 								value=${state.formData.username}
 								onchange=${(e: Event) => this.handleInputChange(e)}
 							/>
@@ -409,13 +410,8 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		const { name, value } = input;
 		
 		if (name === 'username') {
-			const sanitizedValue = value.toLowerCase()
-			// sanitizedValue.replace(/[^a-zA-Z0-9]/g, '');
-			
-			// if (sanitizedValue !== value) input.value = sanitizedValue;
-			
 			this.updateInternalState({
-				formData: { ...this.getInternalState().formData, [name]: sanitizedValue }
+				formData: { ...this.getInternalState().formData, [name]: value }
 			});
 			return;
 		}
@@ -438,12 +434,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		
 		if (!state.formData.username) {
 			errors.username = 'Username is required';
-		} else if (state.formData.username.length < 3) {
-			errors.username = 'Username must be at least 3 characters';
-		} else if (state.formData.username.length > 20) {
-			errors.username = 'Username cannot exceed 20 characters';
-		} else if (!/^[a-zA-Z0-9_.-]+$/.test(state.formData.username)) {
-			errors.username = 'Username can only contain letters, numbers and special characters: . - or _';
+		} else {
+			const sanitizedUsername = sanitizeUsername(state.formData.username);
+			if (sanitizedUsername.length < 3) {
+				errors.username = 'Username must be at least 3 characters';
+			}
 		}
 		
 		if (state.formData.email && !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(state.formData.email)) {
@@ -469,7 +464,9 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		this.updateInternalState({ formErrors: {}, noChangesMessage: null });
 		const updateData: Partial<User> = {};
 		
-		if (state.formData.username !== this.initialDbUsername) updateData.username = state.formData.username;
+		if (state.formData.username !== this.initialDbUsername) {
+			updateData.username = sanitizeUsername(state.formData.username);
+		}
 		if (state.formData.email !== this.initialDbEmail) updateData.email = state.formData.email;
 		if (state.formData.password) updateData.password = await hashPassword(state.formData.password);
 		

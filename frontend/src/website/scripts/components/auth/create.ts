@@ -1,7 +1,7 @@
 import { ErrorCodes } from '@shared/constants/error.const';
 import { AuthComponentState, AuthMethod, UserData } from '@website/types';
 import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
-import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent } from '@website/scripts/utils';
+import { ASCII_ART, hashPassword, validatePassword, PasswordStrengthComponent, sanitizeUsername } from '@website/scripts/utils';
 
 export class RegistrationHandler {
 	private passwordStrength: PasswordStrengthComponent | null = null;
@@ -27,7 +27,8 @@ export class RegistrationHandler {
 			}}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input pattern="^[a-zA-Z0-9_.-]{3,20}$" minlength="3" type="text" id="username" name="username" required autocomplete="off" />
+					<input type="text" id="username" name="username" required autocomplete="off" maxlength="20" />
+					<span class="field-hint">Max 20 characters. Special characters will be removed.</span>
 				</div>
 				
 				<div class="form-group">
@@ -98,12 +99,12 @@ export class RegistrationHandler {
 	 */
 	async handleRegister(form: HTMLFormElement): Promise<void> {
 		const formData = new FormData(form);
-		let username = (formData.get('username') as string).toLowerCase();
+		const rawUsername = formData.get('username') as string;
 		let email = (formData.get('email') as string).toLowerCase();
 		const password = formData.get('password') as string;
 		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 		
-		if (!username || !email || !password) {
+		if (!rawUsername || !email || !password) {
 			NotificationManager.showError('Please fill in all fields');
 			return;
 		}
@@ -116,6 +117,14 @@ export class RegistrationHandler {
 		const passwordValidation = validatePassword(password);
 		if (!passwordValidation.valid) {
 			NotificationManager.showError(passwordValidation.message);
+			return;
+		}
+		
+		// Sanitize username
+		const username = sanitizeUsername(rawUsername);
+		
+		if (username.length < 3) {
+			NotificationManager.showError('Username must be at least 3 characters');
 			return;
 		}
 		
