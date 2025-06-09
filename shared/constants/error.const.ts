@@ -64,6 +64,7 @@ export const ErrorTypes = new Map<number, string>([
   [403, 'Forbidden'],
   [404, 'Not Found'],
   [409, 'Conflict'],
+  [415, 'Unsupported Media Type'],
   [429, 'Too Many Requests'],
   [500, 'Internal Server Error'],
   [503, 'Service Unavailable'],
@@ -273,9 +274,9 @@ export const ErrorExamples = {
     message: ErrorMessages.get(ErrorCodes.NO_FILE_PROVIDED),
   },
   invalidType: {
-    statusCode: 401,
+    statusCode: 415,
     code: ErrorCodes.INVALID_TYPE,
-    error: ErrorTypes.get(401),
+    error: ErrorTypes.get(415),
     message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
   },
   summaryNotFound: {

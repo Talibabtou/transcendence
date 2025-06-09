@@ -1,7 +1,8 @@
-import { FastifyJWT } from '../shared/types/auth.types.js';
+import sharp from 'sharp';
 import { MultipartFile } from '@fastify/multipart';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
+import { FastifyJWT } from '../shared/types/auth.types.js';
 import { MatchHistory } from '../shared/types/match.type.js';
 import { GetPageQuery } from '../shared/types/match.type.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
@@ -116,10 +117,20 @@ export async function postPic(
     const file: MultipartFile | undefined = await request.file();
     if (!file) return sendError(reply, 404, ErrorCodes.NO_FILE_PROVIDED);
     const verif = verifTypeFile(file);
-    if (!verif) return sendError(reply, 401, ErrorCodes.INVALID_TYPE);
-    const buffer: Buffer = await file.toBuffer();
+    if (!verif) return sendError(reply, 415, ErrorCodes.INVALID_TYPE);
+    const { mimetype } = file;
+    if (!['image/jpeg', 'image/png', 'image/gif'].includes(mimetype))
+      return sendError(reply, 415, ErrorCodes.INVALID_TYPE);
+    const buffer = await file.toBuffer();
+    const image = sharp(buffer);
+    const metadata = await image.metadata();
+    if (!['jpeg', 'png', 'gif'].includes(metadata.format || ''))
+      return sendError(reply, 415, ErrorCodes.INVALID_TYPE);
+    const newBuffer = await image.toBuffer();
     const formData: FormData = new FormData();
-    formData.append('file', new Blob([buffer]), file.filename);
+    if (['jpeg', 'png'].includes(metadata.format || ''))
+      formData.append('file', new Blob([newBuffer]), file.filename);
+    else formData.append('file', new Blob([buffer]), file.filename);
     const response: Response = await fetch(serviceUrl, {
       method: 'POST',
       body: formData,
