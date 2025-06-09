@@ -3,6 +3,7 @@ import { ASCII_ART, appState, TournamentCache, AppStateManager } from '@website/
 import { DbService, html, render, NotificationManager, VNode } from '@website/scripts/services';
 import { GameMode, PlayerData, PlayersRegisterState, IAuthComponent } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 	private authManagers: Map<string, IAuthComponent> = new Map();
@@ -210,7 +211,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			<div class="player-avatar">
 				<img src="${host.pfp}" alt="${host.username}" />
 			</div>
-			<div class="player-name">${host.username}</div>
+			<div class="player-name">${escapeHtml(host.username)}</div>
 			<div class="player-elo">${host.elo !== undefined ? host.elo : '0'}</div>
 			<div class="player-color-selection">
 				<div class="color-picker">
@@ -256,7 +257,7 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			<div class="player-avatar">
 				<img src="${guest.pfp}" alt="${guest.username}" />
 			</div>
-			<div class="player-name">${guest.username}</div>
+			<div class="player-name">${escapeHtml(guest.username)}</div>
 			<div class="player-elo">${guest.elo !== undefined ? guest.elo : '0'}</div>
 			<div class="player-color-selection">
 				<div class="color-picker">

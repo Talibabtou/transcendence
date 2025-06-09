@@ -2,6 +2,7 @@ import { Component } from '@website/scripts/components';
 import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 import { UserProfile, ProfileFriendsState } from '@website/types';
 import { IReplyGetFriend } from '@shared/types/friends.types';
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export interface Friend extends IReplyGetFriend {
 	requesting: string;
@@ -239,7 +240,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 											<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
 												<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 												<div class="friend-details">
-													<span class="friend-name">${friend.username || 'Unknown User'}</span>
+													<span class="friend-name">${escapeHtml(friend.username || 'Unknown User')}</span>
 												</div>
 											</div>
 											${state.isCurrentUser ? 
@@ -271,7 +272,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 												<div class="friend-info" onClick=${() => state.handlers.onPlayerClick(friend.username)}>
 													<img class="friend-avatar" src="${friend.pic}" alt="${friend.username || 'Unknown'}"/>
 													<div class="friend-details">
-														<span class="friend-name">${friend.username || 'Unknown User'}</span>
+														<span class="friend-name">${escapeHtml(friend.username || 'Unknown User')}</span>
 													</div>
 												</div>
 												${state.isCurrentUser ? html`

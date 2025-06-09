@@ -3,6 +3,7 @@ import { appState, hashPassword, AppStateManager, sanitizeUsername } from '@webs
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
 import { fileTypeFromBlob } from 'file-type-browser';
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	private onProfileUpdate?: (updatedFields: Partial<User>) => void;
@@ -126,7 +127,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								id="username" 
 								name="username"
 								maxlength="20"
-								value=${state.formData.username}
+								value=${escapeHtml(state.formData.username)}
 								onchange=${(e: Event) => this.handleInputChange(e)}
 							/>
 							${state.formErrors.username ? 
@@ -139,7 +140,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 								type="email"
 								id="email"
 								name="email"
-								value=${state.formData.email}
+								value=${escapeHtml(state.formData.email)}
 								onchange=${(e: Event) => this.handleInputChange(e)}
 							/>
 							${state.formErrors.email ? 

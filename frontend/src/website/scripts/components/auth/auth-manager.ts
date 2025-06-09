@@ -2,6 +2,7 @@ import { Component, LoginHandler, RegistrationHandler } from '@website/scripts/c
 import { html, render, navigate, NotificationManager, VNode } from '@website/scripts/services';
 import { AuthState, AuthComponentState, UserData, IAuthComponent } from '@website/types';
 import { appState } from '@website/scripts/utils';
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class AuthManager extends Component<AuthComponentState> implements IAuthComponent {
 	private currentUser: UserData | null = null;
@@ -116,7 +117,7 @@ export class AuthManager extends Component<AuthComponentState> implements IAuthC
 		return html `
 			<div class="auth-success">
 				<h2>Authentication Successful</h2>
-				<p>Welcome back, ${this.currentUser?.username || 'User'}!</p>
+				<p>Welcome back, ${escapeHtml(this.currentUser?.username || 'User')}!</p>
 				<p>Redirecting you...</p>
 			</div>
 		`;

@@ -700,7 +700,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				${avatarHtml}
 				<div class="profile-info">
 					<h2 class="username">
-						${state.profile.username}
+						${escapeHtml(state.profile.username)}
 						${isAiUser ? '<span class="bot-badge">BOT</span>' : ''}
 					</h2>
 					<div class="summary-stats">

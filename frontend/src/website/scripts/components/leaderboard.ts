@@ -2,6 +2,7 @@ import { Component } from '@website/scripts/components';
 import { ASCII_ART, appState } from '@website/scripts/utils';
 import { DbService, html, render, navigate, NotificationManager } from '@website/scripts/services';
 import { LeaderboardState } from '@website/types';
+import { escapeHtml } from '@website/scripts/utils';
 
 export class LeaderboardComponent extends Component<LeaderboardState> {
 	private abortController?: AbortController;
@@ -137,7 +138,7 @@ export class LeaderboardComponent extends Component<LeaderboardState> {
 													onClick=${() => this.handlePlayerClick(entry.player)}
 													title=${appState.isAuthenticated() ? 'View profile' : 'Log in to view profiles'}
 												>
-													${entry.username}
+													${escapeHtml(entry.username)}
 												</td>
 												<td class="elo-cell">${entry.elo.toString()}</td>
 												<td class="wins-cell">${entry.victories.toString()}</td>

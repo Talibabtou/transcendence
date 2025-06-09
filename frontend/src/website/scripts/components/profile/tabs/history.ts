@@ -2,6 +2,7 @@ import { Component } from '@website/scripts/components';
 import { DbService, html, NotificationManager, render } from '@website/scripts/services';
 import { UserProfile, ProfileHistoryState } from '@website/types';
 import { MatchHistory } from '@shared/types/match.type';
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 	// @ts-ignore - Used for DOM references
@@ -197,7 +198,7 @@ export class ProfileHistoryComponent extends Component<ProfileHistoryState> {
 											data-player-id=${game.opponentId}
 											onClick=${() => state.handlers.onPlayerClick(game.opponent)}
 										>
-											${game.opponent}
+											${escapeHtml(game.opponent)}
 										</td>
 										<td class="result-cell-${game.result}">
 											${game.result.toUpperCase()}

@@ -2,6 +2,7 @@ import { Component } from '@website/scripts/components';
 import { ASCII_ART, TournamentCache, appState } from '@website/scripts/utils';
 import { html, render, DbService, NotificationManager } from '@website/scripts/services';
 import { TournamentTransitionsState } from '@website/types/components'
+import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class TournamentComponent extends Component<TournamentTransitionsState> {
 	private onContinue: () => void;
@@ -119,13 +120,13 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 					<div class="match-number">${match.isFinals ? 'FINALS' : `Match ${index + 1}`}</div>
 					<div class="match-players">
 						<div class="match-player match-player-left ${player1Class}">
-							${match.player1Name}
+							${escapeHtml(match.player1Name)}
 						</div>
 						<div class="vs">
 							${match.isComplete ? `${player1Score} - ${player2Score}` : 'VS'}
 						</div>
 						<div class="match-player match-player-right ${player2Class}">
-							${match.player2Name}
+							${escapeHtml(match.player2Name)}
 						</div>
 					</div>
 					<div class="match-status">${!match.isComplete && match.isCurrent ? 'NEXT' : ''}</div>
@@ -185,7 +186,7 @@ export class TournamentComponent extends Component<TournamentTransitionsState> {
 				
 				<div class="winner-container">
 					<div class="winner-name champion-name" style="color: ${winner.color}; text-shadow: 0 0 20px ${winner.color};">
-						${winner.name}
+						${escapeHtml(winner.name)}
 					</div>
 					
 					<div class="winner-description">

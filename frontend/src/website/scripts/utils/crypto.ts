@@ -199,3 +199,18 @@ export function sanitizeUsername(username: string): string {
 	sanitized = sanitized.substring(0, 20);
 	return sanitized;
 }
+
+/**
+ * Escapes HTML special characters to prevent XSS attacks when displaying user-generated content
+ * @param str The string to escape
+ * @returns HTML-escaped string safe for rendering
+ */
+export function escapeHtml(str: string): string {
+	if (!str) return '';
+	return String(str)
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;')
+		.replace(/'/g, '&#39;');
+}
