@@ -2,7 +2,7 @@ import { Component } from '@website/scripts/components';
 import { appState, hashPassword, AppStateManager, sanitizeUsername } from '@website/scripts/utils';
 import { DbService, html, render, NotificationManager } from '@website/scripts/services';
 import { UserProfile, ProfileSettingsState, User } from '@website/types';
-import { fileTypeFromBlob } from 'file-type-browser';
+import { fileTypeFromBuffer } from 'file-type';
 import { escapeHtml } from '@website/scripts/utils/crypto';
 
 export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
@@ -219,7 +219,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	/**
 	 * Sets the user profile for the settings component
 	 */
-	public setProfile(profile: UserProfile): void {
+	public async setProfile(profile: UserProfile): Promise<void> {
 		const state = this.getInternalState();
 		const userAccentColor = AppStateManager.getUserAccentColor(profile.id);
 		
@@ -272,9 +272,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				.catch(() => NotificationManager.showError('Error fetching user data'));
 			}
 		} else if (userAccentColor !== state.profile?.preferences?.accentColor) {
+			const twoFactorEnabled = await DbService.check2FAStatus();
 			this.updateInternalState({
 				profile: {
 					...state.profile,
+					twoFactorEnabled,
 					preferences: {
 						...(state.profile.preferences || {}),
 						accentColor: userAccentColor
@@ -332,7 +334,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const picResponse = await DbService.getPic(state.profile.id);
 			
 			if (picResponse?.link) {
-				this.updateProfilePicture(picResponse.link);
+				await this.updateProfilePicture(picResponse.link);
 			} else {
 				this.updateInternalState({ isUploading: false, uploadSuccess: true });
 			}
@@ -343,7 +345,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				try {
 					const picResponse = await DbService.getPic(state.profile.id);
 					if (picResponse?.link) {
-						this.updateProfilePicture(picResponse.link);
+						await this.updateProfilePicture(picResponse.link);
 					} else {
 						this.updateInternalState({ isUploading: false, uploadSuccess: true });
 					}
@@ -362,14 +364,16 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 	 */
 	private async validateFileType(file: File): Promise<boolean> {
 		try {
-			const fileType = await fileTypeFromBlob(file);
 			const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-			
-			if (!fileType || !allowedTypes.includes(fileType.mime)) {
+
+			if (file.size > 1 * 1024 * 1024) { // 1MB limit
 				return false;
 			}
 
-			if (file.size > 1 * 1024 * 1024) { // 1MB limit
+			const buffer = await file.arrayBuffer();
+			const fileType = await fileTypeFromBuffer(buffer);
+			
+			if (!fileType || !allowedTypes.includes(fileType.mime)) {
 				return false;
 			}
 
@@ -383,9 +387,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 	}
 
-	private updateProfilePicture(newPicUrl: string): void {
+	private async updateProfilePicture(newPicUrl: string): Promise<void> {
 		const state = this.getInternalState();
 		if (!state.profile) return;
+
+		const twoFactorEnabled = await DbService.check2FAStatus();
 		
 		const timestamp = Date.now();
 		const cacheBustUrl = newPicUrl.includes('?') 
@@ -398,7 +404,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		}
 		
 		this.updateInternalState({
-			profile: { ...state.profile, avatarUrl: cacheBustUrl },
+			profile: { ...state.profile, avatarUrl: cacheBustUrl, twoFactorEnabled },
 			isUploading: false,
 			uploadSuccess: true
 		});
@@ -413,6 +419,17 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 		if (profileImg) {
 			(profileImg as HTMLImageElement).src = cacheBustUrl;
 		}
+
+		setTimeout(() => {
+			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
+			if (toggle) {
+				toggle.checked = twoFactorEnabled;
+				const toggleContainer = toggle.closest('.toggle-switch');
+				if (toggleContainer) {
+					toggleContainer.classList.toggle('active', twoFactorEnabled);
+				}
+			}
+		}, 0);
 	}
 
 	/**
@@ -505,6 +522,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			await DbService.updateUser(state.profile.id, updateData);
 			NotificationManager.showSuccess('Profile updated successfully');
 			
+			const twoFactorEnabled = await DbService.check2FAStatus();
 			const newUsername = updateData.username || state.profile.username;
 			const newEmail = updateData.email !== undefined ? updateData.email : this.initialDbEmail;
 
@@ -512,7 +530,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			this.initialDbEmail = newEmail;
 			
 			this.updateInternalState({
-				profile: { ...state.profile, username: newUsername },
+				profile: { ...state.profile, username: newUsername, twoFactorEnabled },
 				formData: {
 					username: newUsername,
 					email: newEmail || '',
