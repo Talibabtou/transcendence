@@ -417,12 +417,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		try {
 			const userProfile = await DbService.getUserProfile(userId);
 			
-			if (!userProfile) {
-				NotificationManager.showError(`User profile not found`);
-				this.updateInternalState({ isLoading: false });
-				return;
-			}
-			
 			const profile = {
 				id: String(userProfile.id),
 				username: userProfile.username,
@@ -500,7 +494,6 @@ export class ProfileComponent extends Component<ProfileState> {
 			});
 			
 		} catch (error) {
-			NotificationManager.handleError(error);
 			this.updateInternalState({ isLoading: false });
 		}
 	}
@@ -555,12 +548,6 @@ export class ProfileComponent extends Component<ProfileState> {
 		const url = new URL(window.location.href);
 		const newProfileId = url.searchParams.get('id');
 		const state = this.getInternalState();
-		
-		if (newProfileId && !/^[a-zA-Z0-9_-]+$/.test(newProfileId)) {
-			NotificationManager.showError('Invalid profile ID in URL');
-			navigate('/profile');
-			return;
-		}
 		
 		if (this.dataFetchInProgress || newProfileId === state.currentProfileId) return;
 		

@@ -386,16 +386,34 @@ export class DbService {
 	 */
 	static async getUserProfile(userId: string): Promise<any> {
 		const encodedUserId = encodeURIComponent(userId);
-		const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${encodedUserId}`);
+		
+		try {
+			const userProfile = await this.fetchApi<any>(`${USER.PROFILE}/${encodedUserId}`);
 
-		if (userProfile?.pics?.link) {
-			if (userProfile.pics.link === 'default') {
-				userProfile.pics.link = '/images/default-avatar.svg';
-			} else {
-				userProfile.pics.link = `https://localhost:$HTTPS_PORT${userProfile.pics.link}`;
+			if (userProfile?.pics?.link) {
+				if (userProfile.pics.link === 'default') {
+					userProfile.pics.link = '/images/default-avatar.svg';
+				} else {
+					userProfile.pics.link = `https://localhost:$HTTPS_PORT${userProfile.pics.link}`;
+				}
 			}
+			return userProfile;
+		} catch (error) {
+			if (error instanceof Error) {
+				const errorMessage = error.message.toLowerCase();
+				if (errorMessage.includes('404') || errorMessage.includes('not found')) {
+					NotificationManager.showError('User profile not found');
+					navigate('/');
+					return null;
+				}
+				if (errorMessage.includes('400') || errorMessage.includes('pattern')) {
+					NotificationManager.showError('Invalid profile ID format');
+					navigate('/');
+					return null;
+				}
+			}
+			throw error;
 		}
-		return userProfile;
 	}
 
 	/**
