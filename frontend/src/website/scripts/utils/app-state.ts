@@ -567,7 +567,6 @@ export class AppStateManager {
 		const normalizedColorHex = colorHex.toLowerCase();
 		colors[userId] = normalizedColorHex;
 		localStorage.setItem(AppStateManager.ACCENT_COLOR_STORAGE_KEY, JSON.stringify(colors));
-
 		window.dispatchEvent(new CustomEvent('user:theme-updated', {
 			detail: { userId, theme: normalizedColorHex }
 		}));

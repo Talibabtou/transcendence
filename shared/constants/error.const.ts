@@ -40,6 +40,7 @@ export enum ErrorCodes {
   //profile
   NO_FILE_PROVIDED = 'NO_FILE_PROVIDED',
   INVALID_TYPE = 'INVALID_TYPE',
+  INVALID_MULTIPART = 'INVALID_MULTIPART',
   SUMMARY_NOT_FOUND = 'SUMMARY_NOT_FOUND',
 
   //friends
@@ -107,6 +108,7 @@ export const ErrorMessages = new Map<ErrorCodes, string>([
   //profile related errors
   [ErrorCodes.NO_FILE_PROVIDED, 'No File Provided'],
   [ErrorCodes.INVALID_TYPE, 'Invalid Type'],
+  [ErrorCodes.INVALID_MULTIPART, 'Request is not multipart'],
   [ErrorCodes.SUMMARY_NOT_FOUND, 'Summary not found'],
 
   //friends
@@ -278,6 +280,12 @@ export const ErrorExamples = {
     code: ErrorCodes.INVALID_TYPE,
     error: ErrorTypes.get(415),
     message: ErrorMessages.get(ErrorCodes.INVALID_TYPE),
+  },
+  invalidMultipart: {
+    statusCode: 415,
+    code: ErrorCodes.INVALID_MULTIPART,
+    error: ErrorTypes.get(415),
+    message: ErrorMessages.get(ErrorCodes.INVALID_MULTIPART),
   },
   summaryNotFound: {
     statusCode: 404,

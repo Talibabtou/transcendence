@@ -114,6 +114,7 @@ export async function postPic(
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}/${id}`;
+    if (!request.isMultipart()) return sendError(reply, 415, ErrorCodes.INVALID_MULTIPART);
     const file: MultipartFile | undefined = await request.file();
     if (!file) return sendError(reply, 404, ErrorCodes.NO_FILE_PROVIDED);
     const verif = verifTypeFile(file);

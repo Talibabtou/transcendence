@@ -202,7 +202,7 @@ export async function postFriend(
     try {
       const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
       const response = await fetch(serviceUrl, { method: 'GET' });
-      if (response.status >= 400) sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
+      if (response.status >= 400) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
