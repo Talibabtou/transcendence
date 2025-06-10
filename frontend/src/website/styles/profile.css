@@ -863,6 +863,14 @@ input:checked + .toggle-slider:before {
 	transform: translateX(1.7rem);
 }
 
+.toggle-switch.active .toggle-slider {
+	background-color: rgb(127, 188, 113);
+}
+
+.toggle-switch.active .toggle-slider:before {
+	transform: translateX(1.7rem);
+}
+
 .toggle-description {
 	font-size: 0.875rem;
 	color: var(--text-secondary);
