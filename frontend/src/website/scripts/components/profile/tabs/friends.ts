@@ -126,7 +126,7 @@ export class ProfileFriendsComponent extends Component<ProfileFriendsState> {
 				friendsResponse.forEach(friend => {
 					if (friend.accepted) {
 						acceptedFriends.push(friend);
-					} else {
+					} else if (state.isCurrentUser) {
 						pendingPromises.push(
 							DbService.getFriendship(friend.id)
 								.then(friendshipStatus => {

@@ -592,11 +592,22 @@ export class DbService {
 	static async getFriendship(friendId: string): Promise<IReplyFriendStatus | null> {
 		const encodedFriendId = encodeURIComponent(friendId);
 		try {
-			const response = await this.fetchApi<IReplyFriendStatus>(`${SOCIAL.FRIENDS.CHECK(encodedFriendId)}`);
-			if (!response || Object.keys(response).length === 0) {
+			const token = sessionStorage.getItem('jwt_token') || localStorage.getItem('jwt_token');
+			const headers: Record<string, string> = {
+				'Content-Type': 'application/json',
+			};
+			if (token) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
+			
+			const url = `${API_PREFIX}${SOCIAL.FRIENDS.CHECK(encodedFriendId)}`;
+			const response = await fetch(url, { headers });
+			
+			if (response.status === 404) {
 				return null;
 			}
-			return response;
+			
+			return this.handleApiResponse<IReplyFriendStatus>(response);
 		} catch (error) {
 			return null;
 		}
