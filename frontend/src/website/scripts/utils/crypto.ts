@@ -195,7 +195,7 @@ export class PasswordStrengthComponent {
  */
 export function sanitizeUsername(username: string): string {
 	let sanitized = username.toLowerCase();
-	sanitized = sanitized.replace(/[^a-z0-9_-]/g, '');
+	sanitized = sanitized.replace(/[^a-z0-9._-]/g, '');
 	sanitized = sanitized.substring(0, 20);
 	return sanitized;
 }
