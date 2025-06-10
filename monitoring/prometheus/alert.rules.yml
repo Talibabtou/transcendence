@@ -11,7 +11,7 @@ groups:
       description: "The service {{ $labels.job }} at {{ $labels.instance }} is not responding."
 
   - alert: GatewayHighP99HttpLatency
-    expr: histogram_quantile(0.99, sum(rate(http_server_duration_seconds_bucket{job="gateway-service"}[5m])) by (le, job)) > 1.0
+    expr: histogram_quantile(0.99, sum(rate(http_server_duration_bucket{job="gateway-service"}[5m])) by (le, job)) > 1.0
     for: 2m
     labels:
       severity: warning
@@ -29,7 +29,7 @@ groups:
       description: 'P99 latency for {{ $labels.job }} medium DB queries is {{ $value | printf "%.0f" }}ms over the last 5 minutes.'
 
   - alert: GatewayHigh5xxErrorRate
-    expr: (sum(rate(http_server_duration_seconds_count{job="gateway-service", http_response_status_code=~"5.."}[5m])) by (job) / sum(rate(http_server_duration_seconds_count{job="gateway-service"}[5m])) by (job)) * 100 > 5 # 5% error rate
+    expr: (sum(rate(http_server_duration_count{job="gateway-service", http_status_code=~"5.."}[5m])) by (job)/sum(rate(http_server_duration_count{job="gateway-service"}[5m])) by (job)) * 100 > 5
     for: 2m
     labels:
       severity: critical
