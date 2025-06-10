@@ -1,4 +1,4 @@
-import { AuthMethod } from '@website/types';
+import { AuthComponentState, AuthMethod, AuthState, UserData } from '@website/types';
 import { ErrorCodes } from '@shared/constants/error.const';
 import { ASCII_ART, hashPassword } from '@website/scripts/utils';
 import { DbService, html, NotificationManager, VNode } from '@website/scripts/services';
@@ -316,6 +316,6 @@ export class LoginHandler {
 	 */
 	public cancelTwoFactor(): void {
 		this.clearTwoFactorSessionData();
-		this.updateState({});
+		this.updateState({ isLoading: false, currentState: AuthState.LOGIN });
 	}
 }

@@ -28,7 +28,7 @@ export class RegistrationHandler {
 				<div class="form-group">
 					<label for="username">Username:</label>
 					<input type="text" id="username" name="username" required autocomplete="off" maxlength="20" />
-					<span class="field-hint">Max 20 characters. Special characters will be removed.</span>
+					<span class="field-hint">Max 20 characters. "-", "_" and "." are allowed.</span>
 				</div>
 				
 				<div class="form-group">
