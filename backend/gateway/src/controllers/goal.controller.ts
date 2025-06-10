@@ -1,3 +1,4 @@
+import { UuidExist } from '../helper/auth.helper.js';
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
@@ -41,6 +42,11 @@ export async function createGoal(
   reply: FastifyReply
 ) {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const subpath = request.url.split('/game')[1];
     const serviceUrl = `http://${process.env.GAME_ADDR || 'localhost'}:${process.env.GAME_PORT || 8083}${subpath}`;
     const response = await fetch(serviceUrl, {

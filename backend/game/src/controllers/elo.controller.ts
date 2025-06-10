@@ -1,14 +1,14 @@
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
-import { ErrorResponse } from '../shared/types/error.type.js';
-import { IReplyUser } from '../shared/types/auth.types.js';
 import {
   recordMediumDatabaseMetrics,
   eloHistogram,
 } from '../telemetry/metrics.js';
 import { Database } from 'sqlite';
-import { Elo, DailyElo, LeaderboardEntry } from '../shared/types/elo.type.js';
+import { FastifyRequest, FastifyReply } from 'fastify';
+import { IReplyUser } from '../shared/types/auth.types.js';
+import { ErrorResponse } from '../shared/types/error.type.js';
 import { IId, GetPageQuery } from '../shared/types/match.type.js';
+import { Elo, DailyElo, LeaderboardEntry } from '../shared/types/elo.type.js';
+import { ErrorCodes, createErrorResponse } from '../shared/constants/error.const.js';
 
 /**
  * Calculates the new Elo ratings for a winner and a loser of a match.

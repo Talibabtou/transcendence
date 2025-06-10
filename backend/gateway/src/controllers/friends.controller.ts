@@ -1,7 +1,8 @@
-import { FastifyJWT } from '../shared/types/auth.types.js';
+import { UuidExist } from '../helper/auth.helper.js';
 import { IId } from '../shared/types/gateway.types.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
+import { FastifyJWT } from '../shared/types/auth.types.js';
 import { ErrorResponse } from '../shared/types/error.type.js';
 import { ErrorCodes } from '../shared/constants/error.const.js';
 import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.types.js';
@@ -17,6 +18,11 @@ import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.typ
  */
 export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}`;
     const response = await fetch(serviceUrl, { method: 'GET' });
@@ -62,6 +68,11 @@ export async function getFriendsMe(request: FastifyRequest, reply: FastifyReply)
  */
 export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}?id=${id}`;
@@ -86,6 +97,11 @@ export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, 
  */
 export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply) {
   try {
+    try{
+      if (!UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
@@ -119,6 +135,11 @@ export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: 
  */
 export async function patchFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply) {
   try {
+    try{
+      if (!UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}/${id}`;
@@ -179,6 +200,11 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
  */
 export async function deleteFriend(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const id: string = (request.user as FastifyJWT['user']).id;
     const subpath = request.url.split('/friends')[1];
     const serviceUrl = `http://${process.env.FRIENDS_ADDR || 'localhost'}:${process.env.FRIENDS_PORT || 8084}${subpath}?id=${id}`;

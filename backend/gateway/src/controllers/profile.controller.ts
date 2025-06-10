@@ -1,5 +1,6 @@
 import sharp from 'sharp';
 import { MultipartFile } from '@fastify/multipart';
+import { UuidExist } from '../helper/auth.helper.js';
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { sendError } from '../helper/friends.helper.js';
 import { FastifyJWT } from '../shared/types/auth.types.js';
@@ -20,6 +21,11 @@ import { IUpload, IId, IReplyPic, IReplySummary } from '../shared/types/profile.
  */
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
@@ -45,6 +51,11 @@ export async function getHistory(
   reply: FastifyReply
 ): Promise<void> {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });
@@ -70,6 +81,11 @@ export async function getSummary(
   reply: FastifyReply
 ): Promise<void> {
   try {
+    try{
+      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+    } catch (err) {
+      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    }
     const subpath: string = request.url.split('/profile')[1];
     const serviceUrl: string = `http://${process.env.PROFILE_ADDR || 'localhost'}:${process.env.PROFILE_PORT || 8081}${subpath}`;
     const response: Response = await fetch(serviceUrl, { method: 'GET' });

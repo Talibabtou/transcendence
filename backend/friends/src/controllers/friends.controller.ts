@@ -199,13 +199,13 @@ export async function postFriend(
     );
 		recordMediumDatabaseMetrics('SELECT', 'friends', performance.now() - startTime);
     if (friend.FriendExists) return sendError(reply, 409, ErrorCodes.FRIENDSHIP_EXISTS);
-    try {
-      const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
-      const response = await fetch(serviceUrl, { method: 'GET' });
-      if (response.status >= 400) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
-    } catch (err) {
-      return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
-    }
+    // try {
+    //   const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
+    //   const response = await fetch(serviceUrl, { method: 'GET' });
+    //   if (response.status >= 400) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
+    // } catch (err) {
+    //   return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
+    // }
 		startTime = performance.now();
     await request.server.db.run(
       'INSERT INTO friends (id_1, id_2, accepted, created_at) VALUES (?, ?, false, CURRENT_TIMESTAMP);',

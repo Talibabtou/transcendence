@@ -22,3 +22,22 @@ export function sendError(reply: FastifyReply, code: number, errorCode: ErrorCod
 export function isValidId(id: string | undefined): boolean {
   return typeof id === 'string' && id.trim().length > 0;
 }
+
+/**
+ * Checks if a UUID exists by making a GET request to an authentication service.
+ *
+ * @param id The UUID to check. Can be `string` or `undefined`.
+ * @returns `true` if the UUID exists (i.e., the service returns a status less than 400), `false` otherwise.
+ * @throws `Error` with message 'SERVICE_UNAVAILABLE' if the fetch operation fails (e.g., network error, service not reachable).
+ */
+export function UuidExist(id: string | undefined): boolean {
+  try {
+    if (id === undefined) return false;
+    const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;
+    const response = await fetch(serviceUrl, { method: 'GET' });
+    if (response.status >= 400) return false;
+    return true;
+  } catch (err) {
+    throw new Error('SERVICE_UNAVAILABLE');
+  }
+}
