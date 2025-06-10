@@ -8,7 +8,7 @@ export const matchSchema = {
     player_1: { type: 'string', format: 'uuid' },
     player_2: { type: 'string', format: 'uuid' },
     active: { type: 'boolean', default: false },
-    duration: { type: ['integer', 'null'], minimum: 0, default: null },
+    duration: { type: ['integer', 'null'], minimum: 10, default: null },
     tournament_id: {
       type: ['string', 'null'],
       default: null,
@@ -62,7 +62,7 @@ export const createMatchSchema = {
         default: null,
         format: 'uuid',
       },
-      duration: { type: ['integer', 'null'], minimum: 0, default: null },
+      duration: { type: ['integer', 'null'], minimum: 10, default: null },
     },
     required: ['player_1', 'player_2'],
   },
@@ -93,7 +93,7 @@ export const matchSummarySchema = {
       type: 'object',
       properties: {
         total_matches: { type: 'integer', minimum: 0 },
-        elo: { type: 'integer', minimum: 0 },
+        elo: { type: 'integer', minimum: 1 },
         victories: { type: 'integer', minimum: 0 },
         defeats: { type: 'integer', minimum: 0 },
       },
@@ -159,15 +159,15 @@ export const matchStatsSchema = {
         },
         goal_durations: {
           type: 'array',
-          items: { type: 'number', minimum: 0 },
+          items: { type: 'number', minimum: 1 },
         },
         match_durations: {
           type: 'array',
-          items: { type: 'number', minimum: 0 },
+          items: { type: 'number', minimum: 10 },
         },
         elo_history: {
           type: 'array',
-          items: { type: 'number', minimum: 0 },
+          items: { type: 'number', minimum: 1 },
         },
       },
       required: [
