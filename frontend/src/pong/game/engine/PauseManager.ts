@@ -92,7 +92,6 @@ export class PauseManager {
 	public resume(): void {
 		if (!this.states.has(GameState.PAUSED)) return;
 		this.states.delete(GameState.PAUSED);
-		this.pendingPauseRequest = false;
 		if (this.gameEngine && typeof this.gameEngine.resumeMatchTimer === 'function') {
 			this.gameEngine.resumeMatchTimer();
 		}
@@ -115,7 +114,6 @@ export class PauseManager {
 					this.restoreGameState();
 					this.states.delete(GameState.COUNTDOWN);
 					this.states.add(GameState.PLAYING);
-					this.pendingPauseRequest = false;
 				});
 			}
 		}
@@ -301,6 +299,16 @@ export class PauseManager {
 				this.cleanupCountdown();
 				this.isCountingDown = false;
 				setTimeout(() => {
+					if (this.pendingPauseRequest) {
+						this.pendingPauseRequest = false;
+						this.states.delete(GameState.COUNTDOWN);
+						this.states.add(GameState.PAUSED);
+						if (this.gameEngine && typeof this.gameEngine.pauseMatchTimer === 'function') {
+							this.gameEngine.pauseMatchTimer();
+						}
+						return;
+					}
+					
 					if (this.gameEngine && typeof this.gameEngine.startMatchTimer === 'function') {
 						if (this.isFirstStart || !this.gameSnapshot) {
 							this.gameEngine.startMatchTimer();
@@ -311,10 +319,6 @@ export class PauseManager {
 						this.player2.PlayerType === PlayerType.AI
 					) {
 						this.player2.calculateInitialPrediction();
-					}
-					if (this.pendingPauseRequest) {
-						this.pendingPauseRequest = false;
-						this.pause();
 					}
 				}, 50);
 			}
