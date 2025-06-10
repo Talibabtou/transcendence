@@ -43,7 +43,7 @@ export async function createGoal(
 ) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }

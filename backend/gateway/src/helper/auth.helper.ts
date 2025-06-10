@@ -30,7 +30,7 @@ export function isValidId(id: string | undefined): boolean {
  * @returns `true` if the UUID exists (i.e., the service returns a status less than 400), `false` otherwise.
  * @throws `Error` with message 'SERVICE_UNAVAILABLE' if the fetch operation fails (e.g., network error, service not reachable).
  */
-export function UuidExist(id: string | undefined): boolean {
+export async function UuidExist(id: string | undefined): Promise<boolean> {
   try {
     if (id === undefined) return false;
     const serviceUrl = `http://${process.env.AUTH_ADDR || 'localhost'}:${process.env.AUTH_PORT || 8082}/username/${id}`;

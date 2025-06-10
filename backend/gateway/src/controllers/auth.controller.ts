@@ -50,7 +50,7 @@ export async function getId(request: FastifyRequest<{ Params: IUsername }>, repl
 export async function getUsername(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -77,7 +77,7 @@ export async function getUsername(request: FastifyRequest<{ Params: IId }>, repl
 export async function getUser(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }

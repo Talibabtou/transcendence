@@ -19,7 +19,7 @@ import { IReplyGetFriend, IReplyFriendStatus } from '../shared/types/friends.typ
 export async function getFriends(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -69,7 +69,7 @@ export async function getFriendsMe(request: FastifyRequest, reply: FastifyReply)
 export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -98,7 +98,7 @@ export async function getFriendStatus(request: FastifyRequest<{ Params: IId }>, 
 export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -136,7 +136,7 @@ export async function postFriend(request: FastifyRequest<{ Body: IId }>, reply: 
 export async function patchFriend(request: FastifyRequest<{ Body: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.body.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -201,7 +201,7 @@ export async function deleteFriends(request: FastifyRequest, reply: FastifyReply
 export async function deleteFriend(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }

@@ -22,7 +22,7 @@ import { IUpload, IId, IReplyPic, IReplySummary } from '../shared/types/profile.
 export async function getPic(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply): Promise<void> {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -52,7 +52,7 @@ export async function getHistory(
 ): Promise<void> {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -82,7 +82,7 @@ export async function getSummary(
 ): Promise<void> {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }

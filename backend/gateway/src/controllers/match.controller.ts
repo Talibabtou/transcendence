@@ -46,7 +46,7 @@ export async function getMatch(request: FastifyRequest<{ Params: IMatchId }>, re
 export async function matchSummary(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -73,7 +73,7 @@ export async function matchSummary(request: FastifyRequest<{ Params: IId }>, rep
 export async function matchStats(request: FastifyRequest<{ Params: IId }>, reply: FastifyReply) {
   try {
     try{
-      if (!UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.params.id)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
@@ -103,8 +103,8 @@ export async function createMatch(
 ) {
   try {
     try{
-      if (!UuidExist(request.body.player_1)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
-      if (!UuidExist(request.body.player_2)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
+      if (! await UuidExist(request.body.player_1)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND);
+      if (! await UuidExist(request.body.player_2)) return sendError(reply, 404, ErrorCodes.PLAYER_NOT_FOUND); 
     } catch (err) {
       return sendError(reply, 503, ErrorCodes.SERVICE_UNAVAILABLE);
     }
