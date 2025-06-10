@@ -136,7 +136,7 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			<form class="auth-form guest-auth-form" novalidate onSubmit=${this.handleRegisterSubmit}>
 				<div class="form-group">
 					<label for="username">Username:</label>
-					<input pattern="^[A-Za-z0-9_]{3,}$" minlength="3" type="text" id="username" name="username" autocomplete="off" />
+					<input pattern="^[A-Za-z0-9._-]{3,}$" minlength="3" type="text" id="username" name="username" autocomplete="off" />
 				</div>
 				
 				<div class="form-group">
@@ -246,9 +246,9 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 			return;
 		}
 		
-		const usernameRegex = /^[A-Za-z0-9_]{3,}$/;
+		const usernameRegex = /^[A-Za-z0-9._-]{3,}$/;
 		if (!usernameRegex.test(username)) {
-			NotificationManager.handleErrorCode('invalid_username', 'Username must be at least 3 characters long and contain only letters, numbers, and underscores.');
+			NotificationManager.handleErrorCode('invalid_username', 'Username must be at least 3 characters long and contain only letters, numbers, dots (.), underscores (_), and hyphens (-).');
 			return;
 		}
 
@@ -311,9 +311,11 @@ export class GuestAuthComponent extends Component<GuestAuthState> implements IAu
 				
 				this.hide();
 			} else {
+				this.clearFormFields();
 				NotificationManager.handleErrorCode('login_failure', 'Invalid email or password');
 			}
 		} catch (error) {
+			this.clearFormFields();
 			if (error && typeof error === 'object' && 'code' in error) {
 				const errorCode = error.code as string;
 				if (errorCode === ErrorCodes.LOGIN_FAILURE) {

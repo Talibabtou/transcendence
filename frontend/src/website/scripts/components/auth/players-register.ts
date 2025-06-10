@@ -467,20 +467,12 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			isConnected: true
 		};
 
-		DbService.getUser(guestData.id)
-			.then(userFromDb => {
-				guestData.username = userFromDb.username || guestData.username;
-				guestData.pfp = userFromDb.pfp || guestData.pfp;
-				guestData.elo = userFromDb.elo !== undefined ? userFromDb.elo : guestData.elo;
-				return DbService.getPlayerElo(guestData.id);
-			})
-			.then(eloResponse => {
-				if (eloResponse?.elo !== undefined) guestData.elo = eloResponse.elo;
-				return DbService.getPic(guestData.id);
-			})
-			.then(picResponse => {
-				if (picResponse?.link && picResponse.link !== 'undefined') {
-					guestData.pfp = picResponse.link;
+		DbService.getUserProfile(guestData.id)
+			.then(profile => {
+				if (profile) {
+					guestData.username = profile.username || guestData.username;
+					guestData.pfp = profile.pics?.link || guestData.pfp;
+					guestData.elo = profile.summary?.elo !== undefined ? profile.summary.elo : guestData.elo;
 				}
 			})
 			.catch(error => {
