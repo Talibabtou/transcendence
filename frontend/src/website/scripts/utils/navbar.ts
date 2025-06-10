@@ -1,6 +1,7 @@
 import { ASCII_ART, appState } from '@website/scripts/utils';
-import { html, render, navigate, DbService, NotificationManager } from '@website/scripts/services';
+import { html, render, navigate, DbService, NotificationManager, Router } from '@website/scripts/services';
 import { GameManager } from '@website/scripts/components'; 
+import { Route } from '@website/types';
 
 /**
  * Custom event declarations for TypeScript
@@ -63,6 +64,12 @@ export class NavbarComponent {
 			
 			const handleLinkClick = (e: Event, path: string) => {
 				e.preventDefault();
+				
+				const currentPath = window.location.pathname;
+				if (!GameManager.getInstance().isMainGameActive() && (path === '/' || path === '/game') && (currentPath === '/' || currentPath === '/game') && currentPath !== path) {
+					Router.forceRecreateComponent(Route.GAME);
+				}
+				
 				navigate(path);
 			};
 			
