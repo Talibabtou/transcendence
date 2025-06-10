@@ -61,26 +61,17 @@ export class PlayersRegisterComponent extends Component<PlayersRegisterState> {
 			elo: 0
 		};
 
-		DbService.getUser(hostId)
-			.then(userFromDb => {
-				hostData.username = userFromDb.username || hostData.username;
-				hostData.pfp = userFromDb.pfp || hostData.pfp;
-				hostData.elo = userFromDb.elo !== undefined ? userFromDb.elo : hostData.elo;
-				return DbService.getPlayerElo(hostId);
-			})
-			.then(eloResponse => {
-				if (eloResponse?.elo !== undefined) hostData.elo = eloResponse.elo;
-				return DbService.getPic(hostId);
-			})
-			.then(picResponse => {
-				if (picResponse?.link && picResponse.link !== 'undefined') {
-					hostData.pfp = picResponse.link;
+		DbService.getUserProfile(hostId)
+			.then(profile => {
+				if (profile) {
+					hostData.username = profile.username || hostData.username;
+					hostData.pfp = profile.pics?.link || hostData.pfp;
+					hostData.elo = profile.summary?.elo !== undefined ? profile.summary.elo : hostData.elo;
 				}
 			})
 			.catch(error => {
 				if (error && typeof error === 'object' && 'code' in error && 
 					error.code === ErrorCodes.PICTURE_NOT_FOUND) {
-					// Ignore picture not found error
 				} else {
 					NotificationManager.handleError(error);
 					this.handleBack();

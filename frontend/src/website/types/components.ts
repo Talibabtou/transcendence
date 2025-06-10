@@ -1,4 +1,4 @@
-import { IReplyGetFriend } from '@shared/types/friends.types';
+import { IReplyGetFriend, IReplyFriendStatus } from '@shared/types/friends.types';
 import { UserProfile, LeaderboardEntry, PlayerData, AccentColor, GameMode } from '@website/types';
 import { Friend } from '@website/scripts/components/profile/tabs/friends';
 
@@ -23,7 +23,7 @@ export interface ProfileState {
 	};
 	matchesCache: Map<number, ProcessedMatch>;
 	currentProfileId: string | null;
-	friendshipStatus?: boolean;
+	friendshipStatus?: IReplyFriendStatus | null;
 	pendingFriends: IReplyGetFriend[];
 	isUserOnline?: boolean;
 }

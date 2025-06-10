@@ -34,7 +34,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			},
 			matchesCache: new Map(),
 			currentProfileId: null,
-			friendshipStatus: undefined,
+			friendshipStatus: null,
 			pendingFriends: [],
 			isUserOnline: false
 		});
@@ -183,7 +183,7 @@ export class ProfileComponent extends Component<ProfileState> {
 			isLoading: false,
 			activeTab: 'stats',
 			currentProfileId: null,
-			friendshipStatus: undefined,
+			friendshipStatus: null,
 			pendingFriends: [],
 			matchesCache: new Map(),
 			isUserOnline: false
@@ -473,7 +473,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				);
 			}
 			
-			let friendshipStatus = undefined;
+			let friendshipStatus = null;
 			if (!isOwnProfile) {
 				additionalDataPromises.push(
 					DbService.getFriendship(userId)
@@ -623,7 +623,7 @@ export class ProfileComponent extends Component<ProfileState> {
 				friendButton.textContent = 'Pending';
 				friendButton.classList.add('pending', 'request-sent');
 				friendButton.classList.remove('is-friend');
-			} else {
+			} else if (newStatus.status === true) {
 				friendButton.textContent = 'Already Friends';
 				friendButton.classList.add('is-friend');
 				friendButton.classList.remove('pending', 'request-sent');
@@ -738,11 +738,11 @@ export class ProfileComponent extends Component<ProfileState> {
 			let friendButtonText = 'Add Friend';
 			let friendButtonClass = 'friend-button tab-button';
 			
-			if (state.friendshipStatus !== undefined) {
-				if (state.friendshipStatus === false) {
+			if (state.friendshipStatus !== null) {
+				if (state.friendshipStatus.status === false) {
 					friendButtonText = 'Pending';
 					friendButtonClass += ' pending request-sent';
-				} else if (state.friendshipStatus === true) {
+				} else if (state.friendshipStatus.status === true) {
 					friendButtonText = 'Already Friends';
 					friendButtonClass += ' is-friend';
 				}
