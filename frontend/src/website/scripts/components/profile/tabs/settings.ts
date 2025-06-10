@@ -332,13 +332,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			const picResponse = await DbService.getPic(state.profile.id);
 			
 			if (picResponse?.link) {
-				this.updateInternalState({
-					isUploading: false,
-					uploadSuccess: true,
-					profile: { ...state.profile, avatarUrl: picResponse.link }
-				});
-				
-				if (this.onProfileUpdate) this.onProfileUpdate({ pfp: picResponse.link });
+				this.updateProfilePicture(picResponse.link);
 			} else {
 				this.updateInternalState({ isUploading: false, uploadSuccess: true });
 			}
@@ -349,13 +343,7 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				try {
 					const picResponse = await DbService.getPic(state.profile.id);
 					if (picResponse?.link) {
-						this.updateInternalState({
-							isUploading: false,
-							uploadSuccess: true,
-							profile: { ...state.profile, avatarUrl: picResponse.link }
-						});
-						
-						if (this.onProfileUpdate) this.onProfileUpdate({ pfp: picResponse.link });
+						this.updateProfilePicture(picResponse.link);
 					} else {
 						this.updateInternalState({ isUploading: false, uploadSuccess: true });
 					}
@@ -392,6 +380,38 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			return true;
 		} catch (error) {
 			return false;
+		}
+	}
+
+	private updateProfilePicture(newPicUrl: string): void {
+		const state = this.getInternalState();
+		if (!state.profile) return;
+		
+		const timestamp = Date.now();
+		const cacheBustUrl = newPicUrl.includes('?') 
+			? `${newPicUrl}&t=${timestamp}` 
+			: `${newPicUrl}?t=${timestamp}`;
+		
+		const currentPicImg = this.container.querySelector('.current-picture img');
+		if (currentPicImg) {
+			(currentPicImg as HTMLImageElement).src = cacheBustUrl;
+		}
+		
+		this.updateInternalState({
+			profile: { ...state.profile, avatarUrl: cacheBustUrl },
+			isUploading: false,
+			uploadSuccess: true
+		});
+		
+		appState.setPlayerAvatar(state.profile.id, cacheBustUrl);
+		
+		if (this.onProfileUpdate) {
+			this.onProfileUpdate({ pfp: cacheBustUrl });
+		}
+		
+		const profileImg = this.container.closest('.profile-container')?.querySelector('.profile-avatar img');
+		if (profileImg) {
+			(profileImg as HTMLImageElement).src = cacheBustUrl;
 		}
 	}
 
@@ -566,9 +586,11 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 			} else {
 				await DbService.disable2FA();
 				NotificationManager.showSuccess('Two-factor authentication disabled');
+				
 				this.updateInternalState({
 					profile: { ...state.profile, twoFactorEnabled: false }
 				});
+				
 				if (toggleContainer) toggleContainer.classList.remove('active');
 			}
 		} catch (error) {
@@ -669,16 +691,16 @@ export class ProfileSettingsComponent extends Component<ProfileSettingsState> {
 				profile: { ...this.getInternalState().profile!, twoFactorEnabled: true }
 			});
 			
+			const popupOverlay = document.querySelector('.popup-overlay');
+			if (popupOverlay && popupOverlay.parentNode) {
+				popupOverlay.parentNode.removeChild(popupOverlay);
+			}
+			
 			const toggle = document.getElementById('twofa-toggle') as HTMLInputElement;
 			const toggleContainer = toggle?.closest('.toggle-switch');
 			if (toggle && toggleContainer) {
 				toggle.checked = true;
 				toggleContainer.classList.add('active');
-			}
-			
-			const popupOverlay = document.querySelector('.popup-overlay');
-			if (popupOverlay && popupOverlay.parentNode) {
-				popupOverlay.parentNode.removeChild(popupOverlay);
 			}
 		} catch (error) {
 			NotificationManager.showError('Failed to verify 2FA code');
